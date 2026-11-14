@@ -1,0 +1,120 @@
+.prueba {
+  --fondo: #0b0d12;
+  --panel: #131722;
+  --borde: #232a3a;
+  --texto: #e8ecf4;
+  --tenue: #8d97ad;
+  --acento: #7aa2ff;
+  --error: #ff7a7a;
+  min-height: 100dvh;
+  padding: 24px 16px 48px;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.prueba header { max-width: 1040px; margin: 0 auto 20px; }
+.prueba h1 { font-size: 1.5rem; font-weight: 600; }
+.prueba h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; }
+.ayuda { color: var(--tenue); font-size: 0.9rem; }
+.error { color: var(--error); font-size: 0.9rem; margin-top: 8px; }
+.tiempos { color: var(--tenue); font-size: 0.8rem; margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+.paneles {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 820px) { .paneles { grid-template-columns: 1fr 1fr; } }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 460px;
+}
+
+.prueba input {
+  background: #0d1019;
+  border: 1px solid var(--borde);
+  color: var(--texto);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font: inherit;
+  min-width: 0;
+}
+.prueba input:focus-visible, .prueba button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.prueba button { font: inherit; cursor: pointer; }
+.prueba button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.acceso {
+  max-width: 360px;
+  margin: 18vh auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.acceso button, .chat-form button {
+  background: var(--acento);
+  color: #0b1020;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-weight: 600;
+}
+
+/* Voz */
+.orbe {
+  --nivel: 0;
+  position: relative;
+  align-self: center;
+  margin: 22px 0 12px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 1px solid var(--borde);
+  background: radial-gradient(circle at 50% 40%, #1c2640, #10141f);
+  color: var(--texto);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  transition: border-color 0.2s;
+}
+.orbe-texto { position: relative; z-index: 1; font-size: 0.9rem; text-align: center; line-height: 1.3; }
+.orbe-aro {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--acento);
+  opacity: 0;
+  transform: scale(calc(1 + var(--nivel) * 0.25));
+  transition: transform 0.08s linear, opacity 0.2s;
+}
+.orbe.escuchando { border-color: var(--acento); }
+.orbe.escuchando .orbe-aro { opacity: 0.8; }
+.orbe.pensando .orbe-aro { opacity: 0.6; animation: gira 1s linear infinite; border-style: dashed; }
+.orbe.hablando { border-color: #5ad6a0; }
+.orbe.hablando .orbe-aro { opacity: 0.7; border-color: #5ad6a0; animation: late 1.1s ease-in-out infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+@keyframes late { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .orbe-aro { animation: none !important; transition: none; } }
+
+.enlace { align-self: center; background: none; border: 0; color: var(--tenue); text-decoration: underline; font-size: 0.85rem; }
+
+.log { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 260px; }
+.log li { font-size: 0.92rem; }
+.log li b { color: var(--tenue); font-weight: 600; margin-right: 6px; }
+.log li.ia b { color: #5ad6a0; }
+
+/* Chat */
+.chat-hilo { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 12px 0; max-height: 380px; min-height: 240px; }
+.burbuja { max-width: 85%; padding: 9px 13px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.burbuja.user { align-self: flex-end; background: #223056; }
+.burbuja.assistant { align-self: flex-start; background: #1a2030; border: 1px solid var(--borde); }
+.burbuja.pensando { color: var(--tenue); }
+.chat-form { display: flex; gap: 8px; }
+.chat-form input { flex: 1; }
