@@ -1,0 +1,77 @@
+name: deploy
+
+# Producción: https://signal-horizon.goberna.us (VPS2, runner self-hosted dedicado).
+# Solo dispara con el CI en verde sobre main, o a mano. Jamás por pull_request:
+# el repo es público y este runner vive dentro del servidor.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-horizon-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, horizon-signai]
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    env:
+      DEPLOY_DIR: /srv/horizon-signai
+      COMPOSE: docker-compose.prod.yml
+      URL: https://signal-horizon.goberna.us
+      GIT_TOKEN: ${{ github.token }}
+    steps:
+      - name: Desplegar con verificación y rollback
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_DIR"
+
+          if [ ! -d .git ]; then
+            git init --quiet
+            git remote add origin https://github.com/${{ github.repository }}.git
+            ANTERIOR=""
+          else
+            ANTERIOR="$(git rev-parse HEAD)"
+          fi
+          git fetch --quiet "https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }}.git" main
+          git reset --hard --quiet FETCH_HEAD
+          echo "· commit: $(git rev-parse --short HEAD)"
+
+          volver() {
+            echo "✖ $1"
+            if [ -n "$ANTERIOR" ]; then
+              git reset --hard --quiet "$ANTERIOR"
+              docker compose -f "$COMPOSE" up -d --build
+              echo "· vuelto a $ANTERIOR"
+            fi
+            exit 1
+          }
+
+          docker compose -f "$COMPOSE" up -d --build || volver "falló build/up"
+
+          SANO=0
+          for i in $(seq 1 30); do
+            estado="$(docker inspect -f '{{.State.Health.Status}}' horizon_signai_app 2>/dev/null || echo desconocido)"
+            [ "$estado" = "healthy" ] && { SANO=1; break; }
+            sleep 3
+          done
+          [ "$SANO" -eq 1 ] || { docker compose -f "$COMPOSE" logs --tail 40 app || true; volver "el contenedor no llegó a healthy"; }
+
+          # Verificación pública: depende del DNS + certificado de signal-horizon.goberna.us
+          OK=0
+          for i in $(seq 1 10); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' -m 15 "$URL/api/health" || echo 000)" = "200" ] && { OK=1; break; }
+            sleep 3
+          done
+          [ "$OK" -eq 1 ] || volver "$URL/api/health no respondió 200"
+
+          docker image prune -f >/dev/null 2>&1 || true
+          echo "✔ deploy completo"
