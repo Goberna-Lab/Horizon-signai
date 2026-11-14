@@ -1,0 +1,32 @@
+[Unit]
+Description=Horizon voz — Qwen3-TTS «Ryan» (GPU) y faster-whisper en inglés (CPU) para el chat de voz de Horizon
+# Servicio de USUARIO (systemctl --user) de manolito en Geografo: ~/.config/systemd/user/.
+# Escucha solo en la IP del tailnet; necesita `loginctl enable-linger manolito` para arrancar sin sesión.
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/.local/share/horizon-voz/src
+ExecStart=%h/.local/share/horizon-voz/venv/bin/python -I %h/.local/share/horizon-voz/src/servidor.py
+Environment=HVOZ_IP=100.117.204.80
+Environment=HVOZ_PUERTO=8796
+Environment=HVOZ_TOKEN_ARCHIVO=%h/.config/horizon-voz/token
+Environment=HVOZ_VOZ=Ryan
+Environment=HVOZ_IDIOMA=English
+Environment=HVOZ_DTYPE=float32
+Environment=HVOZ_MODELO_TTS=%h/.local/share/horizon-voz/modelos/qwen3-tts-0.6b-customvoice
+Environment=HVOZ_MODELO_STT=%h/.local/share/horizon-voz/modelos/faster-whisper-small.en
+Environment=HVOZ_HILOS_STT=4
+Environment=HF_HOME=%h/.local/share/horizon-voz/cache
+Environment=HF_HUB_OFFLINE=1
+# librosa (vía qwen-tts) compila con numba y cachea; que no lo haga junto al código
+Environment=NUMBA_CACHE_DIR=%h/.local/share/horizon-voz/cache/numba
+Environment=PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+Environment=OMP_NUM_THREADS=4
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=15
+Nice=10
+MemoryMax=8G
+
+[Install]
+WantedBy=default.target

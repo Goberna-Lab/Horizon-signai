@@ -11,13 +11,20 @@ const textoUrl = () => process.env.TEXTO_URL ?? "http://100.117.204.80:11434"
 const textoModelo = () => process.env.TEXTO_MODELO ?? "qwen3:8b"
 const TIMEOUT_MS = Number(process.env.Z6_TIMEOUT_MS ?? 120_000)
 const MAX_BYTES = 64 * 1024
-// Servicio de voz de la Z6 (argus-voz: oír y hablar, en la CPU). Mismo patrón que Ollama.
-const vozUrl = () => process.env.VOZ_URL ?? "http://100.82.117.21:8795"
+// Voz del chat. Con HVOZ_URL: horizon-voz en Geografo (inglés, Qwen3-TTS «Ryan» en GPU + whisper
+// small.en en CPU; ver voz/LEEME.md). Sin ella: argus-voz de Ivi en la Z6 (español, Piper), de respaldo.
+type ServicioVoz = { url: string; token?: string; idioma: "en" | "es" }
+const servicioVoz = (): ServicioVoz =>
+  process.env.HVOZ_URL
+    ? { url: process.env.HVOZ_URL, token: process.env.HVOZ_TOKEN, idioma: "en" }
+    : { url: process.env.VOZ_URL ?? "http://100.82.117.21:8795", token: process.env.VOZ_TOKEN, idioma: "es" }
 const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
+const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/chat", "/transcribir", "/hablar"])
-const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 45) // un turno de voz son 3
+const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz"])
+// Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
+const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
 let enVuelo = 0
 const ventanas = new Map<string, number[]>()
@@ -41,9 +48,15 @@ const dejaPasar = (ip: string) => {
 
 const SISTEMA_CHAT =
   "Eres el asistente de prueba de Horizon Signai. Respondes en español, claro y directo."
-const SISTEMA_VOZ =
-  "Eres el asistente de voz de Horizon Signai. Estás hablando en voz alta: responde en español, " +
-  "en una a tres frases cortas, sin listas, sin markdown, sin emojis y sin símbolos raros."
+const SISTEMA_VOZ: Record<ServicioVoz["idioma"], string> = {
+  es:
+    "Eres el asistente de voz de Horizon Signai. Estás hablando en voz alta: responde en español, " +
+    "en una a tres frases cortas, sin listas, sin markdown, sin emojis y sin símbolos raros.",
+  en:
+    "You are the Horizon Signai voice assistant. You are speaking out loud: always answer in English, " +
+    "in one to three short sentences, with no lists, no markdown, no emojis and no special symbols. " +
+    "Write numbers as words when they are short.",
+}
 
 type Mensaje = { role: "user" | "assistant"; content: string }
 
@@ -54,6 +67,17 @@ const paraHablar = (t: string) => {
   const corte = limpio.slice(0, MAX_TTS)
   const fin = Math.max(corte.lastIndexOf(". "), corte.lastIndexOf("? "), corte.lastIndexOf("! "))
   return fin > 100 ? corte.slice(0, fin + 1) : corte
+}
+
+// Historial que manda el navegador: solo roles válidos, los últimos 20, cada uno ≤ 4000 caracteres.
+const limpiarMensajes = (cuerpo: unknown): Mensaje[] | null => {
+  const crudos = (cuerpo as { messages?: unknown } | null)?.messages
+  if (!Array.isArray(crudos)) return null
+  const msgs = (crudos as Mensaje[])
+    .filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string")
+    .slice(-20)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }))
+  return msgs.length && msgs[msgs.length - 1].role === "user" ? msgs : null
 }
 
 const preguntar = async (mensajes: Mensaje[], voz: boolean) => {
@@ -67,7 +91,7 @@ const preguntar = async (mensajes: Mensaje[], voz: boolean) => {
       model: modelo,
       stream: false,
       think: false,
-      messages: [{ role: "system", content: voz ? SISTEMA_VOZ : SISTEMA_CHAT }, ...mensajes],
+      messages: [{ role: "system", content: voz ? SISTEMA_VOZ[servicioVoz().idioma] : SISTEMA_CHAT }, ...mensajes],
     }),
   })
   if (!r.ok) throw new Error(`${voz ? "Z6" : "Geografo"} respondió ${r.status}`)
@@ -158,12 +182,8 @@ export const z6 = new Hono()
   // Conversación: recibe el historial completo (el cliente lo guarda) y devuelve la respuesta.
   .post("/chat", async (c) => {
     const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; voz?: boolean } | null
-    const msgs = (cuerpo?.messages ?? [])
-      .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-      .slice(-20)
-      .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }))
-    if (!msgs.length || msgs[msgs.length - 1].role !== "user")
-      return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
+    const msgs = limpiarMensajes(cuerpo)
+    if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
     const t = performance.now()
     try {
       const r = await preguntar(msgs, cuerpo?.voz === true)
@@ -172,23 +192,104 @@ export const z6 = new Hono()
       return c.json({ ok: false, error: `No se pudo contactar a la IA: ${String(e)}` }, 502)
     }
   })
+  // Chat de texto en streaming (Geografo): devuelve el texto en trozos a medida que se genera.
+  // El modelo y el equipo viajan en cabeceras; un error a mitad llega como línea final «\n[error] …».
+  .post("/chat/stream", async (c) => {
+    const msgs = limpiarMensajes(await c.req.json().catch(() => null))
+    if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
+    const modelo = textoModelo()
+    let r: Response
+    try {
+      r = await fetch(`${textoUrl()}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        body: JSON.stringify({
+          model: modelo,
+          stream: true,
+          think: false,
+          messages: [{ role: "system", content: SISTEMA_CHAT }, ...msgs],
+        }),
+      })
+    } catch (e) {
+      return c.json({ ok: false, error: `No se pudo contactar a la IA: ${String(e)}` }, 502)
+    }
+    if (!r.ok || !r.body) return c.json({ ok: false, error: `Geografo respondió ${r.status}` }, 502)
+
+    const lector = r.body.getReader()
+    const dec = new TextDecoder()
+    const enc = new TextEncoder()
+    let resto = ""
+    const salida = new ReadableStream<Uint8Array>({
+      // Lee hasta tener texto que entregar o hasta el final: un pull que no encola nada
+      // no vuelve a ser llamado y el stream quedaría colgado (pasa con la línea final done:true).
+      async pull(ctl) {
+        try {
+          for (;;) {
+            const { done, value } = await lector.read()
+            if (done) return ctl.close()
+            resto += dec.decode(value, { stream: true })
+            const lineas = resto.split("\n")
+            resto = lineas.pop() ?? ""
+            let texto = ""
+            let fin = false
+            for (const l of lineas) {
+              if (!l.trim()) continue
+              const d = JSON.parse(l) as { message?: { content?: string }; error?: string; done?: boolean }
+              if (d.error) texto += `\n[error] ${d.error}`
+              texto += d.message?.content ?? ""
+              if (d.done) fin = true
+            }
+            if (texto) ctl.enqueue(enc.encode(texto))
+            if (fin) {
+              void lector.cancel()
+              return ctl.close()
+            }
+            if (texto) return
+          }
+        } catch (e) {
+          ctl.enqueue(enc.encode(`\n[error] ${String(e)}`))
+          ctl.close()
+        }
+      },
+      cancel: () => lector.cancel(),
+    })
+    return new Response(salida, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no", // que nginx no acumule el stream
+        "X-Modelo": modelo,
+        "X-Equipo": "Geografo",
+      },
+    })
+  })
+  // Qué voz atiende ahora (la página lo muestra y decide el idioma de sus textos).
+  .get("/voz", (c) => {
+    const v = servicioVoz()
+    return c.json(
+      v.idioma === "en"
+        ? { idioma: "en", voz: "Ryan", motor: "Qwen3-TTS 0.6B", equipo: "Geografo" }
+        : { idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" },
+    )
+  })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.
   .post("/transcribir", async (c) => {
-    const token = process.env.VOZ_TOKEN
-    if (!token) return c.json({ ok: false, error: "VOZ_TOKEN sin configurar" }, 503)
+    const voz = servicioVoz()
+    if (!voz.token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const audio = await c.req.arrayBuffer()
     if (!audio.byteLength || audio.byteLength > MAX_AUDIO)
       return c.json({ ok: false, error: "Audio vacío o mayor a 5 MB" }, 413)
     try {
-      const r = await fetch(`${vozUrl()}/v1/transcribir`, {
+      const r = await fetch(`${voz.url}/v1/transcribir`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${voz.token}`,
           "Content-Type": c.req.header("content-type") ?? "audio/webm",
-          "X-Idioma": "es",
+          "X-Idioma": voz.idioma,
         },
         body: audio,
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
       })
       if (!r.ok) return c.json({ ok: false, error: `Voz respondió ${r.status}` }, 502)
       const d = (await r.json()) as { texto?: string; ms?: number }
@@ -199,17 +300,18 @@ export const z6 = new Hono()
   })
   // Boca: texto → audio/wav.
   .post("/hablar", async (c) => {
-    const token = process.env.VOZ_TOKEN
-    if (!token) return c.json({ ok: false, error: "VOZ_TOKEN sin configurar" }, 503)
+    const voz = servicioVoz()
+    if (!voz.token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const cuerpo = (await c.req.json().catch(() => null)) as { texto?: string } | null
     const texto = paraHablar(cuerpo?.texto ?? "")
     if (!texto) return c.json({ ok: false, error: "texto vacío" }, 400)
     try {
-      const r = await fetch(`${vozUrl()}/v1/hablar`, {
+      const r = await fetch(`${voz.url}/v1/hablar`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ texto, voz: "es-ivi" }),
-        signal: AbortSignal.timeout(30_000),
+        headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
+        // horizon-voz usa su voz por defecto (Ryan); argus-voz necesita la suya.
+        body: JSON.stringify(voz.idioma === "en" ? { texto } : { texto, voz: "es-ivi" }),
+        signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
       })
       if (!r.ok) return c.json({ ok: false, error: `Voz respondió ${r.status}` }, 502)
       return new Response(await r.arrayBuffer(), { headers: { "Content-Type": "audio/wav" } })

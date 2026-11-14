@@ -1,0 +1,8 @@
+qwen-tts
+faster-whisper
+# faster-whisper 1.2 usa av.open(metadata_errors=...), que PyAV 16+ quitó
+av>=11,<16
+fastapi
+uvicorn
+soundfile
+numpy
