@@ -7,7 +7,7 @@ export function PruebaIa() {
     <main className="prueba">
       <header>
         <h1>Prueba de IA</h1>
-        <p className="ayuda">VPS2 → Z6 por Tailscale · modelo qwen3.6:27b</p>
+        <p className="ayuda">Voz: Z6 (qwen3.6:27b) · Texto: Geografo (ivi-ventas, 8B) · vía Tailscale</p>
       </header>
       <div className="paneles">
         <Voz />

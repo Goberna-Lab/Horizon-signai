@@ -5,6 +5,10 @@ import type { Z6Respuesta } from "@horizon-signai/shared"
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
 const z6Url = () => process.env.Z6_URL ?? "http://100.82.117.21:11434"
 const z6Modelo = () => process.env.Z6_MODELO ?? "qwen3.6:27b"
+// El chat de TEXTO corre en Geografo (A4000, 16 GB): ahí cabe un modelo de ~8B en GPU.
+// La conversación por VOZ se queda en la Z6, que mide 8× más en el 27B.
+const textoUrl = () => process.env.TEXTO_URL ?? "http://100.117.204.80:11434"
+const textoModelo = () => process.env.TEXTO_MODELO ?? "ivi-ventas:latest"
 const TIMEOUT_MS = Number(process.env.Z6_TIMEOUT_MS ?? 120_000)
 const MAX_BYTES = 64 * 1024
 // Servicio de voz de la Z6 (argus-voz: oír y hablar, en la CPU). Mismo patrón que Ollama.
@@ -53,20 +57,22 @@ const paraHablar = (t: string) => {
 }
 
 const preguntar = async (mensajes: Mensaje[], voz: boolean) => {
-  const r = await fetch(`${z6Url()}/api/chat`, {
+  const url = voz ? z6Url() : textoUrl()
+  const modelo = voz ? z6Modelo() : textoModelo()
+  const r = await fetch(`${url}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
     body: JSON.stringify({
-      model: z6Modelo(),
+      model: modelo,
       stream: false,
       think: false,
       messages: [{ role: "system", content: voz ? SISTEMA_VOZ : SISTEMA_CHAT }, ...mensajes],
     }),
   })
-  if (!r.ok) throw new Error(`Z6 respondió ${r.status}`)
+  if (!r.ok) throw new Error(`${voz ? "Z6" : "Geografo"} respondió ${r.status}`)
   const d = (await r.json()) as { message?: { content?: string } }
-  return d.message?.content ?? ""
+  return { respuesta: d.message?.content ?? "", modelo, equipo: voz ? "Z6" : "Geografo" }
 }
 
 const igual = (a: string, b: string) => {
@@ -160,10 +166,10 @@ export const z6 = new Hono()
       return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
     const t = performance.now()
     try {
-      const respuesta = await preguntar(msgs, cuerpo?.voz === true)
-      return c.json({ ok: true, modelo: z6Modelo(), respuesta, ms: Math.round(performance.now() - t) })
+      const r = await preguntar(msgs, cuerpo?.voz === true)
+      return c.json({ ok: true, ...r, ms: Math.round(performance.now() - t) })
     } catch (e) {
-      return c.json({ ok: false, error: `No se pudo hablar con la Z6: ${String(e)}` }, 502)
+      return c.json({ ok: false, error: `No se pudo contactar a la IA: ${String(e)}` }, 502)
     }
   })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.

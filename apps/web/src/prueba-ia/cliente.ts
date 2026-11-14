@@ -15,7 +15,7 @@ export const chat = async (messages: Mensaje[], voz: boolean) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages, voz }),
   })
-  return (await r.json()) as { respuesta: string; ms: number; modelo: string }
+  return (await r.json()) as { respuesta: string; ms: number; modelo: string; equipo: string }
 }
 
 export const transcribir = async (audio: Blob) => {

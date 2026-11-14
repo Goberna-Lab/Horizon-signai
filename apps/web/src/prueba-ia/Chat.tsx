@@ -7,6 +7,7 @@ export function Chat() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState("")
   const [ms, setMs] = useState(0)
+  const [origen, setOrigen] = useState("")
   const fin = useRef<HTMLDivElement>(null)
 
   // Con llaves: un efecto no debe devolver nada que no sea su limpieza (React 19 lo trata como función).
@@ -27,6 +28,7 @@ export function Chat() {
       const r = await chat(siguiente, false)
       setMensajes([...siguiente, { role: "assistant", content: r.respuesta }])
       setMs(r.ms)
+      setOrigen(`${r.equipo} · ${r.modelo}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -48,7 +50,7 @@ export function Chat() {
         <div ref={fin} />
       </div>
       {error && <p className="error">{error}</p>}
-      {ms > 0 && <p className="tiempos">última respuesta en {(ms / 1000).toFixed(1)} s</p>}
+      {ms > 0 && <p className="tiempos">{origen} · {(ms / 1000).toFixed(1)} s</p>}
       <form className="chat-form" onSubmit={enviar}>
         <input
           value={texto}
