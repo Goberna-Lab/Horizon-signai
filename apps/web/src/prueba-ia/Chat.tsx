@@ -9,7 +9,10 @@ export function Chat() {
   const [ms, setMs] = useState(0)
   const fin = useRef<HTMLDivElement>(null)
 
-  useEffect(() => fin.current?.scrollIntoView({ behavior: "smooth" }), [mensajes, cargando])
+  // Con llaves: un efecto no debe devolver nada que no sea su limpieza (React 19 lo trata como función).
+  useEffect(() => {
+    fin.current?.scrollIntoView({ behavior: "smooth" })
+  }, [mensajes, cargando])
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
