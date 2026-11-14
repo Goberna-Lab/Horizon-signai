@@ -5,10 +5,10 @@ import type { Z6Respuesta } from "@horizon-signai/shared"
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
 const z6Url = () => process.env.Z6_URL ?? "http://100.82.117.21:11434"
 const z6Modelo = () => process.env.Z6_MODELO ?? "qwen3.6:27b"
-// El chat de TEXTO corre en Geografo (A4000, 16 GB): ahí cabe un modelo de ~8B en GPU.
+// El chat de TEXTO corre en Geografo (A4000, 16 GB): ahí cabe un modelo de ~8B entero en GPU.
 // La conversación por VOZ se queda en la Z6, que mide 8× más en el 27B.
 const textoUrl = () => process.env.TEXTO_URL ?? "http://100.117.204.80:11434"
-const textoModelo = () => process.env.TEXTO_MODELO ?? "ivi-ventas:latest"
+const textoModelo = () => process.env.TEXTO_MODELO ?? "qwen3:8b"
 const TIMEOUT_MS = Number(process.env.Z6_TIMEOUT_MS ?? 120_000)
 const MAX_BYTES = 64 * 1024
 // Servicio de voz de la Z6 (argus-voz: oír y hablar, en la CPU). Mismo patrón que Ollama.
