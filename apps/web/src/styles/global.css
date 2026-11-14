@@ -1,0 +1,25 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.app-root {
+  min-height: 100%;
+}
+
+.screen {
+  position: relative;
+  min-height: 100dvh;
+}
+
+.scene-canvas {
+  position: absolute;
+  inset: 0;
+}
