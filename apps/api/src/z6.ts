@@ -12,6 +12,29 @@ const vozUrl = () => process.env.VOZ_URL ?? "http://100.82.117.21:8795"
 const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
 
+const PUBLICAS = new Set(["/chat", "/transcribir", "/hablar"])
+const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 45) // un turno de voz son 3
+const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
+let enVuelo = 0
+const ventanas = new Map<string, number[]>()
+
+// Detrás del proxy de Hestia: la IP real llega en X-Real-IP; si no, la última de X-Forwarded-For.
+const ipDe = (h: Headers) =>
+  h.get("x-real-ip") ?? h.get("x-forwarded-for")?.split(",").pop()?.trim() ?? "desconocida"
+
+const dejaPasar = (ip: string) => {
+  const ahora = Date.now()
+  const recientes = (ventanas.get(ip) ?? []).filter((t) => ahora - t < 60_000)
+  if (recientes.length >= MAX_POR_MINUTO) {
+    ventanas.set(ip, recientes)
+    return false
+  }
+  recientes.push(ahora)
+  ventanas.set(ip, recientes)
+  if (ventanas.size > 5000) for (const [k, v] of ventanas) if (!v.some((t) => ahora - t < 60_000)) ventanas.delete(k)
+  return true
+}
+
 const SISTEMA_CHAT =
   "Eres el asistente de prueba de Horizon Signai. Respondes en español, claro y directo."
 const SISTEMA_VOZ =
@@ -53,8 +76,22 @@ const igual = (a: string, b: string) => {
 }
 
 export const z6 = new Hono()
-  // El dominio es público y esto gasta la GPU de la Z6: sin API_TOKEN configurado, cerrado.
+  // Rutas de la página /prueba-ia: abiertas, pero con tope por IP y de peticiones simultáneas.
+  // El resto (POST / y /ping) exige API_TOKEN: el dominio es público y esto gasta la GPU de la Z6.
   .use("*", async (c, next) => {
+    const ruta = new URL(c.req.url).pathname.replace(/^\/api\/z6/, "") || "/"
+    if (PUBLICAS.has(ruta)) {
+      if (!dejaPasar(ipDe(c.req.raw.headers))) {
+        return c.json({ ok: false, error: "Demasiadas peticiones, espera un momento" }, 429)
+      }
+      if (enVuelo >= MAX_EN_VUELO) return c.json({ ok: false, error: "La IA está ocupada, reintenta" }, 503)
+      enVuelo++
+      try {
+        return await next()
+      } finally {
+        enVuelo--
+      }
+    }
     const token = process.env.API_TOKEN
     if (!token) return c.json({ ok: false, error: "API_TOKEN sin configurar" }, 503)
     const dado = (c.req.header("authorization") ?? "").replace(/^Bearer /, "")
