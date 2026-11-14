@@ -4,6 +4,10 @@ services:
     image: horizon-signai:latest
     container_name: horizon_signai_app
     restart: unless-stopped
+    # Z6_URL, Z6_MODELO y API_TOKEN viven en /srv/horizon-signai/.env (no versionado)
+    env_file:
+      - path: .env
+        required: false
     # Solo loopback: el vhost de Hestia (signal-horizon.goberna.us) hace proxy a :7083
     ports:
       - "127.0.0.1:7083:3000"
