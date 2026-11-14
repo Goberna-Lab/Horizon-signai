@@ -1,0 +1,7 @@
+# Datos binarios del prototipo luna: no convertir finales de línea.
+datos/*.i16 binary
+datos/*.f16 binary
+datos/*.f32 binary
+datos/*.u8 binary
+datos/*.u16 binary
+datos/modelos/*.glb binary

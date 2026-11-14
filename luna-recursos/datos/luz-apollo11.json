@@ -1,0 +1,18 @@
+{
+ "procedencia": {
+  "fuente": "NASA/JPL Horizons (DE441), cantidad 4",
+  "consulta": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&OBJ_DATA=%27NO%27&MAKE_EPHEM=%27YES%27&EPHEM_TYPE=%27OBSERVER%27&CENTER=%27coord%40301%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2723.47314%2C0.67416%2C0%27&START_TIME=%271969-07-20+20%3A17%27&STOP_TIME=%271969-07-20+20%3A18%27&STEP_SIZE=%271+m%27&QUANTITIES=%274%27&ANG_FORMAT=%27DEG%27&CSV_FORMAT=%27YES%27&TIME_TYPE=%27UT%27",
+  "consultadoUTC": "2026-11-07T08:47:46.769Z",
+  "sitio": "LROC-COORD 2016",
+  "hora": "NSSDCA 1969-059C: \"landed at 20:17:40 UT\""
+ },
+ "sitio": {
+  "latitudGrados": 0.67416,
+  "longitudEsteGrados": 23.47314
+ },
+ "contactoUTC": "1969-07-20T20:17:40Z",
+ "sol": {
+  "azimutGrados": 88.80549533333333,
+  "elevacionGrados": 10.703313000000001
+ }
+}

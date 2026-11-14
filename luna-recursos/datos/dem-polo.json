@@ -1,0 +1,25 @@
+{
+ "procedencia": {
+  "producto": "LOLA LDEM_75S_240M_FLOAT (LRO LOLA GDR polar, PDS Geosciences Node)",
+  "archivo": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/polar/float_img/ldem_75s_240m_float.img",
+  "etiqueta": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/polar/float_img/ldem_75s_240m_float.lbl",
+  "consultadoUTC": "2026-11-07T08:03:50.573Z",
+  "metodo": "Alturas en metros enteros sobre la esfera de 1737,4 km. \"cerca\": los píxeles de 240 m tal cual; \"lejos\": promedio de bloques de 4 × 4 (960 m). Estereográfica polar sur con escala 1 en el polo: x = ρ·sin λ, y = ρ·cos λ, ρ = 2R·tan(c/2)."
+ },
+ "cerca": {
+  "archivo": "dem-polo-240m.i16",
+  "n": 1626,
+  "pasoM": 240,
+  "x0M": -195000,
+  "y0M": 195000
+ },
+ "lejos": {
+  "archivo": "dem-polo-960m.i16",
+  "n": 708,
+  "pasoM": 960,
+  "x0M": -339600,
+  "y0M": 339600
+ },
+ "alturaMinM": -5495,
+ "alturaMaxM": 7025
+}
