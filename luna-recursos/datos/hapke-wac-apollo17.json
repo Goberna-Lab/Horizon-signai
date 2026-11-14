@@ -1,0 +1,85 @@
+{
+ "fuente": "LROC WAC Hapke parameter maps (Sato et al. 2014), https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/SDP/WAC_HAPKEPARAMMAP",
+ "consultadoUTC": "2026-11-07T01:17:34.978Z",
+ "celda": "píxel de 1° que contiene al sitio (centro 20,5° N, 30,5° E)",
+ "bandas": {
+  "566NM": {
+   "sitio": {
+    "w": 0.1907,
+    "b": 0.26403,
+    "c": 0.07015,
+    "Bc0": 0,
+    "hc": 1,
+    "Bs0": 2.18679,
+    "hs": 0.07088,
+    "theta": 23.6566,
+    "phi": 0
+   },
+   "convencion": {
+    "Mare Serenitatis": {
+     "w": 0.2403,
+     "c": 0.0506
+    },
+    "Mare Tranquillitatis": {
+     "w": 0.167,
+     "c": 0.1483
+    },
+    "Mare Imbrium": {
+     "w": 0.2105,
+     "c": 0.0302
+    },
+    "Tierras altas centrales": {
+     "w": 0.3224,
+     "c": 0.352
+    },
+    "Tierras altas del sur": {
+     "w": 0.3701,
+     "c": 0.4396
+    },
+    "Cara oculta (tierras altas)": {
+     "w": 0.4213,
+     "c": 0.4534
+    }
+   }
+  },
+  "643NM": {
+   "sitio": {
+    "w": 0.22179,
+    "b": 0.24691,
+    "c": 0.2309,
+    "Bc0": 0,
+    "hc": 1,
+    "Bs0": 1.95311,
+    "hs": 0.06334,
+    "theta": 23.6566,
+    "phi": 0
+   },
+   "convencion": {
+    "Mare Serenitatis": {
+     "w": 0.2834,
+     "c": 0.0886
+    },
+    "Mare Tranquillitatis": {
+     "w": 0.1999,
+     "c": 0.126
+    },
+    "Mare Imbrium": {
+     "w": 0.2491,
+     "c": 0.0637
+    },
+    "Tierras altas centrales": {
+     "w": 0.3734,
+     "c": 0.4019
+    },
+    "Tierras altas del sur": {
+     "w": 0.4282,
+     "c": 0.5281
+    },
+    "Cara oculta (tierras altas)": {
+     "w": 0.4805,
+     "c": 0.5264
+    }
+   }
+  }
+ }
+}

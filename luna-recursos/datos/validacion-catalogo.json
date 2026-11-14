@@ -1,0 +1,1048 @@
+{
+ "procedencia": {
+  "referencia": "Mazarico et al. (2011), Icarus 211, 1066–1081; PGDA producto 69; AVGVISIB_85S_060M_201608 y _EARTH (60 m, 18,6 años, alguna parte del disco)",
+  "consultadoUTC": "2026-11-07T08:15:24.792Z"
+ },
+ "sitios": [
+  {
+   "id": "connecting-ridge",
+   "nombre": "Connecting Ridge (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2729,
+    "columna": 2345,
+    "valor": 0.38544,
+    "vecinos3x3": [
+     0.5416,
+     0.4387,
+     0.4327,
+     0.4028,
+     0.3854,
+     0.3667,
+     0.3348,
+     0.2451,
+     0.2223
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2729,
+    "columna": 2345,
+    "valor": 0.33852000000000004,
+    "vecinos3x3": [
+     0.466,
+     0.3905,
+     0.4532,
+     0.4194,
+     0.3385,
+     0.3698,
+     0.336,
+     0.1883,
+     0.2738
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-1",
+   "nombre": "Connecting Ridge · RoI 1",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2736,
+    "columna": 2335,
+    "valor": 0.6496400000000001,
+    "vecinos3x3": [
+     0.6125,
+     0.519,
+     0.5744,
+     0.5204,
+     0.6496,
+     0.4431,
+     0.5754,
+     0.7547,
+     0.652
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2736,
+    "columna": 2335,
+    "valor": 0.5802400000000001,
+    "vecinos3x3": [
+     0.582,
+     0.5819,
+     0.577,
+     0.5332,
+     0.5802,
+     0.5391,
+     0.4936,
+     0.5247,
+     0.5028
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-2",
+   "nombre": "Connecting Ridge · RoI 2",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2738,
+    "columna": 2337,
+    "valor": 0.7510000000000001,
+    "vecinos3x3": [
+     0.652,
+     0.7208,
+     0.5429,
+     0.4282,
+     0.751,
+     0.6831,
+     0.1376,
+     0.1953,
+     0.4948
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2738,
+    "columna": 2337,
+    "valor": 0.48668000000000006,
+    "vecinos3x3": [
+     0.5028,
+     0.536,
+     0.5323,
+     0.4254,
+     0.4867,
+     0.4995,
+     0.2588,
+     0.2313,
+     0.3635
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-3",
+   "nombre": "Connecting Ridge · RoI 3",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2737,
+    "columna": 2339,
+    "valor": 0.53556,
+    "vecinos3x3": [
+     0.4586,
+     0.65,
+     0.6626,
+     0.5429,
+     0.5356,
+     0.6734,
+     0.6831,
+     0.5372,
+     0.5558
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2737,
+    "columna": 2339,
+    "valor": 0.47876,
+    "vecinos3x3": [
+     0.5104,
+     0.527,
+     0.4898,
+     0.5323,
+     0.4788,
+     0.4984,
+     0.4995,
+     0.413,
+     0.3866
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-4",
+   "nombre": "Connecting Ridge · RoI 4",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2731,
+    "columna": 2340,
+    "valor": 0.68484,
+    "vecinos3x3": [
+     0.5886,
+     0.6701,
+     0.7216,
+     0.5801,
+     0.6848,
+     0.7389,
+     0.4536,
+     0.8642,
+     0.735
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2731,
+    "columna": 2340,
+    "valor": 0.57496,
+    "vecinos3x3": [
+     0.5817,
+     0.5816,
+     0.5816,
+     0.5716,
+     0.575,
+     0.5684,
+     0.5112,
+     0.5794,
+     0.5442
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-5",
+   "nombre": "Connecting Ridge · RoI 5",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2727,
+    "columna": 2343,
+    "valor": 0.83128,
+    "vecinos3x3": [
+     0.4989,
+     0.3832,
+     0.6968,
+     0.3976,
+     0.8313,
+     0.7695,
+     0.5236,
+     0.7964,
+     0.5416
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2727,
+    "columna": 2343,
+    "valor": 0.5814400000000001,
+    "vecinos3x3": [
+     0.5807,
+     0.5415,
+     0.5752,
+     0.553,
+     0.5814,
+     0.5725,
+     0.5811,
+     0.5412,
+     0.466
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-6",
+   "nombre": "Connecting Ridge · RoI 6",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2724,
+    "columna": 2348,
+    "valor": 0.86304,
+    "vecinos3x3": [
+     0.4151,
+     0.3977,
+     0.7416,
+     0.749,
+     0.863,
+     0.8844,
+     0.3224,
+     0.7099,
+     0.7666
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2724,
+    "columna": 2348,
+    "valor": 0.5809200000000001,
+    "vecinos3x3": [
+     0.5809,
+     0.5808,
+     0.5808,
+     0.581,
+     0.5809,
+     0.5808,
+     0.4956,
+     0.511,
+     0.5372
+    ]
+   }
+  },
+  {
+   "id": "connecting-ridge-roi-7",
+   "nombre": "Connecting Ridge · RoI 7",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2721,
+    "columna": 2358,
+    "valor": 0.8012800000000001,
+    "vecinos3x3": [
+     0.6241,
+     0.679,
+     0.7704,
+     0.6792,
+     0.8013,
+     0.6387,
+     0.6416,
+     0.6982,
+     0.7144
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2721,
+    "columna": 2358,
+    "valor": 0.5765600000000001,
+    "vecinos3x3": [
+     0.5797,
+     0.5796,
+     0.5794,
+     0.5734,
+     0.5766,
+     0.5399,
+     0.5292,
+     0.5258,
+     0.5435
+    ]
+   }
+  },
+  {
+   "id": "shackleton-rim",
+   "nombre": "Borde de Shackleton (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2645,
+    "columna": 2512,
+    "valor": 0.10964000000000002,
+    "vecinos3x3": [
+     0.1203,
+     0.1114,
+     0.1008,
+     0.1198,
+     0.1096,
+     0.1007,
+     0.1175,
+     0.109,
+     0.0988
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2645,
+    "columna": 2512,
+    "valor": 0.11072000000000001,
+    "vecinos3x3": [
+     0.1201,
+     0.1096,
+     0.097,
+     0.1236,
+     0.1107,
+     0.1013,
+     0.117,
+     0.114,
+     0.1012
+    ]
+   }
+  },
+  {
+   "id": "shackleton-rim-roi-1",
+   "nombre": "Borde de Shackleton · RoI 1",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2639,
+    "columna": 2482,
+    "valor": 0.6623600000000001,
+    "vecinos3x3": [
+     0.6386,
+     0.7603,
+     0.461,
+     0.6723,
+     0.6624,
+     0.4533,
+     0.6654,
+     0.6158,
+     0.2051
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2639,
+    "columna": 2482,
+    "valor": 0.45216000000000006,
+    "vecinos3x3": [
+     0.5021,
+     0.4836,
+     0.3734,
+     0.469,
+     0.4522,
+     0.3568,
+     0.4095,
+     0.3668,
+     0
+    ]
+   }
+  },
+  {
+   "id": "shackleton-rim-roi-2",
+   "nombre": "Borde de Shackleton · RoI 2",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2634,
+    "columna": 2483,
+    "valor": 0.5058,
+    "vecinos3x3": [
+     0.6549,
+     0.6956,
+     0.5105,
+     0.4939,
+     0.5058,
+     0.4525,
+     0.7107,
+     0.6322,
+     0.4154
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2634,
+    "columna": 2483,
+    "valor": 0.37284,
+    "vecinos3x3": [
+     0.4832,
+     0.4968,
+     0.3283,
+     0.4178,
+     0.3728,
+     0.201,
+     0.4601,
+     0.4309,
+     0.0439
+    ]
+   }
+  },
+  {
+   "id": "shackleton-rim-roi-3",
+   "nombre": "Borde de Shackleton · RoI 3",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2630,
+    "columna": 2484,
+    "valor": 0.8519200000000001,
+    "vecinos3x3": [
+     0.4318,
+     0.6838,
+     0.4358,
+     0.0626,
+     0.8519,
+     0.5092,
+     0.5562,
+     0.8002,
+     0.5354
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2630,
+    "columna": 2484,
+    "valor": 0.55028,
+    "vecinos3x3": [
+     0.5,
+     0.4997,
+     0.4232,
+     0.2931,
+     0.5503,
+     0.515,
+     0.5237,
+     0.491,
+     0.5152
+    ]
+   }
+  },
+  {
+   "id": "shackleton-rim-roi-4",
+   "nombre": "Borde de Shackleton · RoI 4",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2628,
+    "columna": 2484,
+    "valor": 0.8545600000000001,
+    "vecinos3x3": [
+     0.4876,
+     0.8022,
+     0.6574,
+     0.6676,
+     0.8546,
+     0.5369,
+     0.4318,
+     0.6838,
+     0.4358
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2628,
+    "columna": 2484,
+    "valor": 0.5668000000000001,
+    "vecinos3x3": [
+     0.5668,
+     0.5668,
+     0.5653,
+     0.5668,
+     0.5668,
+     0.54,
+     0.5,
+     0.4997,
+     0.4232
+    ]
+   }
+  },
+  {
+   "id": "nobile-rim-1",
+   "nombre": "Borde de Nobile 1 (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 695,
+    "columna": 3929,
+    "valor": 0.29732000000000003,
+    "vecinos3x3": [
+     0.2794,
+     0.263,
+     0.295,
+     0.3039,
+     0.2973,
+     0.2712,
+     0.2851,
+     0.2573,
+     0.2828
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 695,
+    "columna": 3929,
+    "valor": 0.34496000000000004,
+    "vecinos3x3": [
+     0.3619,
+     0.3309,
+     0.2992,
+     0.3728,
+     0.345,
+     0.3108,
+     0.3793,
+     0.3233,
+     0.3238
+    ]
+   }
+  },
+  {
+   "id": "peak-near-shackleton",
+   "nombre": "Pico cerca de Shackleton (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2862,
+    "columna": 3028,
+    "valor": 0.17020000000000002,
+    "vecinos3x3": [
+     0.465,
+     0.5595,
+     0.384,
+     0.4209,
+     0.1702,
+     0.7018,
+     0.5578,
+     0.5662,
+     0.8596
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2862,
+    "columna": 3028,
+    "valor": 0.4424,
+    "vecinos3x3": [
+     0.6059,
+     0.5529,
+     0.4673,
+     0.5369,
+     0.4424,
+     0.5594,
+     0.558,
+     0.5411,
+     0.5645
+    ]
+   }
+  },
+  {
+   "id": "peak-near-shackleton-roi-1",
+   "nombre": "Pico cerca de Shackleton · RoI 1",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2862,
+    "columna": 3031,
+    "valor": 0.71992,
+    "vecinos3x3": [
+     0.5363,
+     0.7083,
+     0.6469,
+     0.5563,
+     0.7199,
+     0.6154,
+     0.5424,
+     0.6118,
+     0.5246
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2862,
+    "columna": 3031,
+    "valor": 0.5704800000000001,
+    "vecinos3x3": [
+     0.5196,
+     0.6038,
+     0.6064,
+     0.5256,
+     0.5705,
+     0.5473,
+     0.5436,
+     0.5048,
+     0.4898
+    ]
+   }
+  },
+  {
+   "id": "peak-near-shackleton-roi-2",
+   "nombre": "Pico cerca de Shackleton · RoI 2",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2864,
+    "columna": 3030,
+    "valor": 0.5822400000000001,
+    "vecinos3x3": [
+     0.8596,
+     0.5424,
+     0.6118,
+     0.7171,
+     0.5822,
+     0.5728,
+     0.6143,
+     0.4886,
+     0.5638
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2864,
+    "columna": 3030,
+    "valor": 0.45984,
+    "vecinos3x3": [
+     0.5645,
+     0.5436,
+     0.5048,
+     0.4866,
+     0.4598,
+     0.4785,
+     0.4327,
+     0.389,
+     0.4273
+    ]
+   }
+  },
+  {
+   "id": "de-gerlache-rim",
+   "nombre": "Borde de de Gerlache (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2279,
+    "columna": 1912,
+    "valor": 0.5622,
+    "vecinos3x3": [
+     0.6127,
+     0.49,
+     0.4497,
+     0.6119,
+     0.5622,
+     0.5891,
+     0.6614,
+     0.5365,
+     0.4581
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2279,
+    "columna": 1912,
+    "valor": 0.6123200000000001,
+    "vecinos3x3": [
+     0.6129,
+     0.6126,
+     0.6125,
+     0.6104,
+     0.6123,
+     0.6126,
+     0.5856,
+     0.5682,
+     0.5434
+    ]
+   }
+  },
+  {
+   "id": "de-gerlache-rim-roi-1",
+   "nombre": "Borde de de Gerlache · RoI 1",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2280,
+    "columna": 1903,
+    "valor": 0.7938000000000001,
+    "vecinos3x3": [
+     0.3832,
+     0.5883,
+     0.4872,
+     0.7024,
+     0.7938,
+     0.673,
+     0.6337,
+     0.762,
+     0.5715
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2280,
+    "columna": 1903,
+    "valor": 0.6140000000000001,
+    "vecinos3x3": [
+     0.6126,
+     0.614,
+     0.5911,
+     0.6107,
+     0.614,
+     0.6126,
+     0.5228,
+     0.5604,
+     0.4976
+    ]
+   }
+  },
+  {
+   "id": "de-gerlache-rim-roi-2",
+   "nombre": "Borde de de Gerlache · RoI 2",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2283,
+    "columna": 1905,
+    "valor": 0.6817200000000001,
+    "vecinos3x3": [
+     0.6079,
+     0.6257,
+     0.5703,
+     0.4596,
+     0.6817,
+     0.6885,
+     0.4568,
+     0.4793,
+     0.448
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2283,
+    "columna": 1905,
+    "valor": 0.5060800000000001,
+    "vecinos3x3": [
+     0.4558,
+     0.5207,
+     0.5218,
+     0.3196,
+     0.5061,
+     0.525,
+     0.1732,
+     0.2896,
+     0.3253
+    ]
+   }
+  },
+  {
+   "id": "de-gerlache-rim-roi-3",
+   "nombre": "Borde de de Gerlache · RoI 3",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2287,
+    "columna": 1919,
+    "valor": 0.65112,
+    "vecinos3x3": [
+     0.4482,
+     0.4502,
+     0.5739,
+     0.6584,
+     0.6511,
+     0.68,
+     0.4436,
+     0.645,
+     0.5503
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2287,
+    "columna": 1919,
+    "valor": 0.61116,
+    "vecinos3x3": [
+     0.6098,
+     0.6044,
+     0.6115,
+     0.5964,
+     0.6112,
+     0.6116,
+     0.466,
+     0.541,
+     0.5317
+    ]
+   }
+  },
+  {
+   "id": "de-gerlache-rim-roi-4",
+   "nombre": "Borde de de Gerlache · RoI 4",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 2289,
+    "columna": 1920,
+    "valor": 0.77336,
+    "vecinos3x3": [
+     0.645,
+     0.5503,
+     0.6187,
+     0.6614,
+     0.7734,
+     0.4602,
+     0.4846,
+     0.7105,
+     0.658
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 2289,
+    "columna": 1920,
+    "valor": 0.5534800000000001,
+    "vecinos3x3": [
+     0.541,
+     0.5317,
+     0.588,
+     0.5182,
+     0.5535,
+     0.4764,
+     0.3927,
+     0.4709,
+     0.5018
+    ]
+   }
+  },
+  {
+   "id": "leibnitz-beta",
+   "nombre": "Meseta Leibnitz Beta (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 562,
+    "columna": 3745,
+    "valor": 0.20424,
+    "vecinos3x3": [
+     0.2268,
+     0.2166,
+     0.246,
+     0.1876,
+     0.2042,
+     0.2461,
+     0.147,
+     0.1655,
+     0.2655
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 562,
+    "columna": 3745,
+    "valor": 0.3914,
+    "vecinos3x3": [
+     0.4116,
+     0.3798,
+     0.352,
+     0.4017,
+     0.3914,
+     0.4018,
+     0.3704,
+     0.4038,
+     0.43
+    ]
+   }
+  },
+  {
+   "id": "malapert-massif",
+   "nombre": "Macizo Malapert (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 503,
+    "columna": 2520,
+    "valor": 0.09108000000000001,
+    "vecinos3x3": [
+     0.1595,
+     0.0108,
+     0.063,
+     0.2787,
+     0.0911,
+     0.0995,
+     0.3854,
+     0.2816,
+     0.1987
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 503,
+    "columna": 2520,
+    "valor": 0.50004,
+    "vecinos3x3": [
+     0.4979,
+     0.4343,
+     0.4848,
+     0.52,
+     0.5,
+     0.5016,
+     0.5248,
+     0.5241,
+     0.5166
+    ]
+   }
+  },
+  {
+   "id": "haworth",
+   "nombre": "Haworth (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 1020,
+    "columna": 1895,
+    "valor": 0.08488000000000001,
+    "vecinos3x3": [
+     0.0907,
+     0.1076,
+     0.0676,
+     0.0991,
+     0.0849,
+     0.0657,
+     0.1189,
+     0.08,
+     0.1067
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 1020,
+    "columna": 1895,
+    "valor": 0.4394,
+    "vecinos3x3": [
+     0.4375,
+     0.4378,
+     0.4371,
+     0.4394,
+     0.4394,
+     0.4393,
+     0.4408,
+     0.4407,
+     0.441
+    ]
+   }
+  },
+  {
+   "id": "shoemaker",
+   "nombre": "Shoemaker (centro del mosaico)",
+   "mazaricoSol": {
+    "producto": "AVGVISIB_85S_060M_201608",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608.IMG",
+    "fila": 1878,
+    "columna": 3795,
+    "valor": 0.34244,
+    "vecinos3x3": [
+     0.3286,
+     0.3441,
+     0.3488,
+     0.3205,
+     0.3424,
+     0.3438,
+     0.3438,
+     0.3557,
+     0.341
+    ]
+   },
+   "mazaricoTierra": {
+    "producto": "AVGVISIB_85S_060M_201608_EARTH",
+    "archivo": "http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_85S_060M_201608_EARTH.IMG",
+    "fila": 1878,
+    "columna": 3795,
+    "valor": 0.43620000000000003,
+    "vecinos3x3": [
+     0.4313,
+     0.4333,
+     0.4346,
+     0.4349,
+     0.4362,
+     0.4362,
+     0.4373,
+     0.4384,
+     0.4378
+    ]
+   }
+  }
+ ]
+}

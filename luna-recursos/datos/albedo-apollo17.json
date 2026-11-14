@@ -1,0 +1,18 @@
+{
+ "producto": "NAC_DTM_APOLLO17_1_M134991788_60CM",
+ "archivo": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO17_1/NAC_DTM_APOLLO17_1_M134991788_60CM.IMG",
+ "tomaUTC": "2010-07-28T21:28:41",
+ "solEnLaToma": {
+  "azimutGrados": 259.152,
+  "elevacionGrados": 25.333,
+  "fuente": "JPL Horizons, sitio del LM, consultado el 2026-11-06"
+ },
+ "consultadoUTC": "2026-11-07T01:08:59.947Z",
+ "texeles": 667,
+ "escala": "albedo × 10000 en enteros sin signo de 16 bits; filas de norte a sur",
+ "metodo": "albedo = 0,085 · (DN / r_Hapke(µ0, µ, g)) / media; sin puntos en sombra propia o proyectada ni con µ0 < 0,1; LRO al nadir (supuesto); normales del DTM NAC de 2 m.",
+ "fraccionValida": 0.9996,
+ "minimo": 0.03,
+ "maximo": 0.2421899104742485,
+ "desvio": 0.008581259983837138
+}

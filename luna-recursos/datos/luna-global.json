@@ -1,0 +1,23 @@
+{
+ "consultadoUTC": "2026-11-07T00:51:40.583Z",
+ "columnas": 1440,
+ "filas": 720,
+ "productos": [
+  {
+   "archivo": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/float_img/ldem_4_float.img",
+   "etiqueta": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/float_img/ldem_4_float.lbl",
+   "descripcion": "LDEM_4: altura (km) sobre 1737,4 km",
+   "salida": "src/data/luna-ldem4.f16",
+   "minimo": -8.87882137298584,
+   "maximo": 10.504142761230469
+  },
+  {
+   "archivo": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/float_img/ldam_4_float.img",
+   "etiqueta": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/float_img/ldam_4_float.lbl",
+   "descripcion": "LDAM_4: albedo normal a 1064 nm (LOLA; Lemelin et al. 2016)",
+   "salida": "src/data/luna-ldam4.f16",
+   "minimo": 0.1336365044116974,
+   "maximo": 0.5642458200454712
+  }
+ ]
+}

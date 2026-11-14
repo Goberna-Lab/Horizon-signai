@@ -1,0 +1,13 @@
+{
+ "producto": "LOLA LDEM_75S_120M_FLOAT (LRO LOLA GDR polar, PDS Geosciences Node)",
+ "archivo": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/polar/float_img/ldem_75s_120m_float.img",
+ "consultadoUTC": "2026-11-07T03:01:17.048Z",
+ "muestras": 401,
+ "pasoM": 125,
+ "semiladoM": 25000,
+ "azimuts": 8,
+ "escalaAlturasM": 0.5,
+ "codificacion": "alturas: Int16 × escalaAlturasM (m), relativas al sitio, con caída por curvatura; horizontes: Uint8 = (h + 10°)/60°·255",
+ "alturaSitioM": 1944.83,
+ "notas": "Dentro del mosaico de 16 km, alturas del DTM de 5 m de PGDA (Site01); fuera, LDEM_75S_120M."
+}
