@@ -149,15 +149,6 @@
   .tl-sum { padding-left: 0; border-left: 0; }
 }
 /* el calendario se mueve: aviso de cuánto se apartó la fecha del plan y botones para moverla */
-.slip { flex: none; display: flex; flex-direction: column; gap: 5px; padding: 7px 9px; border-radius: 12px; border: 1px solid var(--borde); background: rgba(17,17,17,0.03); }
-.slip.moved { border-color: rgba(200,16,46,0.35); background: rgba(200,16,46,0.06); }
-.slip-msg { font-size: var(--t-label); line-height: 1.35; color: var(--gris); }
-.slip.moved .slip-msg b { color: var(--rojo); }
-.slip-row { display: flex; align-items: center; gap: 3px; }
-.slip .mini.strong { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
-.slip .mini { flex: none; height: 24px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--borde-2); background: var(--crema-2); color: var(--tinta); font-family: var(--f-mono); font-size: var(--t-label); font-weight: 600; cursor: pointer; white-space: nowrap; }
-.slip .mini:hover { border-color: var(--tinta); }
-.slip .mini:disabled { opacity: .4; cursor: default; }
 #cardsCap { flex: none; margin: -2px 0 -4px; }
 /* cuánto queda: Sol y Tierra en el instante del cursor */
 .left { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
@@ -199,7 +190,7 @@ a.brand { color: inherit; text-decoration: none; }
 .dlg-grid label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--tinta); font-size: var(--t-small); }
 .dlg-acts { display: flex; gap: 10px; align-items: center; }
 /* comparación de escenarios (hasta 6), como la del planificador del equipo (docs/04, sección 2) */
-/* título de las zonas con «Compare» y «Link» a su derecha; si no caben, bajan de línea */
+/* título de las zonas con «Compare» a su derecha; si no cabe, baja de línea */
 .hdrow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; }
 .hdbtns { display: inline-flex; gap: 4px; }
 .scrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
@@ -246,18 +237,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
   <div class="stage">
     <section class="paper side l" aria-labelledby="cand-t">
-      <div class="hd"><div class="hdrow"><h2 id="cand-t" class="disp">Candidate zones</h2><span class="hdbtns"><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span>Compare</span><span id="cmpN">0</span></button><button type="button" class="cmpbtn" id="shareBtn" title="Copy a link to this zone and scenario"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg><span id="shareTxt">Link</span></button></span></div><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button></div></div>
-      <div class="slip" id="slip">
-        <p class="slip-msg" id="slipMsg" aria-live="polite"></p>
-        <div class="slip-row" role="group" aria-label="Move the landing date">
-          <button type="button" class="mini" data-shift="-7" title="Land one week earlier">−1 wk</button>
-          <button type="button" class="mini" data-shift="-1" title="Land one day earlier">−1 d</button>
-          <button type="button" class="mini" data-shift="1" title="Land one day later">+1 d</button>
-          <button type="button" class="mini" data-shift="7" title="Land one week later">+1 wk</button>
-          <span style="flex: 1"></span>
-          <button type="button" class="mini strong" id="slipToggle"></button>
-        </div>
-      </div>
+      <div class="hd"><div class="hdrow"><h2 id="cand-t" class="disp">Candidate zones</h2><span class="hdbtns"><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span>Compare</span><span id="cmpN">0</span></button></span></div><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button></div></div>
       <p class="mono foot" id="cardsCap"></p>
       <div class="cards" role="radiogroup" aria-label="Candidate zones" id="cards"></div>
       <div class="act">
@@ -559,8 +539,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('scTxt').textContent = fDate(sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' · ' + sc.stayDays + ' d · gear ' +
       (sc.panelM === sc.antennaM ? metros(sc.panelM) : metros(sc.panelM) + '/' + metros(sc.antennaM));
     $('cardsCap').textContent = 'Figures for the ' + sc.stayDays + '-day stay from landing';
-    renderSlip();
-    $('scBtn').classList.toggle('changed', !isPlan());
+      $('scBtn').classList.toggle('changed', !isPlan());
     $('scBtn').title = (isPlan() ? 'CR-01 plan' : 'Scenario different from the CR-01 plan') + ': battery ' + sc.requirements.batteryH + ' h, minimum Earth ' + sc.requirements.minEarthPct + '% of the stay. Click to edit.';
   }
   cards.addEventListener('click', function (evt) { var b = evt.target.closest('.card'); if (b) pick(b.dataset.site); });
@@ -577,45 +556,6 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   cards.addEventListener('mouseout', function (evt) { var el = evt.target.closest('.mi'); if (el && !el.contains(evt.relatedTarget)) mtip.classList.remove('vis'); });
   cards.addEventListener('scroll', function () { mtip.classList.remove('vis'); });
 
-  /* ---------- el calendario se mueve: cuánto se apartó el aterrizaje del plan, y botones para moverlo ---------- */
-  function renderSlip() {
-    var d = Math.round((sc.landingMs - PLAN.landingMs) / DAY), moved = d !== 0, nogo = ids.filter(function (z) { return ev[z].verdict === 'NO GO'; }).length;
-    $('slip').classList.toggle('moved', moved);
-    $('slipMsg').innerHTML = moved
-      ? '<b>Schedule slip ' + (d > 0 ? '+' : '−') + Math.abs(d) + ' d</b> from the ' + fDate(PLAN.landingMs) + ' plan: ' + (nogo ? nogo + ' of ' + ids.length + ' zones fail.' : 'every zone still passes.')
-      : '<b>On plan</b> (' + fDate(PLAN.landingMs) + '). Move the date: what does a slip do to each zone?';
-    /* el cambio de ejemplo es el de la misión CR-01: con el plan de otra misión, el botón solo sirve para volver al plan */
-    var planCR01 = PLAN.landingMs === Date.UTC(2026, 11, 18, 9);
-    $('slipToggle').textContent = moved ? 'Plan' : 'Slip';
-    $('slipToggle').hidden = !moved && !planCR01;
-    $('slipToggle').title = moved ? 'Back to the plan: ' + fDate(PLAN.landingMs) : 'Example slip: land on ' + fDate(SLIP.landingMs);
-    var span = sc.stayDays * DAY;
-    $('slip').querySelectorAll('[data-shift]').forEach(function (b) { var t = sc.landingMs + (+b.dataset.shift) * DAY; b.disabled = t < TABLA.inicioMs || t + span > TABLA.finMs; });
-  }
-  $('slip').addEventListener('click', function (evt) {
-    var b = evt.target.closest('button'); if (!b || b.disabled) return;
-    if (b.dataset.shift) sc.landingMs += (+b.dataset.shift) * DAY;
-    else sc.landingMs = Math.round((sc.landingMs - PLAN.landingMs) / DAY) === 0 ? SLIP.landingMs : PLAN.landingMs;
-    apply();
-  });
-
-  /* ---------- enlace al escenario: la zona y el escenario viajan en la dirección ---------- */
-  function linkHash() {
-    var r = sc.requirements, q = ['z=' + state.site, 't=' + toLocal(sc.landingMs), 'stay=' + sc.stayDays, 'panel=' + sc.panelM, 'antenna=' + sc.antennaM, 'battery=' + r.batteryH, 'earth=' + r.minEarthPct];
-    if (!r.sunAtLanding) q.push('sun=0'); if (!r.earthAtLanding) q.push('el=0');
-    if (state.site === 'P' && pt) q.push('lat=' + pt.lat, 'lon=' + pt.lon);
-    return '#' + q.join('&');
-  }
-  function linkUrl() {
-    /* dentro de la app (iframe de /planner, mismo origen) el enlace es el de la app; suelto, el de esta página */
-    try { if (window.top !== window && window.top.location.origin === location.origin) return location.origin + '/planner' + linkHash(); } catch (e) { /* otro origen: enlace de esta página */ }
-    return location.href.replace(/#.*$/, '') + linkHash();
-  }
-  $('shareBtn').addEventListener('click', function () {
-    var url = linkUrl(), done = function (ok) { $('shareTxt').textContent = ok ? 'Copied' : 'Link'; if (!ok) window.prompt('Link to this scenario', url); setTimeout(function () { $('shareTxt').textContent = 'Link'; }, 1800); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); });
-    else done(false);
-  });
   function pick(id) { state.site = id; state.simulated = false; state.confirmed = false; stopSim(); tlT = null; render(); }
 
   /* ---------- Go / No-Go: el descenso (perfil del Apollo 11) y los requisitos del escenario ---------- */
@@ -1192,7 +1132,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   /* un punto que llega en el enlace (p. ej. desde el mapa 3D) se calcula y queda elegido */
   if (link && link.pt && !linkZone) {
     if (E.dentroDelDominio(link.pt.lat, link.pt.lon)) loadDem(function () { setPoint(Math.round(link.pt.lat * 1e5) / 1e5, Math.round(link.pt.lon * 1e5) / 1e5, true); apply(); });
-    else { $('slipMsg').innerHTML = '<b>That point is outside the planner range</b> (190 km around the south pole). Showing the catalogue zones.'; }
+    else { $('cardsCap').textContent = 'That point is outside the planner range (190 km around the south pole): showing the catalogue zones.'; }
   }
   /* un punto propio guardado se recupera en segundo plano, sin cambiar la zona elegida */
   try { var savedPt = link && link.pt ? null : JSON.parse(localStorage.getItem(PKEY)); if (savedPt && isFinite(savedPt.lat) && E.dentroDelDominio(savedPt.lat, savedPt.lon)) loadDem(function () { setPoint(savedPt.lat, savedPt.lon, false); evaluateAll(); renderCards(); render(); }); } catch (e) { /* sin almacenamiento */ }
