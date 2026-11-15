@@ -209,6 +209,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
   });
 
   return () => {
+    document.querySelector('.sim-informe')?.remove(); // el informe vive en el body
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
     window.clearInterval(afk); for (const ev of ['keydown', 'pointerdown', 'pointermove', 'wheel']) window.removeEventListener(ev, marcar);
     sim.stop(true); sim.active = false; sim.distant = false;

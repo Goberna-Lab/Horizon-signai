@@ -20,6 +20,7 @@ import { tr } from '@/shared/i18n';
 import { VisorCasco, THETA_V, THETA_MAX, direccionAPantalla } from './casco/visorCasco';
 import { VisorHud } from './visorHud';
 import { Tareas } from './tareas';
+import { datosDelInforme, mostrarInforme } from './informe';
 
 const G = 1.62;
 const EYE = 1.68;        // altura de los ojos (m)
@@ -105,6 +106,8 @@ export class Caminata {
     this.heading = heading; this.yaw = heading + Math.PI; this.pitch = -0.08;
     this.jumpY = 0; this.jumpV = 0; this.fpPhase = 0; this.fpHop = 0; this.fpRun = 0; this._tickT = 0; this._litT = 0; this._crit = false;
     this.timeScale = 1; this.lamps = false; this.notice = null;
+    this.stats = { hrMax: 72, salidasRuta: 0, crateres: 0 }; this._lejos = false; this._informeVisto = false; // para el informe final
+    document.querySelector('.sim-informe')?.remove();
     this.s = { o2: O2_KG, water: WATER_KG, lioh: 0, batt: BATT_WH, hr: 72, met: 120, temp: 21, dose: 0, t: 0, press: 25.9 };
     const leak = result?.kind === 'hard' ? 0.5 : 1;
     this.lm = { o2: LM_O2_KG * leak, water: LM_WATER_KG * leak, recharges: 0 };
@@ -118,6 +121,7 @@ export class Caminata {
   }
 
   stop() {
+    document.querySelector('.sim-informe')?.remove();
     if (this.active || this._evaEn) { evaEnCasco(null); this._evaEn = null; } // EVA sale del casco y vuelve a volar
     this.active = false; this.keys.clear();
     this.hud.root.hidden = true;
@@ -201,6 +205,10 @@ export class Caminata {
     this._crater(speed);
     this._suit(dt0, speed, this._mv);
     this.tasks.update();
+    if (this.tasks.done && !this._informeVisto) { // caminata completa: el informe de la misión, planificado frente a real
+      this._informeVisto = true;
+      setTimeout(() => { if (this.active) mostrarInforme(this.view, datosDelInforme(this.view, this), { volar: () => this.onSalir?.(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } }); }, 2500);
+    }
     this._eva(dt0);
     this._hud(dt0);
   }
@@ -230,10 +238,11 @@ export class Caminata {
       if (this.pendiente?.nivel === 'crit') { const t = performance.now(); if (!this._pendT || t - this._pendT > 25000) { this._pendT = t; avisarEva('pendiente', undefined, '.sim-vh-feed'); } }
     }
     // Fuera de la ruta planificada
+    const lejos = this.tasks.lejosDeRuta; if (lejos && !this._lejos) this.stats.salidasRuta++; this._lejos = lejos;
     if (this.tasks.lejosDeRuta) { const t = performance.now(); if (!this._rutaT || t - this._rutaT > 60000) { this._rutaT = t; avisarEva('fuera-de-ruta', undefined, '.sim-vh-lens.radar'); } }
     if (best?.nivel === 'crit') {
       const t = performance.now();
-      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha', undefined, '.sim-vh-feed'); }
+      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; this.stats.crateres++; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha', undefined, '.sim-vh-feed'); }
     }
   }
 
@@ -364,6 +373,7 @@ export class Caminata {
     const tension = Math.max(this.hypo, this._crit ? 0.55 : 0, Math.max(0, (s.hr - 95) / 70), this.fatigue > 0.4 ? this.fatigue - 0.4 : 0);
     this._hb = (this._hb ?? 1) - dt; if (!this.lost && this._hb <= 0) { this.hud.beat(); if (tension > 0.08) this.sonido?.latido(Math.min(1, 0.25 + tension)); this._hb = 60 / Math.max(45, s.hr); }
     // Pulso alto: EVA lo dice apuntando a tu pulso en el HUD (no mata, pero cansa y gasta más oxígeno)
+    if (s.hr > this.stats.hrMax) this.stats.hrMax = s.hr;
     if (s.hr > 150 && !this.lost) { const t = performance.now(); if (!this._pulsoT || t - this._pulsoT > 60000) { this._pulsoT = t; avisarEva('pulso-alto', undefined, '.sim-vh-rows [data-r="hr"]'); } }
     this._tickT -= dt; if (this._tickT > 0) return; this._tickT = 1 / 12;
     this._tick(d);

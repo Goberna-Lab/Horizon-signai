@@ -631,6 +631,7 @@ export class LandingSim {
   _end() {
     const v = this.view, card = document.createElement('div'), R = this.result, P = this.plan;
     const miss = Math.hypot(P.final.x - P.planned.x, P.final.z - P.planned.z);
+    v.alunizaje = { kind: R.kind, touchV: this.touchV ?? 0, tilt: this.tiltDeg ?? 0, miss, fuelS: this.fuel ?? 0, fuelKg: this.fuelKg ?? 0, t: this.t }; // para el informe final
     card.className = 'sim-lfp-end ' + R.kind;
     card.innerHTML = `<small>${R.kind === 'tip' || R.kind === 'crash' ? tr('MISSION LOST', 'MISIÓN PERDIDA') : tr('TOUCHDOWN', 'CONTACTO')} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? tr('The Eagle has landed', 'El Águila ha alunizado') : R.title}</b>
       ${R.kind === 'ok' ? '' : `<p>${R.why}</p>`}${R.real ? `<p class="real">${R.real}</p>` : ''}
