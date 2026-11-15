@@ -82,3 +82,22 @@ el API vuelve a `argus-voz` (español, Piper, en la Z6).
 T=$(sudo sed -n 's/^HVOZ_TOKEN=//p' /srv/horizon-signai/.env)
 curl -s -H "Authorization: Bearer $T" http://100.117.204.80:8796/v1/salud
 ```
+
+## Micrófono abierto: hablar mientras la IA responde (2026-11-14)
+
+El modo voz escucha todo el tiempo con Silero VAD (`@ricky0123/vad-web`, en el navegador; modelo y
+wasm desde jsDelivr en versiones fijas). Lo que dices mientras la IA piensa o habla se transcribe y
+se clasifica (`apps/web/src/prueba-ia/eco.ts`): eco de la propia IA, «uh-huh», «stop» o habla real.
+El habla real corta la respuesta: lo que alcanzó a decir queda en el historial terminado en
+`[interrupted]` y la IA vuelve a responder con lo que agregaste (instrucción en `SISTEMA_VOZ`).
+
+- **Eco, medido con un prototipo** (rama `prototipo/eco-microfono-abierto`): con parlantes, Chrome
+  en Linux **no** cancela la voz de la IA. Con `echoCancellation: true`, ~20 % de los frames pasan
+  el umbral de Silero con la IA hablando sola. Igual por WebRTC loopback, y Chrome no admite `"all"`.
+  Con auriculares baja a ~3 %. Por eso la defensa es propia: mientras la IA habla, el VAD pide más
+  certeza (umbral 0,7) y lo que oye se compara con lo que la IA pronunció en esos segundos
+  (`dichoDesde`, con los tiempos por palabra). Si coincide en su mayoría, es eco y se ignora.
+- Mientras decide, la voz de la IA baja al 30 % en lugar de cortarse.
+- Whisper transcribe mal las interjecciones («Uh-huh» → «y'all», «YHWH»): mientras la IA habla,
+  una sola palabra que no es pregunta cuenta como asentimiento.
+- Tests de la clasificación: `npm test -w @horizon-signai/web`.

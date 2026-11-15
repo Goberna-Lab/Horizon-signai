@@ -12,10 +12,10 @@ const TITULO: Record<EstadoVoz, string> = {
   hablando: "Respondiendo…",
 }
 const PISTA: Record<EstadoVoz, string> = {
-  reposo: "Habla y haz una pausa: la IA responde con voz y vuelve a escucharte.",
+  reposo: "Te escucho todo el tiempo, también mientras respondo: puedes agregar algo o decir «stop». Mejor con auriculares.",
   escuchando: "Haz una pausa al terminar, o toca la Luna para enviar ya.",
-  pensando: "Transcribiendo (Geografo) y pensando la respuesta (Z6)…",
-  hablando: "Toca la Luna para interrumpir y hablar tú.",
+  pensando: "Puedes seguir hablando: lo que agregues entra en la respuesta.",
+  hablando: "Habla encima para agregar algo, o di «stop». Tocar la Luna también la corta.",
 }
 
 type Props = {
@@ -77,7 +77,6 @@ export function ModoVoz({ mensajes, agregar, cerrar }: Props) {
           type="button"
           className="orbe"
           onClick={voz.tocar}
-          disabled={voz.estado === "pensando"}
           aria-label={TITULO[voz.estado]}
           style={{ ["--nivel" as string]: voz.nivel.toFixed(3) }}
         >
@@ -88,7 +87,9 @@ export function ModoVoz({ mensajes, agregar, cerrar }: Props) {
         </button>
 
         <h2 className="voz-titulo" aria-live="polite">{TITULO[voz.estado]}</h2>
-        <p className="voz-pista">{PISTA[voz.estado]}</p>
+        <p className="voz-pista">
+          {voz.oyendo && voz.estado !== "escuchando" ? "Te oigo… (bajo la voz mientras entiendo qué dijiste)" : PISTA[voz.estado]}
+        </p>
         {voz.error && <p className="error">{voz.error}</p>}
 
         <div className="voz-subtitulos">

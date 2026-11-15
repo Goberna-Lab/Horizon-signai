@@ -35,10 +35,13 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
   let fallbackCola: Promise<void> = Promise.resolve()
   let hablado = ""
 
+  // fuente → analizador (mide el volumen de la voz) → ganancia (baja la voz si hablas encima) → parlantes
   const analizador = conWebAudio ? ctx!.createAnalyser() : null
-  if (analizador) {
+  const ganancia = conWebAudio ? ctx!.createGain() : null
+  if (analizador && ganancia) {
     analizador.fftSize = 512
-    analizador.connect(ctx!.destination)
+    analizador.connect(ganancia)
+    ganancia.connect(ctx!.destination)
   }
   const datos = new Uint8Array(512)
 
@@ -147,6 +150,7 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
       }
       fallbackAudio?.pause()
       analizador?.disconnect()
+      ganancia?.disconnect()
       pendientes = 0
       comprobarFin()
       alNivel(0)
@@ -154,9 +158,21 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
     },
     /** Texto pronunciado hasta ahora. */
     hablado: () => hablado,
+    /** Lo que pronunció en los últimos `segundos` (para reconocer su propio eco en el micrófono). */
+    dichoDesde(segundos: number) {
+      if (!ctx || !conWebAudio) return hablado.slice(-300) // <audio> en fila: sin tiempos por palabra
+      const ahora = ctx.currentTime
+      return linea.filter((p) => p.t <= ahora && p.t >= ahora - segundos).map((p) => p.texto).join("")
+    },
+    /** Volumen de la voz (0..1), con una rampa corta para que no chasquee. */
+    volumen(v: number) {
+      if (ganancia && ctx) ganancia.gain.setTargetAtTime(v, ctx.currentTime, 0.05)
+      else if (fallbackAudio) fallbackAudio.volume = v
+    },
     cerrar() {
       cancelAnimationFrame(raf)
       analizador?.disconnect()
+      ganancia?.disconnect()
       alNivel(0)
     },
   }
