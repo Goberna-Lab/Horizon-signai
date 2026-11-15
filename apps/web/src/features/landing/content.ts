@@ -10,7 +10,7 @@ import { plannerPath, routes } from "@/app/routes"
 import { tr } from "@/shared/i18n"
 import facts from "./flight/data/facts.json"
 
-const { featured, pole, compare, pairDistanceM, descent } = facts
+const { featured, pole, compare, pairDistanceM, descent, day } = facts
 /** "0.8% low" o "0.8% high" ("0.8% por debajo" o "0.8% por encima"): cuánto se aparta una cifra del plan. */
 const off = (pct: number) => `${Math.abs(pct)}% ${pct < 0 ? tr("low", "por debajo") : tr("high", "por encima")}`
 const pct = (value: number) => `${value % 1 === 0 ? value.toFixed(0) : value.toFixed(1)}%`
@@ -424,6 +424,23 @@ export const catalog = {
   ),
 }
 
+/**
+ * Qué pasa si el lanzamiento se retrasa: la luz solar del mismo sitio el mes lunar del relato y los dos siguientes
+ * (`facts.months`, a ras del suelo).
+ */
+function slipLine() {
+  const start = Date.parse(facts.lunarDayStartUTC)
+  const i = Math.max(0, facts.months.findIndex(([t], k) => t <= start && (facts.months[k + 1]?.[0] ?? Infinity) > start))
+  const [a, b, c] = [0, 1, 2].map((k) => pct(facts.months[i + k][1]))
+  return {
+    lead: tr("If the launch slips:", "Si el lanzamiento se retrasa:"),
+    text: tr(
+      `sunlight here goes from ${a} to ${b} one month later, and ${c} two months later.`,
+      `aquí la luz solar pasa del ${a} al ${b} un mes después, y al ${c} dos meses después.`,
+    ),
+  }
+}
+
 /** La pestaña "Calendar": mes a mes, 2026 a 2030. */
 export const months = {
   body: tr(
@@ -718,6 +735,38 @@ export const problem = {
       ),
     },
   ],
+  sketch: {
+    caption: tr("Cross-section, not to scale.", "Corte sin escala."),
+    level: tr("Horizon 0°", "Horizonte 0°"),
+    sun: tr(`Sun · ≤ ${pole.sunMaxElevationDeg.toFixed(2)}°`, `Sol · ≤ ${pole.sunMaxElevationDeg.toFixed(2)}°`),
+    earth: tr("Earth", "Tierra"),
+    blocked: tr("Sun blocked", "Sol tapado"),
+    link: tr("Radio link", "Enlace de radio"),
+    ridge: tr("Ridge", "Cresta"),
+    lander: tr("Lander", "Módulo"),
+  },
+  /** La franja bajo el dibujo: un día lunar real de Connecting Ridge, tramo a tramo (`facts.day`). */
+  when: {
+    title: tr("Horizon SignAI tells you when.", "Horizon SignAI te dice cuándo."),
+    body: tr(
+      `For every site and every date: the hours with the Sun and with Earth in view. Here, one lunar day at ${featured.name}.`,
+      `Para cada punto y cada fecha: las horas con el Sol y con la Tierra a la vista. Aquí, un día lunar en ${featured.name}.`,
+    ),
+    day,
+    sun: tr("Sun", "Sol"),
+    earth: tr("Earth", "Tierra"),
+    sunPct: pct(featured.ground.sunPct),
+    earthPct: pct(featured.ground.earthPct),
+    shown: tr("In view", "A la vista"),
+    hidden: tr("Not in view", "Fuera de vista"),
+    both: tr("Both", "Los dos"),
+    bothPct: pct(featured.ground.bothPct),
+    bothNote: tr("Power and radio at the same time: what a lander needs.", "Energía y radio a la vez: lo que necesita un módulo."),
+    moment: tr("The drawing", "El dibujo"),
+    slip: slipLine(),
+    start: tr("1 Dec 2026", "1 dic 2026"),
+    end: tr(`${facts.lunarDayDays.toFixed(1)} days`, `${facts.lunarDayDays.toFixed(1).replace(".", ",")} días`),
+  },
   close: tr("Mission planners have to answer this again every time a schedule moves.", "Quien planifica la misión tiene que responder esto otra vez cada vez que el calendario se mueve."),
   closeStrong: tr("We made it one screen.", "Lo hicimos una sola pantalla."),
   note: tr(

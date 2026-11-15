@@ -293,6 +293,22 @@ const facts = {
     return { id: s.id, name: s.name, horizon: s.horizon, lat: s.lat, lon: s.lon, ground: s.ground }
   }),
   months: meses.map((m: { startMs: number; sunPct: number; earthPct: number }) => [m.startMs, m.sunPct, m.earthPct]),
+  /**
+   * El primer día lunar de Connecting Ridge a ras del suelo, en tramos: [visible (1/0), horas]. Lo dibuja la franja de
+   * "El problema". Sale de la misma serie de 30 min que la ventana del producto.
+   */
+  day: Object.fromEntries(
+    (["sunMargin", "earthMargin"] as const).map((key) => {
+      const n = Math.round(MES_MS / PASO_SERIE)
+      const runs: Array<[number, number]> = []
+      for (const margin of series[0][key].slice(0, n)) {
+        const on = margin > 0 ? 1 : 0
+        if (runs.length && runs[runs.length - 1][0] === on) runs[runs.length - 1][1] += 0.5
+        else runs.push([on, 0.5])
+      }
+      return [key === "sunMargin" ? "sun" : "earth", runs]
+    }),
+  ),
   descent: {
     /** Contacto del descenso simulado y del plan de misión (s desde el encendido). */
     contactS: Math.round(descenso.eventos.contacto),

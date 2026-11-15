@@ -56,7 +56,9 @@ function aimPoints(handle: FlightHandle, missionId: string, pointIndex: number) 
     }
   const bearing = (Math.atan2(axis[0], axis[1]) * 180) / Math.PI + 90
   // Cerca y con el campo abierto: el relieve se ve de cerca y los tres puntos siguen cabiendo, bien separados.
-  handle.flight.updateStop(POINTS_STOP, { at: [cx, cy], distance: Math.max(diameter * 0.9, 16), tilt: 56, bearing, fov: 50 })
+  // En vertical la vista es estrecha: la cámara se aleja hasta que los tres caben a lo ancho.
+  const narrow = typeof window !== "undefined" && window.innerWidth < window.innerHeight ? Math.min((window.innerHeight / window.innerWidth) * 1.4, 3.4) : 1
+  handle.flight.updateStop(POINTS_STOP, { at: [cx, cy], distance: Math.max(diameter * 0.9 * narrow, 16), tilt: 56, bearing, fov: 50 })
   aimPoint(handle, missionId, pointIndex, bearing)
 }
 
@@ -720,6 +722,8 @@ export function FlightStage() {
       const height = stageEl.clientHeight
       const small = Math.min(width, height) < 700
       handle.flight.resize(width, height, Math.min(window.devicePixelRatio || 1, small ? 2 : 1.5), frames(width, height))
+      // El encuadre de los puntos depende de la forma de la pantalla (ver `aimPoints`).
+      aimPoints(handle, selectedRef.current, chosenRef.current)
     }
 
 

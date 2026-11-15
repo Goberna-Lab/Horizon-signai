@@ -2005,3 +2005,64 @@ button.fl-log__row:focus-visible {
   width: min(560px, 100%);
   max-height: none;
 }
+
+/*
+ * En vertical (teléfonos y tabletas), la bitácora, los tres puntos y el punto de cerca son una hoja abajo, a todo
+ * el ancho y como mucho a media pantalla, con su propio desplazamiento: el mapa y las marcas quedan a la vista arriba
+ * (el encuadre de la escena se mide contra lo que ocupa la hoja). Va al final para mandar sobre su colocación de
+ * escritorio, anclada arriba.
+ */
+@media (orientation: portrait) {
+  .fl-scene--panel[data-scene="missions"],
+  .fl-scene--panel[data-scene="points"],
+  .fl-scene--panel[data-scene="point"] {
+    top: auto;
+    bottom: calc(100lvh - 100svh + var(--gutter));
+    right: var(--gutter);
+    width: auto;
+    max-height: 46svh;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 599px) {
+  /* Lo que se puede leer en otra parada sale aquí: queda lo esencial. */
+  .fl-log__intro,
+  .fl-points__intro,
+  .fl-point__day {
+    display: none;
+  }
+
+  .fl-point .fl-scene__title {
+    font-size: 1.25rem;
+  }
+
+  .fl-point__verdict {
+    margin-top: 10px;
+    padding: 8px 10px;
+  }
+
+  .fl-point__verdict strong {
+    font-size: 0.9375rem;
+  }
+
+  .fl-point__verdict span,
+  .fl-point__text {
+    font-size: 0.8125rem;
+  }
+
+  .fl-log__row,
+  .fl-points__item {
+    padding-block: 8px;
+  }
+
+  /* En el mapa, los puntos solo con su número (el nombre está en el panel); el que se ve de cerca, con su nombre. */
+  .fl-mark--plan:not([data-here]) .fl-mark__label {
+    display: none;
+  }
+
+  .fl-log__main strong,
+  .fl-points__main strong {
+    font-size: 0.875rem;
+  }
+}

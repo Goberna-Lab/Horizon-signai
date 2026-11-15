@@ -846,6 +846,317 @@
   color: var(--ink-soft);
 }
 
+/* El problema: el texto a la izquierda y, a la derecha, un corte del horizonte que lo explica. */
+.ln-problem__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 72px);
+  align-items: start;
+}
+
+.ln-problem__sketch {
+  margin: 0;
+}
+
+.ln-problem__sketch svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ln-problem__sketch figcaption {
+  margin-top: 12px;
+  max-width: 52ch;
+  color: var(--ink-soft);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.ln-sk__level {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.ln-sk__ground {
+  fill: var(--ink);
+}
+
+.ln-sk__sun circle {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ln-sk__sun path,
+.ln-sk__earth path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.ln-sk__earth circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ln-sk__ray {
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+
+.ln-sk__ray--ok {
+  stroke: var(--ink);
+}
+
+.ln-sk__ray--blocked,
+.ln-sk__x {
+  stroke: var(--signal);
+}
+
+.ln-sk__x {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.ln-sk__lander path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.ln-sk__lander rect {
+  fill: var(--ink);
+}
+
+.ln-sk__text {
+  font: 500 13px/1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--ink);
+}
+
+.ln-sk__text--soft {
+  fill: var(--ink-soft);
+}
+
+.ln-sk__text--signal {
+  fill: var(--signal);
+  font-weight: 700;
+}
+
+.ln-sk__text--paper {
+  fill: var(--paper);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ln-sk__ray {
+    animation: ln-sk-flow 1.6s linear infinite;
+  }
+}
+
+@keyframes ln-sk-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+/* La franja "te dice cuándo": un día lunar real, Sol y Tierra, tramo a tramo. */
+.ln-when {
+  margin-top: clamp(20px, 2.4vw, 32px);
+  padding-top: clamp(16px, 1.8vw, 22px);
+  border-top: var(--rule);
+}
+
+.ln-when__title {
+  font-weight: 900;
+  font-size: clamp(1.25rem, 1.8vw, 1.625rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.ln-when__body {
+  margin: 8px 0 16px;
+  max-width: 52ch;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.ln-when__row {
+  display: grid;
+  grid-template-columns: 9ch minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.ln-when__label {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ln-when__label b {
+  display: block;
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+
+.ln-when__bar {
+  display: flex;
+  height: 22px;
+  border: var(--rule);
+}
+
+.ln-when__bar i,
+.ln-when__key i {
+  background: repeating-linear-gradient(-45deg, var(--ink-soft) 0 1px, transparent 1px 6px);
+}
+
+.ln-when__bar i + i {
+  border-left: var(--rule);
+}
+
+.ln-when__row[data-row="sun"] [data-on] {
+  background: var(--ink);
+}
+
+.ln-when__row[data-row="earth"] [data-on] {
+  background: var(--signal);
+}
+
+.ln-when__chart {
+  position: relative;
+}
+
+.ln-when__row[data-row="both"] {
+  margin-top: 14px;
+}
+
+.ln-when__row[data-row="both"] [data-on] {
+  background: repeating-linear-gradient(90deg, var(--ink) 0 50%, var(--signal) 50% 100%);
+  background-size: 8px 100%;
+}
+
+.ln-when__row[data-row="both"] .ln-when__label b {
+  color: var(--signal);
+}
+
+/* El instante del dibujo: un recuadro sobre las barras del Sol y la Tierra. */
+.ln-when__moment {
+  --bar-left: calc(9ch + 12px);
+  position: absolute;
+  top: -6px;
+  height: calc(2 * 22px + 2 * 8px + 30px);
+  left: calc(var(--bar-left) + (100% - var(--bar-left)) * var(--from));
+  width: calc((100% - var(--bar-left)) * (var(--to) - var(--from)));
+  border: 2px dashed var(--signal);
+  pointer-events: none;
+}
+
+.ln-when__moment span {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-bottom: 4px;
+  white-space: nowrap;
+  color: var(--signal);
+  font-weight: 700;
+}
+
+.ln-when__both {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.ln-when__slip {
+  margin-top: clamp(20px, 2.4vw, 32px);
+  max-width: 52ch;
+  padding: 14px 16px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: clamp(1rem, 1.2vw, 1.125rem);
+  line-height: 1.4;
+}
+
+.ln-when__slip strong {
+  color: var(--signal-day);
+  filter: brightness(1.35);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ln-when__axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-left: calc(9ch + 12px);
+  color: var(--ink-soft);
+}
+
+.ln-when__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.ln-when__key i {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border: var(--rule);
+}
+
+.ln-when__key i[data-on] {
+  background: var(--ink);
+}
+
+.ln-when__key i[data-on="earth"] {
+  background: var(--signal);
+}
+
+.ln-when__key i:not([data-on]) {
+  margin-left: 8px;
+}
+
+@media (max-width: 599px) {
+  .ln-sk__text {
+    font-size: 16px;
+  }
+
+  .ln-when__axis {
+    flex-wrap: wrap;
+    padding-left: 0;
+  }
+
+  .ln-when__key {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 899px) {
+  .ln-problem__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ln-problem__sketch {
+    max-width: 560px;
+  }
+}
+
 /* El problema: tres cifras en una rejilla con borde de tinta. */
 .ln-stats {
   display: grid;
