@@ -29,6 +29,10 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import("@/features/simulator")).SimulatorPage }),
       },
       {
+        path: routes.lunarMap,
+        lazy: async () => ({ Component: (await import("@/features/lunar-map")).LunarMapPage }),
+      },
+      {
         path: routes.map3d,
         lazy: async () => ({ Component: (await import("@/features/map-3d")).Map3dPage }),
       },

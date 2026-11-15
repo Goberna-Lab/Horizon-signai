@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lunar Map · Planificador · Caminata</title>
+<title>Lunar Map · Planner · Walk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -100,7 +100,7 @@ body { background: #141418; }
       <canvas id="ovIce" width="720" height="450" aria-hidden="true"></canvas>
       <canvas id="ovContours" width="720" height="450" aria-hidden="true" style="opacity:0"></canvas>
       <div class="rad" id="ovRad" aria-hidden="true"></div>
-      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Connecting Ridge, en el polo sur lunar, con la ruta planificada hacia el borde de Shackleton">
+      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Connecting Ridge, at the lunar south pole, with the planned route to the Shackleton rim">
         <defs>
         </defs>
         <!-- retícula real: escala 4,7 m/px con el módulo en la RoI 6; paralelos = arcos centrados en el polo (15,95 km al
@@ -114,7 +114,7 @@ body { background: #141418; }
         <g font-family="IBM Plex Mono, monospace">
           <line x1="1160" y1="846" x2="1266" y2="846" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2"></line><line x1="1160" y1="840" x2="1160" y2="852" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2"></line><line x1="1266" y1="840" x2="1266" y2="852" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2"></line>
           <text x="1213" y="834" text-anchor="middle" font-size="11" fill="#FFFFFF" opacity="0.75">500 m</text>
-         <g id="sunrose" transform="translate(70 790)"><circle r="26" fill="none" stroke="rgba(244,239,230,0.35)"></circle><line x1="0" y1="0" x2="-15.6" y2="20.8" stroke="#FDE68A" stroke-width="2.5"></line><circle cx="-15.6" cy="20.8" r="4" fill="#FDE68A"></circle><text y="-32" text-anchor="middle" font-size="10" fill="rgba(244,239,230,0.7)">N</text><text y="44" text-anchor="middle" font-size="9" fill="#FDE68A">sol 5°</text></g>
+         <g id="sunrose" transform="translate(70 790)"><circle r="26" fill="none" stroke="rgba(244,239,230,0.35)"></circle><line x1="0" y1="0" x2="-15.6" y2="20.8" stroke="#FDE68A" stroke-width="2.5"></line><circle cx="-15.6" cy="20.8" r="4" fill="#FDE68A"></circle><text y="-32" text-anchor="middle" font-size="10" fill="rgba(244,239,230,0.7)">N</text><text y="44" text-anchor="middle" font-size="9" fill="#FDE68A">Sun 5°</text></g>
         </g>
         <path id="routeGlow" d="" fill="none" stroke="rgba(7,8,11,0.6)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"></path>
         <path id="route" d="" fill="none" stroke="#9FE4F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="route"></path>
@@ -123,10 +123,10 @@ body { background: #141418; }
         <g id="routeTicks"></g>
         <!-- módulo: cuadro; destino: retícula -->
         <rect x="424" y="634" width="12" height="12" fill="#07080B" stroke="#E6F4F7" stroke-width="1.6"></rect>
-        <g class="marker"><rect x="444" y="650" width="70" height="22" rx="3" fill="rgba(7,8,11,0.82)" stroke="rgba(230,244,247,0.22)"></rect><text x="479" y="665" text-anchor="middle">Módulo</text></g>
+        <g class="marker"><rect x="444" y="650" width="70" height="22" rx="3" fill="rgba(7,8,11,0.82)" stroke="rgba(230,244,247,0.22)"></rect><text x="479" y="665" text-anchor="middle">Lander</text></g>
         <g fill="none" stroke="#E6F4F7" stroke-width="1.6"><circle cx="1000" cy="300" r="9"></circle><path d="M1000 284 V 291 M1000 309 V 316 M984 300 H 991 M1009 300 H 1016"></path></g>
         <circle cx="1000" cy="300" r="2.5" fill="#9FE4F2"></circle>
-        <g class="marker"><rect x="822" y="250" width="160" height="22" rx="3" fill="rgba(7,8,11,0.82)" stroke="rgba(230,244,247,0.22)"></rect><text x="902" y="265" text-anchor="middle">Borde de Shackleton</text></g>
+        <g class="marker"><rect x="822" y="250" width="160" height="22" rx="3" fill="rgba(7,8,11,0.82)" stroke="rgba(230,244,247,0.22)"></rect><text x="902" y="265" text-anchor="middle">Shackleton rim</text></g>
         <g id="stops"></g>
       </svg>
     </div>
@@ -135,32 +135,32 @@ body { background: #141418; }
   </div>
 
   <header class="hud top">
-    <div class="topl"><div class="paper glass brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Pasos del planificador"><a href="index.html"><b>1</b>Alunizaje</a><span aria-current="step"><b>2</b>Caminata</span></nav></div>
-    <nav class="pillnav" aria-label="Secciones"><a href="inicio.html">Inicio</a><span aria-current="page">Planificador</span></nav>
+    <div class="topl"><div class="paper glass brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Planner steps"><a href="index.html"><b>1</b>Landing</a><span aria-current="step"><b>2</b>Walk</span></nav></div>
+    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Home</a><span aria-current="page">Planner</span></nav>
     <div class="actions">
-      <span class="paper glass flat date mono"><span class="dot"></span>19 dic 2026 · 10:00 UTC</span>
+      <span class="paper glass flat date mono"><span class="dot"></span>19 Dec 2026 · 10:00 UTC</span>
     </div>
   </header>
 
   <section class="hud paper glass layers" aria-labelledby="v2-capas">
-    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"><h2 id="v2-capas" class="disp">Capas</h2><span style="font-size: 12px; color: var(--gris)"><span id="activeCount">4</span> activas</span></div>
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"><h2 id="v2-capas" class="disp">Layers</h2><span style="font-size: 12px; color: var(--gris)"><span id="activeCount">4</span> active</span></div>
     <div style="display: flex; flex-direction: column; gap: 6px" id="layerList"></div>
   </section>
 
   <aside class="hud aside">
     <section class="paper glass" aria-labelledby="v2-plan">
-      <h2 id="v2-plan" class="disp" style="margin-bottom: 14px">Plan de caminata</h2>
-      <div class="seg" role="radiogroup" aria-label="Objetivo de la ruta" id="objectives"></div>
+      <h2 id="v2-plan" class="disp" style="margin-bottom: 14px">Walk plan</h2>
+      <div class="seg" role="radiogroup" aria-label="Route goal" id="objectives"></div>
       <p class="hint" id="hint"></p>
       <div class="stats">
-        <div><p>Distancia</p><b class="disp" id="sDist">—</b></div>
-        <div><p>Tiempo ida y vuelta</p><b class="disp" id="sTime">—</b></div>
-        <div><p>Desnivel</p><b class="disp" id="sDz">—</b></div>
-        <div><p>Pendiente máx.</p><b class="disp" id="sPmax">—</b></div>
+        <div><p>Distance</p><b class="disp" id="sDist">—</b></div>
+        <div><p>Round-trip time</p><b class="disp" id="sTime">—</b></div>
+        <div><p>Elevation gain</p><b class="disp" id="sDz">—</b></div>
+        <div><p>Max slope</p><b class="disp" id="sPmax">—</b></div>
       </div>
     </section>
     <section class="paper glass" aria-labelledby="v2-sup">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px"><h2 id="v2-sup" class="disp">Supervivencia</h2><span class="status" id="status"></span></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px"><h2 id="v2-sup" class="disp">Survival</h2><span class="status" id="status"></span></div>
       <div class="rings" id="rings"></div>
       <p class="note" id="supplyNote"></p>
     </section>
@@ -168,18 +168,18 @@ body { background: #141418; }
 
   <div class="hud warn" role="status" id="warn">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg>
-    Un tramo cruza una pendiente fuera del límite
+    One stretch crosses a slope beyond the limit
   </div>
 
-  <div class="hud paper glass flat ctrls" role="group" aria-label="Controles del mapa">
-    <button type="button" aria-label="Acercar" id="zIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
-    <button type="button" aria-label="Alejar" id="zOut"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
-    <button type="button" aria-label="Norte arriba y vista inicial" id="zReset"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111111" aria-hidden="true"><path d="M12 2l6 18-6-4-6 4z"></path></svg></button>
+  <div class="hud paper glass flat ctrls" role="group" aria-label="Map controls">
+    <button type="button" aria-label="Zoom in" id="zIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <button type="button" aria-label="Zoom out" id="zOut"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+    <button type="button" aria-label="North up and initial view" id="zReset"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111111" aria-hidden="true"><path d="M12 2l6 18-6-4-6 4z"></path></svg></button>
   </div>
 
   <section class="hud paper glass profile" aria-labelledby="v2-perfil">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><h2 id="v2-perfil" class="disp">Perfil de elevación</h2><span class="mono meta" id="profMeta"></span></div>
-    <svg viewBox="0 0 800 118" preserveAspectRatio="none" role="img" aria-label="Perfil de elevación de la ruta" id="profSvg">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><h2 id="v2-perfil" class="disp">Elevation profile</h2><span class="mono meta" id="profMeta"></span></div>
+    <svg viewBox="0 0 800 118" preserveAspectRatio="none" role="img" aria-label="Elevation profile of the route" id="profSvg">
       <defs><linearGradient id="v2area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C8102E" stop-opacity="0.28"></stop><stop offset="100%" stop-color="#C8102E" stop-opacity="0"></stop></linearGradient></defs>
       <g id="profGrid" stroke="rgba(17,17,17,0.10)"></g>
       <path id="profArea" d="" fill="url(#v2area)"></path>
@@ -191,10 +191,10 @@ body { background: #141418; }
   </section>
 
   <div class="hud paper glass flat legend">
-    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px"><span style="font-size: 13px; font-weight: 600">Pendiente</span><span style="font-size: 11.5px; color: var(--gris)">Calculada sobre el relieve</span></div>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px"><span style="font-size: 13px; font-weight: 600">Slope</span><span style="font-size: 11.5px; color: var(--gris)">Computed over the terrain</span></div>
     <div class="bar"></div>
-    <div class="mono" style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--gris)"><span>0°</span><span>límite 15°</span></div>
-    <p style="margin-top: 10px">Relieve generado a 9,4 m con sombras del sol a 5°; en el producto: DTM 5 m de PGDA (Barker 2021) + LOLA</p>
+    <div class="mono" style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--gris)"><span>0°</span><span>15° limit</span></div>
+    <p style="margin-top: 10px">Terrain generated at 9.4 m with shadows from the Sun at 5°; in the product: 5 m DTM from PGDA (Barker 2021) + LOLA</p>
   </div>
 </div>
 
@@ -225,12 +225,12 @@ body { background: #141418; }
   })();
 
   var layerDefs = [
-    { id: 'ctx', abbr: 'LRC', name: 'Imagen base', source: 'LROC NAC', kind: 'Observado' },
-    { id: 'mola', abbr: 'LOL', name: 'Relieve · curvas 10 m', source: 'LOLA LDEM_75S', kind: 'Observado' },
-    { id: 'slope', abbr: 'PEN', name: 'Pendiente', source: 'LOLA 240 m', kind: 'Calculado' },
-    { id: 'minerals', abbr: 'HIE', name: 'Posible hielo', source: 'LAMP · Diviner', kind: 'Indicio' },
-    { id: 'thermal', abbr: 'TEM', name: 'Temperatura', source: 'Diviner', kind: 'Observado' },
-    { id: 'rad', abbr: 'RAD', name: 'Radiación', source: 'CRaTER (órbita)', kind: 'Referencia' }
+    { id: 'ctx', abbr: 'LRC', name: 'Base image', source: 'LROC NAC', kind: 'Observed' },
+    { id: 'mola', abbr: 'LOL', name: 'Terrain · 10 m contours', source: 'LOLA LDEM_75S', kind: 'Observed' },
+    { id: 'slope', abbr: 'SLP', name: 'Slope', source: 'LOLA 240 m', kind: 'Computed' },
+    { id: 'minerals', abbr: 'ICE', name: 'Possible ice', source: 'LAMP · Diviner', kind: 'Indication' },
+    { id: 'thermal', abbr: 'TMP', name: 'Temperature', source: 'Diviner', kind: 'Observed' },
+    { id: 'rad', abbr: 'RAD', name: 'Radiation', source: 'CRaTER (orbit)', kind: 'Reference' }
   ];
   var list = $('layerList');
   layerDefs.forEach(function (d) {
@@ -318,7 +318,7 @@ body { background: #141418; }
       return '<line x1="' + X(st.prof[k].s).toFixed(1) + '" y1="8" x2="' + X(st.prof[k].s).toFixed(1) + '" y2="' + (H - 2) + '" stroke="rgba(17,17,17,0.55)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line><circle cx="' + X(st.prof[k].s).toFixed(1) + '" cy="' + Y(st.prof[k].h).toFixed(1) + '" r="4" fill="#7DD3FC" stroke="#111111" stroke-width="1.5"></circle>';
     }).join('');
     $('profLabels').innerHTML = '<text x="' + pad + '" y="' + (Y(hmax) + 9) + '">' + M.num(hmax) + ' m</text><text x="' + pad + '" y="' + (H - 5) + '">' + M.num(hmin) + ' m</text><text x="' + (W - pad) + '" y="' + (H - 5) + '" text-anchor="end">' + M.num(st.distKm, 1) + ' km</text>';
-    $('profMeta').textContent = '0–' + M.num(st.distKm, 1) + ' km · módulo en la RoI 6 · 89.47° S · 222.61° E';
+    $('profMeta').textContent = '0–' + M.num(st.distKm, 1) + ' km · lander in RoI 6 · 89.47° S · 222.61° E';
   }
   render();
 })();

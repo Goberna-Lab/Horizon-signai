@@ -51,14 +51,14 @@ export const opening = {
 
 /** Una etiqueta por intención: se usa igual en la barra, el inicio y el cierre. */
 export const actions = {
-  planner: { label: "Open the planner", to: routes.missionPlanner },
+  planner: { label: "Open the planner", to: routes.lunarMap },
   simulator: { label: "Open the simulator", to: routes.simulator },
 }
 
 /** La barra superior lleva a las pantallas de la aplicación. */
 export const nav = [
   { label: "Simulator", to: routes.simulator },
-  { label: "Planner", to: routes.missionPlanner },
+  { label: "Planner", to: routes.lunarMap },
   { label: "3D Map", to: routes.map3d },
 ]
 

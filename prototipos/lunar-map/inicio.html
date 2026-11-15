@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lunar Map · Centro de misiones</title>
+<title>Lunar Map · Mission control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -273,14 +273,14 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 <body>
 <div class="app">
   <header class="top">
-    <div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1><span class="sep"></span><small>Centro de misiones · polo sur</small></div>
-    <nav class="pillnav" aria-label="Secciones">
-      <span aria-current="page">Inicio</span>
-      <a href="index.html">Planificador</a>
+    <div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1><span class="sep"></span><small>Mission control · south pole</small></div>
+    <nav class="pillnav" aria-label="Sections">
+      <span aria-current="page">Home</span>
+      <a href="index.html">Planner</a>
     </nav>
     <div class="topr">
       <span class="paper flat utc mono"><small id="today">—</small><b id="utc">--:--:-- UTC</b></span>
-      <span class="paper flat who"><span class="av" aria-hidden="true">CM</span><span><p>Coordinación de misión</p><span>Polo sur · turno A</span></span></span>
+      <span class="paper flat who"><span class="av" aria-hidden="true">CM</span><span><p>Mission coordination</p><span>South pole · shift A</span></span></span>
     </div>
   </header>
 
@@ -288,100 +288,100 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     <!-- izquierda: tiempo, firma pendiente y decisiones -->
     <div class="col">
       <section class="paper panel next" aria-labelledby="next-t">
-        <div class="ph"><h2 id="next-t" class="disp">Próximo hito</h2><span class="mono aux">CR-01</span></div>
-        <p class="who-m">Alunizaje en Connecting Ridge</p>
-        <p class="mono sub">Contacto · 18 dic 2026 · 09:00 UTC</p>
-        <div class="flaps" role="timer" aria-live="off" aria-label="Cuenta regresiva hasta el contacto">
-          <div class="flap"><b id="cdD">--</b><span>DÍAS</span></div>
-          <div class="flap"><b id="cdH">--</b><span>HORAS</span></div>
+        <div class="ph"><h2 id="next-t" class="disp">Next milestone</h2><span class="mono aux">CR-01</span></div>
+        <p class="who-m">Landing at Connecting Ridge</p>
+        <p class="mono sub">Contact · 18 Dec 2026 · 09:00 UTC</p>
+        <div class="flaps" role="timer" aria-live="off" aria-label="Countdown to contact">
+          <div class="flap"><b id="cdD">--</b><span>DAYS</span></div>
+          <div class="flap"><b id="cdH">--</b><span>HOURS</span></div>
           <div class="flap"><b id="cdM">--</b><span>MIN</span></div>
-          <div class="flap"><b id="cdS">--</b><span>SEG</span></div>
+          <div class="flap"><b id="cdS">--</b><span>SEC</span></div>
         </div>
-        <ul class="steps" id="steps" aria-label="Avance de la campaña CR"></ul>
+        <ul class="steps" id="steps" aria-label="CR campaign progress"></ul>
       </section>
 
       <section class="paper panel pending" id="pending" aria-labelledby="pend-t">
         <span class="stripe" aria-hidden="true"></span>
-        <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="disp">Pendiente de tu firma</h2><span class="st PEND" id="pendChip">1 POR APROBAR</span></div>
+        <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="disp">Awaiting your sign-off</h2><span class="st PEND" id="pendChip">1 PENDING SIGN-OFF</span></div>
         <div id="pendBody">
-          <p class="t">CR-02 · Ruta científica al borde de Shackleton</p>
-          <p class="d">Caminata del 19 dic · dos paradas · enviada por Planificación el 13 nov</p>
+          <p class="t">CR-02 · Scientific route to the Shackleton rim</p>
+          <p class="d">Walk on 19 Dec · two stops · sent by Planning on 13 Nov</p>
           <div class="nums mono">
-            <span>Distancia<b id="pDist">—</b></span>
-            <span>Pend. máx.<b id="pPmax">—</b></span>
-            <span>O₂ al volver<b class="warn">26 %</b></span>
+            <span>Distance<b id="pDist">—</b></span>
+            <span>Max slope<b id="pPmax">—</b></span>
+            <span>O₂ on return<b class="warn">26%</b></span>
           </div>
           <div class="acts">
-            <button type="button" class="btn" id="askPend"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"></path></svg>Analizar</button>
-            <button type="button" class="btn dark approve" data-approve>Aprobar</button>
+            <button type="button" class="btn" id="askPend"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"></path></svg>Analyse</button>
+            <button type="button" class="btn dark approve" data-approve>Approve</button>
           </div>
         </div>
       </section>
 
       <section class="paper panel approved" aria-labelledby="ap-t">
-        <div class="ph"><h2 id="ap-t" class="disp">Decisiones aprobadas</h2><span class="aux"><span id="apCount">3</span> firmadas</span></div>
+        <div class="ph"><h2 id="ap-t" class="disp">Approved decisions</h2><span class="aux"><span id="apCount">3</span> signed</span></div>
         <ul class="alist" id="alist"></ul>
       </section>
     </div>
 
     <!-- centro: indicadores, calendario y bitácora -->
     <div class="col">
-      <div class="kpis" id="kpis" aria-label="Indicadores de la campaña"></div>
+      <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
 
       <section class="paper panel cal" aria-labelledby="cal-t">
-        <div class="ph"><h2 id="cal-t" class="disp">Calendario de campaña</h2><span class="mono aux">oct 2026 → ene 2027 · UTC</span></div>
+        <div class="ph"><h2 id="cal-t" class="disp">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
         <div class="legend" aria-hidden="true">
-          <span><i class="lg-bar" style="background: var(--borde)"></i>Preparación</span>
-          <span><i class="lg-bar" style="background: var(--tinta)"></i>En superficie</span>
-          <span><i class="lg-bar" style="background: var(--gris-3)"></i>Sol sobre el horizonte</span>
-          <span><i class="lg-dot"></i>Movimiento</span>
-          <span><i class="lg-dot o"></i>Programado</span>
-          <span><i class="lg-hit"></i>Hito</span>
-          <span><i class="lg-now"></i>Hoy</span>
+          <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
+          <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
+          <span><i class="lg-bar" style="background: var(--gris-3)"></i>Sun above the horizon</span>
+          <span><i class="lg-dot"></i>Movement</span>
+          <span><i class="lg-dot o"></i>Scheduled</span>
+          <span><i class="lg-hit"></i>Milestone</span>
+          <span><i class="lg-now"></i>Today</span>
         </div>
-        <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Calendario de la campaña con las ventanas de Sol, la preparación, la estadía en superficie y los movimientos de cada misión"></svg><div class="tip" id="tip" role="tooltip"></div></div>
+        <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Campaign calendar with the Sun windows, preparation, the stay on the surface and the movements of each mission"></svg><div class="tip" id="tip" role="tooltip"></div></div>
       </section>
 
       <section class="paper panel movs" aria-labelledby="mv-t">
-        <div class="ph"><h2 id="mv-t" class="disp">Movimientos de las misiones</h2><span class="mono aux">registrados y programados</span></div>
+        <div class="ph"><h2 id="mv-t" class="disp">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
         <div class="tools">
-          <div class="chips" id="fMission" role="group" aria-label="Filtrar por misión"></div>
-          <label class="sr-only" for="fType">Tipo de movimiento</label>
+          <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
+          <label class="sr-only" for="fType">Movement type</label>
           <select class="sel" id="fType"></select>
-          <div class="chips" id="fWhen" role="group" aria-label="Filtrar por momento">
-            <button type="button" class="chip" data-v="all" aria-pressed="true">Todo</button>
-            <button type="button" class="chip" data-v="past" aria-pressed="false">Registrados</button>
-            <button type="button" class="chip" data-v="next" aria-pressed="false">Programados</button>
+          <div class="chips" id="fWhen" role="group" aria-label="Filter by time">
+            <button type="button" class="chip" data-v="all" aria-pressed="true">All</button>
+            <button type="button" class="chip" data-v="past" aria-pressed="false">Logged</button>
+            <button type="button" class="chip" data-v="next" aria-pressed="false">Scheduled</button>
           </div>
           <span class="mono count" id="logCount" aria-live="polite"></span>
         </div>
-        <ul class="log" id="log"><li class="empty">Midiendo las rutas sobre el relieve…</li></ul>
+        <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
       </section>
     </div>
 
     <!-- derecha: mapa y misiones -->
     <div class="col right">
       <section class="paper panel sites" aria-labelledby="sites-t">
-        <div class="ph"><h2 id="sites-t" class="disp">Sitios de misión</h2><span class="mono aux">estereográfica polar</span></div>
+        <div class="ph"><h2 id="sites-t" class="disp">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
         <div class="screen">
           <div class="glass-inner">
             <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
-            <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mapa del polo sur con los sitios de las misiones" id="smap"></svg>
+            <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the south pole with the mission sites" id="smap"></svg>
             <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
             <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
-            <p class="caption">sol a 8° · relieve generado · sitios PGDA</p>
+            <p class="caption">Sun at 8° · generated terrain · PGDA sites</p>
           </div>
           <span class="led" aria-hidden="true"></span>
         </div>
       </section>
 
       <section class="paper panel upcoming" aria-labelledby="up-t">
-        <div class="ph"><h2 id="up-t" class="disp">Misiones</h2><span class="aux"><span id="upCount">4</span> en la campaña</span></div>
+        <div class="ph"><h2 id="up-t" class="disp">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
         <div class="mlist" id="mlist"></div>
       </section>
     </div>
   </div>
-  <p class="foot"><span>Escenarios de planificación de ejemplo · sitios y medias de iluminación reales (PGDA, Mazarico 2011) · relieve generado</span><button type="button" id="resetDemo">Restablecer demo</button></p>
+  <p class="foot"><span>Example planning scenarios · real sites and mean illumination (PGDA, Mazarico 2011) · generated terrain</span><button type="button" id="resetDemo">Reset demo</button></p>
   <section class="paper chat" id="chat" aria-labelledby="chat-t">
     <button type="button" class="chat-h" id="chatToggle" aria-expanded="false" aria-controls="chatBody">
       <svg width="34" height="34" viewBox="0 0 76 76" aria-hidden="true">
@@ -391,21 +391,21 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
         <rect x="22" y="56" width="32" height="16" rx="7" fill="#FBF8F2" stroke="#C9C1B6" stroke-width="2"></rect><circle cx="38" cy="64" r="3" fill="#C8102E"></circle></g>
       </svg>
       <span class="who-c">
-        <span id="chat-t" class="disp ttl">Asistente</span>
-        <span class="live"><i></i>Respuestas de ejemplo · LOLA · PGDA · Horizons</span>
+        <span id="chat-t" class="disp ttl">Assistant</span>
+        <span class="live"><i></i>Example answers · LOLA · PGDA · Horizons</span>
       </span>
-      <span class="unread" id="chatUnread" hidden>Nuevo</span>
+      <span class="unread" id="chatUnread" hidden>New</span>
       <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
     </button>
     <div class="chat-b" id="chatBody" inert>
       <div class="thread" id="thread" aria-live="polite"></div>
-      <div class="sugs" id="sugs" aria-label="Preguntas sugeridas"></div>
+      <div class="sugs" id="sugs" aria-label="Suggested questions"></div>
       <form class="composer" id="composer" autocomplete="off">
-        <div class="ctx"><span>Contexto</span><b id="ctx">CR-02</b></div>
+        <div class="ctx"><span>Context</span><b id="ctx">CR-02</b></div>
         <div class="well">
-          <label for="ask" class="sr-only">Pregunta al asistente</label>
-          <textarea id="ask" rows="1" placeholder="Pregunta por una misión o una ruta…"></textarea>
-          <button type="submit" class="send" id="sendBtn" aria-label="Enviar pregunta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+          <label for="ask" class="sr-only">Ask the assistant</label>
+          <textarea id="ask" rows="1" placeholder="Ask about a mission or a route…"></textarea>
+          <button type="submit" class="send" id="sendBtn" aria-label="Send question"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
         </div>
       </form>
     </div>
@@ -421,7 +421,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   var L = window.Lunar, M = L.Mission, C = L.Campaign, $ = function (id) { return document.getElementById(id); };
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E', none: '#DCD4C8' };
-  var PAGES = { 'index.html': 'Planificador · Alunizaje', 'planificar.html': 'Planificador · Caminata' };
+  var PAGES = { 'index.html': 'Planner · Landing', 'planificar.html': 'Planner · Walk' };
   var two = C.two, hhmm = C.hhmm;
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
@@ -444,8 +444,8 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 
   /* ---------- paneles ---------- */
   function renderSteps() {
-    var st = [['Zona confirmada', true], ['Descenso simulado', true], ['Caminata aprobada', state.approved], ['Go final de dirección de vuelo', false]];
-    $('steps').innerHTML = st.map(function (s) { return '<li class="' + (s[1] ? 'done' : '') + '"><i class="lamp' + (s[1] ? ' on' : '') + (s[1] && s[0] === 'Caminata aprobada' ? ' red' : '') + '"></i>' + s[0] + '</li>'; }).join('');
+    var st = [['Zone confirmed', true], ['Descent simulated', true], ['Walk approved', state.approved], ['Final Flight Director Go', false]];
+    $('steps').innerHTML = st.map(function (s) { return '<li class="' + (s[1] ? 'done' : '') + '"><i class="lamp' + (s[1] ? ' on' : '') + (s[1] && s[0] === 'Walk approved' ? ' red' : '') + '"></i>' + s[0] + '</li>'; }).join('');
   }
   function renderMissions() {
     var now = Date.now();
@@ -458,22 +458,22 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
         '<span class="mono meta">' + m.meta + '</span>' +
         '<span class="bars">' + m.bars.map(function (b) { return '<span style="background:' + col[b] + '"></span>'; }).join('') + '</span>' +
         '<span class="mono leg">' + m.legend + '</span>' +
-        (movs ? '<span class="mono cnt">' + past + ' registrados · ' + (n.length - past) + ' programados</span>' : '') + '</button>';
+        (movs ? '<span class="mono cnt">' + past + ' logged · ' + (n.length - past) + ' scheduled</span>' : '') + '</button>';
     }).join('');
     $('upCount').textContent = missions.length;
   }
   function renderKpis() {
     var now = Date.now(), by = {};
     missions.forEach(function (m) { by[m.status] = (by[m.status] || 0) + 1; });
-    var mix = [['GO', 'GO'], ['OK', 'aprobada'], ['PEND', 'por firmar'], ['REV', 'en revisión'], ['DRAFT', 'borrador']].filter(function (k) { return by[k[0]]; }).map(function (k) { return by[k[0]] + ' ' + k[1]; }).join(' · ');
+    var mix = [['GO', 'GO'], ['OK', 'approved'], ['PEND', 'to sign'], ['REV', 'under review'], ['DRAFT', 'draft']].filter(function (k) { return by[k[0]]; }).map(function (k) { return by[k[0]] + ' ' + k[1]; }).join(' · ');
     var past = movs ? movs.filter(function (v) { return v.t <= now; }) : [], next = movs ? movs.filter(function (v) { return v.t > now; }) : [];
     var week = past.filter(function (v) { return now - v.t < 7 * 86400000; }).length;
     var pend = state.approved ? 0 : 1;
     var k = [
-      ['Misiones en campaña', missions.length, mix, ''],
-      ['Por firmar', pend, pend ? 'ruta científica de CR-02' : 'al día · sin decisiones abiertas', pend ? 'warn' : ''],
-      ['Movimientos registrados', movs ? past.length : '—', movs ? week + ' en los últimos 7 días' : 'calculando…', ''],
-      ['Operaciones programadas', movs ? next.length : '—', next.length ? 'siguiente: ' + next[0].text.split(':')[0].split(' · ')[0] + ' · ' + C.fmtDay(next[0].t).replace(/ \d{4}$/, '') : 'calculando…', '']
+      ['Missions in the campaign', missions.length, mix, ''],
+      ['To sign', pend, pend ? 'CR-02 scientific route' : 'up to date · no open decisions', pend ? 'warn' : ''],
+      ['Movements logged', movs ? past.length : '—', movs ? week + ' in the last 7 days' : 'calculating…', ''],
+      ['Operations scheduled', movs ? next.length : '—', next.length ? 'next: ' + next[0].text.split(':')[0].split(' · ')[0] + ' · ' + C.fmtDay(next[0].t).replace(/ \d{4}$/, '') : 'calculating…', '']
     ];
     $('kpis').innerHTML = k.map(function (x) { return '<div class="paper flat kpi"><p>' + x[0] + '</p><b class="' + x[3] + '">' + x[1] + '</b><small>' + x[2] + '</small></div>'; }).join('');
   }
@@ -505,8 +505,8 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     var p = $('pending');
     if (state.approved) {
       p.classList.remove('armed');
-      $('pendChip').textContent = 'AL DÍA'; $('pendChip').className = 'st OK';
-      $('pendBody').innerHTML = '<div class="done"><i class="lamp on"></i><span>No tienes decisiones pendientes. La siguiente llegará con el Go final de dirección de vuelo.</span></div>';
+      $('pendChip').textContent = 'UP TO DATE'; $('pendChip').className = 'st OK';
+      $('pendBody').innerHTML = '<div class="done"><i class="lamp on"></i><span>You have no pending decisions. The next one will come with the final Flight Director Go.</span></div>';
       p.querySelector('.stripe').style.display = 'none';
     }
   }
@@ -520,12 +520,12 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   }
   function tipOf(v) { return C.fmtDay(v.t) + ' · ' + hhmm(v.t) + ' UTC\n' + v.text; }
   function renderCal() {
-    var now = Date.now(), rows = [{ id: 'sun', label: 'Sol', sub: 'zona A · panel a 2 m' }].concat(missions.map(function (m) { return { id: m.id, label: m.id, sub: C.STATUS_LABEL[m.status].toLowerCase() }; }));
+    var now = Date.now(), rows = [{ id: 'sun', label: 'Sun', sub: 'zone A · panel at 2 m' }].concat(missions.map(function (m) { return { id: m.id, label: m.id, sub: C.STATUS_LABEL[m.status].toLowerCase() }; }));
     var H = TOP + rows.length * RH + 8, g = '';
     $('cal').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     /* semanas y meses */
     for (var d = C.U(2026, 10, 5); d < D1; d += 7 * 86400000) g += '<line x1="' + X(d).toFixed(1) + '" y1="' + TOP + '" x2="' + X(d).toFixed(1) + '" y2="' + (H - 8) + '" stroke="rgba(17,17,17,0.05)"></line>';
-    [[C.U(2026, 10, 1), 'oct 2026'], [C.U(2026, 11, 1), 'nov'], [C.U(2026, 12, 1), 'dic'], [C.U(2027, 1, 1), 'ene 2027']].forEach(function (m) {
+    [[C.U(2026, 10, 1), 'Oct 2026'], [C.U(2026, 11, 1), 'Nov'], [C.U(2026, 12, 1), 'Dec'], [C.U(2027, 1, 1), 'Jan 2027']].forEach(function (m) {
       var x = X(m[0]);
       g += '<line x1="' + x + '" y1="' + (TOP - 8) + '" x2="' + x + '" y2="' + (H - 8) + '" stroke="rgba(17,17,17,0.16)"></line><text x="' + (x + 6) + '" y="' + (TOP - 12) + '" font-size="12" font-weight="600" fill="#5C564E" font-family="IBM Plex Mono, monospace">' + m[1] + '</text>';
     });
@@ -536,12 +536,12 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
         '<text x="10" y="' + (cy - 1) + '" font-size="13" font-weight="600" fill="#111111" font-family="IBM Plex Mono, monospace">' + r.label + '</text>' +
         '<text x="10" y="' + (cy + 13) + '" font-size="10.5" fill="#857D72" font-family="Inter, sans-serif">' + r.sub + '</text>';
       g += '<line x1="' + X0 + '" y1="' + cy + '" x2="' + X1 + '" y2="' + cy + '" stroke="rgba(17,17,17,0.08)" stroke-dasharray="2 4"></line>';
-      if (r.id === 'sun') C.SUN.forEach(function (w) { g += bar(w[0], w[1], cy, '#A39A8E', 'Sol sobre el horizonte real\n' + C.fmtDay(w[0]) + ' → ' + C.fmtDay(w[1])); });
-      if (r.id === 'CR-01') { g += bar(C.U(2026, 10, 6), C.CONTACT - 18 * 3600000, cy, '#C9C1B6', 'Preparación del alunizaje\nhasta el contacto del 18 dic'); g += bar(C.CONTACT, C.STAY_END, cy, '#111111', 'En superficie\n18 dic 09:00 → 21 dic 09:00 UTC · 3 días'); }
-      if (r.id === 'CR-02') g += bar(C.U(2026, 11, 2), C.EVA - 18 * 3600000, cy, '#C9C1B6', 'Preparación de la caminata\n' + (state.approved ? 'ruta científica aprobada' : 'ruta científica pendiente de firma'));
-      if (r.id === 'CR-02') g += bar(C.EVA, C.EVA + 4.45 * 3600000, cy, '#111111', 'Caminata · 19 dic 10:00 UTC\n' + M.hm(M.routeStats(local(), 'science').timeH) + ' ida y vuelta');
-      if (r.id === 'PS-03') g += bar(C.SUN_B[0], C.SUN_B[1], cy, 'rgba(0,0,0,0)', 'Ventana posible · fecha por elegir\n' + C.fmtDay(C.SUN_B[0]) + ' → ' + C.fmtDay(C.SUN_B[1]), ' stroke="#857D72" stroke-width="1.5" stroke-dasharray="4 3"');
-      if (r.id === 'DG-04') g += '<text x="' + (X(now) + 12) + '" y="' + (cy + 4) + '" font-size="11" fill="#857D72" font-family="Inter, sans-serif">borrador · sin fecha</text>';
+      if (r.id === 'sun') C.SUN.forEach(function (w) { g += bar(w[0], w[1], cy, '#A39A8E', 'Sun above the real horizon\n' + C.fmtDay(w[0]) + ' → ' + C.fmtDay(w[1])); });
+      if (r.id === 'CR-01') { g += bar(C.U(2026, 10, 6), C.CONTACT - 18 * 3600000, cy, '#C9C1B6', 'Landing preparation\nuntil contact on 18 Dec'); g += bar(C.CONTACT, C.STAY_END, cy, '#111111', 'On the surface\n18 Dec 09:00 → 21 Dec 09:00 UTC · 3 days'); }
+      if (r.id === 'CR-02') g += bar(C.U(2026, 11, 2), C.EVA - 18 * 3600000, cy, '#C9C1B6', 'Walk preparation\n' + (state.approved ? 'scientific route approved' : 'scientific route pending sign-off'));
+      if (r.id === 'CR-02') g += bar(C.EVA, C.EVA + 4.45 * 3600000, cy, '#111111', 'Walk · 19 Dec 10:00 UTC\n' + M.hm(M.routeStats(local(), 'science').timeH) + ' round trip');
+      if (r.id === 'PS-03') g += bar(C.SUN_B[0], C.SUN_B[1], cy, 'rgba(0,0,0,0)', 'Possible window · date to be chosen\n' + C.fmtDay(C.SUN_B[0]) + ' → ' + C.fmtDay(C.SUN_B[1]), ' stroke="#857D72" stroke-width="1.5" stroke-dasharray="4 3"');
+      if (r.id === 'DG-04') g += '<text x="' + (X(now) + 12) + '" y="' + (cy + 4) + '" font-size="11" fill="#857D72" font-family="Inter, sans-serif">draft · no date</text>';
       g += '</g>';
       if (r.id === 'sun' || !movs) return;
       /* movimientos de la misión, agrupados cuando caen a menos de 7 px */
@@ -552,7 +552,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       groups.forEach(function (gr) {
         var x = gr.items.reduce(function (s, it) { return s + it.x; }, 0) / gr.items.length;
         var isHit = gr.items.some(function (it) { return it.hit; }), sched = gr.items.every(function (it) { return it.sched; });
-        var tip = (gr.items.length > 1 ? gr.items.length + ' movimientos\n' : '') + gr.items.map(function (it) { return tipOf(it.v); }).join('\n');
+        var tip = (gr.items.length > 1 ? gr.items.length + ' movements\n' : '') + gr.items.map(function (it) { return tipOf(it.v); }).join('\n');
         g += '<g data-tip="' + esc(tip) + '" data-id="' + r.id + '" class="row-hit">' +
           (isHit ? '<path d="M' + x.toFixed(1) + ' ' + (cy - 8) + ' l8 8 l-8 8 l-8 -8 z" fill="#C8102E" stroke="#F4EFE6" stroke-width="2"></path>'
                  : '<circle cx="' + x.toFixed(1) + '" cy="' + cy + '" r="' + (gr.items.length > 1 ? 5.5 : 4.5) + '" fill="' + (sched ? '#F4EFE6' : '#111111') + '" stroke="' + (sched ? '#111111' : '#F4EFE6') + '" stroke-width="2"></circle>') +
@@ -561,7 +561,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     });
     var xn = X(now);
     g += '<line x1="' + xn.toFixed(1) + '" y1="' + (TOP - 6) + '" x2="' + xn.toFixed(1) + '" y2="' + (H - 6) + '" stroke="#111111" stroke-width="1.5" stroke-dasharray="4 3"></line>' +
-      '<rect x="' + (xn - 20).toFixed(1) + '" y="' + (TOP - 24) + '" width="40" height="18" rx="9" fill="#111111"></rect><text x="' + xn.toFixed(1) + '" y="' + (TOP - 11) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="#F4EFE6" font-family="IBM Plex Mono, monospace">hoy</text>';
+      '<rect x="' + (xn - 20).toFixed(1) + '" y="' + (TOP - 24) + '" width="40" height="18" rx="9" fill="#111111"></rect><text x="' + xn.toFixed(1) + '" y="' + (TOP - 11) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="#F4EFE6" font-family="IBM Plex Mono, monospace">today</text>';
     $('cal').innerHTML = g;
   }
   /* tooltip del calendario */
@@ -584,9 +584,9 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   /* ---------- bitácora de movimientos ---------- */
   function renderFilters() {
     $('fMission').innerHTML = ['all'].concat(missions.map(function (m) { return m.id; })).map(function (id) {
-      return '<button type="button" class="chip' + (id === 'all' ? '' : ' mono') + '" data-v="' + id + '" aria-pressed="' + (logF.mission === id) + '">' + (id === 'all' ? 'Todas' : id) + '</button>';
+      return '<button type="button" class="chip' + (id === 'all' ? '' : ' mono') + '" data-v="' + id + '" aria-pressed="' + (logF.mission === id) + '">' + (id === 'all' ? 'All' : id) + '</button>';
     }).join('');
-    $('fType').innerHTML = '<option value="all">Todos los tipos</option>' + Object.keys(C.TYPES).map(function (k) { return '<option value="' + k + '"' + (logF.type === k ? ' selected' : '') + '>' + C.TYPES[k].label + '</option>'; }).join('');
+    $('fType').innerHTML = '<option value="all">All types</option>' + Object.keys(C.TYPES).map(function (k) { return '<option value="' + k + '"' + (logF.type === k ? ' selected' : '') + '>' + C.TYPES[k].label + '</option>'; }).join('');
   }
   var arrow = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>';
   function renderLog(scrollToNow) {
@@ -596,7 +596,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       return (logF.mission === 'all' || v.id === logF.mission) && (logF.type === 'all' || v.type === logF.type) &&
         (logF.when === 'all' || (logF.when === 'past' ? v.t <= now : v.t > now));
     });
-    var html = '', lastDay = null, divider = false, nowTag = '<li class="now" id="nowLine">AHORA · ' + C.fmtDay(now) + ' · ' + hhmm(now) + ' UTC</li>';
+    var html = '', lastDay = null, divider = false, nowTag = '<li class="now" id="nowLine">NOW · ' + C.fmtDay(now) + ' · ' + hhmm(now) + ' UTC</li>';
     items.forEach(function (v) {
       if (!divider && v.t > now && logF.when === 'all') { html += nowTag; divider = true; lastDay = null; }
       var day = C.fmtDayLong(v.t);
@@ -604,14 +604,14 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       var ty = C.TYPES[v.type];
       html += '<li class="ev' + (v.t > now ? ' sched' : '') + (v.fresh ? ' fresh' : '') + '">' +
         '<span class="mono tm">' + hhmm(v.t) + '</span><span class="idb">' + v.id + '</span><span class="ty ' + v.type + '" title="' + ty.label + '">' + ty.short + '</span>' +
-        '<span class="tx"><p>' + esc(v.text) + '</p><small>' + esc(v.who) + ' · ' + ty.label + (v.t > now ? ' · programado' : '') + '</small></span>' +
-        '<a class="go" href="' + v.href + '" aria-label="Abrir en ' + PAGES[v.href] + '" title="Abrir en ' + PAGES[v.href] + '">' + arrow + '</a></li>';
+        '<span class="tx"><p>' + esc(v.text) + '</p><small>' + esc(v.who) + ' · ' + ty.label + (v.t > now ? ' · scheduled' : '') + '</small></span>' +
+        '<a class="go" href="' + v.href + '" aria-label="Open in ' + PAGES[v.href] + '" title="Open in ' + PAGES[v.href] + '">' + arrow + '</a></li>';
     });
     if (!divider && logF.when === 'all' && items.length && items[items.length - 1].t <= now) html += nowTag;
-    if (!items.length) html = '<li class="empty">No hay movimientos con estos filtros.</li>';
+    if (!items.length) html = '<li class="empty">No movements match these filters.</li>';
     $('log').innerHTML = html;
     var past = items.filter(function (v) { return v.t <= now; }).length;
-    $('logCount').textContent = items.length + ' movimientos · ' + past + ' registrados · ' + (items.length - past) + ' programados';
+    $('logCount').textContent = items.length + ' movements · ' + past + ' logged · ' + (items.length - past) + ' scheduled';
     if (scrollToNow) { var n = $('nowLine'), lg = $('log'); if (n) { var b = lg.style.scrollBehavior; lg.style.scrollBehavior = 'auto'; lg.scrollTop = Math.max(0, n.offsetTop - lg.offsetTop - lg.clientHeight * 0.55); lg.style.scrollBehavior = b; } }
   }
   $('fMission').addEventListener('click', function (e) {
@@ -638,9 +638,9 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     btn.addEventListener('click', function () {
       if (state.approved) return;
       if (btn.dataset.armed) { clearTimeout(t); approve(); return; }
-      btn.dataset.armed = '1'; btn.classList.remove('dark'); btn.classList.add('red'); btn.textContent = 'Confirmar aprobación';
+      btn.dataset.armed = '1'; btn.classList.remove('dark'); btn.classList.add('red'); btn.textContent = 'Confirm approval';
       $('pending').classList.add('armed');
-      t = setTimeout(function () { delete btn.dataset.armed; btn.classList.remove('red'); btn.classList.add('dark'); btn.textContent = btn.dataset.label || 'Aprobar'; $('pending').classList.remove('armed'); }, 4000);
+      t = setTimeout(function () { delete btn.dataset.armed; btn.classList.remove('red'); btn.classList.add('dark'); btn.textContent = btn.dataset.label || 'Approve'; $('pending').classList.remove('armed'); }, 4000);
     });
   }
   function approve() {
@@ -648,8 +648,8 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     state.approved = true; C.approve();
     if (localT) movs = C.movements(localT);
     renderAll();
-    document.querySelectorAll('[data-approve]').forEach(function (b) { b.disabled = true; b.classList.remove('red'); b.classList.add('dark'); b.textContent = 'Aprobada'; });
-    note('Registré la aprobación de <b>CR-02 · ruta científica</b> a las ' + hhmm(Date.now()) + ' UTC. Quedó en la bitácora de movimientos y avisé a Planificación del retorno obligatorio en la parada 2.');
+    document.querySelectorAll('[data-approve]').forEach(function (b) { b.disabled = true; b.classList.remove('red'); b.classList.add('dark'); b.textContent = 'Approved'; });
+    note('I logged the approval of <b>CR-02 · scientific route</b> at ' + hhmm(Date.now()) + ' UTC. It is in the movement log and I told Planning about the mandatory return at stop 2.');
   }
   $('resetDemo').addEventListener('click', function () { C.resetApproval(); location.reload(); });
 
@@ -669,7 +669,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   function scrollEnd() { thread.scrollTop = thread.scrollHeight; }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
   function addUser(text) {
-    var m = el('<div class="msg user"><span class="mav" aria-hidden="true">CM</span><div class="body"><span class="who-l"><b>Tú</b> · ' + hhmm(Date.now()) + ' UTC</span><div class="bubble"></div></div></div>');
+    var m = el('<div class="msg user"><span class="mav" aria-hidden="true">CM</span><div class="body"><span class="who-l"><b>You</b> · ' + hhmm(Date.now()) + ' UTC</span><div class="bubble"></div></div></div>');
     m.querySelector('.bubble').textContent = text;
     thread.appendChild(m); scrollEnd();
   }
@@ -687,14 +687,14 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   var queue = [];
   function addAI(html, card, cite, delay) {
     state.busy = true; $('sendBtn').disabled = true;
-    var m = el('<div class="msg ai">' + robot + '<div class="body"><span class="who-l"><b>Asistente</b> · ' + hhmm(Date.now()) + ' UTC</span><div class="bubble"><span class="typing" aria-label="Escribiendo"><i></i><i></i><i></i></span></div></div></div>');
+    var m = el('<div class="msg ai">' + robot + '<div class="body"><span class="who-l"><b>Assistant</b> · ' + hhmm(Date.now()) + ' UTC</span><div class="bubble"><span class="typing" aria-label="Typing"><i></i><i></i><i></i></span></div></div></div>');
     var bubble = m.querySelector('.bubble'), body = m.querySelector('.body');
     thread.appendChild(m); scrollEnd(); unread();
     setTimeout(function () {
       bubble.innerHTML = '';
       stream(bubble, html, function () {
         if (card) { var c = card(); if (c) body.appendChild(c); }
-        if (cite) body.appendChild(el('<span class="cite">Fuentes · ' + cite + '</span>'));
+        if (cite) body.appendChild(el('<span class="cite">Sources · ' + cite + '</span>'));
         state.busy = false; $('sendBtn').disabled = false; scrollEnd();
         if (queue.length) setTimeout(function () { send(queue.shift()); }, 250);
       });
@@ -708,30 +708,30 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   /* tarjetas */
   function cardWalk() {
     var t = local(), st = M.routeStats(t, 'science');
-    var c = el('<div class="rc"><div class="rch"><h3 class="disp">CR-02 · Ruta científica</h3><span class="st ' + (state.approved ? 'OK' : 'PEND') + '">' + (state.approved ? 'APROBADA' : 'POR APROBAR') + '</span></div>' +
-      '<div class="rmap"><canvas width="660" height="330"></canvas><svg viewBox="390 300 660 330" preserveAspectRatio="xMidYMid slice" aria-label="Ruta científica sobre el relieve de Connecting Ridge" role="img">' +
+    var c = el('<div class="rc"><div class="rch"><h3 class="disp">CR-02 · Scientific route</h3><span class="st ' + (state.approved ? 'OK' : 'PEND') + '">' + (state.approved ? 'APPROVED' : 'PENDING SIGN-OFF') + '</span></div>' +
+      '<div class="rmap"><canvas width="660" height="330"></canvas><svg viewBox="390 300 660 330" preserveAspectRatio="xMidYMid slice" aria-label="Scientific route over the Connecting Ridge terrain" role="img">' +
       '<path d="' + st.d + '" fill="none" stroke="#22CCEE" stroke-width="14" stroke-linecap="round" opacity="0.2"></path><path d="' + st.d + '" fill="none" stroke="#7CF0D5" stroke-width="4.5" stroke-linecap="round" class="route"></path>' +
       '<circle cx="430" cy="640" r="9" fill="#07080B" stroke="#22CCEE" stroke-width="4"></circle><circle cx="1000" cy="300" r="9" fill="#7CF0D5" stroke="#07080B" stroke-width="3"></circle>' +
       st.stops.map(function (s, i) { return '<circle cx="' + s.x + '" cy="' + s.y + '" r="10" fill="#7DD3FC" stroke="#07080B" stroke-width="3"></circle><text x="' + s.x + '" y="' + (s.y + 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#07080B" font-family="Inter, sans-serif">' + (i + 1) + '</text>'; }).join('') +
-      '</svg><p class="caption">relieve generado 9,4 m · sol 5°</p></div>' +
-      '<div class="kgrid"><div><p>Distancia</p><b>' + M.num(st.distKm, 1) + '<small>km</small></b></div><div><p>Ida y vuelta</p><b>' + M.num(st.timeH, 1) + '<small>h</small></b></div><div><p>Pend. máx.</p><b>' + M.num(st.pmax) + '<small>°</small></b></div><div><p>O₂ al volver</p><b class="warn">26<small>%</small></b></div></div>' +
-      '<div class="acts" style="padding-top:10px"><button type="button" class="btn dark" data-approve data-label="Aprobar ruta"' + (state.approved ? ' disabled' : '') + '>' + (state.approved ? 'Aprobada' : 'Aprobar ruta') + '</button><a class="btn" href="planificar.html">Abrir caminata</a></div></div>');
+      '</svg><p class="caption">generated terrain 9.4 m · Sun 5°</p></div>' +
+      '<div class="kgrid"><div><p>Distance</p><b>' + M.num(st.distKm, 1) + '<small>km</small></b></div><div><p>Round trip</p><b>' + M.num(st.timeH, 1) + '<small>h</small></b></div><div><p>Max slope</p><b>' + M.num(st.pmax) + '<small>°</small></b></div><div><p>O₂ on return</p><b class="warn">26<small>%</small></b></div></div>' +
+      '<div class="acts" style="padding-top:10px"><button type="button" class="btn dark" data-approve data-label="Approve route"' + (state.approved ? ' disabled' : '') + '>' + (state.approved ? 'Approved' : 'Approve route') + '</button><a class="btn" href="planificar.html">Open walk</a></div></div>');
     M.drawCrop(localRelief, t, c.querySelector('canvas'), { x: 390, y: 300, w: 660, h: 330 });
     var b = c.querySelector('[data-approve]'); if (!state.approved) wireApprove(b);
     return c;
   }
   function cardCompare() {
-    var rows = [['A', 'Connecting Ridge · RoI 6', 91, 54, 'GO', 'GO'], ['B', 'Pico cerca de Shackleton · RoI 2', 86, 53, 'GO', 'GO'], ['C', 'Borde de Shackleton · RoI 4', 89, 53, 'GO', 'GO']];
-    return el('<div class="rc"><div class="rch"><h3 class="disp">Zonas candidatas</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">2026–2030 · a 2 m</span></div><div class="rcb" style="overflow-x:auto"><table class="cmp"><thead><tr><th>Zona</th><th>Sol</th><th>Tierra</th><th></th></tr></thead><tbody>' +
-      rows.map(function (r) { return '<tr><td><span class="mono" style="font-weight:600;margin-right:5px">' + r[0] + '</span>' + r[1] + '</td><td class="n">' + r[2] + ' %</td><td class="n">' + r[3] + ' %</td><td><span class="st ' + r[5] + '"' + (r[5] === 'NOGO' ? ' style="background:var(--rojo);color:var(--crema)"' : '') + '>' + r[4] + '</span></td></tr>'; }).join('') +
-      '</tbody></table></div><div class="acts"><a class="btn dark" href="index.html">Abrir alunizaje</a></div></div>');
+    var rows = [['A', 'Connecting Ridge · RoI 6', 91, 54, 'GO', 'GO'], ['B', 'Peak near Shackleton · RoI 2', 86, 53, 'GO', 'GO'], ['C', 'Shackleton rim · RoI 4', 89, 53, 'GO', 'GO']];
+    return el('<div class="rc"><div class="rch"><h3 class="disp">Candidate zones</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">2026–2030 · at 2 m</span></div><div class="rcb" style="overflow-x:auto"><table class="cmp"><thead><tr><th>Zone</th><th>Sun</th><th>Earth</th><th></th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><td><span class="mono" style="font-weight:600;margin-right:5px">' + r[0] + '</span>' + r[1] + '</td><td class="n">' + r[2] + '%</td><td class="n">' + r[3] + '%</td><td><span class="st ' + r[5] + '"' + (r[5] === 'NOGO' ? ' style="background:var(--rojo);color:var(--crema)"' : '') + '>' + r[4] + '</span></td></tr>'; }).join('') +
+      '</tbody></table></div><div class="acts"><a class="btn dark" href="index.html">Open landing</a></div></div>');
   }
   function cardSun() {
-    return el('<div class="rc"><div class="rch"><h3 class="disp">Sol en Connecting Ridge · RoI 6</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">oct → ene · a 2 m</span></div>' +
-      '<div class="kgrid"><div><p>Sol al contacto</p><b>+2,7<small>°</small></b></div><div><p>Tierra al contacto</p><b>+6,5<small>°</small></b></div><div><p>Ventanas</p><b>1</b></div><div><p>Noche más larga</p><b>0<small>h</small></b></div></div></div>');
+    return el('<div class="rc"><div class="rch"><h3 class="disp">Sun at Connecting Ridge · RoI 6</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">Oct → Jan · at 2 m</span></div>' +
+      '<div class="kgrid"><div><p>Sun at contact</p><b>+2.7<small>°</small></b></div><div><p>Earth at contact</p><b>+6.5<small>°</small></b></div><div><p>Windows</p><b>1</b></div><div><p>Longest night</p><b>0<small>h</small></b></div></div></div>');
   }
   function cardSummary() {
-    return el('<div class="rc"><div class="rch"><h3 class="disp">Estado de la campaña</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">' + missions.length + ' misiones</span></div><div class="rcb">' +
+    return el('<div class="rc"><div class="rch"><h3 class="disp">Campaign status</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">' + missions.length + ' missions</span></div><div class="rcb">' +
       missions.map(function (m) { return '<div class="srow"><span class="l"><span class="idb">' + m.id + '</span></span><span class="st ' + m.status + '">' + C.STATUS_LABEL[m.status] + '</span></div>'; }).join('') + '</div></div>');
   }
 
@@ -739,20 +739,20 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   function norm(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function answer(q) {
     var n = norm(q);
-    if (/aprob|camin|ruta|cr-?02|oxigen|viable|firma/.test(n)) {
+    if (/approv|sign|walk|route|cr-?02|oxygen|viab/.test(n)) {
       var st = M.routeStats(local(), 'science');
-      addAI('Sí, con una condición. La ruta científica mide <b>' + M.num(st.distKm, 1) + ' km</b> y ningún tramo supera los <b>' + M.num(st.pmax) + '°</b> de pendiente, por debajo del límite de 15°. El punto débil es el oxígeno: el equipo vuelve con el <b>26 %</b> de la reserva. Te recomiendo aprobarla con un <b>retorno obligatorio en la parada 2</b> si el consumo supera lo previsto.', cardWalk, 'DTM 5 m PGDA · LOLA LDEM_75S · 2,2 km/h, 8 %/h de O₂', 900);
-    } else if (/zona|compar|candidat|sitio|aterriz|alunizaj/.test(n)) {
-      addAI('Las tres zonas candidatas tienen GO para el 18 dic, con el panel y la antena a 2 m. <b>Connecting Ridge RoI 6</b> es la de más Sol (91 %); el pico cerca de Shackleton (RoI 2), la de más tiempo con Sol y Tierra a la vez (50 %).', cardCompare, 'RoI de Barker et al. 2021 · JPL Horizons DE441 + LOLA/PGDA');
-    } else if (/sol|luz|ventana|ilumin|noche/.test(n)) {
-      addAI('Con el panel a 2 m, en <b>Connecting Ridge RoI 6</b> el Sol no se pone entre octubre y enero (lo ves en el calendario). En el contacto del 18 dic está a <b>+2,7°</b> sobre el horizonte, y la Tierra a +6,5°.', cardSun, 'JPL Horizons DE441 · horizonte LOLA/PGDA');
-    } else if (/estado|resum|mision|pendient|hoy|campa|movim/.test(n)) {
+      addAI('Yes, with one condition. The scientific route is <b>' + M.num(st.distKm, 1) + ' km</b> long and no stretch exceeds <b>' + M.num(st.pmax) + '°</b> of slope, below the 15° limit. The weak point is oxygen: the crew returns with <b>26%</b> of the reserve. I recommend approving it with a <b>mandatory return at stop 2</b> if consumption runs above forecast.', cardWalk, 'DTM 5 m PGDA · LOLA LDEM_75S · 2.2 km/h, 8 %/h of O₂', 900);
+    } else if (/zone|compar|candidat|site|land/.test(n)) {
+      addAI('All three candidate zones are GO for 18 Dec, with the panel and antenna at 2 m. <b>Connecting Ridge RoI 6</b> has the most Sun (91%); the peak near Shackleton (RoI 2) has the most time with Sun and Earth at once (50%).', cardCompare, 'RoI de Barker et al. 2021 · JPL Horizons DE441 + LOLA/PGDA');
+    } else if (/sun|light|window|illumin|night/.test(n)) {
+      addAI('With the panel at 2 m, at <b>Connecting Ridge RoI 6</b> the Sun does not set between October and January (see the calendar). At contact on 18 Dec it is <b>+2.7°</b> above the horizon, and Earth at +6.5°.', cardSun, 'JPL Horizons DE441 · horizonte LOLA/PGDA');
+    } else if (/status|summar|mission|pending|today|campaign|movem|log/.test(n)) {
       addAI((state.approved
-        ? 'La campaña va al día. <b>CR-01</b> tiene GO para el alunizaje en ' + daysLeft() + ' días y la caminata de <b>CR-02</b> ya está aprobada.'
-        : 'Tienes <b>una decisión pendiente</b>: la ruta científica de CR-02. <b>CR-01</b> tiene GO para el alunizaje en ' + daysLeft() + ' días.') +
-        ' <b>PS-03</b> necesita elegir fecha y <b>DG-04</b> sigue en borrador. Llevamos <b>' + (movs ? movs.filter(function (v) { return v.t <= Date.now(); }).length : '—') + ' movimientos</b> registrados.', cardSummary, 'Bitácora de la campaña');
+        ? 'The campaign is up to date. <b>CR-01</b> is GO for landing in ' + daysLeft() + ' days and the <b>CR-02</b> walk is already approved.'
+        : 'You have <b>one pending decision</b>: the CR-02 scientific route. <b>CR-01</b> is GO for landing in ' + daysLeft() + ' days.') +
+        ' <b>PS-03</b> needs a date and <b>DG-04</b> is still a draft. We have <b>' + (movs ? movs.filter(function (v) { return v.t <= Date.now(); }).length : '—') + ' movements</b> logged.', cardSummary, 'Campaign log');
     } else {
-      addAI('En este prototipo respondo con ejemplos sobre la campaña. Con <b>' + state.sel + '</b> como contexto, prueba a preguntarme si se puede aprobar la caminata, cómo se comparan las zonas o cuándo hay Sol.', null, null, 500);
+      addAI('In this prototype I answer with examples about the campaign. With <b>' + state.sel + '</b> as context, try asking whether the walk can be approved, how the zones compare, or when there is Sun.', null, null, 500);
     }
   }
   function send(q) {
@@ -760,7 +760,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     if (state.busy) { queue.push(q); return; }
     addUser(q); answer(q);
   }
-  ['¿Apruebo CR-02?', 'Compara las zonas', '¿Cuándo hay Sol?', 'Estado de la campaña'].forEach(function (s) {
+  ['Shall I approve CR-02?', 'Compare the zones', 'When is there Sun?', 'Campaign status'].forEach(function (s) {
     var b = el('<button type="button" class="sug"></button>'); b.textContent = s;
     b.addEventListener('click', function () { send(s); }); $('sugs').appendChild(b);
   });
@@ -773,7 +773,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   $('mlist').addEventListener('click', function (e) { var b = e.target.closest('.mrow'); if (b) select(b.dataset.id, true); });
   $('askPend').addEventListener('click', function () {
     setChat(true);
-    send('¿Puedo aprobar la ruta científica de CR-02?');
+    send('Can I approve the CR-02 scientific route?');
   });
   $('chatToggle').addEventListener('click', function () { setChat(!chatOpen(), true); });
   chat.addEventListener('keydown', function (e) { if (e.key === 'Escape' && chatOpen()) { setChat(false); $('chatToggle').focus(); } });
@@ -782,8 +782,8 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   /* ---------- arranque ---------- */
   renderAll();
   note(state.approved
-    ? 'Hola. La campaña va al día: no hay firmas pendientes. Pregúntame por una misión, una zona o una ruta.'
-    : 'Hola. Tienes <b>una ruta por firmar</b> (CR-02). Pregúntame por ella o por cualquier misión, zona o ruta.');
+    ? 'Hello. The campaign is up to date: no sign-offs pending. Ask me about a mission, a zone or a route.'
+    : 'Hello. You have <b>one route to sign</b> (CR-02). Ask me about it or about any mission, zone or route.');
   booted = true;
 
   setTimeout(function () {

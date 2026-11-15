@@ -5,6 +5,8 @@ export const routes = {
   dashboard: "/dashboard",
   /** Planificador: una misión, en `/planificador/<id>`. Sin id lleva al Dashboard, donde se elige la misión. */
   missionPlanner: "/planificador",
+  /** Dashboard y Planificador (prototipo estático) a pantalla completa. Los archivos van en `/lunar-map/`, a propósito distinto. */
+  lunarMap: "/planner",
   simulator: "/simulador",
   map3d: "/3d-map",
   /** Página de pruebas de IA (voz y chat). No está enlazada desde la landing. */
