@@ -25,6 +25,7 @@ import { descensoNominal } from './engine/plan';
 import { avisarEva } from '@/shared/eva';
 import { tr } from '@/shared/i18n';
 import { planTouchdown, outcome, hazardAt, gravedad, ROCK_SMALL, ROCK_BIG } from './aterrizaje';
+import { datosFija, mostrarInforme } from './informe';
 
 const G = 1.62;
 const LM_SCALE = 1.4;          // el modelo NASA está a ~70 % del tamaño real (9.4 m entre patas)
@@ -270,6 +271,7 @@ export class LandingSim {
     const v = this.view;
     if (!v.now) return;
     // Si la caminata anterior iluminó la escena con la hora de la EVA, el descenso vuelve a la del alunizaje
+    v.rover?.stop(); document.querySelector('.sim-informe')?.remove();
     if (this._luzEva) { this._luzEva = false; await v.iluminarEn?.(v.tAlunizaje); }
     this.stop(true);
     this.active = true; this.locks = true;
@@ -380,7 +382,8 @@ export class LandingSim {
   update(dtReal) {
     if (!this.active) return;
     if (this.fp && this.view.eva?.briefing?.open) return; // la ficha del sitio va antes del descenso
-    const dt = dtReal * (this.state === 'eva' ? 1 : this.speed);
+    const fuera = this.state === 'eva' || this.state === 'rover'; // en la superficie: la cámara es de la caminata o del rover
+    const dt = dtReal * (fuera ? 1 : this.speed);
     this.t += dt;
     const v = this.view;
 
@@ -404,15 +407,15 @@ export class LandingSim {
         v.astro.update(dtReal, 0);
         this._cineCam(dtReal);
         if (this.cineOutro <= 0) { this.setCine(false); this._releaseEva(); }
-      } else if (this.state !== 'eva') {
+      } else if (!fuera) {
         const own = this._cineCam(dtReal);
         if (!own && Math.abs(v.camera.fov - 38) > 0.01) { v.camera.fov = 38; v.camera.updateProjectionMatrix(); }
         const tele = this.cineEl.querySelector('[data-c=tele]');
         tele.textContent = this.state === 'descent' || this.state === 'fall' ? `ALT ${fmt(Math.max(0, this.altitude()), this.altitude() < 20 ? 1 : 0)} m · V ${fmt(this.vel.y, 1)} m/s · ${tr('FUEL', 'COMB')} ${fmt(this.fuel)} s` : tr('ON THE SURFACE', 'EN LA SUPERFICIE');
       }
-    } else if (this.fp && this.state !== 'eva') {
+    } else if (this.fp && !fuera) {
       this._fpCam(dtReal);
-    } else if (this.state !== 'eva' && this.state !== 'egress') {
+    } else if (!fuera && this.state !== 'egress') {
       // Cámara: sigue al LM (el usuario puede girarla con el ratón)
       const delta = this.lm.position.clone().sub(v.controls.target);
       v.controls.target.add(delta);
@@ -640,17 +643,31 @@ export class LandingSim {
       <dl><div><dt>${tr('Contact speed', 'Velocidad de contacto')}</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>${tr('Footpad tilt', 'Inclinación de las patas')}</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
       <div><dt>${tr('Off target', 'Desvío del objetivo')}</dt><dd>${fmt(miss)} m</dd></div><div><dt>${tr('Fuel left', 'Combustible restante')}</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
       <div><dt>${tr('Powered descent', 'Descenso propulsado')}</dt><dd>${clock(this.t)}</dd></div><div><dt>${tr('Earth link', 'Enlace con la Tierra')}</dt><dd>${v.now?.earth.visible ? tr('direct', 'directo') : tr('below the horizon', 'bajo el horizonte')}</dd></div></dl>
-      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
+      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : v.plan?.tipo === 'rover' ? `<button type="button" data-act="rover">${tr('Deploy the rover', 'Desplegar el rover')}</button>` : v.plan?.tipo === 'fija' ? `<button type="button" data-act="informe">${tr('Mission report', 'Informe de la misión')}</button>` : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
         <button type="button" data-act="again" class="${R.kind === 'tip' || R.kind === 'crash' ? '' : 'sec'}">${tr('Fly the descent again', 'Volar el descenso otra vez')}</button></div>`;
     card.addEventListener('click', (e) => {
       const act = e.target.closest?.('button')?.dataset.act;
       if (act === 'again') this.start();
       if (act === 'out') { card.remove(); this.endEl = null; this._startEgress(); }
+      if (act === 'rover') { card.remove(); this.endEl = null; this._startRover(); }
+      if (act === 'informe') mostrarInforme(v, datosFija(v), { volar: () => this.start(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } });
     });
     v.host.append(card); this.endEl = card;
   }
 
   /* ---------------- Salida y primer paso ---------------- */
+
+  /** Misión con rover: baja por la rampa y se conduce por la ruta del plan (rover.ts), a la luz de la hora planificada. */
+  _startRover() {
+    const v = this.view;
+    this.state = 'rover'; this.locks = false; this.lfp.hidden = true;
+    if (this.pathG) this.pathG.visible = false;
+    if (this.fp && v.eva) v.eva.root.style.visibility = '';
+    this.fp = false; this.distant = false;
+    const h = v.plan?.evaH ?? 0;
+    if (h > 0 && !this._luzEva && v.iluminarEn) { this._luzEva = true; void v.iluminarEn(v.tAlunizaje + h * 3600e3); }
+    v.rover?.start(this.lmPos, Math.atan2(this.u.x, this.u.z), { lm: this.lm });
+  }
 
   /** Abre la escotilla: el astronauta sale de espaldas al porche y baja la escalera (en primera persona). */
   _startEgress() {

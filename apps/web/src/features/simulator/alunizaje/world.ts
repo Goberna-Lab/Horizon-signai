@@ -10,6 +10,7 @@ import { Sonido } from './sonido';
 import { makeDetail, buildDetail, disposeDetail, DETAIL_HALF } from './detalle';
 import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
+import { Rover } from './rover';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -53,7 +54,7 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number } = {}): Promise<() => void> {
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
   const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
@@ -163,7 +164,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
     // El plan: la ruta elegida en el Planificador y cuándo sale la EVA (horas después del alunizaje)
-    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0 }, tAlunizaje: Date.parse(site.time),
+    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0, tipo: tipo ?? 'tripulada', roverKmh: roverKmh ?? 0.8, paradaH: paradaH ?? 2 }, tAlunizaje: Date.parse(site.time),
     /** Vuelve a iluminar la escena con el cielo de otro instante (la hora de la EVA). */
     async iluminarEn(t) {
       const c = await cieloEn(site, t);
@@ -178,6 +179,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
   view.astro.object.visible = false;
   // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
   const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start(), sonido }));
+  const rover = (view.rover = new Rover(view, { onSalir: () => void sim.start(), sonido }));
   const sim = new LandingSim(view);
   await sim.start();
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
@@ -201,8 +203,9 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
     const t = performance.now(), dt = Math.min(0.05, (t - last) / 1000); last = t;
     sim.update(dt);
     caminata.update(dt);
+    rover.update(dt);
     // Las sombras se calculan alrededor de la nave (o del astronauta, en la caminata)
-    const f = caminata.active ? caminata.pos : sim.lm?.position ?? camera.position;
+    const f = caminata.active ? caminata.pos : rover.active ? rover.pos : sim.lm?.position ?? camera.position;
     sunLight.target.position.copy(f); sunLight.position.copy(f).addScaledVector(sd, 1500);
     if (caminata.active) caminata.render(dt); // a través del vidrio del casco, con su HUD
     else renderer.render(scene, camera);
@@ -215,7 +218,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
-    caminata.dispose(); view.astro.dispose();
+    caminata.dispose(); rover.dispose(); view.astro.dispose();
     disposeDetail(detailMesh); glowTex.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };

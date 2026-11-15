@@ -93,3 +93,9 @@
 .sim-reto b { font-size: 14px; } .sim-reto em { font: 600 10px "IBM Plex Mono", ui-monospace, monospace; text-transform: uppercase; letter-spacing: .08em; color: #F4EFE6; background: #C8102E; padding: 1px 6px; justify-self: start; font-style: normal; }
 .sim-reto span { grid-column: 2 / -1; font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace; color: rgba(17, 17, 17, .65); }
 .sim-reto p { margin: 6px 0 4px 26px; font-size: 13px; line-height: 1.45; }
+/* Rover (rover.ts): telemetría de conducción */
+.sim-rover-hud { position: absolute; left: 16px; top: 16px; z-index: 8; width: min(320px, calc(100% - 32px)); display: grid; gap: 3px; padding: 12px 14px; background: rgba(6, 10, 14, .72); color: #e6f4fa; border-left: 3px solid #4cc38a; font: 500 12px "IBM Plex Mono", ui-monospace, monospace; }
+.sim-rover-hud[hidden] { display: none; }
+.sim-rover-hud .fila { display: grid; grid-template-columns: 92px auto 1fr; gap: 8px; align-items: baseline; } .sim-rover-hud .fila span { color: rgba(230, 244, 250, .6); letter-spacing: .08em; font-size: 10.5px; }
+.sim-rover-hud .fila b { font-size: 14px; } .sim-rover-hud .fila.mal b { color: #ff6b6b; }
+.sim-rover-hud p { margin: 6px 0 0; line-height: 1.4; } .sim-rover-hud .tarea { color: #9fe4f2; } .sim-rover-hud .aviso { color: #ffd25a; } .sim-rover-hud .teclas { color: rgba(230, 244, 250, .55); font-size: 11px; }

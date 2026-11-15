@@ -155,6 +155,7 @@ export class Tareas {
         { text: () => tr(`Back to the lander along the route · ${Math.round(this._dLM())} m`, `Vuelve al módulo por la ruta · ${Math.round(this._dLM())} m`), target: () => this.cam.lmPos ?? this.home, ok: () => this._dLM() < 6, msg: tr('Back at the lander: walk complete as planned', 'De vuelta en el módulo: caminata completada como se planificó') },
       ];
     }
+    if (c.sinRegreso) this.steps.pop(); // el rover no vuelve: la misión termina en la última parada (o al final de la ruta)
   }
 
   /** Distancia (m) de la posición a la ruta planificada. */
@@ -170,12 +171,13 @@ export class Tareas {
   }
   get lejosDeRuta() { return this.started && !this.done && this.fueraDeRuta() > FUERA_DE_RUTA_M; }
 
-  _near(k) { const s = this.samples[k]; return s && !s.taken && this.cam.pos.distanceTo(s.mesh.position) < 2.6; }
+  _near(k) { const s = this.samples[k]; return s && !s.taken && this.cam.pos.distanceTo(s.mesh.position) < (this.cam.alcance ?? 2.6); }
   get step() { return this.started && !this.done ? this.steps[this.i] : null; }
   /** Posición del objetivo actual en el mundo (o null si la tarea no tiene lugar). */
   get target() { return this.step?.target?.() ?? null; }
   text() {
     if (!this.started) return null;
+    if (this.done && this.cam.sinRegreso) return tr(`Traverse complete · ${Math.round(this.cam.walked)} m driven, ${this.samples.length} measurements`, `Recorrido completado · ${Math.round(this.cam.walked)} m recorridos, ${this.samples.length} mediciones`);
     if (this.done) return tr(`Walk complete · ${Math.round(this.cam.walked)} m walked, ${this.samples.length} samples`, `Caminata completada · ${Math.round(this.cam.walked)} m recorridos, ${this.samples.length} muestras`);
     return `${this.i + 1}/${this.steps.length} · ${this.step.text()}`;
   }

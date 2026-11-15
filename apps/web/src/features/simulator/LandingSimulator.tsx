@@ -12,6 +12,8 @@ import "./alunizaje/alunizaje.css"
  *  · `?sitio=<id>&fecha=<ISO>`: un sitio del Planificador en una fecha (por ejemplo, desde un enlace del Planificador).
  *  · `&ruta=segura|corta|cientifica&eva=<h>`: la ruta de la caminata y cuántas horas después del alunizaje sale la EVA
  *    (la escena pasa entonces al Sol y la Tierra de ese momento). Sin ruta, la científica de CR-02.
+ *  · `&tipo=tripulada|rover|fija`: con rover, `&vel=<km/h>&parada=<h>` (velocidad máxima y horas por parada del plan);
+ *    el módulo fijo termina en el alunizaje, con su informe.
  *  · Sin nada: el plan de la misión CR-01 (Connecting Ridge · RoI 6, 18 de diciembre de 2026, 09:00 UTC).
  */
 export function LandingSimulator() {
@@ -26,13 +28,18 @@ export function LandingSimulator() {
   const ruta = params.get("ruta") ?? undefined
   const evaN = Number(params.get("eva"))
   const evaH = Number.isFinite(evaN) && evaN > 0 ? Math.min(evaN, 24 * 60) : undefined
+  const tipoP = params.get("tipo")
+  const tipo = tipoP === "rover" || tipoP === "fija" ? tipoP : undefined
+  const num = (k: string, min: number, max: number) => { const n = Number(params.get(k)); return params.get(k) != null && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : undefined }
+  const roverKmh = num("vel", 0.05, 5)
+  const paradaH = num("parada", 0, 24)
 
   useEffect(() => {
     let alive = true
     let dispose: (() => void) | undefined
     void import("./alunizaje/world").then(async ({ startLanding }) => {
       if (!alive || !host.current) return
-      const stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH })
+      const stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH })
       if (alive) dispose = stop
       else stop()
     })
@@ -40,7 +47,7 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [siteId, msOk, ruta, evaH])
+  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH])
 
   return (
     <section className="screen sim-alz-screen">
