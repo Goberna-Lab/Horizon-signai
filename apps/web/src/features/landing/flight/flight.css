@@ -14,8 +14,6 @@
   --signal: var(--signal-day);
   --rule: 1px solid var(--ink-day);
   --hairline: 1px solid var(--shade-day);
-  /* La ruta del astronauta sobre la cresta: un dorado apagado, que no compite con el rojo del Sol. */
-  --route: #b8963e;
   position: relative;
   background: var(--paper);
   color: var(--ink);
@@ -260,9 +258,121 @@
   }
 }
 
+/*
+ * La pantalla de carga: negra, con el porcentaje, una barra fina y el paso en curso (FlightStage.tsx los da según
+ * avanza la carga real del relieve 3D). Al terminar se funde y empieza la entrada.
+ */
+.fl-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #000;
+  color: var(--paper-day);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  transition:
+    opacity 700ms var(--ease),
+    visibility 0s 700ms;
+}
+
+.fl[data-loaded="true"] .fl-loader {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.fl-loader__title {
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  color: #9fd6ff;
+  text-shadow: 0 0 10px rgb(159 214 255 / 0.35);
+}
+
+.fl-loader__pct {
+  font-size: clamp(3rem, 7vw, 5rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-loader__pct span {
+  margin-left: 0.08em;
+  font-size: 0.4em;
+  color: rgb(244 239 230 / 0.5);
+}
+
+.fl-loader__bar {
+  position: relative;
+  width: min(320px, 70vw);
+  height: 2px;
+  background: rgb(244 239 230 / 0.14);
+  overflow: hidden;
+}
+
+.fl-loader__bar i {
+  position: absolute;
+  inset: 0;
+  background: #9fd6ff;
+  box-shadow: 0 0 10px #9fd6ff;
+  transform-origin: left;
+  transition: transform 450ms var(--ease);
+}
+
+/* Un brillo que recorre la barra mientras carga. */
+.fl-loader__bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.7), transparent);
+  animation: fl-loader-scan 1.4s linear infinite;
+}
+
+@keyframes fl-loader-scan {
+  from {
+    transform: translateX(-60px);
+  }
+  to {
+    transform: translateX(min(320px, 70vw));
+  }
+}
+
+.fl-loader__step {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: rgb(244 239 230 / 0.7);
+}
+
+.fl-loader__step::after {
+  content: "_";
+  margin-left: 0.3em;
+  animation: fl-blink 1s steps(1) infinite;
+}
+
+.fl-loader__source {
+  position: absolute;
+  bottom: 28px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgb(244 239 230 / 0.35);
+}
+
+/* La carga se anima aunque la entrada aún esté en pausa. */
+.fl:not([data-intro]) .fl__stage .fl-loader *,
+.fl:not([data-intro]) .fl__stage .fl-loader *::after {
+  animation-play-state: running !important;
+}
+
 /* Todo quieto (y en negro) hasta que FlightStage.tsx da la salida, con la letra ya cargada. */
 .fl:not([data-intro]) .fl__stage *,
-.fl:not([data-intro]) .fl__stage *::before {
+.fl:not([data-intro]) .fl__stage *::before,
+.fl:not([data-intro]) .fl__stage *::after {
   animation-play-state: paused !important;
 }
 
@@ -328,7 +438,7 @@
 /*
  * La ilustración del inicio: el exterior lunar en el sitio, con cielo negro. Tapa la lámina del vuelo mientras dura
  * el inicio y se retira al empezar a bajar. La dibuja y la mide FlightStage.tsx. Capas, de atrás adelante: el Sol,
- * el relieve de noche (silueta y línea blanca del horizonte), el relieve iluminado, la ruta y el astronauta.
+ * el relieve de noche (silueta y línea blanca del horizonte), el relieve iluminado y la ruta.
  */
 .fl__limb {
   position: absolute;
@@ -347,19 +457,6 @@
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-/* El astronauta camina en su propia franja, sobre la cresta. Entra cuando el Sol ya ha encendido el terreno. */
-.fl-limb__walker {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  opacity: 0;
-  transition: opacity 600ms var(--ease);
-}
-
-.fl-limb__walker[data-ready="true"] {
-  opacity: 1;
 }
 
 .fl-limb__across,
@@ -425,7 +522,7 @@
 
 /*
  * Con el relieve 3D ya cargado, el dibujo 2D del inicio (que lo cubría mientras tanto) se retira: queda el 3D real
- * debajo y, encima, el astronauta y el HUD.
+ * debajo y, encima, el HUD.
  */
 .fl-limb__sky,
 .fl-limb__across,

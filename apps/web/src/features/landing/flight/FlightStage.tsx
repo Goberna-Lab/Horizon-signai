@@ -4,8 +4,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger"
 import Lenis from "lenis"
 import "lenis/dist/lenis.css"
 import { tr } from "@/shared/i18n"
-import { brand, hud, opening, scenes } from "../content"
-import type { FlightHandle } from "./createFlight"
+import { brand, hud, loading, opening, scenes } from "../content"
+import type { FlightHandle, LoadStep } from "./createFlight"
 import type { Flight, ScreenPoint } from "./engine/renderer"
 import type { Frame } from "./engine/story"
 import { at, horizonAt, sky, span, stamp, stateOf } from "../sections/product/sky"
@@ -40,18 +40,11 @@ const SUNSET_AZ = 176
  *   3700  una línea blanca dibuja el horizonte
  *   4300  el Sol sale desde abajo, por detrás de la cresta
  *   4700  su luz se abre desde él y enciende el terreno
- *   6900  se dibuja la ruta sobre la cresta
- *   8300  el astronauta echa a andar
- *   9700  las lecturas del módulo
  */
-const LOAD_AT_MS = 6000
-const WALK_AT_MS = 8300
-/** El relieve 3D es el propio inicio: se carga enseguida (el dibujo 2D lo cubre mientras tanto). */
-const FLIGHT_AT_MS = 200
+/** El relieve 3D es el propio inicio: se carga enseguida, con la pantalla de carga delante. */
+const FLIGHT_AT_MS = 0
 /** El amanecer en 3D: el día avanza entre estos instantes de la entrada (ms), de `SUNRISE_FROM` a `HERO_DAY`. */
 const DAWN = { from: 3400, to: 7400 }
-/** Alto del astronauta (px) según el radio del Sol. */
-const walkerSize = (r: number) => Math.min(Math.max(r * 0.6, 56), 150)
 /** Hora del día lunar (desde el 1 de diciembre de 2026) que enseñan las lecturas del inicio: el Sol y la Tierra a la vista. */
 const STATUS_HOUR = 430
 
@@ -114,6 +107,8 @@ const COMPACT = "(orientation: landscape) and (max-height: 520px)"
 export function FlightStage() {
   const [mode] = useState(detectMode)
   const [ready, setReady] = useState(false)
+  /** La carga del relieve 3D: paso y porcentaje. Sin vuelo (modo de lectura) no hay nada que cargar. */
+  const [load, setLoad] = useState<{ step: LoadStep | "engine" | "done"; pct: number }>(() => (mode === "live" ? { step: "engine", pct: 2 } : { step: "done", pct: 100 }))
   const container = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -131,12 +126,7 @@ export function FlightStage() {
   const meterEl = useRef<HTMLElement>(null)
   const liveEl = useRef<HTMLParagraphElement>(null)
   const countEl = useRef<HTMLSpanElement>(null)
-  const walkerEl = useRef<HTMLCanvasElement>(null)
-  /** La geometría de la cresta del inicio, para que el astronauta pise sobre ella. */
-  const ridgeGeo = useRef<{ width: number; top: number; floor: number; y: (x: number) => number; r: number; from: number; to: number } | null>(null)
   const signalEl = useRef<SVGSVGElement>(null)
-  /** El suelo del relieve 3D en pantalla, cuando ya está cargado: el astronauta camina sobre él en vez del dibujo. */
-  const ground3d = useRef<((x: number) => number) | null>(null)
 
   // La ilustración del inicio (la del emblema del equipo: el Sol rojo tras la cresta, con la señal que se corta) se
   // dibuja a medida de la pantalla: ocupa el hueco entre el texto y el tablero. La cresta negra es el horizonte real
@@ -213,10 +203,8 @@ export function FlightStage() {
       // `r` es el tamaño de la composición (las lecturas se colocan con él); el Sol de verdad es más pequeño.
       const cx = width / 2
       const crest = ridgeY(cx)
-      ridgeGeo.current = { width, top: textEnd, floor, y: ground3d.current ?? ridgeY, r: 0, from: 0, to: 0 }
       const r = Math.max(Math.min((crest - textEnd - 14) / 1.5, width * (height > width ? 0.36 : 0.155), 270), 26)
       const cy = crest - r * 0.5
-      ridgeGeo.current.r = r
       // El Sol: un disco blanco con su resplandor, asomando por encima de la cresta.
       const sunR = Math.min(Math.max(r * 0.2, 16), 52)
       const sunY = crest - sunR * 0.55
@@ -294,14 +282,6 @@ export function FlightStage() {
         delete root.dataset.barAligned
       }
 
-      // La ruta del astronauta: cruza toda la cresta, del borde izquierdo al derecho, pasando por delante del Sol.
-      const size = walkerSize(r)
-      const to = width - size * 0.6
-      // Sale por el borde de la pantalla, sin esperar fuera de ella.
-      const from = -size * 0.45
-      ridgeGeo.current.from = from
-      ridgeGeo.current.to = to
-      window.dispatchEvent(new Event("flight:ridge"))
       for (const layer of box.querySelectorAll("svg")) layer.setAttribute("viewBox", `0 0 ${width} ${height}`)
     }
     const observer = new ResizeObserver(layout)
@@ -321,19 +301,37 @@ export function FlightStage() {
     const root = container.current
     if (!root) return
     let done = false
+    // Hacen falta la letra y, con vuelo, el relieve 3D listo (la pantalla de carga cubre la espera). Si el 3D falla o
+    // tarda demasiado, la entrada sale igual, con el dibujo 2D.
+    let fontReady = false
+    let sceneReady = mode !== "live"
     const run = () => {
-      if (done) return
+      if (done || !fontReady || !sceneReady) return
       done = true
       introAt.current = performance.now()
       root.dataset.intro = "run"
       document.documentElement.dataset.intro = "run"
       window.dispatchEvent(new Event("flight:intro"))
     }
-    const timer = window.setTimeout(run, 900)
-    if (document.fonts?.load) document.fonts.load(`500 120px ${getComputedStyle(root).getPropertyValue("--font-serif") || "serif"}`).then(run, run)
-    else run()
-    return () => window.clearTimeout(timer)
-  }, [])
+    const font = () => {
+      fontReady = true
+      run()
+    }
+    const scene = () => {
+      sceneReady = true
+      run()
+    }
+    const fontTimer = window.setTimeout(font, 900)
+    const sceneTimer = window.setTimeout(scene, 25000)
+    window.addEventListener("flight:loaded", scene)
+    if (document.fonts?.load) document.fonts.load(`500 120px ${getComputedStyle(root).getPropertyValue("--font-serif") || "serif"}`).then(font, font)
+    else font()
+    return () => {
+      window.clearTimeout(fontTimer)
+      window.clearTimeout(sceneTimer)
+      window.removeEventListener("flight:loaded", scene)
+    }
+  }, [mode])
 
   // El HUD se reinicia con el Sol (ver `HUD`): sin energía y sin enlace de noche, la potencia sube con la luz y el
   // enlace vuelve. El texto final está ya en la página (sin JS o con "reducir movimiento" se queda así).
@@ -394,74 +392,6 @@ export function FlightStage() {
       window.removeEventListener("flight:intro", start)
     }
   }, [])
-
-  // El astronauta: camina sobre la cresta del inicio y deja huellas. Se carga aparte, cuando el inicio ya se ve.
-  useEffect(() => {
-    const canvas = walkerEl.current
-    const stageEl = stage.current
-    if (!canvas || !stageEl) return
-    let walker: import("./astronaut").Astronaut | null = null
-    let cancelled = false
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    const place = () => {
-      const r = ridgeGeo.current
-      if (!walker || !r) return
-      const size = walkerSize(r.r)
-      const top = Math.max(r.top, Math.min(r.y(0), r.y(r.width)) - size * 1.35)
-      const height = r.floor - top
-      canvas.style.cssText = `top:${top}px;height:${height}px`
-      walker.resize({ width: r.width, top, height, size, ground: r.y, from: r.from, to: r.to })
-    }
-    // Se dibuja solo con el inicio a la vista.
-    const visible = new IntersectionObserver(([entry]) => walker?.setActive(entry.isIntersecting && window.scrollY < window.innerHeight * 0.6))
-    const onScroll = () => walker?.setActive(window.scrollY < window.innerHeight * 0.6)
-    const timers: number[] = []
-    // El reloj es el de la entrada: el modelo se carga cuando la marca ya está en su sitio y echa a andar cuando la
-    // ruta termina de dibujarse.
-    const begin = () => {
-      timers.push(
-        window.setTimeout(() => {
-          import("./astronaut")
-            // Las huellas: el regolito removido, más claro que el suelo iluminado.
-            .then((module) => module.createAstronaut(canvas, { paper: "#e2dacb", still }))
-            .then((created) => {
-              if (cancelled) return created.dispose()
-              walker = created
-              place()
-              walker.setActive(window.scrollY < window.innerHeight * 0.6)
-              visible.observe(stageEl)
-              const go = () => {
-                if (cancelled || !walker) return
-                canvas.dataset.ready = "true"
-                walker.walk()
-              }
-              const wait = WALK_AT_MS - (performance.now() - startedAt)
-              if (wait > 0) timers.push(window.setTimeout(go, wait))
-              else go()
-            })
-            .catch((error) => console.warn("Astronaut unavailable:", error))
-        }, Math.max(LOAD_AT_MS - (performance.now() - startedAt), 0)),
-      )
-    }
-    let startedAt = performance.now()
-    const onIntro = () => {
-      startedAt = performance.now()
-      begin()
-    }
-    if (container.current?.dataset.intro === "run") begin()
-    else window.addEventListener("flight:intro", onIntro, { once: true })
-    window.addEventListener("flight:ridge", place)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      cancelled = true
-      for (const timer of timers) window.clearTimeout(timer)
-      window.removeEventListener("flight:intro", onIntro)
-      window.removeEventListener("flight:ridge", place)
-      window.removeEventListener("scroll", onScroll)
-      visible.disconnect()
-      walker?.dispose()
-    }
-  }, [mode])
 
   useEffect(() => {
     if (mode !== "live") return
@@ -596,26 +526,8 @@ export function FlightStage() {
       const height = stageEl.clientHeight
       const small = Math.min(width, height) < 700
       handle.flight.resize(width, height, Math.min(window.devicePixelRatio || 1, small ? 2 : 1.5), frames(width, height))
-      groundFromFlight()
     }
 
-    /** El astronauta camina sobre el suelo 3D: un perfil del terreno cerca del borde de abajo de la vista. */
-    const groundFromFlight = () => {
-      const geo = ridgeGeo.current
-      if (!handle || !geo || state.p > 0.05) return
-      const profile = handle.flight.groundProfile(0.8)
-      if (profile.length < 2) return
-      const y = (x: number) => {
-        let i = 1
-        while (i < profile.length - 1 && profile[i][0] < x) i++
-        const [x0, y0] = profile[i - 1]
-        const [x1, y1] = profile[i]
-        return y0 + ((y1 - y0) * (x - x0)) / Math.max(x1 - x0, 1e-6)
-      }
-      ground3d.current = y
-      ridgeGeo.current = { ...geo, y, floor: stageEl.clientHeight }
-      window.dispatchEvent(new Event("flight:ridge"))
-    }
 
     // Scroll suavizado: la rueda deja de avanzar a saltos y la cámara se desliza. El scroll sigue siendo el del
     // navegador (teclado, barra y táctil funcionan igual), así que `position: sticky` no se rompe.
@@ -665,18 +577,35 @@ export function FlightStage() {
       }
       window.addEventListener("scroll", early, { once: true, passive: true })
     })
+    // La pantalla de carga: cada paso ocupa un tramo de la barra.
+    const span: Record<LoadStep, [number, number]> = { terrain: [16, 72], mesh: [74, 84], light: [86, 98] }
+    const loaded = () => {
+      if (cancelled) return
+      setLoad({ step: "done", pct: 100 })
+      window.dispatchEvent(new Event("flight:loaded"))
+    }
     ready
       .then(() => import("./createFlight"))
       .then(async (module) => {
         if (cancelled) return
+        setLoad({ step: "terrain", pct: 16 })
         const small = Math.min(window.innerWidth, window.innerHeight) < 700
         const created = await module.createFlight(canvasEl, {
           palette: palette(),
           quality: small || (navigator.hardwareConcurrency ?? 8) <= 2 ? "low" : "high",
           // El antialiasing por hardware sale barato en gráficas de móvil y caro en una integrada de escritorio.
           antialias: window.matchMedia("(pointer: coarse)").matches,
-          onReady: () => !cancelled && setReady(true),
+          onReady: () => {
+            if (cancelled) return
+            setReady(true)
+            loaded()
+          },
           onFrame,
+          onProgress: (step, fraction) => {
+            if (cancelled) return
+            const [from, to] = span[step]
+            setLoad({ step, pct: Math.round(from + (to - from) * fraction) })
+          },
         })
         if (cancelled) {
           created.flight.dispose()
@@ -688,8 +617,9 @@ export function FlightStage() {
         apply()
       })
       .catch((error) => {
-        // Sin escena la página sigue completa: queda la lámina fija de fondo.
+        // Sin escena la página sigue completa: queda el dibujo 2D del inicio y la lámina fija de fondo.
         console.warn("Flight scene unavailable:", error)
+        loaded()
       })
 
     // El encuadre depende del tamaño del escenario y del alto de cada panel (cambia al cargar la tipografía).
@@ -754,6 +684,7 @@ export function FlightStage() {
       className="fl"
       data-mode={mode}
       data-ready={ready}
+      data-loaded={load.step === "done"}
       style={mode === "live" ? { height: `calc(${LAST * LEG_VH}vh + 100lvh)` } : undefined}
       aria-label={tr("The lunar south pole, from chart to surface", "El polo sur lunar, de la lámina a la superficie")}
     >
@@ -892,8 +823,23 @@ export function FlightStage() {
 
           <svg className="fl-limb__art" ref={signalEl}>
           </svg>
-          <canvas className="fl-limb__walker" ref={walkerEl} />
         </div>
+
+        {/* La pantalla de carga: el relieve 3D real tarda unos segundos; la entrada empieza cuando está listo. */}
+        {mode === "live" && (
+          <div className="fl-loader" role="status" aria-live="polite" aria-hidden={load.step === "done"}>
+            <p className="fl-loader__title">{loading.title}</p>
+            <p className="fl-loader__pct">
+              {load.pct}
+              <span>%</span>
+            </p>
+            <span className="fl-loader__bar" aria-hidden="true">
+              <i style={{ transform: `scaleX(${load.pct / 100})` }} />
+            </span>
+            <p className="fl-loader__step">{loading.steps[load.step]}</p>
+            <p className="fl-loader__source">{loading.source}</p>
+          </div>
+        )}
 
         {mode === "live" && (
           <div className="fl__marks" aria-hidden="true">

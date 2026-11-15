@@ -29,6 +29,19 @@ export const brand = {
  * El inicio. El titular dice qué es el producto: un planificador ágil de misiones lunares con IA integrada. La
  * parte marcada va en el rojo de señal, el único color del emblema del equipo.
  */
+/** La pantalla de carga del inicio: un paso por cada parte de la carga y la fuente del relieve. */
+export const loading = {
+  title: "Lunar south pole",
+  steps: {
+    engine: "Starting the 3D engine",
+    terrain: "Downloading the terrain",
+    mesh: "Building the relief",
+    light: "Computing sunlight and shadows",
+    done: "Ready",
+  },
+  source: "Elevation: NASA LRO, LOLA",
+}
+
 export const opening = {
   /**
    * La marca animada: se escribe "Horizon Signal", se borra "al" y se escribe "AI" en rojo: queda "Horizon SignAI".
