@@ -1,3 +1,4 @@
+import { tr } from "@/shared/i18n"
 import { software } from "../../content"
 import product from "../data/product.json"
 import { PolarSky } from "./PolarSky"
@@ -8,8 +9,14 @@ const { sites, spanKm } = product.compare
 
 /** Una frase con las cifras que explican el veredicto. */
 function reason(f: Figures): string {
-  const sun = f.longestNightH === 0 ? "Sunlight all lunar day" : `Sunlight ${percent(f.sunPct)} of the time, longest night ${Math.round(f.longestNightH)} h`
-  const earth = f.earthPct === 0 ? "no direct view of Earth" : `Earth in view ${percent(f.earthPct)}`
+  const sun =
+    f.longestNightH === 0
+      ? tr("Sunlight all lunar day", "Luz solar todo el día lunar")
+      : tr(
+          `Sunlight ${percent(f.sunPct)} of the time, longest night ${Math.round(f.longestNightH)} h`,
+          `Luz solar el ${percent(f.sunPct)} del tiempo, noche más larga de ${Math.round(f.longestNightH)} h`,
+        )
+  const earth = f.earthPct === 0 ? tr("no direct view of Earth", "sin vista directa de la Tierra") : tr(`Earth in view ${percent(f.earthPct)}`, `Tierra a la vista el ${percent(f.earthPct)}`)
   return `${sun}; ${earth}.`
 }
 
@@ -34,7 +41,7 @@ export function CompareView({ t }: { t: number }) {
                 {Math.abs(site.lat).toFixed(2)}° S, {site.lon.toFixed(2)}° E
               </p>
               <div className="sw-card__main">
-                <PolarSky horizon={site.horizon} sun={site.sun} earth={site.earth} step={product.stepH} windows={site.windows} t={t} variant="mini" label={`Sky at ${site.name}`} />
+                <PolarSky horizon={site.horizon} sun={site.sun} earth={site.earth} step={product.stepH} windows={site.windows} t={t} variant="mini" label={tr(`Sky at ${site.name}`, `Cielo en ${site.name}`)} />
                 <dl className="sw-card__figures">
                   <div>
                     <dt>{copy.sun}</dt>
@@ -59,7 +66,7 @@ export function CompareView({ t }: { t: number }) {
                     {copy.hidden}
                   </span>
                 </p>
-                <div className="sw-strip" role="img" aria-label={`Earth in view ${percent(site.figures.earthPct)} of the lunar day`}>
+                <div className="sw-strip" role="img" aria-label={tr(`Earth in view ${percent(site.figures.earthPct)} of the lunar day`, `Tierra a la vista el ${percent(site.figures.earthPct)} del día lunar`)}>
                   {site.windows.earth
                     .filter(([a]) => a < LAST)
                     .map(([a, b]) => (
@@ -80,7 +87,10 @@ export function CompareView({ t }: { t: number }) {
       </div>
 
       <p className="sw-pull">
-        Move the landing {spanKm.toFixed(0)} km and sunlight drops from {percent(first.figures.sunPct)} to {percent(last.figures.sunPct)}.
+        {tr(
+          `Move the landing ${spanKm.toFixed(0)} km and sunlight drops from ${percent(first.figures.sunPct)} to ${percent(last.figures.sunPct)}.`,
+          `Mueve el aterrizaje ${spanKm.toFixed(0)} km y la luz solar baja de ${percent(first.figures.sunPct)} a ${percent(last.figures.sunPct)}.`,
+        )}
       </p>
       <p className="sw-note">{copy.thresholds}</p>
     </div>

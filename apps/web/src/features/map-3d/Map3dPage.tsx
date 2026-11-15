@@ -1,3 +1,4 @@
+import { lang, tr } from "@/shared/i18n"
 import "./map3d.css"
 
 /**
@@ -11,11 +12,11 @@ import "./map3d.css"
  */
 export function Map3dPage() {
   return (
-    <section className="screen map3d" aria-label="3D map of the Moon">
+    <section className="screen map3d" aria-label={tr("3D map of the Moon", "Mapa 3D de la Luna")}>
       <iframe
         className="map3d__frame"
-        src="/mapa-3d.html?lang=en"
-        title="3D map of the Moon: LOLA relief, landing sites and IAU names"
+        src={`/mapa-3d.html?lang=${lang}`}
+        title={tr("3D map of the Moon: LOLA relief, landing sites and IAU names", "Mapa 3D de la Luna: relieve LOLA, sitios de alunizaje y nombres IAU")}
         allow="fullscreen"
       />
     </section>

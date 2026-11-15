@@ -1,10 +1,18 @@
 /** Cómo escribe el planificador fechas, duraciones, cifras y requisitos. Todo en UTC. Funciones puras. */
+import { tr } from "../../i18n/index.ts"
 import type { Check } from "./evaluate.ts"
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const MONTHS = tr(
+  ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+)
+/** Elige entre el texto en inglés y el texto en español. Por defecto elige `tr`: el idioma de la página. */
+type Choose = <T>(en: T, es: T) => T
+/** Siempre inglés: para lo que lee el modelo del asistente y no una persona (`../context.ts`). */
+export const inEnglish: Choose = (en) => en
 const pad = (value: number) => String(value).padStart(2, "0")
 
-/** "29 Mar 2027" */
+/** "29 Mar 2027"; en español, "29 mar 2027". */
 export function day(ms: number): string {
   const d = new Date(ms)
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
@@ -41,7 +49,7 @@ export function percent(value: number): string {
 
 export const hours = (value: number) => `${Math.round(value)} h`
 /** Ángulo respecto del horizonte del terreno: "4.6° below the terrain". */
-export const against = (marginDeg: number) => `${Math.abs(marginDeg).toFixed(1)}° ${marginDeg > 0 ? "above" : "below"} the terrain`
+export const against = (marginDeg: number, t: Choose = tr) => `${Math.abs(marginDeg).toFixed(1)}° ${marginDeg > 0 ? t("above the terrain", "sobre el terreno") : t("below the terrain", "bajo el terreno")}`
 
 /** Valor para un `<input type="datetime-local">`, en UTC: "2027-03-29T12:00". */
 export function toInput(ms: number): string {
@@ -59,16 +67,31 @@ export function fromInput(value: string): number | null {
 export const coordinates = (lat: number, lon: number) => `${Math.abs(lat).toFixed(3)}° ${lat < 0 ? "S" : "N"}, ${lon.toFixed(3)}° E`
 
 /** Un requisito en palabras: qué se pidió y qué se midió. */
-export function describe(c: Check): { title: string; detail: string } {
+export function describe(c: Check, t: Choose = tr): { title: string; detail: string } {
   switch (c.id) {
     case "sunAtLanding":
-      return { title: c.ok ? "Sun in view at landing" : "Sun hidden at landing", detail: `Upper edge of the Sun ${against(c.value)}` }
+      return {
+        title: c.ok ? t("Sun in view at landing", "Sol a la vista al aterrizar") : t("Sun hidden at landing", "Sol oculto al aterrizar"),
+        detail: `${t("Upper edge of the Sun", "Borde superior del Sol")} ${against(c.value, t)}`,
+      }
     case "earthAtLanding":
-      return { title: c.ok ? "Earth in view at landing" : "Earth hidden at landing", detail: `Centre of Earth ${against(c.value)}` }
+      return {
+        title: c.ok ? t("Earth in view at landing", "Tierra a la vista al aterrizar") : t("Earth hidden at landing", "Tierra oculta al aterrizar"),
+        detail: `${t("Centre of Earth", "Centro de la Tierra")} ${against(c.value, t)}`,
+      }
     case "battery":
-      return { title: c.ok ? "Longest night fits the battery" : "Longest night outlasts the battery", detail: `${hours(c.value)} without Sun; the battery lasts ${hours(c.limit)}` }
+      return {
+        title: c.ok ? t("Longest night fits the battery", "La noche más larga cabe en la batería") : t("Longest night outlasts the battery", "La noche más larga supera la batería"),
+        detail: t(`${hours(c.value)} without Sun; the battery lasts ${hours(c.limit)}`, `${hours(c.value)} sin Sol; la batería dura ${hours(c.limit)}`),
+      }
     case "earthContact":
-      return { title: c.ok ? "Enough Earth contact" : "Too little Earth contact", detail: `Earth in view ${percent(c.value)} of the stay; the mission needs ${percent(c.limit)}` }
+      return {
+        title: c.ok ? t("Enough Earth contact", "Suficiente contacto con la Tierra") : t("Too little Earth contact", "Poco contacto con la Tierra"),
+        detail: t(
+          `Earth in view ${percent(c.value)} of the stay; the mission needs ${percent(c.limit)}`,
+          `Tierra a la vista el ${percent(c.value)} de la estadía; la misión necesita el ${percent(c.limit)}`,
+        ),
+      }
   }
 }
 
@@ -77,8 +100,8 @@ export function reasons(checks: Check[]): string {
   return checks
     .filter((c) => !c.ok)
     .map((c) => {
-      if (c.id === "battery") return `longest night ${hours(c.value)}, battery ${hours(c.limit)}`
-      if (c.id === "earthContact") return `Earth in view ${percent(c.value)}, needs ${percent(c.limit)}`
+      if (c.id === "battery") return tr(`longest night ${hours(c.value)}, battery ${hours(c.limit)}`, `noche más larga ${hours(c.value)}, batería ${hours(c.limit)}`)
+      if (c.id === "earthContact") return tr(`Earth in view ${percent(c.value)}, needs ${percent(c.limit)}`, `Tierra a la vista ${percent(c.value)}, necesita ${percent(c.limit)}`)
       return describe(c).title
     })
     .map((text, i) => (i === 0 ? text[0].toUpperCase() + text.slice(1) : text))

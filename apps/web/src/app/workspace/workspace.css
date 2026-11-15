@@ -2,9 +2,11 @@
 .ws { display: flex; flex-direction: column; gap: 14px; padding: 0 var(--gutter) 24px; background: var(--paper); color: var(--ink); }
 .ws-bar { display: flex; align-items: center; justify-content: space-between; height: var(--bar); border-bottom: var(--rule); }
 .ws-bar__brand { font: 700 1.5rem/1 var(--font-serif); text-decoration: none; }
-.ws-bar__nav { display: flex; gap: 20px; font: 500 12px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.ws-bar__nav { display: flex; gap: 20px; margin-left: auto; font: 500 12px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
 .ws-bar__nav a { text-decoration: none; }
 .ws-bar__nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 6px; }
+/* Selector EN / ES, a la derecha de la navegación: hereda la tinta; la tecla pulsada lleva la letra en color papel. */
+.ws-bar__lang { flex: none; margin-left: 20px; --ui-lang-on: var(--paper); }
 .ws-state { font: 500 13px/1.4 var(--font-mono); color: var(--ink-soft); }
 .ws-main { display: flex; gap: 18px; align-items: flex-start; min-height: 0; }
 .ws-left { flex: 0 0 380px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; transition: flex-basis 500ms var(--ease), opacity 300ms; }

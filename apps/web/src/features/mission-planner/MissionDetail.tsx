@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router"
-import { routes } from "@/app/routes"
+import { plannerPath } from "@/app/routes"
 import {
   coordinates,
   day,
@@ -51,7 +51,6 @@ type MissionDetailProps = {
   onRemove: () => void
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const GROUPS = ["roi", "site", "mission"] as const
 
 export function MissionDetail({ row, table, masks, onChange, onApply, onBack, onRemove }: MissionDetailProps) {
@@ -75,7 +74,7 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
       .slice(0, 2)
   }, [failing, allLoaded, masks, site, table, mission])
 
-  const moveTo = (option: DayOption) => onApply({ landingMs: option.landingMs, movedFromMs: mission.movedFromMs ?? mission.landingMs }, `${mission.name}: landing moved to ${day(option.landingMs)}.`)
+  const moveTo = (option: DayOption) => onApply({ landingMs: option.landingMs, movedFromMs: mission.movedFromMs ?? mission.landingMs }, copy.applied.date(mission.name, day(option.landingMs)))
   const cells = (f: Figures) => (
     <>
       <td>{percent(f.sunPct)}</td>
@@ -91,14 +90,14 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
       </button>
 
       <header className="pl-detail__head">
-        <h2 className="pl-detail__title">{mission.name || "Mission"}</h2>
+        <h2 className="pl-detail__title">{mission.name || copy.detail.unnamed}</h2>
         <Verdict state={row.state} />
       </header>
       <p className="pl-detail__where">
         {site.name} · {coordinates(site.lat, site.lon)}
       </p>
       <p className="pl-detail__when">
-        {stamp(mission.landingMs)} · {mission.stayDays}-day stay
+        {stamp(mission.landingMs)} · {copy.detail.stay(mission.stayDays)}
         {mission.movedFromMs !== undefined && mission.movedFromMs !== mission.landingMs && <em>{copy.detail.moved(day(mission.movedFromMs))}</em>}
       </p>
 
@@ -183,7 +182,7 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
                         </th>
                         {cells(option.figures)}
                         <td>
-                          <button type="button" className="ui-btn ui-btn--small" onClick={() => onApply({ siteId: option.site.id }, `${mission.name}: moved to ${option.site.name}.`)}>
+                          <button type="button" className="ui-btn ui-btn--small" onClick={() => onApply({ siteId: option.site.id }, copy.applied.site(mission.name, option.site.name))}>
                             {copy.options.apply}
                           </button>
                         </td>
@@ -205,7 +204,7 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
                           onClick={() =>
                             onApply(
                               { panelHeightM: Math.max(mission.panelHeightM, heightOption.heightM), antennaHeightM: Math.max(mission.antennaHeightM, heightOption.heightM) },
-                              `${mission.name}: panel and antenna raised to ${heightOption.heightM} m.`,
+                              copy.applied.height(mission.name, heightOption.heightM),
                             )
                           }
                         >
@@ -320,22 +319,20 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
         <h3 className="ui-label">{copy.detail.equipment}</h3>
         <dl className="pl-facts">
           <div>
-            <dt>Solar panel</dt>
-            <dd>{mission.panelHeightM} m above the ground, looks at the Sun</dd>
+            <dt>{copy.facts.panel}</dt>
+            <dd>{copy.facts.panelAt(mission.panelHeightM)}</dd>
           </div>
           <div>
-            <dt>Antenna</dt>
-            <dd>{mission.antennaHeightM} m above the ground, looks at Earth</dd>
+            <dt>{copy.facts.antenna}</dt>
+            <dd>{copy.facts.antennaAt(mission.antennaHeightM)}</dd>
           </div>
           <div>
-            <dt>Terrain</dt>
-            <dd>
-              {site.heightM.toLocaleString("en-US")} m high, {site.slopeDeg}° slope, {site.reliefM.toLocaleString("en-US")} m of relief within 2 km (240 m grid: a coarse indicator, not a hazard map)
-            </dd>
+            <dt>{copy.facts.terrain}</dt>
+            <dd>{copy.facts.terrainOf(site.heightM.toLocaleString("en-US"), site.slopeDeg, site.reliefM.toLocaleString("en-US"))}</dd>
           </div>
           <div>
-            <dt>Horizon</dt>
-            <dd>{site.horizon === "detailed" ? "From the 5 m terrain model out to 4 km, then the 240 m and 960 m grids out to 150 km" : "From the 240 m grid only (approximate)"}</dd>
+            <dt>{copy.facts.horizon}</dt>
+            <dd>{site.horizon === "detailed" ? copy.facts.detailed : copy.facts.approximate}</dd>
           </div>
         </dl>
         {site.horizon === "approximate" && <p className="pl-warning">{copy.detail.approximate}</p>}
@@ -346,14 +343,30 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
           ))}
         </ul>
         <p className="pl-note">
-          Ephemeris: <a href={provenance.ephemeris.url}>{provenance.ephemeris.product}</a>. Sites: <a href={provenance.sites.url}>{provenance.sites.product}</a>. Terrain:{" "}
+          {copy.facts.ephemeris}: <a href={provenance.ephemeris.url}>{provenance.ephemeris.product}</a>. {copy.facts.sites}: <a href={provenance.sites.url}>{provenance.sites.product}</a>. {copy.facts.terrain}:{" "}
           <a href={provenance.terrain.url}>{provenance.terrain.product}</a>.
         </p>
       </section>
 
       <footer className="pl-detail__foot">
-        <Link className="ui-btn ui-btn--small" to={`${routes.simulator}?mission=${encodeURIComponent(mission.id)}`}>
-          Simulate this landing →
+        {/* La fecha, el equipo y los requisitos de esta misión, en el planificador de escenarios, para compararlos en sus tres zonas.
+            El lugar solo viaja por su id: si es una de esas zonas queda elegida. No se mandan coordenadas, porque el planificador
+            calcularía ese punto con el horizonte aproximado de 240 m y daría cifras distintas de las de esta pantalla (5 m). */}
+        <Link
+          className="ui-btn ui-btn--small"
+          to={plannerPath({
+            site: site.id,
+            t: new Date(mission.landingMs).toISOString().slice(0, 16),
+            stay: mission.stayDays,
+            panel: mission.panelHeightM,
+            antenna: mission.antennaHeightM,
+            battery: mission.requirements.batteryH,
+            earth: mission.requirements.minEarthPct,
+            sun: mission.requirements.sunAtLanding ? 1 : 0,
+            el: mission.requirements.earthAtLanding ? 1 : 0,
+          })}
+        >
+          {copy.detail.compare}
         </Link>
         <button type="button" className="ui-link" onClick={onRemove}>
           {copy.detail.remove}
@@ -374,7 +387,7 @@ function Calendar({ days, landingMs, onPick }: CalendarProps) {
       <div className="pl-cal__months" aria-hidden="true">
         {marks.map(({ i, date }) => (
           <span key={i} style={{ left: `${(i / days.length) * 100}%` }}>
-            {MONTHS[date.getUTCMonth()]}
+            {copy.options.months[date.getUTCMonth()]}
             {date.getUTCMonth() === 0 ? ` ${date.getUTCFullYear()}` : ""}
           </span>
         ))}
@@ -387,8 +400,8 @@ function Calendar({ days, landingMs, onPick }: CalendarProps) {
             data-ok={d.ok}
             data-now={d.landingMs === landingMs}
             tabIndex={d.ok ? 0 : -1}
-            title={`${day(d.landingMs)}: ${d.ok ? "meets the requirements" : reasons(d.checks)}`}
-            aria-label={`${day(d.landingMs)}: ${d.ok ? "meets the requirements" : "does not meet the requirements"}`}
+            title={`${day(d.landingMs)}: ${d.ok ? copy.options.meets : reasons(d.checks)}`}
+            aria-label={`${day(d.landingMs)}: ${d.ok ? copy.options.meets : copy.options.fails}`}
             onClick={() => onPick(d)}
           />
         ))}

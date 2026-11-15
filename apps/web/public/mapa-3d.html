@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--__MAP3D_BOOT__-->
 <link rel="modulepreload" href="/vendor/three-61adb2ba.js">
-<title>Mapa lunar 3D</title>
-<meta name="description" content="Relieve lunar 3D con datos LOLA (NASA) y todos los sitios de alunizaje (NSSDCA), con luz solar real (JPL Horizons). Hinomaru Signal, NASA Space Apps 2026.">
+<title>Horizon Signai · 3D Moon</title>
+<meta name="description" content="Relieve lunar 3D con datos LOLA (NASA) y todos los sitios de alunizaje (NSSDCA), con luz solar real (JPL Horizons). Horizon Signai, NASA Space Apps 2026.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Jost:wght@400;500;600&display=swap">
 <style>
@@ -210,9 +210,9 @@ details.fuentes a { color: var(--ink); }
   <aside id="panel" aria-label="Filtros">
     <header class="cab">
       <div class="sol" aria-hidden="true"></div>
-      <div><h1 data-t="titulo"></h1><small data-t="subtitulo"></small></div>
+      <div><h1><a href="/" target="_top" style="color: inherit; text-decoration: none" title="Horizon Signai">Horizon Signai</a></h1><small data-t="subtitulo"></small></div>
       <div class="idioma" role="group" aria-label="Idioma / Language">
-        <button data-idioma="es">ES</button><button data-idioma="en">EN</button>
+        <button data-idioma="en">EN</button><button data-idioma="es">ES</button>
       </div>
     </header>
     <div class="bloque">
@@ -349,7 +349,7 @@ const RAD = Math.PI / 180
 // ---------------------------------------------------------------- textos
 const T = {
   es: {
-    titulo: 'Luna 3D', subtitulo: 'Relieve LOLA · sitios de alunizaje', vista: 'Vista', globo: 'Globo', poloSur: 'Polo Sur',
+    titulo: 'Luna 3D', subtitulo: 'Luna 3D · relieve LOLA · alunizajes', planificar: 'Comparar en el planificador', planificarT: 'Abre este punto en el planificador, con la fecha del mapa: Sol, Tierra y veredicto frente a otras zonas y fechas', vista: 'Vista', globo: 'Globo', poloSur: 'Polo Sur',
     buscar: 'Buscar misión, agencia o región…', tipo: 'Tipo de sitio', agencia: 'Agencia', hasta: 'Hasta el año', todas: 'Todas',
     tripulada: 'Tripuladas', robotica: 'Robóticas', muestras: 'Retorno de muestras', rover: 'Rovers', impacto: 'Impactos y fallidos', candidata: 'Candidatos polo sur',
     tripulada1: 'Alunizaje tripulado', robotica1: 'Aterrizaje robótico', muestras1: 'Retorno de muestras', rover1: 'Rover (posición final)', impacto1: 'Impacto o intento fallido', candidata1: 'Sitio candidato (polo sur)',
@@ -371,7 +371,7 @@ const T = {
     nVis: (n) => `${n} a la vista`,
   },
   en: {
-    titulo: 'Moon 3D', subtitulo: 'LOLA relief · landing sites', vista: 'View', globo: 'Globe', poloSur: 'South Pole',
+    titulo: 'Moon 3D', subtitulo: 'Moon 3D · LOLA relief · landing sites', planificar: 'Compare in the planner', planificarT: 'Open this point in the planner, on the map date: Sun, Earth and verdict against other zones and dates', vista: 'View', globo: 'Globe', poloSur: 'South Pole',
     buscar: 'Search mission, agency or region…', tipo: 'Site type', agencia: 'Agency', hasta: 'Up to year', todas: 'All',
     tripulada: 'Crewed', robotica: 'Robotic', muestras: 'Sample return', rover: 'Rovers', impacto: 'Impacts & failed', candidata: 'South-pole candidates',
     tripulada1: 'Crewed landing', robotica1: 'Robotic landing', muestras1: 'Sample return', rover1: 'Rover (final position)', impacto1: 'Impact or failed attempt', candidata1: 'Candidate site (south pole)',
@@ -414,8 +414,13 @@ const FUENTES = {
   ],
 }
 if (DATOS.fuentes.length) FUENTES.es = FUENTES.en = DATOS.fuentes // procedencia desde la base (inglés)
+// El idioma es el de toda la app: «?lang=» si viene en la dirección; si no, la preferencia compartida
+// (localStorage «horizon-signai.lang», la misma de la landing y el planificador); si no hay ninguna, inglés.
+const CLAVE_IDIOMA = 'horizon-signai.lang'
 const idiomaPedido = new URLSearchParams(location.search).get('lang')
-let idioma = idiomaPedido === 'es' || idiomaPedido === 'en' ? idiomaPedido : (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en'
+let idiomaGuardado = null
+try { idiomaGuardado = localStorage.getItem(CLAVE_IDIOMA) } catch { /* sin almacenamiento: inglés */ }
+let idioma = idiomaPedido === 'es' || idiomaPedido === 'en' ? idiomaPedido : idiomaGuardado === 'es' ? 'es' : 'en'
 const t = (k) => T[idioma][k] ?? k
 
 // ---------------------------------------------------------------- datos
@@ -1218,6 +1223,8 @@ function mostrarFicha(f, refrescar) {
     nota = `<p class="nota">${t('centroSol')}</p>`
     acciones = `<div class="acciones"><button class="prim" data-acc="ir">${t('ir')}</button></div>`
   }
+  // El planificador cubre hasta 190 km del polo sur (latitud ≤ −83,74°): ahí la ficha ofrece abrir el punto en él.
+  if (lat <= LAT_PLANIFICADOR) acciones = acciones.replace('</div>', `<button data-acc="plan" title="${t('planificarT')}">${t('planificar')}</button></div>`)
   if (lat < -78 && !poloListo) { esperarPolo(() => { if (fichaActual === f) mostrarFicha(f, refrescar) }); return } // elevación y pendiente polares piden el polo
   const a = alturaFina(lat, lon), p = pendienteFina(lat, lon)
   F.innerHTML = `<button class="cerrar" aria-label="${t('quitar')}" data-acc="cerrar">×</button>${cab}
@@ -1229,8 +1236,19 @@ function mostrarFicha(f, refrescar) {
   F.classList.add('vis')
   if (!refrescar) tamano()
 }
+/** 190 km sobre la estereográfica polar (2·R·tan(c/2), R = 1737,4 km) son 6,26° de colatitud. */
+const LAT_PLANIFICADOR = -83.74
+/** Abre el punto de la ficha en el planificador (`/planner#…`, ver prototipos/lunar-map/index.html): el lugar por su id del catálogo si lo tiene, sus coordenadas y la fecha del mapa. */
+function abrirEnPlanificador(f) {
+  const lat = f.sitio ? f.sitio.lat : f.iau ? f.iau.lat : f.lat, lon = f.sitio ? f.sitio.lon : f.iau ? f.iau.lon : f.lon
+  const q = new URLSearchParams({ lat: lat.toFixed(5), lon: (((lon % 360) + 360) % 360).toFixed(5), t: new Date(ahoraMs).toISOString().slice(0, 16) })
+  if (f.sitio?.id) q.set('site', f.sitio.id)
+  const url = '/planner#' + q
+  try { window.top.location.href = url } catch { window.location.href = url }
+}
 $('ficha').addEventListener('click', (e) => {
   const acc = e.target.closest('[data-acc]')?.dataset.acc
+  if (acc === 'plan' && fichaActual) abrirEnPlanificador(fichaActual)
   if (acc === 'cerrar') { $('ficha').classList.remove('vis'); iauSel = null; tamano(); fichaActual = null; seleccion = null; propio = null; SITIOS.forEach((x) => x.el.classList.remove('sel')); lista() }
   if (acc === 'ir') {
     if (fichaActual?.sitio) acercarProgresivo(fichaActual.sitio.lat, fichaActual.sitio.lon, fichaActual.sitio.lat < -78 ? 70 : 520)
@@ -1270,7 +1288,12 @@ lienzo.addEventListener('pointerup', (e) => {
   lista()
 })
 
-document.querySelectorAll('[data-idioma]').forEach((b) => b.addEventListener('click', () => { idioma = b.dataset.idioma; textos() }))
+// Cambiar de idioma aquí lo cambia en toda la app: se guarda la preferencia compartida y la pantalla que envuelve al mapa
+// (aviso «storage») se recarga con ese idioma. Suelto, el mapa cambia en el acto.
+document.querySelectorAll('[data-idioma]').forEach((b) => b.addEventListener('click', () => {
+  idioma = b.dataset.idioma; textos()
+  try { localStorage.setItem(CLAVE_IDIOMA, idioma) } catch { /* sin almacenamiento */ }
+}))
 $('vistas').addEventListener('click', (e) => {
   const v = e.target.closest('button')?.dataset.vista
   if (!v) return

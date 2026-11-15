@@ -13,5 +13,13 @@ export const routes = {
   aiTest: "/prueba-ia",
 } as const
 
+/**
+ * El Planificador (prototipo) abierto directamente en la comparación de zonas, sin pasar por la campaña de ejemplo.
+ * `/planner` a secas abre "Missions"; con `#…` abre el planificador, y lo que siga al `#` es el escenario
+ * (`z`, `t`, `stay`, `panel`, `antenna`, `battery`, `earth`, `site`, `lat`, `lon`: ver `prototipos/lunar-map/index.html`).
+ */
+export const plannerPath = (scenario?: Record<string, string | number>) =>
+  `${routes.lunarMap}#${scenario ? new URLSearchParams(Object.entries(scenario).map(([k, v]) => [k, String(v)])).toString() : "landing"}`
+
 /** La ruta del planificador de una misión. */
 export const missionPath = (missionId: string) => `${routes.missionPlanner}/${encodeURIComponent(missionId)}`

@@ -2,6 +2,7 @@
  * Lecturas del tablero: fecha de misión, Sol y Tierra sobre el polo y el estado del sitio destacado
  * (visible u oculto, y cuánto falta para que cambie). Funciones puras.
  */
+import { tr } from "@/shared/i18n"
 import { bearingDeg, poleElevationDeg, type Sky } from "./engine/ephemeris"
 
 export type Series = { heightM: number; sunMargin: number[]; earthMargin: number[]; panelWm2: number[] }
@@ -48,10 +49,10 @@ function status(margin: number[], stepMs: number, startMs: number, ms: number): 
 export function formatSite(featured: Featured, body: "sun" | "earth", ms: number): string {
   const ground = featured.series[0]
   const { visible, changeInMs } = status(body === "sun" ? ground.sunMargin : ground.earthMargin, featured.stepMs, featured.startMs, ms)
-  const name = body === "sun" ? "Sun" : "Earth"
-  if (changeInMs === null) return `${name} ${visible ? "in view" : "hidden"}`
+  const name = body === "sun" ? tr("Sun", "Sol") : tr("Earth", "Tierra")
+  if (changeInMs === null) return `${name} ${visible ? tr("in view", "a la vista") : tr("hidden", body === "sun" ? "oculto" : "oculta")}`
   // "Sets in" ya dice que está a la vista, y "rises in" que está oculto.
-  return `${name} ${visible ? "sets in" : "rises in"} ${formatSpan(changeInMs)}`
+  return `${name} ${visible ? tr("sets in", "se pone en") : tr("rises in", "sale en")} ${formatSpan(changeInMs)}`
 }
 
 export function readouts(featured: Featured, sky: Sky, ms: number) {

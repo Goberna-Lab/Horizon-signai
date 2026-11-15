@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lunar Map · Planner · Walk</title>
+<title>Horizon Signai · Planner · Walk (concept)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -135,9 +135,10 @@ body { background: #141418; }
   </div>
 
   <header class="hud top">
-    <div class="topl"><div class="paper glass brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Planner steps"><a href="index.html"><b>1</b>Landing</a><span aria-current="step"><b>2</b>Walk</span></nav></div>
-    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Home</a><span aria-current="page">Planner</span></nav>
+    <div class="topl"><a class="paper glass brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1></a><nav class="psteps" aria-label="Planner steps"><a href="index.html"><b>1</b>Landing</a><span aria-current="step" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</span></nav></div>
+    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Missions</a><span aria-current="page">Planner</span><a href="/3d-map" target="_top">3D Map</a></nav>
     <div class="actions">
+      <span class="paper glass flat langsw mono" data-lang-toggle></span>
       <span class="paper glass flat date mono"><span class="dot"></span>19 Dec 2026 · 10:00 UTC</span>
     </div>
   </header>
@@ -191,13 +192,15 @@ body { background: #141418; }
   </section>
 
   <div class="hud paper glass flat legend">
-    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px"><span style="font-size: 13px; font-weight: 600">Slope</span><span style="font-size: 11.5px; color: var(--gris)">Computed over the terrain</span></div>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px"><span style="font-size: 13px; font-weight: 600">Slope</span><span style="font-size: 11.5px; color: var(--gris)">Computed over the generated terrain</span></div>
     <div class="bar"></div>
     <div class="mono" style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--gris)"><span>0°</span><span>15° limit</span></div>
-    <p style="margin-top: 10px">Terrain generated at 9.4 m with shadows from the Sun at 5°; in the product: 5 m DTM from PGDA (Barker 2021) + LOLA</p>
+    <p style="margin-top: 10px"><b>Concept preview.</b> The terrain, layers, routes and survival figures on this screen are generated to illustrate; they are not NASA data. The landing step uses the real data.</p>
   </div>
 </div>
 
+<script src="i18n.js"></script>
+<script src="i18n-es-planificar.js"></script>
 <script src="terrain.js"></script>
 <script src="mission.js"></script>
 <script>
@@ -225,12 +228,12 @@ body { background: #141418; }
   })();
 
   var layerDefs = [
-    { id: 'ctx', abbr: 'LRC', name: 'Base image', source: 'LROC NAC', kind: 'Observed' },
-    { id: 'mola', abbr: 'LOL', name: 'Terrain · 10 m contours', source: 'LOLA LDEM_75S', kind: 'Observed' },
-    { id: 'slope', abbr: 'SLP', name: 'Slope', source: 'LOLA 240 m', kind: 'Computed' },
-    { id: 'minerals', abbr: 'ICE', name: 'Possible ice', source: 'LAMP · Diviner', kind: 'Indication' },
-    { id: 'thermal', abbr: 'TMP', name: 'Temperature', source: 'Diviner', kind: 'Observed' },
-    { id: 'rad', abbr: 'RAD', name: 'Radiation', source: 'CRaTER (orbit)', kind: 'Reference' }
+    { id: 'ctx', abbr: 'IMG', name: 'Base image', source: 'Generated relief', kind: 'Illustrative' },
+    { id: 'mola', abbr: 'CNT', name: 'Terrain · 10 m contours', source: 'Generated relief', kind: 'Illustrative' },
+    { id: 'slope', abbr: 'SLP', name: 'Slope', source: 'Generated relief', kind: 'Computed' },
+    { id: 'minerals', abbr: 'ICE', name: 'Possible ice', source: 'Placeholder layer', kind: 'Illustrative' },
+    { id: 'thermal', abbr: 'TMP', name: 'Temperature', source: 'Placeholder layer', kind: 'Illustrative' },
+    { id: 'rad', abbr: 'RAD', name: 'Radiation', source: 'Placeholder layer', kind: 'Illustrative' }
   ];
   var list = $('layerList');
   layerDefs.forEach(function (d) {

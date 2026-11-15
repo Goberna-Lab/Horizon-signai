@@ -1,0 +1,32 @@
+/* Selector EN / ES: dos teclas pequeñas; la pulsada va en tinta. Hereda el color del texto de donde se ponga. */
+.ui-lang {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  overflow: hidden;
+  font: 600 11px/1 var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.08em;
+}
+.ui-lang button {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 6px 9px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.ui-lang button:hover {
+  opacity: 1;
+}
+.ui-lang button[aria-pressed="true"] {
+  background: currentColor;
+  opacity: 1;
+}
+/* la tecla pulsada invierte: fondo del color del texto y letra del color del fondo de la página */
+.ui-lang button[aria-pressed="true"] {
+  -webkit-text-fill-color: var(--ui-lang-on, #f4efe6);
+}

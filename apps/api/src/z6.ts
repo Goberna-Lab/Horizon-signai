@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
 import { clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
+import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
 import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
 
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
@@ -69,7 +70,7 @@ const SISTEMA_VOZ_ES =
   "integrándolo con lo que pidió antes. Si corrige algo, reconoce la corrección en pocas palabras y " +
   "responde de nuevo con ella. Si pregunta algo nuevo, respóndelo y, solo si la respuesta anterior " +
   "quedó a medias, ofrece al final volver a ella. Nunca repitas lo que ya dijiste ni escribas notas entre corchetes."
-const sistemaDeVoz = (p: Persona) => (servicioVoz().idioma === "en" ? sistemaVoz(p) : SISTEMA_VOZ_ES)
+const sistemaDeVoz = (p: Persona, extra = "") => (servicioVoz().idioma === "en" ? sistemaVoz(p, extra) : SISTEMA_VOZ_ES)
 
 type Mensaje = { role: "user" | "assistant"; content: string }
 
@@ -290,6 +291,10 @@ const turnoDeVoz = (
         },
       ]
     }
+    if (persona.acciones && voz.idioma === "en") {
+      const ultimo = msgs[msgs.length - 1]
+      msgs = [...msgs.slice(0, -1), { ...ultimo, content: `${ultimo.content}\n${RECORDATORIO_ACCIONES}` }]
+    }
     try {
       const r = await fetch(`${z6Url()}/api/chat`, {
         method: "POST",
@@ -308,6 +313,8 @@ const turnoDeVoz = (
       let lineas = ""
       let buffer = ""
       let respuesta = ""
+      // Las órdenes que el modelo pone al final («<<planner zone=B>>») no se muestran ni se pronuncian: salen como evento.
+      const filtro = filtroDeAcciones((a) => emitir({ t: "accion", a }))
       for (;;) {
         const { done, value } = await lector.read()
         if (done) break
@@ -318,7 +325,7 @@ const turnoDeVoz = (
           if (!l.trim()) continue
           const d = JSON.parse(l) as { message?: { content?: string }; error?: string }
           if (d.error) throw new Error(d.error)
-          const delta = d.message?.content ?? ""
+          const delta = filtro.pasar(d.message?.content ?? "")
           if (!delta) continue
           respuesta += delta
           buffer += delta

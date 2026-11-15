@@ -21,8 +21,8 @@ export function Closing() {
             <Link className="btn btn--primary" to={actions.planner.to}>
               {actions.planner.label}
             </Link>
-            <Link className="btn" to={actions.simulator.to}>
-              {actions.simulator.label}
+            <Link className="btn" to={actions.map3d.to}>
+              {actions.map3d.label}
             </Link>
           </div>
         </Reveal>

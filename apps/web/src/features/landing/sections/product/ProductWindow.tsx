@@ -1,4 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react"
+import { tr } from "@/shared/i18n"
 import { software as copy } from "../../content"
 import { Reveal } from "../Reveal"
 import { CalendarView } from "./CalendarView"
@@ -162,7 +163,7 @@ export function ProductWindow() {
           {copy.body}
         </Reveal>
 
-        <Reveal className="sw-views" role="tablist" aria-label="Software views" delay={100}>
+        <Reveal className="sw-views" role="tablist" aria-label={tr("Software views", "Vistas del software")} delay={100}>
           {TABS.map((id) => (
             <button key={id} type="button" role="tab" id={`sw-tab-${id}`} aria-selected={tab === id} aria-controls="sw-panel" onClick={() => setTab(id)}>
               {copy.tabs[id]}

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { tr } from "@/shared/i18n"
 import { catalog as copy, software } from "../../content"
 import data from "../data/catalog.json"
 import positions from "../data/catalog-positions.json"
@@ -37,14 +38,14 @@ export function MapView() {
       <div className="sw-map__main">
         <div className="sw-map__chart">
           <div className="sw-map__plate">
-            <img src={plate} alt="Relief of the lunar south pole within 195 km, drawn from LOLA elevation." width={1200} height={1200} loading="lazy" decoding="async" />
+            <img src={plate} alt={tr("Relief of the lunar south pole within 195 km, drawn from LOLA elevation.", "Relieve del polo sur lunar hasta 195 km, dibujado con la elevación de LOLA.")} width={1200} height={1200} loading="lazy" decoding="async" />
             {data.sites.map((s) => (
               <button key={s.id} type="button" className="sw-pin" style={{ left: `${where[s.id][0] * 100}%`, top: `${where[s.id][1] * 100}%` }} aria-pressed={s.id === selected} aria-label={s.name} onClick={() => setSelected(s.id)}>
                 <span>{s.name}</span>
               </button>
             ))}
           </div>
-          <ul className="sw-map__list" aria-label="Sites">
+          <ul className="sw-map__list" aria-label={tr("Sites", "Sitios")}>
             {data.sites.map((s) => (
               <li key={s.id}>
                 <button type="button" aria-pressed={s.id === selected} onClick={() => setSelected(s.id)}>
@@ -59,7 +60,7 @@ export function MapView() {
           <p className="sw-label">{copy.kinds[site.kind as keyof typeof copy.kinds]}</p>
           <h4 className="sw-map__name">{site.name}</h4>
           <p className="sw-card__where">
-            {Math.abs(site.lat).toFixed(3)}° S, {site.lon.toFixed(3)}° E, {site.heightM.toLocaleString("en-US")} m
+            {Math.abs(site.lat).toFixed(3)}° S, {site.lon.toFixed(3)}° E, {site.heightM.toLocaleString(tr("en-US", "es-ES"))} m
           </p>
 
           <table className="sw-table">

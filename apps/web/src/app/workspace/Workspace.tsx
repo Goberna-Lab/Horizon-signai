@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router"
-import { missionPath, routes } from "@/app/routes"
+import { missionPath, plannerPath, routes } from "@/app/routes"
 import { AssistantDock } from "@/features/assistant"
 import { AlertBar, MissionList, Summary, SunLink } from "@/features/dashboard"
 import { MissionDetail, StayTimeline } from "@/features/mission-planner"
+import { LangToggle } from "@/shared/i18n/LangToggle"
 import { PolarMap, type MapSky } from "@/shared/map"
 import {
   missionContext,
@@ -62,12 +63,14 @@ export function Workspace() {
         <Link className="ws-bar__brand" to={routes.landing}>
           {copy.brand}
         </Link>
-        <nav className="ws-bar__nav" aria-label="Workspace">
+        <nav className="ws-bar__nav" aria-label={copy.nav.label}>
           <Link to={routes.dashboard} aria-current={!open ? "page" : undefined}>
-            Dashboard
+            {copy.nav.dashboard}
           </Link>
-          <Link to={routes.simulator}>Simulator</Link>
+          <Link to={plannerPath()}>{copy.nav.planner}</Link>
+          <Link to={routes.map3d}>{copy.nav.map3d}</Link>
         </nav>
+        <LangToggle className="ws-bar__lang" />
       </header>
 
       {failed || masksFailed ? (

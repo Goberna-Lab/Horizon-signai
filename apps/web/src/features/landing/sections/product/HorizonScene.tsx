@@ -1,4 +1,5 @@
 import { type RefObject, useEffect, useMemo, useRef } from "react"
+import { tr } from "@/shared/i18n"
 import layersData from "../data/horizon.json"
 import { paintDust, paintEarth, paintRays, paintStars } from "./horizon/backdrop"
 import { DEPTH, GLOW, HORIZON_LINE, PARALLAX, QUALITY, SMALL_SCREEN, SUN } from "./horizon/config"
@@ -420,7 +421,7 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, c
       if (turn && markOn > 0.01) {
         const near = geo.centre + ((((turnAz - geo.centre) % 360) + 540) % 360) - 180
         move(parts.mark, xOf(geo, near) + sunMove.x, crestY + sunMove.y + 3)
-        write(parts.markLines[0], `${turn.rising ? "Sunrise" : "Sunset"}  az ${turnAz.toFixed(1)}°`)
+        write(parts.markLines[0], `${turn.rising ? tr("Sunrise", "Salida del Sol") : tr("Sunset", "Puesta del Sol")}  az ${turnAz.toFixed(1)}°`)
         write(parts.markLines[1], stamp(when))
       }
 

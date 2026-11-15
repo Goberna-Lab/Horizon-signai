@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lunar Map · Planner · Landing</title>
+<title>Horizon Signai · Planner · Landing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -128,6 +128,27 @@
   .tline > .glass-inner { grid-template-columns: 1fr; gap: 10px; }
   .tl-sum { padding-left: 0; border-left: 0; }
 }
+/* el calendario se mueve: aviso de cuánto se apartó la fecha del plan y botones para moverla */
+.slip { flex: none; display: flex; flex-direction: column; gap: 5px; padding: 7px 9px; border-radius: 12px; border: 1px solid var(--borde); background: rgba(17,17,17,0.03); }
+.slip.moved { border-color: rgba(200,16,46,0.35); background: rgba(200,16,46,0.06); }
+.slip-msg { font-size: var(--t-label); line-height: 1.35; color: var(--gris); }
+.slip.moved .slip-msg b { color: var(--rojo); }
+.slip-row { display: flex; align-items: center; gap: 3px; }
+.slip .mini.strong { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.slip .mini { flex: none; height: 24px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--borde-2); background: var(--crema-2); color: var(--tinta); font-family: var(--f-mono); font-size: var(--t-label); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.slip .mini:hover { border-color: var(--tinta); }
+.slip .mini:disabled { opacity: .4; cursor: default; }
+#cardsCap { flex: none; margin: -2px 0 -4px; }
+/* cuánto queda: Sol y Tierra en el instante del cursor */
+.left { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.left div { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: var(--r-sm); background: rgba(17,17,17,0.04); min-width: 0; }
+.left dt { font-size: var(--t-label); color: var(--gris-2); }
+.left dd { font-size: var(--t-small); font-weight: 600; color: var(--tinta); white-space: nowrap; }
+.left dd.off { color: var(--rojo); }
+.left dd small { font-weight: 400; color: var(--gris-2); font-size: var(--t-label); }
+.tl-sumw { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tl-cap { padding-left: 18px; font-size: var(--t-label); color: rgba(244,239,230,0.6); white-space: nowrap; }
+a.brand { color: inherit; text-decoration: none; }
 /* escenario editable: botón bajo «Zonas candidatas» y diálogo */
 .scbtn { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 0; border: 0; background: none; font-family: var(--f-mono); font-size: var(--t-label); color: var(--gris-2); text-align: left; cursor: pointer; white-space: nowrap; }
 .scbtn span { overflow: hidden; text-overflow: ellipsis; text-decoration: underline dotted rgba(17,17,17,0.35); text-underline-offset: 3px; }
@@ -184,9 +205,10 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 <body>
 <div class="app">
   <header class="top">
-    <div class="topl"><div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Planner steps"><span aria-current="step"><b>1</b>Landing</span><a href="planificar.html"><b>2</b>Walk</a></nav></div>
-    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Home</a><span aria-current="page">Planner</span></nav>
+    <div class="topl"><a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1></a><nav class="psteps" aria-label="Planner steps"><span aria-current="step"><b>1</b>Landing</span><a href="planificar.html" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</a></nav></div>
+    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Missions</a><span aria-current="page">Planner</span><a href="/3d-map" target="_top">3D Map</a></nav>
     <div class="topr">
+      <span class="paper flat langsw mono" data-lang-toggle></span>
       <div class="paper flat clock mono" id="clock">
         <span class="dot" id="clockDot"></span>
         <span style="color: var(--gris)" id="phase">Evaluating zones</span>
@@ -197,7 +219,19 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
   <div class="stage">
     <section class="paper side l" aria-labelledby="cand-t">
-      <div class="hd"><h2 id="cand-t" class="disp">Candidate zones</h2><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span id="cmpN">0</span></button></div></div>
+      <div class="hd"><h2 id="cand-t" class="disp">Candidate zones</h2><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span id="cmpN">0</span></button><button type="button" class="cmpbtn" id="shareBtn" title="Copy a link to this zone and scenario"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg><span id="shareTxt">Link</span></button></div></div>
+      <div class="slip" id="slip">
+        <p class="slip-msg" id="slipMsg" aria-live="polite"></p>
+        <div class="slip-row" role="group" aria-label="Move the landing date">
+          <button type="button" class="mini" data-shift="-7" title="Land one week earlier">−1 wk</button>
+          <button type="button" class="mini" data-shift="-1" title="Land one day earlier">−1 d</button>
+          <button type="button" class="mini" data-shift="1" title="Land one day later">+1 d</button>
+          <button type="button" class="mini" data-shift="7" title="Land one week later">+1 wk</button>
+          <span style="flex: 1"></span>
+          <button type="button" class="mini strong" id="slipToggle"></button>
+        </div>
+      </div>
+      <p class="mono foot" id="cardsCap"></p>
       <div class="cards" role="radiogroup" aria-label="Candidate zones" id="cards"></div>
       <div class="act">
         <button type="button" class="btn red" id="actBtn"><span id="actIco" aria-hidden="true"></span><span id="actLabel">Simulate descent</span></button>
@@ -256,7 +290,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
             <text x="946" y="232" font-size="10.5" fill="rgba(244,239,230,0.6)">90° E</text>
             <text x="300" y="95" font-size="10" fill="rgba(255,255,255,0.45)">89.5° S</text>
             <text x="28" y="233" font-size="10" fill="rgba(255,255,255,0.45)">89° S</text>
-            <text x="18" y="678" font-size="10.5" fill="rgba(244,239,230,0.6)">South polar stereographic · LOLA LDEM_75S · 240 m/px · sites: PGDA (Barker 2021) · Sun at 8° from the NW</text>
+            <text x="18" y="678" font-size="10.5" fill="rgba(244,239,230,0.6)">South polar stereographic · zone positions: PGDA (Barker 2021) · relief drawn to illustrate</text>
             <g stroke="rgba(244,239,230,0.7)" stroke-width="2"><line x1="540" y1="572" x2="679" y2="572"></line><line x1="540" y1="566" x2="540" y2="578"></line><line x1="679" y1="566" x2="679" y2="578"></line></g>
             <text x="609" y="560" text-anchor="middle" font-size="10.5" fill="rgba(244,239,230,0.7)">10 km</text>
           </g>
@@ -280,13 +314,14 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
         </div>
       </div>
       <span class="led" aria-hidden="true"></span>
-      <span class="model" aria-hidden="true">LUNAR MAP · CRT-2</span>
+      <span class="model" aria-hidden="true">HORIZON SIGNAI · CRT-2</span>
     </section>
 
     <section class="paper side r" aria-label="Descent and checks">
       <div>
         <div class="hd"><h2 class="disp">Real horizon · Zone <span id="hzZona">A</span></h2><span class="mono src" id="hzSrc">LOLA</span></div>
         <svg id="hz" role="img" aria-label="Real horizon of the chosen zone, 360° from north, with the Sun and Earth"><title>360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.</title></svg>
+        <dl class="left mono" id="hzLeft" aria-live="off"></dl>
       </div>
       <dl class="telemgrid mono" id="telemGrid">
         <div><dt>HIGH GATE</dt><dd>2,291 m</dd></div><div><dt>VELOCITY</dt><dd>154 m/s</dd></div>
@@ -301,7 +336,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     </section>
   </div>
 
-  <p class="credits">Real positions and means · generated terrain at 240 m · Apollo dispersion ellipse (18.5 × 5 km) · Apollo 11 profile: R-695 · TN D-6846 · Sun and Earth above the horizon: JPL Horizons DE441 + LOLA/PGDA</p>
+  <p class="credits">Sun and Earth above the real horizon: JPL Horizons DE441 + LOLA / PGDA 5 m terrain (Barker 2021) · zone positions and mean illumination: PGDA, Mazarico 2011 · the map relief and its overlays are generated to illustrate · descent: Apollo 11 profile as an example vehicle (R-695, TN D-6846), 18.5 × 5 km dispersion ellipse</p>
 
   <section class="screen tline" aria-label="Mission timeline">
     <div class="glass-inner">
@@ -314,7 +349,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
         <p class="tl-st" id="tlSt"></p>
       </div>
       <svg id="tl" role="slider" tabindex="0" aria-label="Date on the timeline: drag or use the arrow keys" aria-valuemin="0" aria-valuemax="90"></svg>
-      <div class="tl-sum" id="tlSum" aria-label="Period summary"></div>
+      <div class="tl-sumw"><p class="mono tl-cap" id="tlCap"></p><div class="tl-sum" id="tlSum" aria-label="Period summary"></div></div>
     </div>
   </section>
 </div>
@@ -361,10 +396,12 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       <span class="checksf"><label class="chk"><input type="checkbox" id="fSun"> Sun in view at landing</label><label class="chk"><input type="checkbox" id="fEarthL"> Earth in view at landing</label></span>
     </div>
     <p class="dlg-note">Assumptions of the team planner: the Sun is measured from the panel and Earth from the antenna, at the same terrain point; vertical panel that tracks the Sun. Dates from 2026 to 2030, in UTC.</p>
-    <div class="dlg-acts"><button type="button" class="btn" id="fReset">CR-01 plan</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn red">Apply</button></div>
+    <div class="dlg-acts"><button type="button" class="btn" id="fReset">CR-01 plan</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn red">Apply</button></div>
   </form>
 </div>
 
+<script src="i18n.js"></script>
+<script src="i18n-es.js"></script>
 <script src="terrain.js"></script>
 <script src="data/efemerides-luna.js"></script>
 <script src="data/zonas.js"></script>
@@ -408,8 +445,29 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       requirements: { batteryH: Math.round(clamp(r.batteryH, 0, 720, 24)), minEarthPct: Math.round(clamp(r.minEarthPct, 0, 100, 40)), sunAtLanding: r.sunAtLanding !== false, earthAtLanding: r.earthAtLanding !== false }
     };
   }
+  /* Vista inicial: el caso del reto. El plan de CR-01 con el aterrizaje movido al 3 abr 2027 (mismo equipo y requisitos):
+   * las tres zonas dejan de coincidir (A y C no cumplen, B sí). Sale de este mismo motor; «Back to plan» vuelve al 18 dic. */
+  var SLIP = { landingMs: Date.UTC(2027, 3, 3, 9), stayDays: PLAN.stayDays, panelM: PLAN.panelM, antennaM: PLAN.antennaM, requirements: PLAN.requirements };
+  /* Enlace compartido: #z=A&t=2027-04-03T09:00&stay=3&panel=2&antenna=2&battery=24&earth=40&sun=1&el=1 (y lat, lon o site). */
+  function readLink() {
+    var q; try { q = new URLSearchParams(location.hash.replace(/^#/, '')); } catch (e) { return null; }
+    var has = function (k) { return q.get(k) !== null && q.get(k) !== ''; }, out = { sc: null, zone: null, site: null, pt: null };
+    if (has('t') || has('stay') || has('panel') || has('antenna') || has('battery') || has('earth')) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(q.get('t') || ''), b = SLIP, r = b.requirements;
+      out.sc = { landingMs: m ? Date.UTC(+m[1], m[2] - 1, +m[3], +(m[4] || 9), +(m[5] || 0)) : b.landingMs,
+        stayDays: has('stay') ? q.get('stay') : b.stayDays, panelM: has('panel') ? q.get('panel') : b.panelM, antennaM: has('antenna') ? q.get('antenna') : b.antennaM,
+        requirements: { batteryH: has('battery') ? q.get('battery') : r.batteryH, minEarthPct: has('earth') ? q.get('earth') : r.minEarthPct, sunAtLanding: q.get('sun') !== '0', earthAtLanding: q.get('el') !== '0' } };
+    }
+    if (has('z')) out.zone = q.get('z').toUpperCase();
+    if (has('site')) out.site = q.get('site');
+    if (has('lat') && has('lon') && isFinite(+q.get('lat')) && isFinite(+q.get('lon'))) out.pt = { lat: +q.get('lat'), lon: ((+q.get('lon') % 360) + 360) % 360 };
+    return out.sc || out.zone || out.site || out.pt ? out : null;
+  }
+  var link = readLink();
   var sc;
-  try { sc = sanitize(JSON.parse(localStorage.getItem(KEY)) || PLAN); } catch (e) { sc = sanitize(PLAN); }
+  try { sc = sanitize((link && link.sc) || JSON.parse(localStorage.getItem(KEY)) || SLIP); } catch (e) { sc = sanitize(SLIP); }
+  var linkZone = false;
+  if (link) ids.forEach(function (z) { if (link.zone === z || (link.site && Z[z].id === link.site)) { state.site = z; linkZone = true; } });
   function save() { try { localStorage.setItem(KEY, JSON.stringify(sc)); } catch (e) { /* sin almacenamiento: el escenario vale para esta visita */ } }
   function isPlan() { return JSON.stringify(sc) === JSON.stringify(sanitize(PLAN)); }
 
@@ -461,10 +519,49 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     var t = new Date(sc.landingMs);
     $('scTxt').textContent = fDate(sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' · ' + sc.stayDays + ' d · gear ' +
       (sc.panelM === sc.antennaM ? metros(sc.panelM) : metros(sc.panelM) + '/' + metros(sc.antennaM));
+    $('cardsCap').textContent = 'Figures for the ' + sc.stayDays + '-day stay from landing';
+    renderSlip();
     $('scBtn').classList.toggle('changed', !isPlan());
     $('scBtn').title = (isPlan() ? 'CR-01 plan' : 'Scenario different from the CR-01 plan') + ': battery ' + sc.requirements.batteryH + ' h, minimum Earth ' + sc.requirements.minEarthPct + '% of the stay. Click to edit.';
   }
   cards.addEventListener('click', function (evt) { var b = evt.target.closest('.card'); if (b) pick(b.dataset.site); });
+
+  /* ---------- el calendario se mueve: cuánto se apartó el aterrizaje del plan, y botones para moverlo ---------- */
+  function renderSlip() {
+    var d = Math.round((sc.landingMs - PLAN.landingMs) / DAY), moved = d !== 0, nogo = ids.filter(function (z) { return ev[z].verdict === 'NO GO'; }).length;
+    $('slip').classList.toggle('moved', moved);
+    $('slipMsg').innerHTML = moved
+      ? '<b>Schedule slip ' + (d > 0 ? '+' : '−') + Math.abs(d) + ' d</b> from the ' + fDate(PLAN.landingMs) + ' plan: ' + (nogo ? nogo + ' of ' + ids.length + ' zones fail.' : 'every zone still passes.')
+      : '<b>On plan</b> (' + fDate(PLAN.landingMs) + '). Move the date: what does a slip do to each zone?';
+    $('slipToggle').textContent = moved ? 'Plan' : 'Slip';
+    $('slipToggle').title = moved ? 'Back to the plan: ' + fDate(PLAN.landingMs) : 'Example slip: land on ' + fDate(SLIP.landingMs);
+    var span = sc.stayDays * DAY;
+    $('slip').querySelectorAll('[data-shift]').forEach(function (b) { var t = sc.landingMs + (+b.dataset.shift) * DAY; b.disabled = t < TABLA.inicioMs || t + span > TABLA.finMs; });
+  }
+  $('slip').addEventListener('click', function (evt) {
+    var b = evt.target.closest('button'); if (!b || b.disabled) return;
+    if (b.dataset.shift) sc.landingMs += (+b.dataset.shift) * DAY;
+    else sc.landingMs = Math.round((sc.landingMs - PLAN.landingMs) / DAY) === 0 ? SLIP.landingMs : PLAN.landingMs;
+    apply();
+  });
+
+  /* ---------- enlace al escenario: la zona y el escenario viajan en la dirección ---------- */
+  function linkHash() {
+    var r = sc.requirements, q = ['z=' + state.site, 't=' + toLocal(sc.landingMs), 'stay=' + sc.stayDays, 'panel=' + sc.panelM, 'antenna=' + sc.antennaM, 'battery=' + r.batteryH, 'earth=' + r.minEarthPct];
+    if (!r.sunAtLanding) q.push('sun=0'); if (!r.earthAtLanding) q.push('el=0');
+    if (state.site === 'P' && pt) q.push('lat=' + pt.lat, 'lon=' + pt.lon);
+    return '#' + q.join('&');
+  }
+  function linkUrl() {
+    /* dentro de la app (iframe de /planner, mismo origen) el enlace es el de la app; suelto, el de esta página */
+    try { if (window.top !== window && window.top.location.origin === location.origin) return location.origin + '/planner' + linkHash(); } catch (e) { /* otro origen: enlace de esta página */ }
+    return location.href.replace(/#.*$/, '') + linkHash();
+  }
+  $('shareBtn').addEventListener('click', function () {
+    var url = linkUrl(), done = function (ok) { $('shareTxt').textContent = ok ? 'Copied' : 'Link'; if (!ok) window.prompt('Link to this scenario', url); setTimeout(function () { $('shareTxt').textContent = 'Link'; }, 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); });
+    else done(false);
+  });
   function pick(id) { state.site = id; state.simulated = false; state.confirmed = false; stopSim(); tlT = null; render(); }
 
   /* ---------- Go / No-Go: el descenso (perfil del Apollo 11) y los requisitos del escenario ---------- */
@@ -588,11 +685,12 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('tlNow').textContent = fecha(p, tlT, true);
     $('tlSt').textContent = (Math.abs(tlT - p.contact) < 0.05 ? 'Landing · ' : '') + 'Sun ' + (dentro(p.sol, tlT) ? 'visible' : 'hidden') + ' · Earth ' + (dentro(p.tierra, tlT) ? 'visible' : 'hidden');
     $('tlPlay').innerHTML = tlPlaying ? icoPauseTL : icoPlayTL; $('tlPlay').setAttribute('aria-label', tlPlaying ? 'Pause' : 'Play');
-    drawHz(p); drawSum(p);
+    drawHz(p); drawLeft(p); drawSum(p);
   }
   function drawSum(p) {
     var f = p.fig, el = $('tlSum');
     el.title = 'Period summary ' + fecha(p, 0, false) + ' – ' + fecha(p, DAYS, false) + ' · panel at ' + metros(sc.panelM) + ', antenna at ' + metros(sc.antennaM) + ' · JPL Horizons DE441 + LOLA/PGDA horizon';
+    $('tlCap').textContent = DAYS + '-day window · ' + fecha(p, 0, false) + ' – ' + fecha(p, DAYS, false) + ' ' + new Date(p.t0 + DAYS * DAY).getUTCFullYear();
     var cell = function (l, v, t) { return '<span title="' + t + '"><small>' + l + '</small><b>' + v + '</b></span>'; };
     el.innerHTML = cell('Sun', Math.round(f.sunPct) + '%', 'Sun visible: any part of the disc above the real horizon') +
       cell('Earth', Math.round(f.earthPct) + '%', 'Earth visible: its centre above the real horizon') +
@@ -605,9 +703,20 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
    * recorrido del Sol en un día lunar alrededor del cursor. La silueta va encima: tapa lo que está bajo el horizonte. */
   var LUNAR_DAY = 29.53;
   function skyAt(az, el, n, t) { var k = Math.min(n - 1.001, Math.max(0, t * 24)), i = Math.floor(k), f = k - i, a0 = az[i], da = ((az[i + 1] - a0 + 540) % 360) - 180; return [((a0 + da * f) % 360 + 360) % 360, el[i] + (el[i + 1] - el[i]) * f]; }
-  function sunNext(p, t) {
-    for (var i = 0; i < p.sol.length; i++) { var w = p.sol[i]; if (t < w[0]) return ['rises', w[0] - t]; if (t < w[1]) return ['sets', w[1] - t]; }
+  function nextOf(list, t) {
+    for (var i = 0; i < list.length; i++) { var w = list[i]; if (t < w[0]) return ['rises', w[0] - t]; if (t < w[1]) return ['sets', w[1] - t]; }
     return null;
+  }
+  function sunNext(p, t) { return nextOf(p.sol, t); }
+  /* «Sunlight left 2 d 3 h» o «Sunrise in 5 h»: lo que queda hasta el próximo cambio, desde el cursor de la línea de tiempo.
+   * Si la ventana llega al final del período (90 d) se dice «más de», porque la búsqueda acaba ahí. */
+  function drawLeft(p) {
+    var cell = function (body, list, up, left, rise) {
+      var nx = nextOf(list, tlT), vis = dentro(list, tlT), open = nx && nx[0] === 'sets' && Math.abs(tlT + nx[1] - DAYS) < 0.05;
+      var v = !nx ? (vis ? 'in view' : 'hidden') + ' <small>to the end of the period</small>' : (open ? 'over ' : '') + dur(nx[1]);
+      return '<div><dt>' + (!nx ? body : vis ? left : rise) + '</dt><dd' + (vis ? '' : ' class="off"') + '>' + v + '</dd></div>';
+    };
+    $('hzLeft').innerHTML = cell('Sun', p.sol, 0, 'Sunlight left', 'Sunrise in') + cell('Earth', p.tierra, 0, 'Earth contact left', 'Earthrise in');
   }
   function dur(d) { var h = Math.round(d * 24); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; }
   function drawHz(p) {
@@ -893,9 +1002,91 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     if (ids.indexOf(k) >= 0) pick(k);
   });
 
+  /* ---------- para la asistente (EVA): lo que la pantalla muestra, en texto, y las órdenes que puede ejecutar ----------
+   * La app que envuelve a esta página (mismo origen) lee `LunarPlanner.text()` y se lo pasa a la IA como contexto: así
+   * explica el veredicto con las cifras de este motor, sin calcular nada. `LunarPlanner.run(orden)` ejecuta una orden ya
+   * validada por el API (apps/api/src/acciones.ts): cambia el escenario o aplica una salida que este motor propuso. */
+  function aiText() {
+    var r = sc.requirements, d = Math.round((sc.landingMs - PLAN.landingMs) / DAY), out = [];
+    var hm = function (ms) { var t = new Date(ms); return fDate(ms) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' UTC'; };
+    var side = function (x) { return num(Math.abs(x), 1) + '° ' + (x >= 0 ? 'above' : 'below') + ' the terrain horizon'; };
+    out.push('Planner, landing step. Scenario: landing on ' + hm(sc.landingMs) + (d ? ' (the plan was ' + fDate(PLAN.landingMs) + ': a schedule slip of ' + (d > 0 ? '+' : '') + d + ' days)' : ' (on plan)') +
+      ', stay of ' + sc.stayDays + ' days, solar panel at ' + sc.panelM + ' m, antenna at ' + sc.antennaM + ' m, battery of ' + r.batteryH + ' h, minimum Earth contact ' + r.minEarthPct + '% of the stay.');
+    ids.forEach(function (z) {
+      var e = ev[z], f = e.figures, l = e.landing;
+      var fails = e.checks.filter(function (c) { return !c.ok; }).map(function (c) {
+        return c.id === 'sunAtLanding' ? 'the Sun is hidden at landing' : c.id === 'earthAtLanding' ? 'Earth is hidden at landing' :
+          c.id === 'battery' ? 'the longest night (' + horas(c.value) + ') outlasts the ' + c.limit + ' h battery' : 'Earth is in view only ' + Math.round(c.value) + '% of the stay, under the ' + c.limit + '% minimum';
+      });
+      var s = 'Zone ' + z + ', ' + MAP[z].name.replace(' · ', ' ') + (Z[z].aproximado ? ' (approximate horizon)' : '') + (z === state.site ? ' (the selected zone)' : '') + ': ' + e.verdict +
+        '. During the stay: Sun in view ' + Math.round(f.sunPct) + '%, Earth in view ' + Math.round(f.earthPct) + '%, both ' + Math.round(f.bothPct) + '%, longest night ' + horas(f.longestNightH) +
+        '. At landing: Sun centre ' + side(l.sunAboveDeg) + ', Earth ' + side(l.earthAboveDeg) + '.';
+      if (fails.length) s += ' It fails because ' + fails.join(' and ') + '.';
+      if (e.verdict === 'REVIEW') s += ' It passes, but the Sun or Earth clears the horizon by less than half a degree at landing.';
+      if (z === state.site && !e.ok) {
+        var w = waysOf(z);
+        s += ' The planner proposes for it: ' + (w.date ? 'landing on ' + fDate(w.date.day.landingMs) + ' (how=date)' : 'no date within 120 days works') + '; ' +
+          (w.sites.length ? 'switching to zone ' + w.sites[0] + ' (how=zone)' : 'no other zone passes that day') + '; ' +
+          (w.height ? 'raising the equipment to ' + w.height.heightM + ' m (how=height)' : 'no height up to 30 m helps') + '.';
+      }
+      out.push(s);
+    });
+    var p = periodOf(state.site), t = tlT == null ? p.contact : tlT;
+    var left = function (name, list) { var nx = nextOf(list, t), vis = dentro(list, t); return name + ' is ' + (vis ? 'in view' : 'hidden') + (nx ? ' and ' + (nx[0] === 'sets' ? 'sets' : 'rises') + ' in ' + dur(nx[1]) : ' with no change before the end of the window'); };
+    out.push('At the timeline cursor (' + fecha(p, t, true) + ') in zone ' + state.site + ': the ' + left('Sun', p.sol) + '; ' + left('Earth', p.tierra) + '.');
+    out.push('Ninety-day window around the landing in zone ' + state.site + ': Sun in view ' + Math.round(p.fig.sunPct) + '%, Earth ' + Math.round(p.fig.earthPct) + '%, longest night ' + horas(p.fig.longestNightH) + ', longest silence without Earth ' + horas(p.fig.longestSilenceH) + '.');
+    out.push(cmpList.length ? cmpList.length + ' scenarios are saved in the comparison table.' : 'The comparison table is empty.');
+    return out.join(' ');
+  }
+  function aiRun(a) {
+    if (!a || typeof a.tipo !== 'string') return false;
+    var w;
+    if (a.tipo === 'planner') {
+      if (a.zone && ids.indexOf(a.zone) >= 0) state.site = a.zone;
+      if (a.date || a.time) {
+        var cur = new Date(sc.landingMs), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(a.date || ''), h = /^(\d{2}):(\d{2})$/.exec(a.time || '');
+        sc.landingMs = Date.UTC(m ? +m[1] : cur.getUTCFullYear(), m ? m[2] - 1 : cur.getUTCMonth(), m ? +m[3] : cur.getUTCDate(), h ? +h[1] : cur.getUTCHours(), h ? +h[2] : cur.getUTCMinutes());
+      }
+      if (a.stay != null) sc.stayDays = a.stay;
+      if (a.panel != null) sc.panelM = a.panel;
+      if (a.antenna != null) sc.antennaM = a.antenna;
+      if (a.battery != null) sc.requirements.batteryH = a.battery;
+      if (a.earth != null) sc.requirements.minEarthPct = a.earth;
+      apply(); return true;
+    }
+    if (a.tipo === 'shift') { if (!isFinite(a.days)) return false; sc.landingMs += Math.round(a.days) * DAY; apply(); return true; }
+    if (a.tipo === 'plan') { sc.landingMs = PLAN.landingMs; apply(); return true; }
+    if (a.tipo === 'fix') {
+      if (ev[state.site].ok) return false;
+      w = waysOf(state.site);
+      if (a.how === 'date' && w.date) { sc.landingMs = w.date.day.landingMs; apply(); return true; }
+      if (a.how === 'height' && w.height) { sc.panelM = Math.max(sc.panelM, w.height.heightM); sc.antennaM = Math.max(sc.antennaM, w.height.heightM); apply(); return true; }
+      if (a.how === 'zone' && w.sites.length) { pick(w.sites[0]); return true; }
+      return false;
+    }
+    /* «save»: guarda el escenario en la comparación sin abrirla (lo usa el recorrido guiado de EVA para el antes y el después) */
+    if (a.tipo === 'save') { if (cmpList.length < MAXC && !inCmp()) { var s0 = curItem(); s0.sc = JSON.parse(JSON.stringify(sc)); cmpList.push(s0); saveCmp(); renderCmp(); } return true; }
+    if (a.tipo === 'reset') { cmpList = []; saveCmp(); renderCmp(); return true; }
+    if (a.tipo === 'compare') {
+      if (cmpList.length < MAXC && !inCmp()) { var it = curItem(); it.sc = JSON.parse(JSON.stringify(sc)); cmpList.push(it); saveCmp(); }
+      if (cmp.hidden) openCmp(); else renderCmp();
+      return true;
+    }
+    if (a.tipo === 'play') { if (!tlPlaying) $('tlPlay').click(); return true; }
+    if (a.tipo === 'simulate') { if (state.running) return true; if (!cmp.hidden) closeCmp(); state.confirmed = false; simulate(); return true; }
+    if (a.tipo === 'close') { if (!cmp.hidden) closeCmp(); if (!dlg.hidden) closeDlg(); return true; }
+    return false;
+  }
+  window.LunarPlanner = { text: aiText, run: aiRun };
+
   evaluateAll(); renderCards(); render();
+  /* un punto que llega en el enlace (p. ej. desde el mapa 3D) se calcula y queda elegido */
+  if (link && link.pt && !linkZone) {
+    if (E.dentroDelDominio(link.pt.lat, link.pt.lon)) loadDem(function () { setPoint(Math.round(link.pt.lat * 1e5) / 1e5, Math.round(link.pt.lon * 1e5) / 1e5, true); apply(); });
+    else { $('slipMsg').innerHTML = '<b>That point is outside the planner range</b> (190 km around the south pole). Showing the catalogue zones.'; }
+  }
   /* un punto propio guardado se recupera en segundo plano, sin cambiar la zona elegida */
-  try { var savedPt = JSON.parse(localStorage.getItem(PKEY)); if (savedPt && isFinite(savedPt.lat) && E.dentroDelDominio(savedPt.lat, savedPt.lon)) loadDem(function () { setPoint(savedPt.lat, savedPt.lon, false); evaluateAll(); renderCards(); render(); }); } catch (e) { /* sin almacenamiento */ }
+  try { var savedPt = link && link.pt ? null : JSON.parse(localStorage.getItem(PKEY)); if (savedPt && isFinite(savedPt.lat) && E.dentroDelDominio(savedPt.lat, savedPt.lon)) loadDem(function () { setPoint(savedPt.lat, savedPt.lon, false); evaluateAll(); renderCards(); render(); }); } catch (e) { /* sin almacenamiento */ }
 })();
 </script>
 </body>

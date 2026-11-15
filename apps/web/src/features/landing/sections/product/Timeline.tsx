@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { tr } from "@/shared/i18n"
 import { LAST, stamp } from "./sky"
 
 type TimelineProps = {
@@ -49,7 +50,7 @@ export function Timeline({ windows, t, onTime, names, now }: TimelineProps) {
         onKeyDown={keys}
         tabIndex={0}
         role="slider"
-        aria-label="Mission time"
+        aria-label={tr("Mission time", "Hora de la misión")}
         aria-valuemin={0}
         aria-valuemax={LAST}
         aria-valuenow={Math.round(t)}

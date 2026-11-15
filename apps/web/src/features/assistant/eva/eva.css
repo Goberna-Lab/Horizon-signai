@@ -72,6 +72,8 @@
   white-space: nowrap;
   cursor: pointer;
 }
+/* «¿Quién nos visita?»: tres recorridos y «ahora no», en dos filas si no caben. */
+.eva-pregunta--quien { flex-wrap: wrap; }
 .eva-pregunta .eva-pregunta__suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
 
 /* Panel: escribirle, hablarle por voz, silenciar, repetir consejos, olvidar. */

@@ -3,6 +3,7 @@ import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import Lenis from "lenis"
 import "lenis/dist/lenis.css"
+import { tr } from "@/shared/i18n"
 import { brand, hud, opening, scenes } from "../content"
 import type { FlightHandle } from "./createFlight"
 import type { Flight, ScreenPoint } from "./engine/renderer"
@@ -19,7 +20,10 @@ const LAST = scenes.length - 1
 /** Cuánto scroll ocupa cada tramo entre dos escenas, en alturas de pantalla. Más largo = la cámara avanza más despacio. */
 const LEG_VH = 150
 
-/** Sitios rotulados en la escena de comparación: id del catálogo, texto y hacia dónde cae el rótulo. */
+/**
+ * Sitios rotulados en la escena de comparación: id del catálogo, texto y hacia dónde cae el rótulo. Son los nombres
+ * del catálogo (nombres propios): no se traducen.
+ */
 const MARKS: Array<{ id: string; label: string; side: "left" | "right" }> = [
   { id: "connecting-ridge", label: "Connecting Ridge + RoI 6", side: "left" },
   { id: "shackleton-rim", label: "Shackleton rim", side: "right" },
@@ -578,7 +582,7 @@ export function FlightStage() {
       data-mode={mode}
       data-ready={ready}
       style={mode === "live" ? { height: `calc(${LAST * LEG_VH}vh + 100lvh)` } : undefined}
-      aria-label="The lunar south pole, from chart to surface"
+      aria-label={tr("The lunar south pole, from chart to surface", "El polo sur lunar, de la lámina a la superficie")}
     >
       <div ref={stage} className="fl__stage">
         <img className="fl__poster" src={poster} alt="" width={1585} height={1000} decoding="async" />
@@ -685,10 +689,10 @@ export function FlightStage() {
         {mode === "live" && (
           <div className="fl__marks" aria-hidden="true">
             <div className="fl-mark fl-mark--body" ref={(el) => void (markEls.current.sun = el)}>
-              <span className="fl-mark__label">Sun</span>
+              <span className="fl-mark__label">{tr("Sun", "Sol")}</span>
             </div>
             <div className="fl-mark fl-mark--body" ref={(el) => void (markEls.current.earth = el)}>
-              <span className="fl-mark__label">Earth</span>
+              <span className="fl-mark__label">{tr("Earth", "Tierra")}</span>
             </div>
             <div className="fl-mark fl-mark--site" ref={(el) => void (markEls.current.site = el)}>
               <span className="fl-mark__label">Connecting Ridge</span>

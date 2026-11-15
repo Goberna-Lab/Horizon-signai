@@ -1,3 +1,4 @@
+import { tr } from "@/shared/i18n"
 import { software } from "../../content"
 import { PolarSky } from "./PolarSky"
 import { at, type HeightId, horizonAt, LAST, sky, span, stamp, stateOf } from "./sky"
@@ -5,8 +6,8 @@ import { Timeline } from "./Timeline"
 
 const copy = software.lander
 const HEIGHTS: Array<[HeightId, string]> = [
-  ["ground", "Ground level"],
-  ["mast", "10 m mast"],
+  ["ground", tr("Ground level", "A ras del suelo")],
+  ["mast", tr("10 m mast", "Mástil de 10 m")],
 ]
 
 type LanderProps = {
@@ -40,7 +41,7 @@ export function LanderView({ t, height, playing, onTime, onPlay, onHeight }: Lan
     <div className="sw-view sw-lander">
       <header className="sw-view__head">
         <h3 className="sw-view__title">{copy.title}</h3>
-        <div className="sw-seg" role="group" aria-label="Observer height">
+        <div className="sw-seg" role="group" aria-label={tr("Observer height", "Altura de observación")}>
           {HEIGHTS.map(([id, label]) => (
             <button key={id} type="button" aria-pressed={height === id} onClick={() => onHeight(id)}>
               {label}
@@ -59,7 +60,10 @@ export function LanderView({ t, height, playing, onTime, onPlay, onHeight }: Lan
             windows={view.windows}
             t={t}
             below={copy.below}
-            label={`Sky at ${sky.site.name}: the Sun is ${sun.visible ? "above" : "below"} the terrain horizon and Earth is ${earth.visible ? "above" : "below"} it.`}
+            label={tr(
+              `Sky at ${sky.site.name}: the Sun is ${sun.visible ? "above" : "below"} the terrain horizon and Earth is ${earth.visible ? "above" : "below"} it.`,
+              `Cielo en ${sky.site.name}: el Sol está ${sun.visible ? "por encima" : "por debajo"} del horizonte del relieve y la Tierra está ${earth.visible ? "por encima" : "por debajo"}.`,
+            )}
           />
         </div>
         <div className="sw-lander__side">
@@ -93,7 +97,7 @@ export function LanderView({ t, height, playing, onTime, onPlay, onHeight }: Lan
       </div>
 
       <div className="sw-lander__foot">
-        <button type="button" className="sw-play" data-playing={playing} onClick={onPlay} aria-label={playing ? "Pause" : "Play"}>
+        <button type="button" className="sw-play" data-playing={playing} onClick={onPlay} aria-label={playing ? tr("Pause", "Pausar") : tr("Play", "Reproducir")}>
           <i />
         </button>
         <output className="sw-lander__date">{stamp(t)}</output>

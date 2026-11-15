@@ -2,6 +2,7 @@
  * Lectura de los datos del cielo para las pantallas del software: interpolación en el tiempo, horizonte por
  * azimut y estado de visibilidad a partir de las ventanas que calculó el motor. Funciones puras.
  */
+import { tr } from "@/shared/i18n"
 import { formatSpan } from "../../flight/telemetry"
 import data from "../data/sky.json"
 
@@ -104,9 +105,12 @@ export function tempo(windows: number[][], t: number): number {
 export const span = (hours: number) => formatSpan(hours * HOUR_MS)
 export const percent = (value: number) => `${value % 1 === 0 ? value.toFixed(0) : value.toFixed(1)}%`
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const MONTHS = tr(
+  ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+)
 const pad = (value: number) => String(value).padStart(2, "0")
-/** "13 Dec 2026, 10:51 UT", como lo escribe el software. */
+/** "13 Dec 2026, 10:51 UT" ("13 dic 2026, 10:51 UT" en español), como lo escribe el software. */
 export function stamp(t: number): string {
   const d = new Date(data.startMs + t * HOUR_MS)
   return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UT`

@@ -2,12 +2,15 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type FormEven
 import { useLocation, useNavigate } from "react-router"
 import { routes } from "@/app/routes"
 import { EVENTO_EVA, type AvisoEva, type EstadoEva } from "@/shared/eva"
-import { decir, turnoDeVoz, usarAsistente, usarIdioma, usarPantalla, type Mensaje } from "@/prueba-ia/cliente"
+import { lang } from "@/shared/i18n"
+import { decir, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type Mensaje } from "@/prueba-ia/cliente"
 import { crearColaDeVoz } from "@/prueba-ia/colaDeVoz"
 import { olvidar, recordar, recordarNombre, recuerdos } from "@/prueba-ia/memoria"
 import { useVoz } from "@/prueba-ia/useVoz"
+import { ejecutarAccion, estadoDePantalla } from "./acciones"
 import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, TEXTOS, type Comentario } from "./guion"
 import { detectarIdioma, nombreDe, type Idioma } from "./idioma"
+import { RECORRIDOS, type Recorrido } from "./recorridos"
 import "./eva.css"
 
 const EvaLienzo = lazy(() => import("@/shared/eva/EvaLienzo"))
@@ -134,8 +137,13 @@ export default function EvaCompanera() {
   const [abierta, setAbierta] = useState(false)
   const [texto, setTexto] = useState("")
   const [silencio, setSilencio] = useState(() => leer(SILENCIO) === "1")
-  const [idioma, setIdioma] = useState<Idioma>(() => (leer(IDIOMA) === "es" ? "es" : "en"))
-  const [pregunta, setPregunta] = useState<"nombre" | "oferta" | null>(null)
+  // EVA arranca en el idioma de la app (el selector EN / ES de cada pantalla). Si en la conversación le hablan en el
+  // otro idioma, cambia ella sola para esa visita (fijarIdioma), sin recargar la página ni tocar el de la app.
+  const [idioma, setIdioma] = useState<Idioma>(lang)
+  const [pregunta, setPregunta] = useState<"nombre" | "oferta" | "paso" | null>(null)
+  // El recorrido guiado en curso (./recorridos.ts) y el rótulo de por dónde va («3 / 10»).
+  const recorrido = useRef<{ r: Recorrido; i: number } | null>(null)
+  const [avance, setAvance] = useState("")
   const [nombre, setNombre] = useState("")
   const [apuntando, setApuntando] = useState(false)
   const abiertaRef = useRef(abierta)
@@ -152,6 +160,20 @@ export default function EvaCompanera() {
     escribir(IDIOMA, i)
   }
   useEffect(() => usarIdioma(idiomaRef.current), [])
+
+  // EVA ve y maneja la app: con cada pregunta va lo que la pantalla muestra (las cifras del motor del planificador) y
+  // la IA puede terminar su respuesta con una orden (abrir una pantalla, cambiar el escenario, aplicar una salida…),
+  // que el API valida y aquí se ejecuta. Ver ./acciones.ts y apps/api/src/acciones.ts.
+  const navegarRef = useRef<(a: string) => void | Promise<void>>(() => {})
+  navegarRef.current = (destino) => navegar(destino)
+  useEffect(() => {
+    usarEstado(estadoDePantalla)
+    usarAcciones((a) => void ejecutarAccion(a, (destino) => navegarRef.current(destino)))
+    return () => {
+      usarEstado(null)
+      usarAcciones(null)
+    }
+  }, [])
 
   // Conversación por voz con micrófono abierto (la misma de /prueba-ia), como EVA.
   const voz = useVoz({
@@ -511,12 +533,77 @@ export default function EvaCompanera() {
   const preguntaRef = useRef(pregunta)
   preguntaRef.current = pregunta
   useEffect(() => {
-    if (!preguntaRef.current) return
+    if (!preguntaRef.current || recorrido.current) return // en un recorrido, EVA misma cambia de pantalla
     setPregunta(null)
     clearTimeout(esperaPregunta.current)
     ocupada.current = false
     soltarGlobo()
   }, [pathname])
+  /** Espera a que una parte de la pantalla esté a la vista (en la página o en el planificador incrustado). */
+  const buscarParte = async (selector: string) => {
+    for (let k = 0; k < 25; k++) {
+      const el = [...(marco()?.querySelectorAll(selector) ?? []), ...document.querySelectorAll(selector)].find(aLaVista)
+      if (el) return el
+      await esperar(200)
+    }
+    return undefined
+  }
+  /**
+   * Un paso del recorrido guiado: hace lo que toca en la app, apunta a la parte de la que habla, lo dice y espera a
+   * que la persona pulse «Next». No depende de la IA: si la voz no contesta, el texto queda en el globo.
+   */
+  const darPaso = async () => {
+    const t = recorrido.current
+    if (!t) return
+    const p = t.r.pasos[t.i]
+    cerrarPregunta()
+    quitarFoco()
+    habla.current?.abort()
+    ocupada.current = true
+    leccion.current = false
+    if (p.accion) {
+      await ejecutarAccion(p.accion, (destino) => navegar(destino))
+      await esperar(p.espera ?? 700)
+    }
+    if (recorrido.current !== t) return
+    const el = p.selector ? await buscarParte(p.selector) : undefined
+    if (el) await irA(el)
+    const frase = p.texto[idiomaRef.current]
+    await hablar(frase, null)
+    if (recorrido.current !== t) return
+    ocupada.current = true // sigue en el recorrido: ni pasea ni comenta hasta que pulsen
+    clearTimeout(ocultarGlobo.current)
+    setGlobo(frase)
+    setAvance(`${t.i + 1} / ${t.r.pasos.length}`)
+    setPregunta("paso")
+  }
+  /** «Next» o «Stop» en un paso del recorrido. */
+  const alPaso = async (seguir: boolean) => {
+    const t = recorrido.current
+    cerrarPregunta()
+    quitarFoco()
+    if (!t) return
+    if (seguir && t.i + 1 < t.r.pasos.length) {
+      t.i++
+      void darPaso()
+      return
+    }
+    recorrido.current = null
+    ocupada.current = false
+    await hablar(seguir ? t.r.fin[idiomaRef.current] : TEXTOS[idiomaRef.current].luego, seguir ? "alegre" : null)
+  }
+  /** Eligieron quién llega (o «ahora no»): empieza su recorrido. */
+  const alQuien = async (id: Recorrido["id"] | null) => {
+    cerrarPregunta()
+    const r = RECORRIDOS.find((x) => x.id === id)
+    if (!r) {
+      recorrido.current = null
+      await hablar(TEXTOS[idiomaRef.current].luego, null)
+      return
+    }
+    recorrido.current = { r, i: 0 }
+    void darPaso()
+  }
   /** Contestaron el nombre (o lo saltaron). Si se presentaron en español, primero se reconfigura. */
   const alNombre = async (ev?: FormEvent) => {
     ev?.preventDefault()
@@ -528,19 +615,6 @@ export default function EvaCompanera() {
     const i = detectarIdioma(crudo)
     if (i && i !== idiomaRef.current) await reconfigurar(i)
     await preguntar(TEXTOS[idiomaRef.current].oferta(n), "oferta")
-  }
-  /** ¿Quieres aprender a planificar una misión? Sí: va al Planificador y empieza la lección. */
-  const alOferta = async (si: boolean) => {
-    cerrarPregunta()
-    const t = TEXTOS[idiomaRef.current]
-    if (!si) {
-      await hablar(t.luego, null)
-      return
-    }
-    leccion.current = true
-    dichasLeccion.current.clear()
-    void navegar(routes.lunarMap)
-    await hablar(t.leccion, null)
   }
 
   // Escribirle: responde con la voz en streaming (mismo turno que la voz, desde texto).
@@ -683,12 +757,23 @@ export default function EvaCompanera() {
                   {T.saltar}
                 </button>
               </form>
-            ) : (
+            ) : pregunta === "paso" ? (
               <div className="eva-pregunta">
-                <button type="button" onClick={() => void alOferta(true)}>
-                  {T.si}
+                <button type="button" onClick={() => void alPaso(true)}>
+                  {T.siguiente} · {avance}
                 </button>
-                <button type="button" className="eva-pregunta__suave" onClick={() => void alOferta(false)}>
+                <button type="button" className="eva-pregunta__suave" onClick={() => void alPaso(false)}>
+                  {T.parar}
+                </button>
+              </div>
+            ) : (
+              <div className="eva-pregunta eva-pregunta--quien">
+                {RECORRIDOS.map((r) => (
+                  <button key={r.id} type="button" onClick={() => void alQuien(r.id)}>
+                    {r.boton[idioma]}
+                  </button>
+                ))}
+                <button type="button" className="eva-pregunta__suave" onClick={() => void alQuien(null)}>
                   {T.no}
                 </button>
               </div>
@@ -731,6 +816,17 @@ export default function EvaCompanera() {
             <div className="eva-panel__acciones">
               <button type="button" className={conversando ? "eva-boton eva-boton--activo" : "eva-boton"} onClick={() => (conversando ? voz.terminar() : voz.tocar())}>
                 {conversando ? T.callar : T.hablar}
+              </button>
+              <button
+                type="button"
+                className="eva-boton"
+                onClick={() => {
+                  setAbierta(false)
+                  abiertaRef.current = false
+                  void preguntar(T.quien, "oferta")
+                }}
+              >
+                {T.recorrido}
               </button>
               <button
                 type="button"

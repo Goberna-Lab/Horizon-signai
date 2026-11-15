@@ -19,7 +19,33 @@ let idiomaActual: "en" | "es" = "en"
 export const usarIdioma = (i: "en" | "es") => {
   idiomaActual = i
 }
-const persona = () => ({ asistente: asistenteActual, recuerdos: recuerdos(), pantalla: pantallaActual, idioma: idiomaActual })
+// Lo que la pantalla muestra ahora (cifras del motor, en texto): EVA lo registra y se lee en cada pedido.
+let estadoActual: (() => string) | null = null
+export const usarEstado = (f: (() => string) | null) => {
+  estadoActual = f
+}
+/** Una orden de la IA para la app, ya validada por el API (apps/api/src/acciones.ts). */
+export type AccionIA = { tipo: string } & Record<string, unknown>
+// Quién ejecuta las órdenes de la IA. Mientras nadie se registre, el API no le ofrece órdenes al modelo.
+let alAccion: ((a: AccionIA) => void) | null = null
+export const usarAcciones = (f: ((a: AccionIA) => void) | null) => {
+  alAccion = f
+}
+const leerEstado = () => {
+  try {
+    return estadoActual?.() ?? ""
+  } catch {
+    return ""
+  }
+}
+const persona = () => ({
+  asistente: asistenteActual,
+  recuerdos: recuerdos(),
+  pantalla: pantallaActual,
+  idioma: idiomaActual,
+  estado: leerEstado(),
+  acciones: alAccion !== null,
+})
 
 const pedir = async (ruta: string, init: RequestInit) => {
   const r = await fetch(`/api/z6${ruta}`, init)
@@ -99,7 +125,13 @@ const leerEventos = async (r: Response, alEvento: (e: EventoTurno) => void) => {
     resto += dec.decode(value, { stream: true })
     const lineas = resto.split("\n")
     resto = lineas.pop() ?? ""
-    for (const l of lineas) if (l.trim()) alEvento(JSON.parse(l) as EventoTurno)
+    for (const l of lineas) {
+      if (!l.trim()) continue
+      const e = JSON.parse(l) as EventoTurno | { t: "accion"; a: AccionIA }
+      // Las órdenes no pasan por quien pinta el turno: las ejecuta quien se registró con `usarAcciones`.
+      if (e.t === "accion") alAccion?.(e.a)
+      else alEvento(e)
+    }
   }
 }
 

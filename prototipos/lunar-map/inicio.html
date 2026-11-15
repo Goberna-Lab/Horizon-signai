@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lunar Map · Mission control</title>
+<title>Horizon Signai · Missions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -273,12 +273,14 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 <body>
 <div class="app">
   <header class="top">
-    <div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1><span class="sep"></span><small>Mission control · south pole</small></div>
+    <a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1><span class="sep"></span><small>Example campaign · south pole</small></a>
     <nav class="pillnav" aria-label="Sections">
-      <span aria-current="page">Home</span>
+      <span aria-current="page">Missions</span>
       <a href="index.html">Planner</a>
+      <a href="/3d-map" target="_top">3D Map</a>
     </nav>
     <div class="topr">
+      <span class="paper flat langsw mono" data-lang-toggle></span>
       <span class="paper flat utc mono"><small id="today">—</small><b id="utc">--:--:-- UTC</b></span>
       <span class="paper flat who"><span class="av" aria-hidden="true">CM</span><span><p>Mission coordination</p><span>South pole · shift A</span></span></span>
     </div>
@@ -381,7 +383,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       </section>
     </div>
   </div>
-  <p class="foot"><span>Example planning scenarios · real sites and mean illumination (PGDA, Mazarico 2011) · generated terrain</span><button type="button" id="resetDemo">Reset demo</button></p>
+  <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate</span><button type="button" id="resetDemo">Reset demo</button></p>
   <section class="paper chat" id="chat" aria-labelledby="chat-t">
     <button type="button" class="chat-h" id="chatToggle" aria-expanded="false" aria-controls="chatBody">
       <svg width="34" height="34" viewBox="0 0 76 76" aria-hidden="true">
@@ -412,6 +414,8 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
   </section>
 </div>
 
+<script src="i18n.js"></script>
+<script src="i18n-es-inicio.js"></script>
 <script src="terrain.js"></script>
 <script src="mission.js"></script>
 <script src="campaign.js"></script>

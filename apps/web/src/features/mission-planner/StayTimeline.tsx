@@ -95,7 +95,7 @@ export function StayTimeline({ evaluation, batteryH, cursorMs, onCursor, name }:
   }
 
   const exportCsv = () => {
-    const rows = ["time_utc,sun_upper_edge_above_terrain_deg,earth_centre_above_terrain_deg,sun_in_view,earth_in_view,panel_w_m2"]
+    const rows = [copyOf.csvHeader]
     for (let i = 0; i < sweep.n; i++) {
       const s = margenSol(sweep.solSobreHorizonte[i])
       const e = margenTierra(sweep.tierraSobreHorizonte[i])
@@ -153,7 +153,7 @@ export function StayTimeline({ evaluation, batteryH, cursorMs, onCursor, name }:
               return (
                 <span key={gap.inicioMs} className="pl-tl__gap" data-over={tooLong} style={{ left: left(gap.inicioMs), width: width(gap) }}>
                   {gapLabel(gap, copyOf.sun)}
-                  {tooLong && <u style={{ left: `${((batteryH * HOUR_MS) / (gap.finMs - gap.inicioMs)) * 100}%` }} title={`Battery empty after ${hours(batteryH)} without Sun`} />}
+                  {tooLong && <u style={{ left: `${((batteryH * HOUR_MS) / (gap.finMs - gap.inicioMs)) * 100}%` }} title={copyOf.batteryEmpty(hours(batteryH))} />}
                 </span>
               )
             })}
@@ -205,7 +205,7 @@ export function StayTimeline({ evaluation, batteryH, cursorMs, onCursor, name }:
             onKeyDown={keys}
             tabIndex={0}
             role="slider"
-            aria-label="Moment of the stay"
+            aria-label={copyOf.moment}
             aria-valuemin={0}
             aria-valuemax={Math.round(length / HOUR_MS)}
             aria-valuenow={Math.round((cursor - fromMs) / HOUR_MS)}

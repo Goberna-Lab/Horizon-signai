@@ -1,6 +1,7 @@
 import { DAY_MS, span, stamp, type MissionRow } from "@/shared/planning"
+import { copy } from "./copy"
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const text = copy.summary
 
 type SummaryProps = { rows: MissionRow[]; nowMs: number; selectedId: string | null; onSelect: (id: string) => void }
 
@@ -28,36 +29,36 @@ export function Summary({ rows, nowMs, selectedId, onSelect }: SummaryProps) {
     <div className="db-summary">
       <dl className="db-kpis">
         <div>
-          <dt>Missions</dt>
+          <dt>{text.missions}</dt>
           <dd>{rows.length}</dd>
         </div>
         <div>
-          <dt>On plan</dt>
+          <dt>{text.onPlan}</dt>
           <dd>{ok}</dd>
         </div>
         <div data-alert={bad > 0}>
-          <dt>Need attention</dt>
+          <dt>{text.needAttention}</dt>
           <dd>{bad}</dd>
         </div>
         <div>
-          <dt>Next landing</dt>
+          <dt>{text.nextLanding}</dt>
           <dd>{next ? span(next.mission.landingMs - nowMs) : "–"}</dd>
         </div>
       </dl>
 
-      <div className="db-schedule" role="group" aria-label="Schedule">
+      <div className="db-schedule" role="group" aria-label={text.schedule}>
         <div className="db-schedule__months" aria-hidden="true">
           {Array.from({ length: months }, (_, i) => {
             const month = (startMonth + i) % 12
             return (
               <span key={i} style={{ left: at(monthMs(i)) }} data-year={month === 0 || i === 0}>
-                {i % every === 0 ? `${MONTHS[month]}${month === 0 || i === 0 ? ` ${Math.floor((startMonth + i) / 12)}` : ""}` : ""}
+                {i % every === 0 ? `${text.months[month]}${month === 0 || i === 0 ? ` ${Math.floor((startMonth + i) / 12)}` : ""}` : ""}
               </span>
             )
           })}
         </div>
         <div className="db-schedule__track">
-          <i className="db-schedule__now" style={{ left: at(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) }} title="Today" />
+          <i className="db-schedule__now" style={{ left: at(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) }} title={text.today} />
           {rows.map((r) => (
             <button
               key={r.mission.id}
@@ -66,7 +67,7 @@ export function Summary({ rows, nowMs, selectedId, onSelect }: SummaryProps) {
               data-state={r.state}
               aria-pressed={r.mission.id === selectedId}
               style={{ left: at(r.mission.landingMs), width: `max(8px, ${((r.mission.stayDays * DAY_MS) / (toMs - fromMs)) * 100}%)` }}
-              title={`${r.mission.name}: ${stamp(r.mission.landingMs)}, ${r.mission.stayDays} days`}
+              title={text.mission(r.mission.name, stamp(r.mission.landingMs), r.mission.stayDays)}
               onClick={() => onSelect(r.mission.id)}
             >
               <b>{r.mission.name}</b>

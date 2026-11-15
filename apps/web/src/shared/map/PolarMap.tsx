@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
+import { tr } from "@/shared/i18n"
 import { plate, sites, type Site } from "@/shared/planning"
 import "./map.css"
 
@@ -27,12 +28,12 @@ type PolarMapProps = {
 }
 
 const copy = {
-  title: "Lunar south pole",
-  earth: "Toward Earth",
-  alt: "Shaded relief of the lunar south pole, drawn from LOLA elevation.",
-  sun: "Sun",
-  earthBody: "Earth",
-  pole: "South pole",
+  title: tr("Lunar south pole", "Polo sur lunar"),
+  earth: tr("Toward Earth", "Hacia la Tierra"),
+  alt: tr("Shaded relief of the lunar south pole, drawn from LOLA elevation.", "Relieve sombreado del polo sur lunar, a partir de la altimetría de LOLA."),
+  sun: tr("Sun", "Sol"),
+  earthBody: tr("Earth", "Tierra"),
+  pole: tr("South pole", "Polo sur"),
 }
 
 /** Lado de la capa en px. La lámina mide `plate.sizeKm` de lado. */

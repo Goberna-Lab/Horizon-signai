@@ -413,8 +413,13 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
 export const TEXTOS = {
   en: {
     hola: "Hi, I am EVA. What is your name?",
-    deNuevo: (nombre: string) => `Welcome back, ${nombre}. Do you want to learn how to plan a mission?`,
-    oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. Do you want to learn how to plan a mission?` : "Do you want to learn how to plan a mission?"),
+    deNuevo: (nombre: string) => `Welcome back, ${nombre}. I can guide you through the whole thing. Who is visiting today?`,
+    oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. I can guide you through the whole thing. Who is visiting today?` : "I can guide you through the whole thing. Who is visiting today?"),
+    /** El recorrido guiado: la pregunta desde el panel y los botones de cada paso. */
+    quien: "I can guide you, step by step. Who is visiting today?",
+    siguiente: "Next",
+    parar: "Stop",
+    recorrido: "Guided tour",
     leccion: "Great. This is Mission control. I will walk you through it, one part at a time.",
     luego: "No problem. Tap me whenever you want to talk.",
     /** Lo que dice, todavía en este idioma, al notar que le hablan en el otro. */
@@ -450,8 +455,12 @@ export const TEXTOS = {
   },
   es: {
     hola: "Hola, soy EVA. ¿Cómo te llamas?",
-    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. ¿Quieres aprender a planificar una misión?`,
-    oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. ¿Quieres aprender a planificar una misión?` : "¿Quieres aprender a planificar una misión?"),
+    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. Puedo guiarte por todo. ¿Quién nos visita hoy?`,
+    oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. Puedo guiarte por todo. ¿Quién nos visita hoy?` : "Puedo guiarte por todo. ¿Quién nos visita hoy?"),
+    quien: "Puedo guiarte, paso a paso. ¿Quién nos visita hoy?",
+    siguiente: "Siguiente",
+    parar: "Parar",
+    recorrido: "Recorrido guiado",
     leccion: "Genial. Este es el control de misión. Te lo muestro parte por parte.",
     luego: "No hay problema. Tócame cuando quieras hablar.",
     detectado: "Inglés detectado. Reconfigurando idioma…",

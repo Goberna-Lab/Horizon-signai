@@ -167,3 +167,9 @@ button.tag { cursor: pointer; transition: background-color var(--m-out) var(--ea
 
 /* grano cinematográfico sobre escenas */
 .grain { position: absolute; inset: 0; pointer-events: none; opacity: .14; mix-blend-mode: overlay; background-image: var(--grano); background-size: 160px 160px; }
+
+/* selector EN / ES (i18n.js lo rellena): píldora del mismo alto que el reloj */
+.langsw { display: inline-flex; align-items: center; gap: 2px; height: 52px; padding: 0 8px; border-radius: 999px; }
+.langsw button { height: 30px; padding: 0 10px; border: 0; border-radius: 999px; background: none; color: var(--gris); font: inherit; font-size: 12px; font-weight: 600; letter-spacing: .06em; cursor: pointer; }
+.langsw button:hover { color: var(--tinta); }
+.langsw button[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }

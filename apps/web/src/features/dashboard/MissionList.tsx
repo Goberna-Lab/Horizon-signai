@@ -28,7 +28,7 @@ export function MissionList({ rows, selectedId, nowMs, canRestore, onSelect, onO
           const wait = mission.landingMs - nowMs
           return (
             <li key={mission.id} className="db-mission" data-selected={mission.id === selectedId} data-state={r.state}>
-              <button type="button" className="db-mission__pick" aria-pressed={mission.id === selectedId} aria-label={`${mission.name}: show on the map`} onClick={() => onSelect(mission.id)} />
+              <button type="button" className="db-mission__pick" aria-pressed={mission.id === selectedId} aria-label={copy.list.showOnMap(mission.name)} onClick={() => onSelect(mission.id)} />
               <p className="db-mission__name">
                 {mission.name}
                 {mission.example && <small>{copy.list.example}</small>}
@@ -41,7 +41,7 @@ export function MissionList({ rows, selectedId, nowMs, canRestore, onSelect, onO
               {evaluation && (
                 <p className="db-mission__why">
                   {evaluation.ok
-                    ? `Sun ${percent(evaluation.figures.sunPct)} · Earth ${percent(evaluation.figures.earthPct)} · longest night ${hours(evaluation.figures.longestNightH)}`
+                    ? copy.list.figures(percent(evaluation.figures.sunPct), percent(evaluation.figures.earthPct), hours(evaluation.figures.longestNightH))
                     : reasons(evaluation.checks)}
                 </p>
               )}
