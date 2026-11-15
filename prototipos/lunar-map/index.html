@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+/* Este planificador (Alunizaje · Caminata) se retiró el 2026-11-15: el Planificador de la app es el de misiones
+   (/planificar-mision.html, PR #56). Quien llegue aquí (/planner#landing, #walk, enlaces viejos, el mapa 3D, las órdenes
+   de EVA) va a ese, en su idioma. El archivo se queda: engine.js y data/ los siguen usando la API y la base. */
+(function () {
+  var l = 'en'; try { if (localStorage.getItem('horizon-signai.lang') === 'es') l = 'es'; } catch (e) { /* sin almacenamiento: inglés */ }
+  var url = '/planificar-mision.html?lang=' + l;
+  try { window.top.location.replace(url); } catch (e) { location.replace(url); }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Horizon Signai · Planner · Landing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">

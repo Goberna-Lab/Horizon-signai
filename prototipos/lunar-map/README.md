@@ -8,6 +8,8 @@ Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`
 
 ## Cambios del 2026-11-15 (entrega)
 
+- **Planificador anterior retirado (Alunizaje · Caminata).** `index.html` y `planificar.html` redirigen al Planificador de misiones (`/planificar-mision.html`, PR #56), que es el Planificador de la app: desde «Planner» y «Add mission» de Missions, y desde todo lo que antes abría `/planner#landing`, `#walk` o un escenario (`#z=…`). Los archivos se quedan porque `engine.js` y `data/` los usan la API (`/api/planner`) y la base.
+
 - **Tipografía compartida:** los títulos de los paneles de `inicio.html` usan la clase `display-caps` de `/ui/display-caps.css` (`apps/web/public/ui/`), que sirve la app. Abriendo la carpeta suelta, sin la app, caen a la fuente de reserva.
 - **Marca y navegación:** las tres páginas dicen Horizon Signai y enlazan a la landing, a Missions (`inicio.html`), al planificador y al mapa 3D.
 - **Vista inicial: el calendario se movió.** Sin escenario guardado, el planificador abre con el plan de CR-01 (18 dic 2026, las tres zonas GO) movido al 3 abr 2027: A y C NO GO, B GO. Son cifras de `engine.js`.
