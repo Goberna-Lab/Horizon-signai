@@ -53,3 +53,26 @@
 .lfp-end dd { margin: 2px 0 0; font: 600 16px "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 .lfp-end button { justify-self: start; font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
 .lfp-end button:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
+.lfp-end p { margin: 0; font-size: 14px; line-height: 1.45; } .lfp-end p.real { color: rgba(17, 17, 17, .72); font-style: italic; } .lfp-end p.why2 { color: rgba(17, 17, 17, .6); font-size: 13px; }
+
+/* P66: riesgo del terreno justo bajo la nave (solo informa; no hay control manual) */
+.lfp-haz { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); display: grid; justify-items: center; gap: 2px; text-align: center; padding: 8px 18px; background: rgba(4, 8, 12, .55); border-top: 2px solid var(--c); --c: #4cc38a; }
+.lfp-haz.warn { --c: #e3b341; } .lfp-haz.bad { --c: #e5534b; } .lfp-haz[hidden] { display: none; }
+.lfp-haz small { color: var(--c); letter-spacing: .4em; font-size: 10px; } .lfp-haz b { font-size: 30px; color: var(--c); line-height: 1.1; }
+.lfp-haz span { color: #e6f4fa; font-size: 13px; }
+
+/* EVA: subtítulo de lo que dice la asistente, con el indicador de voz (debajo del recuadro de P66) */
+.eva-voz { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); z-index: 12; max-width: min(720px, 80%); display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: rgba(4, 9, 14, .72); border: 1px solid rgba(201, 244, 255, .25); border-left: 3px solid #c9a6ff; pointer-events: none;
+  color: #eef4f8; font: 500 15px/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .02em; animation: evavoz .3s ease-out; }
+.eva-voz[hidden] { display: none; }
+.eva-voz b { color: #c9a6ff; letter-spacing: .3em; font-size: 12px; }
+.eva-voz.p1 { border-left-color: #ffc04d; } .eva-voz.p1 b { color: #ffc04d; }
+.eva-voz.p2 { border-left-color: #ff5c70; } .eva-voz.p2 b { color: #ff5c70; }
+.eva-voz i { display: flex; gap: 2px; align-items: center; height: 18px; }
+.eva-voz u { width: 3px; height: 100%; background: currentColor; color: #c9a6ff; transform-origin: center; animation: evaeq .7s ease-in-out infinite alternate; }
+.eva-voz.p1 u { color: #ffc04d; } .eva-voz.p2 u { color: #ff5c70; }
+.eva-voz u:nth-child(2) { animation-delay: -.2s; } .eva-voz u:nth-child(3) { animation-delay: -.45s; } .eva-voz u:nth-child(4) { animation-delay: -.1s; } .eva-voz u:nth-child(5) { animation-delay: -.6s; }
+@keyframes evaeq { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+@keyframes evavoz { from { opacity: 0; transform: translate(-50%, 6px); } }
+@media (prefers-reduced-motion: reduce) { .eva-voz, .eva-voz u { animation: none; } }

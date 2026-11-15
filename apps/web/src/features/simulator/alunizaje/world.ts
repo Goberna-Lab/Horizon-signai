@@ -7,6 +7,17 @@ import fineUrl from './data/fine.i16?url';
 import wideUrl from './data/wide.i16?url';
 import siteUrl from './data/site.json?url';
 import { LandingSim } from './landing';
+import { Voz } from './voz';
+
+// Lo que EVA dice siempre igual en el descenso: se pide a la voz del equipo al entrar, para que después suene sin espera
+// (frase por frase: las partes fijas de los avisos con cifras también se reutilizan).
+const FRASES_FIJAS = [
+  'The guidance will fly us down the planned trajectory. I will warn you of any hazard.',
+  'Landing zone is clear below.', 'Clear ground below.', 'We are in shadow. I cannot see the ground, only the laser altimeter.',
+  'Danger.', 'Caution.', 'We could tip over.', 'We would tip over.',
+  'Nominal landing. Welcome to the lunar south pole.', 'Panels and antenna are misaligned.', 'The landing gear may be damaged.',
+  'The lander is tipping over. Mission lost.',
+];
 
 const D2R = Math.PI / 180;
 const SKY_D = 60000;
@@ -104,8 +115,10 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx: { radio() {}, static() {} }, yaw: 0, pitch: 0, _lookT: 0 },
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
     astro: { object: new THREE.Object3D(), dust: new THREE.Object3D(), update() {}, pose: null },
-    alerts: { slope: () => site.slope }, pos: new THREE.Vector3(), heading: 0, quality: 0,
+    pos: new THREE.Vector3(), heading: 0, quality: 0,
+    voz: new Voz(host), // EVA: avisa en voz alta del arranque, del terreno en P66 y del resultado
   };
+  view.voz.precargar([`Powered descent initiated toward ${site.site ?? 'the landing site'}.`, ...FRASES_FIJAS]);
   const sim = new LandingSim(view);
   await sim.start();
 
@@ -125,6 +138,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   return () => {
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
     sim.stop(true); sim.active = false; sim.distant = false;
+    view.voz.dispose(); // cola, audio, pedidos, AudioContext y voz del navegador
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
 }

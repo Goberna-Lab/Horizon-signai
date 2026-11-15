@@ -4,14 +4,16 @@
 // Secuencia basada en el descenso real del Módulo Lunar (Apollo 11, 1969):
 //   P64  Aproximación: el LM inclinado frena y avanza con el Sol a la espalda
 //        (Apollo alunizaba con el Sol bajo detrás para ver las sombras de las rocas).
-//   P66  Control manual: el comandante sobrevuela rocas y baja casi en vertical (~1 m/s).
+//   P66  Descenso final: baja casi en vertical (~1 m/s). Aquí no hay control manual: el guiado sigue la trayectoria
+//        hasta el contacto y la nave se posa donde la deja, con su error de navegación (aterrizaje.ts).
 //   Luz de contacto: las sondas de 1.7 m tocan el suelo -> se apaga el motor -> caída libre.
 //   EVA: sale por la escotilla delantera, baja la escalera y da el primer paso.
 // Física: gravedad lunar 1.62 m/s²; la trayectoria es una curva de Hermite por fase y el
 // empuje necesario sale de la aceleración (a - g). El polvo vuela en línea recta: no hay aire.
 //
-// Contexto del reto: el LM baja exactamente en el sitio elegido, con el Sol y la Tierra
-// calculados para ese momento. Si la Tierra no es visible, los mensajes de Houston no llegan.
+// Contexto del reto: el LM baja en el sitio elegido, con el Sol y la Tierra calculados para ese momento; el resultado
+// (nominal, inclinada, dura o vuelco) depende del terreno real bajo las patas. Si la Tierra no es visible, los
+// mensajes de Houston no llegan. EVA (voz.ts) avisa en voz alta del arranque, del terreno en P66 y del resultado.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -19,6 +21,7 @@ import lmUrl from './data/lunar-module.glb?url';
 import { SoftParticles } from './particles';
 import { LM_APOLLO11 } from './engine/descenso';
 import { descensoNominal } from './engine/plan';
+import { planTouchdown, outcome, hazardAt, gravedad, ROCK_SMALL, ROCK_BIG } from './aterrizaje';
 
 const G = 1.62;
 const LM_SCALE = 1.4;          // el modelo NASA está a ~70 % del tamaño real (9.4 m entre patas)
@@ -187,7 +190,7 @@ export class LandingSim {
       <div class="lfp-alt"><small>ALTITUDE</small><b data-f="alt">—</b><i class="lfp-tape"><u data-f="altbar"></u></i></div>
       <div class="lfp-r"><p><small>VERTICAL SPEED</small><b data-f="vs">—</b></p><p><small>HORIZONTAL SPEED</small><b data-f="hs">—</b></p>
         <p><small>THRUST</small><b data-f="thr">—</b></p><p data-f="fuelp"><small>FUEL</small><b data-f="fuel">—</b></p></div>
-      <div class="lfp-flash" data-f="flash"></div><div class="lfp-radio" data-f="radio"></div>
+      <div class="lfp-haz" data-f="haz" hidden></div><div class="lfp-flash" data-f="flash"></div><div class="lfp-radio" data-f="radio"></div>
       <div class="lfp-keys"><span class="orb"><b>Drag</b>orbit the lander</span><span class="orb"><b>Wheel</b>zoom</span><span class="orb"><b>Enter</b>skip to touchdown</span></div>`;
     host.append(lfp); this.lfp = lfp;
     // Órbita alrededor de la nave durante el descenso: el ratón gira 360° (con el puntero capturado o arrastrando) y la rueda acerca o aleja
@@ -281,6 +284,13 @@ export class LandingSim {
     const D = this.desc = descensoNominal(), M = D.muestras;
     const tA = M.find((q) => q.alturaM <= 500).tS, tB = D.eventos.inicioP66, tC = D.eventos.contacto;
     this.phases = [{ name: 'P64 · Approach', t0: tA, T: tB - tA }, { name: 'P66 · Final descent', t0: tB, T: tC - tB }];
+    // Dónde se posa de verdad: el guiado sigue la trayectoria hasta el contacto, sin desvío ni control manual, y deja la
+    // nave donde la lleva su error de navegación; el resultado depende del terreno ahí (aterrizaje.ts)
+    this.rocks = v.detail?.rocks ?? []; // esta escena no tiene rocas sueltas: solo cuenta el relieve LOLA
+    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5 });
+    const A = this.plan.final;
+    this.target = new THREE.Vector3(A.x, A.hz.y - 0.103 * S - 0.02, A.z);
+    this.result = null; this.tiltDeg = 0; this.touchH = 0; this.hzNow = null; this._zc = null;
     for (const [i, ph] of this.phases.entries()) { const a0 = this._state(i, 0), a1 = this._state(i, 1); Object.assign(ph, { p0: a0.p, v0: a0.v, p1: a1.p, v1: a1.v }); }
     this.fuel = this._state(0, 0).fuelS;
 
@@ -306,6 +316,7 @@ export class LandingSim {
       this.title('Polo sur de la Luna', v.siteName ?? '', 5000);
     }
     this.say('Houston', 'Eagle, you are go for powered descent.', true);
+    v.voz?.say(`Powered descent initiated toward ${v.siteName ?? 'the landing site'}. The guidance will fly us down the planned trajectory. I will warn you of any hazard.`, { prio: 1, key: 'start', cooldownS: 5 });
     if (this.cine) { /* el contexto va en los subtítulos y en el plano final */ }
     else if (!v.now.earth.visible) this.flash('From this site the Earth is below the horizon: no direct link with Houston', 6000);
     else if (v.now.sun.frac < 0.5) this.flash('The site is in shadow right now: landing without sunlight', 5000);
@@ -340,6 +351,7 @@ export class LandingSim {
     this.flag = null;
     if (this.pathG) { v.scene.remove(this.pathG); this.pathG = null; }
     if (this.lfp) this.lfp.hidden = true;
+    v.voz?.stop();
     if (this.fp && v.eva) v.eva.root.style.visibility = '';
     this.fp = false; this.distant = false;
     this.active = false; this.locks = false; this.state = null; this.tipped = false;
@@ -446,8 +458,16 @@ export class LandingSim {
   _lfp(sub) {
     const q = (k) => this.lfp.querySelector(`[data-f="${k}"]`), alt = Math.max(0, this.altitude());
     q('sub').textContent = sub;
+    // Lo que hay bajo la nave en P66: el riesgo del terreno justo debajo (solo se informa: no hay control manual)
+    const hzEl = q('haz'), hz = this.state === 'descent' && this.phase === 1 ? this.hzNow : null;
+    hzEl.hidden = !hz;
+    if (hz) {
+      const c = ['ok', 'warn', 'bad'][gravedad(hz)];
+      const html = `<small>BELOW THE LANDER</small><b>${fmt(hz.tilt, 1)}°</b><span>${hz.rock > ROCK_SMALL ? `${Math.round(hz.rock * 200)} cm boulder` : 'no large rocks'} · ${c === 'ok' ? 'good spot' : c === 'warn' ? 'would land tilted' : 'would tip over'}</span>`;
+      if (hzEl._h !== html) { hzEl._h = html; hzEl.className = 'lfp-haz ' + c; hzEl.innerHTML = html; }
+    }
     this._map();
-    q('phase').textContent = this.state === 'descent' ? this.phases[this.phase].name : this.state === 'fall' ? 'Contact light · engine stop' : this.state === 'settle' ? 'On the surface' : this.state === 'lost' ? 'Lander tipped over' : 'Salida por la escalera';
+    q('phase').textContent = this.state === 'descent' ? this.phases[this.phase].name : this.state === 'fall' ? 'Contact light · engine stop' : this.state === 'settle' ? (this.result?.kind === 'tip' ? 'Tipping over' : 'On the surface') : this.state === 'lost' ? 'Lander tipped over' : 'Egress';
     q('alt').textContent = `${fmt(alt, alt < 20 ? 1 : 0)} m`; q('altbar').style.transform = `scaleY(${Math.min(1, alt / 500).toFixed(3)})`;
     q('vs').textContent = `${fmt(this.vel.y, 1)} m/s`; q('hs').textContent = `${fmt(this._hspeed(), 1)} m/s`;
     q('thr').textContent = this.state === 'descent' ? `${fmt(this.throttle * 100)} %` : 'off';
@@ -596,10 +616,14 @@ export class LandingSim {
 
   /** Tarjeta final: contacto, combustible y tiempo; se puede volver a volar. */
   _end() {
-    const v = this.view, card = document.createElement('div');
-    card.className = 'lfp-end';
-    card.innerHTML = `<small>TOUCHDOWN · ${v.siteName ?? ''}</small><b>The Eagle has landed</b>
-      <dl><div><dt>Contact speed</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>Fuel left</dt><dd>${fmt(this.fuelKg ?? 0)} kg · ${fmt(this.fuel ?? 0)} s</dd></div>
+    const v = this.view, card = document.createElement('div'), R = this.result, P = this.plan;
+    const miss = Math.hypot(P.final.x - P.planned.x, P.final.z - P.planned.z);
+    card.className = 'lfp-end ' + R.kind;
+    card.innerHTML = `<small>${R.kind === 'tip' ? 'MISSION LOST' : 'TOUCHDOWN'} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? 'The Eagle has landed' : R.title}</b>
+      ${R.kind === 'ok' ? '' : `<p>${R.why}</p>`}${R.real ? `<p class="real">${R.real}</p>` : ''}
+      ${R.kind === 'tip' ? `<p class="why2">${P.lit ? 'The lander followed the trajectory down to where the guidance took it, and the ground there would not hold it.' : 'The site was in shadow: without light there was no way to see the ground below.'}</p>` : ''}
+      <dl><div><dt>Contact speed</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>Footpad tilt</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
+      <div><dt>Off target</dt><dd>${fmt(miss)} m</dd></div><div><dt>Fuel left</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
       <div><dt>Powered descent</dt><dd>${clock(this.t)}</dd></div><div><dt>Earth link</dt><dd>${v.now?.earth.visible ? 'direct' : 'below the horizon'}</dd></div></dl>
       <button type="button">Fly the descent again</button>`;
     card.querySelector('button').addEventListener('click', () => this.start());
@@ -638,11 +662,13 @@ export class LandingSim {
       this.say('Aldrin', 'Contact light.');
       this.say('Armstrong', 'Shutdown.');
       this.vel.set(0, -0.6, 0);
+      this.pos.y += this.plan?.cutoffExtra ?? 0; // la luz de contacto llegó antes o después de lo debido
       this._orient(UP);
       return;
     }
     const r = this._state(this.phase, this.ps);
     this.pos.copy(r.p); this.vel.copy(r.v);
+    if (this.phase === 1) this.hzNow = hazardAt(this.view, this.pos.x, this.pos.z, this.rocks); // lo que hay bajo la nave
     this.lm.position.copy(this.pos);
     this._orient(r.aT);
     this.fuel = r.fuelS; this.fuelKg = r.fuelKg;
@@ -653,7 +679,27 @@ export class LandingSim {
     const ev = (k, fn) => { if (!this.events.has(k)) { this.events.add(k); fn(); } };
     if (this.t > 6) ev('alarm', () => { this.say('Armstrong', 'Program alarm. It\'s a 1202.'); this.flash('ALARM 1202', 2500); });
     if (this.t > 12) ev('go', () => this.say('Houston', 'We\'re go on that alarm.', true));
-    if (this.phase === 1) ev('p66', () => { this.say('Armstrong', 'Going manual: the planned spot is full of boulders.'); this.flash('P66 · MANUAL CONTROL', 2500); });
+    if (this.phase === 1) ev('p66', () => {
+      // Aviso del terreno donde nos va a dejar el guiado (sin control manual: solo se informa)
+      const P = this.plan, a = P.final.hz, g = gravedad(a), what = a.rock > ROCK_SMALL ? `${Math.round(a.rock * 200)} cm boulders` : `a ${fmt(a.tilt, 1)}° slope`;
+      if (!P.lit) { this.say('Aldrin', 'We\'re in shadow: no view of the ground, only the laser altimeter.'); this.flash('P66 · NO SUNLIGHT · LANDING BLIND', 3500); }
+      else { this.say('Armstrong', g ? `The landing point has ${what}. Staying on the trajectory.` : 'Clear ground below. Continuing down.'); this.flash('P66 · FINAL DESCENT', 2500); }
+      this.view.voz?.say(!P.lit ? 'We are in shadow. I cannot see the ground, only the laser altimeter.'
+        : g === 2 ? `Danger. The landing point has ${a.rock > ROCK_BIG ? 'a large boulder' : `a ${Math.round(a.tilt)} degree slope`}. We could tip over.`
+        : g === 1 ? `Caution. We will land tilted about ${Math.round(a.tilt)} degrees.` : 'Landing zone is clear below.', { prio: g === 2 ? 2 : 1, key: 'p66', cooldownS: 5 });
+      this._zc = P.lit ? g : null;
+    });
+    // Durante P66, si cambia lo que hay justo debajo, EVA lo dice (solo informa: aquí no hay nada que pilotar)
+    const hz = this.hzNow, voz = this.view.voz;
+    if (hz && voz && this.phase === 1 && this.plan.lit && this._zc != null && alt < 120) {
+      const zc = gravedad(hz);
+      if (zc !== this._zc) {
+        if (zc === 2) voz.say(`Danger. Below us there is ${hz.rock > ROCK_BIG ? 'a large boulder' : `a ${Math.round(hz.tilt)} degree slope`}. We would tip over.`, { prio: 2, key: 'haz2', cooldownS: 10 });
+        else if (zc === 1) voz.say(`Caution. Here we would land tilted ${Math.round(hz.tilt)} degrees.`, { prio: 1, key: 'haz1', cooldownS: 14 });
+        else voz.say('Clear ground below.', { prio: 0, key: 'haz0', cooldownS: 12 });
+        this._zc = zc;
+      }
+    }
     if (this.fuel < 60) ev('f60', () => this.say('Houston', '60 seconds.', true));
     if (this.fuel < 30) ev('f30', () => this.say('Houston', '30 seconds.', true));
     if (alt < 35) ev('dust', () => this.say('Aldrin', 'Picking up some dust.'));
@@ -668,7 +714,7 @@ export class LandingSim {
     const ground = this.target.y;
     if (this.pos.y <= ground) {
       this.pos.y = ground;
-      this.touchV = -this.vel.y;
+      this.touchV = -this.vel.y; this.touchH = Math.hypot(this.vel.x, this.vel.z);
       this.shake = 0.7; // sacudida de cámara en el contacto
       this.vel.set(0, 0, 0);
       this.state = 'settle'; this.settleT = 0;
@@ -678,43 +724,44 @@ export class LandingSim {
 
   _settle(dt) {
     this.settleT += dt;
-    // Consecuencia de elegir un terreno demasiado inclinado: la nave vuelca al posarse
-    const slope = this.view.alerts?.slope() ?? 0;
-    if (slope > 12) {
-      const v = this.view;
-      if (!this.q0) {
-        this.q0 = this.lm.quaternion.clone();
-        const gx = v.baseY(40, 0) - v.baseY(-40, 0), gz = v.baseY(0, 40) - v.baseY(0, -40);
-        this.tipAxis = new THREE.Vector3().crossVectors(UP, new THREE.Vector3(-gx, 0, -gz).normalize()).normalize();
-        this.say('Aldrin', `${fmt(slope, 1)}° slope! We're tipping over!`);
-        this.flash('THE LANDER IS TIPPING OVER', 4000);
-      }
+    const v = this.view, hz = this.plan.final.hz;
+    if (!this.result) { // el resultado lo deciden el terreno bajo las patas y la velocidad de contacto
+      const R = (this.result = outcome(hz, this.touchV, this.touchH));
+      this.q0 = this.lm.quaternion.clone();
+      const down = new THREE.Vector3(-hz.gx, 0, -hz.gz); if (down.lengthSq() < 1e-6) down.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+      this.tipAxis = new THREE.Vector3().crossVectors(UP, down.normalize()).normalize();
+      this.tiltDeg = Math.min(hz.tilt, 25);
+      if (R.kind === 'tip') { this.say('Aldrin', 'We\'re going over!'); this.flash('THE LANDER IS TIPPING OVER', 4000); }
+      const msg = { ok: 'Nominal landing. Welcome to the lunar south pole.', tilt: `We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, hard: `Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, tip: 'The lander is tipping over. Mission lost.' }[R.kind];
+      v.voz?.say(msg, { prio: R.kind === 'ok' ? 1 : 2, key: 'res', cooldownS: 5 });
+    }
+    const R = this.result;
+    if (R.kind === 'tip') {
       const k = Math.min(1, this.settleT / 4);
       this.lm.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.tipAxis, k * k * 1.3).multiply(this.q0));
       this.lm.position.y = this.target.y + Math.sin(k * 1.3) * 1.6;
       if (this.settleT > 6 && !this.tipped) {
         this.tipped = true; this.state = 'lost';
         this.say('Telemetry', 'Lander tipped over. Panels and antenna off-pointed. Mission lost.');
+        this.ended = true; this.lmPos = this.lm.position.clone(); this._end();
       }
       return;
     }
-    // Amortiguadores de las patas: pequeña compresión y rebote
+    // Se apoya sobre el terreno: se inclina como el plano de las patas y los amortiguadores rebotan
+    const k0 = Math.min(1, this.settleT / 0.6);
+    this.lm.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.tipAxis, (this.tiltDeg * Math.PI / 180) * k0).multiply(this.q0));
     const k = Math.exp(-this.settleT * 3) * Math.sin(this.settleT * 9) * 0.06 * Math.min(1, this.touchV / 2);
     this.lm.position.y = this.target.y - Math.abs(k);
     const ev = (key, at, fn) => { if (this.settleT > at && !this.events.has(key)) { this.events.add(key); fn(); } };
     ev('landed', 1.2, () => {
       const site = this.view.siteName || 'the site';
-      this.say('Armstrong', `Houston, ${site} Base here. The Eagle has landed.`);
-      this.flash('THE EAGLE HAS LANDED', 4000);
+      if (R.kind === 'ok') { this.say('Armstrong', `Houston, ${site} Base here. The Eagle has landed.`); this.flash('THE EAGLE HAS LANDED', 4000); }
+      else { this.say('Armstrong', `Houston, we're down at ${site}, but ${R.kind === 'hard' ? 'that was a hard hit' : `we're tilted ${fmt(this.tiltDeg, 1)}°`}.`); this.flash(R.title.toUpperCase(), 4000); }
     });
-    ev('reply', 4, () => this.say('Houston', 'Roger. You got a bunch of guys about to turn blue. We\'re breathing again.', true));
-    ev('summary', 5.5, () => this.say('Telemetry', `Contact at ${fmt(this.touchV, 1)} m/s with ${fmt(this.fuelKg, 0)} kg of fuel (${fmt(this.fuel, 0)} s of hover).`));
+    ev('reply', 4, () => this.say('Houston', R.kind === 'ok' ? 'Roger. You got a bunch of guys about to turn blue. We\'re breathing again.' : `Roger. ${R.why}`, true));
+    ev('summary', 5.5, () => this.say('Telemetry', `Contact at ${fmt(this.touchV, 1)} m/s, footpads at ${fmt(this.tiltDeg, 1)}°, with ${fmt(Math.max(0, this.fuelKg), 0)} kg of fuel (${fmt(Math.max(0, this.fuel), 0)} s of hover).`));
     if (this.settleT > 7 && !this.ended) { this.ended = true; this.lmPos = this.lm.position.clone(); this._end(); }
   }
-
-
-
-
 
   _dust(dt) {
     const v = this.view, L = this.lm.position;
