@@ -34,7 +34,31 @@ Flota encima de todas las pantallas (la monta `app/layouts/RootLayout.tsx`). Su 
 - **Idioma elegido, idioma que se mantiene** (2026-11-15, pedido de Manuel): el que la persona eligió (tarjeta o botón del panel) dura toda la visita. Escribirle o hablarle en el otro idioma NO lo cambia; solo un pedido explícito («speak Spanish», «háblame en inglés», «Español»): `pideOtroIdioma` en `eva/idioma.ts`, con prueba. Antes `detectarIdioma` la cambiaba sola por un «José», un «Hola» o un «Planner». El API recibe `idioma` y lo dice tres veces: en la regla de voz, al final del sistema y en una nota junto a cada pregunta (`notaDeIdioma`, `apps/api/src/asistentes.ts`); la orden `<<language>>` es solo para pedidos explícitos. Se mide con `npx tsx apps/api/scripts/banco-idioma.ts` (navegador y modelo; con el prompt viejo y las órdenes activas, 4 de 15 respuestas salían en el idioma de la pregunta; con el nuevo, 0 de 42). La voz en español sale de argus-voz solo si `VOZ_TOKEN` está junto a `HVOZ_URL`; si no, habla con la voz de inglés. El oído de horizon-voz solo entiende inglés.
 - **Caras** (`shared/eva/animacion.ts`): reposo (seria), escuchando, pensando, hablando, bromeando, cansada, alegre, sorpresa, alerta (avisos: marcas rojas) y apagada.
 
+## EVA y el Planificador: instrucción de producto (2026-11-15, Francisco, dueño del Planificador)
+
+**El Planificador ya no es el de antes.** Desde el 2026-11-15 el Planificador es el de misiones de Jefrry: `apps/web/public/planificar-mision.html` (PR #56), servido en `/planificar-mision.html`. En Missions (`prototipos/lunar-map/inicio.html`), «Planner» (arriba) abre su portada y «Add mission» abre directamente su formulario (`?nueva`); los dos con `?lang=en|es`. Las misiones que la persona crea se guardan en el navegador (`localStorage` «horizon-signai.missions») y, al volver a entrar, el Planificador abre la última guardada en vez de obligar a crear otra. El planificador anterior (Alunizaje · Caminata: `prototipos/lunar-map/index.html` y `planificar.html`, con `LunarPlanner`) ya no es el Planificador de la app.
+
+**Instrucción:** cuando EVA hable del Planificador, se limita a **una introducción corta y un tutorial intuitivo para crear la primera misión**. Nada más: sin zonas, horizontes, veredictos ni órdenes del planificador anterior. El tutorial sigue los pasos del formulario de `planificar-mision.html`:
+
+1. **Entrar:** en Missions, «Add mission» (o «Planner» y luego «+ New mission»).
+2. **Misión:** el nombre y el tipo (tripulada, rover robótico o módulo fijo).
+3. **Zona:** dónde alunizar (A, B o C).
+4. **Fecha y estadía:** el estudio de luz muestra cuándo hay Sol y Tierra; se arrastra la línea de tiempo.
+5. **Equipo:** la energía (recomendada según el plan), las horas de batería, el enlace mínimo con la Tierra y la altura (2 o 10 m).
+6. **Caminata o recorrido:** la ruta sobre el relieve real.
+7. **Resultado:** GO o NO-GO con sus comprobaciones, los KPI y el comparativo en las tres zonas.
+8. **Guardar misión** (queda en «My missions») y **Simular esta misión** (abre el simulador con ese plan).
+
+**Si ves una incoherencia entre EVA y el Planificador, esta es la instrucción que manda.** Las que ya están a la vista (2026-11-15):
+- `eva/guion.ts`, `/planner`: los comentarios de `index.html` (veredicto, salidas, zonas, horizonte, línea de tiempo) y de `planificar.html` (capas, rutas, perfil) describen el planificador anterior; y «To plan a landing, open Planner, up top» en Missions.
+- `eva/recorridos.ts`: el flujo de misiones (CR-01, PS-03, SR-05: Plan, Compare, Simulate, Learn) maneja el planificador anterior con órdenes `planner`, `fix`, `compare`, `save`, `simulate`, `play`; `INICIO` («Three landings are waiting…»), `SALIDAS` y `FINAL` también. Habría que cambiar las etapas 2 y 3 por la introducción y el tutorial.
+- `apps/api/src/asistentes.ts`: el prompt presenta «the Planner» con sus veredictos y le da como cifras actuales las de `LunarPlanner.text()`. `apps/api/src/acciones.ts` y `eva/acciones.ts`: las órdenes `<<planner …>>`, `<<shift>>`, `<<fix>>`, `<<compare>>` y `<<open screen=walk>>` apuntan al planificador anterior; `<<open screen=planner>>` debería abrir `/planificar-mision.html`.
+- `eva/sugerencias.ts`: las sugerencias que son órdenes del planificador anterior («+1 week», «Compare», «Descent»…).
+- EVA no se monta en `planificar-mision.html` (es una página autónoma, fuera de React): el tutorial se da desde Missions apuntando a `.addm` («Add mission») y a `[data-planner]` («Planner») dentro del iframe de `/planner`, o hay que montarla en esa página.
+- Al cambiar frases, regrabar la voz: `node apps/web/scripts/grabar-voz-eva.ts`.
+
 ## Siguiente
+0. **EVA y el Planificador** (sección de arriba): el Planificador ahora es `planificar-mision.html`; EVA solo lo presenta y da el tutorial para crear la primera misión.
 1. `AssistantDock` en el escritorio de misiones (`/dashboard`): hoy EVA ve y maneja solo el planificador de `/planner`.
 2. Que el estado de la pantalla y las órdenes cubran también el mapa 3D (elegir un sitio, cambiar la fecha).
 3. Modo educativo en el simulador, cuando exista.
