@@ -61,11 +61,17 @@ export type EventoTurno =
 const formatoDeVoz = () => (new Audio().canPlayType('audio/ogg; codecs="opus"') ? "opus" : "mp3")
 
 // Turno de voz en streaming: la respuesta llega como líneas NDJSON (texto, audio por frase, fin).
-export const turnoDeVoz = async (messages: Mensaje[], alEvento: (e: EventoTurno) => void, signal?: AbortSignal) => {
+// Con `acuse` (del 8B): el API lo dice primero mientras el 27B piensa la respuesta.
+export const turnoDeVoz = async (
+  messages: Mensaje[],
+  alEvento: (e: EventoTurno) => void,
+  signal?: AbortSignal,
+  acuse?: string,
+) => {
   const r = await pedir("/voz/turno", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, formato: formatoDeVoz() }),
+    body: JSON.stringify({ messages, formato: formatoDeVoz(), acuse }),
     signal,
   })
   const lector = r.body!.getReader()
@@ -110,7 +116,7 @@ export const clasificar = async (pregunta: string, dicho: string, oido: string) 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pregunta, dicho, oido }),
   })
-  return (await r.json()) as { tipo: string; ms: number }
+  return (await r.json()) as { tipo: string; acuse: string; ms: number }
 }
 
 export const transcribir = async (audio: Blob) => {

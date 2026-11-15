@@ -116,3 +116,18 @@ La intención viaja al 27B en la marca al final de la respuesta cortada (`marcaD
 
 Pendiente: Whisper `small.en` oye mal algunas correcciones («I meant the north pole» → «I'm at the
 North Pole»). Opciones: pasarle contexto (`initial_prompt`) o un modelo más grande ahora que va en GPU.
+
+### El 8B como «hablante rápido» (etapa 3)
+
+La misma llamada a `/voz/clasificar` devuelve también un **acuse** de 2 a 6 palabras («Good point,
+adding Mars.», «Got it, the north pole then.») para `add`, `correct` y `new`. Si viene vacío o largo,
+uno fijo (`ACUSE_FIJO`). Solo reconoce, nunca afirma contenido: así no promete algo que el 27B no haga.
+`/voz/turno` recibe `acuse`: Kokoro lo dice primero mientras el 27B genera, y el 27B lo recibe como
+nota al final del último mensaje («You already said out loud: … Continue right after it»).
+
+- **Prefill no:** dejarle al 27B la respuesta empezada con el acuse sale vacío o se corta en modo
+  chat con `think: false` (medido en la Z6). Funciona por `/api/generate` con `raw` y el bloque
+  `<think>` vacío, pero ata el código a la plantilla del modelo; la nota da la misma calidad.
+- Medido en local: el acuse suena ~2,0 s después de que te callas (VAD 0,8 s + Whisper ~0,2 s +
+  8B ~0,8 s + Kokoro ~0,15 s) y el contenido del 27B llega pegado detrás, sin silencio.
+- El 8B es ahora el tramo más largo: ~0,3 s son overhead de Ollama 0.31 en cada pedido.

@@ -100,7 +100,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   }, [])
 
   const responder = useCallback(
-    async (texto: string, t0: number, oidoMs: number) => {
+    async (texto: string, t0: number, oidoMs: number, acuse?: string) => {
       sumar({ role: "user", content: texto })
       cambiar("pensando")
       const corte = new AbortController()
@@ -131,6 +131,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
             else if (e.t === "error") throw new Error(e.msg)
           },
           corte.signal,
+          acuse,
         )
         await t.cola.terminada()
       } catch (err) {
@@ -180,19 +181,20 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       }
       // Habla real: el 8B decide qué quiso (la voz sigue bajada mientras tanto). Si falla, adición.
       const pregunta = [...hilo.current].reverse().find((m) => m.role === "user")?.content ?? ""
-      const intencion = await clasificar(pregunta, t.cola.hablado().slice(-400), oido.texto)
+      // El mismo 8B escribe el acuse que suena enseguida («Good point, adding Mars.»).
+      const { intencion, acuse } = await clasificar(pregunta, t.cola.hablado().slice(-400), oido.texto)
         .then((r) => {
-          console.debug(`[voz] intención ${r.tipo} (${r.ms} ms)`)
-          return deEtiqueta(r.tipo)
+          console.debug(`[voz] intención ${r.tipo} «${r.acuse}» (${r.ms} ms)`)
+          return { intencion: deEtiqueta(r.tipo), acuse: r.acuse }
         })
         .catch((e: unknown) => {
-          console.debug(`[voz] clasificador falló (${String(e)}): adición`)
-          return "adicion" as const
+          console.debug(`[voz] clasificador falló (${String(e)}): adición sin acuse`)
+          return { intencion: "adicion" as const, acuse: "" }
         })
       if (!activa.current) return
       if (turno.current !== t) {
         // La respuesta terminó mientras se clasificaba: lo dicho ya es un turno nuevo, sin corte.
-        if (intencion !== "ignorar" && intencion !== "parada") void responder(oido.texto, fin, oido.ms)
+        if (intencion !== "ignorar" && intencion !== "parada") void responder(oido.texto, fin, oido.ms, acuse)
         return
       }
       if (intencion === "ignorar") t.cola.volumen(1)
@@ -201,7 +203,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
         escuchar()
       } else {
         cortar(intencion)
-        void responder(oido.texto, fin, oido.ms)
+        void responder(oido.texto, fin, oido.ms, acuse)
       }
     },
     [responder, cortar, escuchar, armarSinVoz],

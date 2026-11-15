@@ -80,8 +80,17 @@ Categories:
 - "correct": corrects or changes something in their request or in what the assistant said ("no, I meant the north pole", "not that crater, the other one").
 - "new": a different question or topic, unrelated to the current answer.
 - "stop": only wants the assistant to stop or be quiet, without asking anything.
-- "ignore": a reaction or acknowledgement ("yeah that makes sense", "oh wow, interesting"), words said to someone else, or anything not directed at the assistant.`
+- "ignore": a reaction or acknowledgement ("yeah that makes sense", "oh wow, interesting"), words said to someone else, or anything not directed at the assistant.
+Also write "acuse": for add, correct and new, two to six words the assistant says out loud right away to show it heard, like "Good point, adding Mars.", "Got it, the north pole then.", "Sure, quick detour." It only acknowledges: never answer the question and never state facts. For stop and ignore, leave it empty.`
 const ETIQUETAS_CLASIFICAR = ["add", "correct", "new", "stop", "ignore"]
+// El 8B es el «hablante rápido»: su acuse suena enseguida mientras el 27B piensa. Solo reconoce,
+// nunca afirma contenido (así no promete algo que el 27B no haga). Si viene vacío o largo, uno fijo.
+const ACUSE_FIJO: Record<string, string> = { add: "Got it, adding that.", correct: "Got it.", new: "Sure, switching topics." }
+const limpiarAcuse = (tipo: string, acuse: string) => {
+  const a = acuse.replace(/[[\]{}<>*_#`"]/g, "").replace(/\s+/g, " ").trim()
+  if (!(tipo in ACUSE_FIJO)) return ""
+  return a && a.length <= 60 && a.split(" ").length <= 8 ? a : ACUSE_FIJO[tipo]
+}
 const TIMEOUT_CLASIFICAR_MS = 4000
 // Que el modelo siga cargado en la GPU entre turnos: frío, el primer pedido tardó 28 s.
 const KEEP_ALIVE_CLASIFICAR = "2h"
@@ -173,7 +182,10 @@ export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], str
   return [listas, resto]
 }
 
-const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal): Response => {
+// Con `acuse` (del 8B, ver /voz/clasificar): suena primero, mientras el 27B genera. El 27B no lo
+// recibe como prefill (en modo chat con think:false se corta o sale vacío: medido) sino como nota
+// al final del último mensaje, que no rompe la caché. La respuesta final incluye el acuse.
+const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse = ""): Response => {
   const voz = servicioVoz()
   const enc = new TextEncoder()
   const corte = new AbortController()
@@ -220,6 +232,20 @@ const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal): Resp
       })
     }
 
+    if (acuse) {
+      hablarFrase(acuse)
+      const ultimo = msgs[msgs.length - 1]
+      msgs = [
+        ...msgs.slice(0, -1),
+        {
+          ...ultimo,
+          content:
+            voz.idioma === "en"
+              ? `${ultimo.content}\n[You already said out loud: "${acuse}" Continue right after it, without another acknowledgement.]`
+              : `${ultimo.content}\n[Ya dijiste en voz alta: «${acuse}». Sigue justo después, sin otro acuse.]`,
+        },
+      ]
+    }
     try {
       const r = await fetch(`${z6Url()}/api/chat`, {
         method: "POST",
@@ -260,6 +286,7 @@ const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal): Resp
       }
       if (buffer.trim()) hablarFrase(buffer)
       await cola
+      if (acuse) respuesta = `${acuse} ${respuesta.trim()}`
       emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs })
     } catch (e) {
       if (!corte.signal.aborted) emitir({ t: "error", msg: String(e) })
@@ -477,12 +504,13 @@ export const z6 = new Hono()
   })
   // Turno de voz en streaming (texto + audio por frase + tiempos por palabra). Ver turnoDeVoz.
   .post("/voz/turno", async (c) => {
-    const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; formato?: string } | null
+    const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; formato?: string; acuse?: unknown } | null
     const msgs = limpiarMensajes(cuerpo)
     if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
     if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const formato = FORMATOS_VOZ.has(cuerpo?.formato ?? "") ? cuerpo!.formato! : "opus"
-    return turnoDeVoz(msgs, formato, c.req.raw.signal)
+    const acuse = typeof cuerpo?.acuse === "string" ? cuerpo.acuse.replace(/[[\]"«»]/g, "").trim().slice(0, 80) : ""
+    return turnoDeVoz(msgs, formato, c.req.raw.signal, acuse)
   })
   // Qué quiso decir el usuario al hablar encima de la respuesta: add | correct | new | stop | ignore.
   .post("/voz/clasificar", async (c) => {
@@ -501,11 +529,11 @@ export const z6 = new Hono()
           stream: false,
           think: false,
           keep_alive: KEEP_ALIVE_CLASIFICAR,
-          options: { temperature: 0, num_predict: 20 },
+          options: { temperature: 0, num_predict: 40 },
           format: {
             type: "object",
-            properties: { tipo: { type: "string", enum: ETIQUETAS_CLASIFICAR } },
-            required: ["tipo"],
+            properties: { tipo: { type: "string", enum: ETIQUETAS_CLASIFICAR }, acuse: { type: "string" } },
+            required: ["tipo", "acuse"],
           },
           messages: [
             { role: "system", content: SISTEMA_CLASIFICAR },
@@ -518,9 +546,11 @@ export const z6 = new Hono()
       })
       if (!r.ok) return c.json({ ok: false, error: `Geografo respondió ${r.status}` }, 502)
       const d = (await r.json()) as { message?: { content?: string } }
-      const tipo = (JSON.parse(d.message?.content ?? "{}") as { tipo?: string }).tipo ?? ""
+      const salida = JSON.parse(d.message?.content ?? "{}") as { tipo?: string; acuse?: string }
+      const tipo = salida.tipo ?? ""
       if (!ETIQUETAS_CLASIFICAR.includes(tipo)) return c.json({ ok: false, error: `etiqueta rara: ${tipo}` }, 502)
-      return c.json({ ok: true, tipo, ms: Math.round(performance.now() - t) })
+      const acuse = limpiarAcuse(tipo, salida.acuse ?? "")
+      return c.json({ ok: true, tipo, acuse, ms: Math.round(performance.now() - t) })
     } catch (e) {
       return c.json({ ok: false, error: `No se pudo clasificar: ${String(e)}` }, 502)
     }
