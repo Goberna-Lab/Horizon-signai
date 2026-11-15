@@ -88,6 +88,9 @@ texto (el vuelo se importa de forma diferida desde `FlightStage.tsx`).
   lámina con la luz apagada), que usa la landing cuando el Sol se pone en la ventana del software.
 - Tipografías autoalojadas (sin peticiones a terceros): Archivo variable para títulos y texto, IBM Plex Mono para
   datos. Se importan en `main.tsx`.
+- Componente de tipografía **display caps** (Archivo 900, mayúsculas, -0.03em; la de la marca de la barra de la
+  landing): `shared/ui/DisplayCaps.tsx` en React, o la clase `display-caps` de `public/ui/display-caps.css` (con su
+  fuente autoalojada) en las páginas estáticas. Hoy la usan los títulos de los paneles de Missions.
 - Lenguaje visual: impresión industrial suiza. Retícula a la vista, esquinas a 90 grados, un solo color de señal.
 - La interfaz va en inglés: la entrega de Space Apps lo exige (`docs/09-entrega.md`).
 

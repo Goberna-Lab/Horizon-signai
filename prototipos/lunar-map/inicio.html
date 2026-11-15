@@ -6,6 +6,8 @@
 <title>Horizon Signai · Missions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Títulos de los paneles: display caps, la tipografía compartida del proyecto (apps/web/public/ui/display-caps.css) -->
+<link rel="stylesheet" href="/ui/display-caps.css">
 <link rel="stylesheet" href="shared.css">
 <style>
 /* Centro de misiones: dashboard de la campaña. Indicadores, calendario y bitácora al centro; misiones a la izquierda; firma, mapa y asistente a la derecha */
@@ -29,8 +31,8 @@
 .main { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .panel { padding: 16px; border-radius: 20px; }
-.ph { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-.ph h2 { font-size: 19px; font-weight: 600; }
+.ph { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 8px; margin-bottom: 12px; }
+.ph h2 { font-size: 16px; line-height: 1.2; }
 .ph .aux { font-size: 11px; color: var(--gris-2); }
 
 /* estados */
@@ -218,7 +220,7 @@
     <!-- izquierda: tiempo, firma pendiente y decisiones -->
     <div class="col">
       <section class="paper panel next" aria-labelledby="next-t">
-        <div class="ph"><h2 id="next-t" class="disp">Next milestone</h2><span class="mono aux">CR-01</span></div>
+        <div class="ph"><h2 id="next-t" class="display-caps">Next milestone</h2><span class="mono aux">CR-01</span></div>
         <p class="who-m">Landing at Connecting Ridge</p>
         <p class="mono sub">Contact · 18 Dec 2026 · 09:00 UTC</p>
         <div class="flaps" role="timer" aria-live="off" aria-label="Countdown to contact">
@@ -232,7 +234,7 @@
 
       <section class="paper panel pending" id="pending" aria-labelledby="pend-t">
         <span class="stripe" aria-hidden="true"></span>
-        <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="disp">Awaiting your sign-off</h2><span class="st PEND" id="pendChip">1 PENDING SIGN-OFF</span></div>
+        <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="display-caps">Awaiting your sign-off</h2><span class="st PEND" id="pendChip">1 PENDING SIGN-OFF</span></div>
         <div id="pendBody">
           <p class="t">CR-02 · Scientific route to the Shackleton rim</p>
           <p class="d">Walk on 19 Dec · two stops · sent by Planning on 13 Nov</p>
@@ -249,7 +251,7 @@
       </section>
 
       <section class="paper panel approved" aria-labelledby="ap-t">
-        <div class="ph"><h2 id="ap-t" class="disp">Approved decisions</h2><span class="aux"><span id="apCount">3</span> signed</span></div>
+        <div class="ph"><h2 id="ap-t" class="display-caps">Approved decisions</h2><span class="aux"><span id="apCount">3</span> signed</span></div>
         <ul class="alist" id="alist"></ul>
       </section>
     </div>
@@ -259,7 +261,7 @@
       <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
 
       <section class="paper panel cal" aria-labelledby="cal-t">
-        <div class="ph"><h2 id="cal-t" class="disp">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
+        <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
         <div class="legend" aria-hidden="true">
           <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
           <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
@@ -273,7 +275,7 @@
       </section>
 
       <section class="paper panel movs" aria-labelledby="mv-t">
-        <div class="ph"><h2 id="mv-t" class="disp">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
+        <div class="ph"><h2 id="mv-t" class="display-caps">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
         <div class="tools">
           <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
           <label class="sr-only" for="fType">Movement type</label>
@@ -292,7 +294,7 @@
     <!-- derecha: mapa y misiones -->
     <div class="col right">
       <section class="paper panel sites" aria-labelledby="sites-t">
-        <div class="ph"><h2 id="sites-t" class="disp">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
+        <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
         <div class="screen">
           <div class="glass-inner">
             <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
@@ -306,7 +308,7 @@
       </section>
 
       <section class="paper panel upcoming" aria-labelledby="up-t">
-        <div class="ph"><h2 id="up-t" class="disp">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
+        <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
         <div class="mlist" id="mlist"></div>
       </section>
     </div>
