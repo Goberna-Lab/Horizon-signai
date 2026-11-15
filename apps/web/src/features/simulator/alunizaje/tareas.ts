@@ -181,7 +181,7 @@ export class Tareas {
     this.i++; if (this.i >= this.steps.length) this.done = true;
     // EVA comenta lo que acaba de hacer (eventos de guion.ts)
     const evento = { sampleSol: 'muestra-sol', sampleSombra: 'muestra-sombra' }[s.kind];
-    avisarEva(this.done ? 'eva-completa' : evento ?? 'tarea-hecha');
+    avisarEva(this.done ? 'eva-completa' : evento ?? 'tarea-hecha', undefined, '.sim-vh-rim text.obj'); // apunta al objetivo nuevo
   }
 
   dispose() { this.reset(); this.prints.geometry.dispose(); this.prints.material.map?.dispose(); this.prints.material.dispose(); this.group.removeFromParent(); }

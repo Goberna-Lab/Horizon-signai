@@ -224,13 +224,13 @@ export class Caminata {
       const g = this.view.groundY, dir = v.clone().setY(0).normalize(), x = this.pos.x + dir.x * 3, z = this.pos.z + dir.z * 3, e = 1.5;
       const s = (Math.atan(Math.hypot(g(x + e, z) - g(x - e, z), g(x, z + e) - g(x, z - e)) / (2 * e)) * 180) / Math.PI;
       if (s > PENDIENTE_LIMITE - 3) this.pendiente = { s, nivel: s > PENDIENTE_LIMITE ? 'crit' : 'warn' };
-      if (this.pendiente?.nivel === 'crit') { const t = performance.now(); if (!this._pendT || t - this._pendT > 25000) { this._pendT = t; avisarEva('pendiente'); } }
+      if (this.pendiente?.nivel === 'crit') { const t = performance.now(); if (!this._pendT || t - this._pendT > 25000) { this._pendT = t; avisarEva('pendiente', undefined, '.sim-vh-feed'); } }
     }
     // Fuera de la ruta planificada
-    if (this.tasks.lejosDeRuta) { const t = performance.now(); if (!this._rutaT || t - this._rutaT > 60000) { this._rutaT = t; avisarEva('fuera-de-ruta'); } }
+    if (this.tasks.lejosDeRuta) { const t = performance.now(); if (!this._rutaT || t - this._rutaT > 60000) { this._rutaT = t; avisarEva('fuera-de-ruta', undefined, '.sim-vh-lens.radar'); } }
     if (best?.nivel === 'crit') {
       const t = performance.now();
-      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha'); }
+      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha', undefined, '.sim-vh-feed'); }
     }
   }
 
@@ -271,6 +271,13 @@ export class Caminata {
   _eva(dt) {
     const once = (key, fn) => { if (!this.events.has(key)) { this.events.add(key); fn(); } };
     if (this.walked > 4) once('primeros', () => avisarEva('primeros-pasos'));
+    // EVA con el HUD: te enseña el traje al salir y te señala la tecla cuando hace falta (eventos «guia» de guion.ts)
+    if (this.s.t > 5) once('hud', () => avisarEva('casco-hud', undefined, '.sim-vh-rows.l'));
+    const cerca = this.tasks._near(0) || this.tasks._near(1), oscuro = this.tasks._near(1) && this.tasks.darkReal && !this.lamps;
+    const cada2 = (key, seg, fn) => { const t = performance.now(); this._guia ??= {}; if (!this._guia[key] || t - this._guia[key] > seg * 1000) { this._guia[key] = t; fn(); } };
+    if (oscuro) cada2('luces', 30, () => avisarEva('necesitas-luces', undefined, '.sim-vh-keys [data-key="l"]'));
+    else if (cerca) cada2('muestra', 30, () => avisarEva('muestra-cerca', undefined, '.sim-vh-keys [data-key="e"]'));
+    if (this.visor.thetaSol < 0.4 && this.visor.visor === 2 && this._lit !== false) cada2('sol', 60, () => avisarEva('deslumbramiento', undefined, '.sim-vh-keys [data-key="g"]'));
     // Su sarcasmo con lo que haces (EVA ya se limita a un comentario cada 90 s; aquí, además, cada uno espera su turno)
     this._galope = this.fpRun > 0.5 ? (this._galope ?? 0) + dt : 0;
     this._quieta = this._mv || this.lost ? 0 : (this._quieta ?? 0) + dt;
@@ -415,7 +422,8 @@ export class Caminata {
     // Lo crítico, a EVA (la de toda la app), como aviso crítico; cada uno como mucho una vez cada 40 s
     if (crit && !this.lost && crit[3] !== 'crater') { // el cráter lo dice EVA con su voz grabada (en _crater)
       const k = 'crit:' + crit[1], t = performance.now(); this._critT ??= {};
-      if (!this._critT[k] || t - this._critT[k] > 40000) { this._critT[k] = t; avisarEva('aviso-critico', `${crit[1]}. ${crit[2]}.`); }
+      const fila = /O₂/.test(crit[1]) ? 'o2' : /CO₂/.test(crit[1]) ? 'co2' : 'ret';
+      if (!this._critT[k] || t - this._critT[k] > 40000) { this._critT[k] = t; avisarEva('aviso-critico', `${crit[1]}. ${crit[2]}.`, `.sim-vh-rows [data-r="${fila}"]`); }
     }
     const estado = crit ? ['crit', tr('CRITICAL', 'CRÍTICO')] : warn ? ['warn', tr('CAUTION', 'PRECAUCIÓN')] : ['ok', 'NOMINAL'];
     const blips = [];

@@ -9,9 +9,12 @@ export type AvisoEva = {
   selector?: string
 }
 
-/** Ej.: `avisarEva("aterrizaje-nominal")`, o `avisarEva("aviso-critico", "Fuel below ten percent.")`. */
-export const avisarEva = (tipo: string, texto?: string) =>
-  window.dispatchEvent(new CustomEvent<AvisoEva>(EVENTO_EVA, { detail: { tipo, texto } }))
+/**
+ * Ej.: `avisarEva("aterrizaje-nominal")`, o `avisarEva("aviso-critico", "Fuel below ten percent.")`. Con `selector`, EVA
+ * apunta con su rayo a esa parte de la pantalla mientras lo dice (por ejemplo, una fila del HUD del casco).
+ */
+export const avisarEva = (tipo: string, texto?: string, selector?: string) =>
+  window.dispatchEvent(new CustomEvent<AvisoEva>(EVENTO_EVA, { detail: { tipo, texto, selector } }))
 
 /**
  * Le pide a EVA que resalte algo: vuela hasta ese elemento, lo apunta con su rayo y, si se le da, dice el texto.

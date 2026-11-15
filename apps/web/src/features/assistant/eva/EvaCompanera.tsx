@@ -742,11 +742,24 @@ export default function EvaCompanera() {
       const frase = propio ?? fraseDe(e, peligro, idiomaRef.current) ?? ""
       if (!frase) return
       if (!e.repetible && dichas().has(tipo)) return
-      if (!e.critico && (ocupada.current || Date.now() - ultimo.current < COMENTARIO_MS)) return
+      if (!e.critico && (ocupada.current || (!e.guia && Date.now() - ultimo.current < COMENTARIO_MS))) return
       if (e.critico && ocupada.current) habla.current?.abort() // lo crítico pasa adelante
       ultimo.current = Date.now()
       if (!e.repetible) anotarDicha(tipo)
-      void hablar(frase, peligro ? null : e.festejo ? "alegre" : "bromeando", peligro)
+      const cara = peligro ? null : e.festejo ? "alegre" : e.guia ? null : "bromeando"
+      // Con `selector` (por ejemplo, una parte del HUD del casco del simulador) apunta con su rayo mientras lo dice
+      const el = selector ? [...document.querySelectorAll(selector), ...(marco()?.querySelectorAll(selector) ?? [])].find(aLaVista) : undefined
+      if (!el) {
+        void hablar(frase, cara, peligro)
+        return
+      }
+      const { mio } = tomarTurno()
+      ocupada.current = true
+      void (async () => {
+        await irA(el)
+        if (turno.current === mio) await hablar(frase, cara, peligro)
+        quitarFoco()
+      })()
     }
     window.addEventListener(EVENTO_EVA, alAviso)
     return () => window.removeEventListener(EVENTO_EVA, alAviso)

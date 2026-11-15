@@ -370,7 +370,7 @@ export function guionDe(ruta: string, pagina = ""): Guion {
  * otra: avisan con `avisarEva("aterrizaje-nominal")` de `@/shared/eva` (un CustomEvent en window). `critico`: se dice aunque no
  * hayan pasado 90 s, y siempre en serio. `festejo`: algo salió bien; al terminar pone ojos contentos en vez de guiñar.
  */
-export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean }> = {
+export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean; /** Indicación útil (qué tecla, qué mirar): no espera los 90 s, pero no interrumpe. */ guia?: boolean }> = {
   "aterrizaje-nominal": { texto: "Welcome to the lunar south pole. Population: you.", es: { texto: "Bienvenido al polo sur lunar. Población: tú." }, festejo: true },
   "primeros-pasos": {
     texto: "Your first steps. Footprints here last millions of years, so no pressure on the style.",
@@ -465,6 +465,30 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
   "ausente-3": {
     texto: "If you fell asleep, at least it is quiet up here. No air, no snoring.",
     es: { texto: "Si te dormiste, al menos aquí arriba hay silencio. Sin aire no hay ronquidos." },
+    repetible: true,
+  },
+  // EVA con el HUD del casco (simulador: caminata.ts y tareas.ts): lo dice apuntando con su rayo a esa parte del visor
+  "casco-hud": {
+    texto: "Your suit is on the left: oxygen, the carbon dioxide filter, cooling water and battery. If anything turns red, I will tell you.",
+    es: { texto: "Tu traje va a la izquierda: oxígeno, filtro de dióxido de carbono, agua de refrigeración y batería. Si algo se pone rojo, te aviso." },
+    guia: true,
+  },
+  "muestra-cerca": {
+    texto: "The sample is within reach. Press E to collect it.",
+    es: { texto: "La muestra está a tu alcance. Pulsa E para recogerla." },
+    guia: true,
+    repetible: true,
+  },
+  "necesitas-luces": {
+    texto: "No sunlight here. Turn on your lamps with L.",
+    es: { texto: "Aquí no llega el Sol. Enciende las lámparas con L." },
+    guia: true,
+    repetible: true,
+  },
+  deslumbramiento: {
+    texto: "The Sun is in your eyes. Lower the gold visor with G.",
+    es: { texto: "Te está dando el Sol de frente. Baja el visor dorado con G." },
+    guia: true,
     repetible: true,
   },
   // La caminata planificada (CR-02): fuera de la ruta y pendiente sobre el límite del Planificador (15°)
