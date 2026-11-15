@@ -32,6 +32,9 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   const interrumpida = useRef(false) // tocaste mientras hablaba: no sigue con las demás frases
   const parar = useRef<(() => void) | null>(null) // cierra tu turno ya
   const soltar = useRef<(() => void) | null>(null) // descarta la grabación y libera el mic
+  // Un solo AudioContext, creado y reanudado al TOCAR (gesto del usuario): uno creado más tarde,
+  // tras esperar al servidor, el navegador puede dejarlo suspendido y el audio sale mudo.
+  const audioCtx = useRef<AudioContext | null>(null)
   const opciones = useRef({ historial, alMensaje })
   opciones.current = { historial, alMensaje }
 
@@ -39,6 +42,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     activa.current = false
     soltar.current?.()
     audioEl.current?.pause()
+    void audioCtx.current?.close()
+    audioCtx.current = null
     setNivel(0)
     setEstado("reposo")
   }, [])
@@ -49,10 +54,13 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
     })
-    const ctx = new AudioContext()
+    const ctx = audioCtx.current ?? new AudioContext()
+    audioCtx.current = ctx
+    if (ctx.state !== "running") await ctx.resume().catch(() => {})
     const an = ctx.createAnalyser()
     an.fftSize = 1024
-    ctx.createMediaStreamSource(stream).connect(an)
+    const fuente = ctx.createMediaStreamSource(stream)
+    fuente.connect(an)
     const rec = new MediaRecorder(stream)
     const trozos: Blob[] = []
     rec.ondataavailable = (e) => {
@@ -70,7 +78,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       const liberar = () => {
         cancelAnimationFrame(raf)
         stream.getTracks().forEach((t) => t.stop())
-        void ctx.close()
+        fuente.disconnect()
         setNivel(0)
       }
       rec.onstop = () => {
@@ -112,38 +120,44 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   }, [])
 
   // Reproduce la respuesta y publica su volumen para que el orbe "hable".
+  // Reproduce la respuesta y publica su volumen para que el orbe "hable".
+  // Solo pasa por el AudioContext si está corriendo: si el navegador lo suspendió, el audio
+  // va directo al parlante (suena, aunque la Luna no se mueva con la voz).
   const reproducir = useCallback((wav: Blob) => {
     return new Promise<void>((resolve) => {
       const url = URL.createObjectURL(wav)
       const a = new Audio(url)
       audioEl.current = a
-      let ctx: AudioContext | null = null
+      const ctx = audioCtx.current
       let raf = 0
-      try {
-        ctx = new AudioContext()
-        const an = ctx.createAnalyser()
-        an.fftSize = 512
-        const src = ctx.createMediaElementSource(a)
-        src.connect(an)
-        an.connect(ctx.destination)
-        const datos = new Uint8Array(an.fftSize)
-        const medir = () => {
-          an.getByteTimeDomainData(datos)
-          let suma = 0
-          for (const v of datos) suma += ((v - 128) / 128) ** 2
-          setNivel(Math.min(1, Math.sqrt(suma / datos.length) * 5))
+      let nodos: AudioNode[] = []
+      if (ctx && ctx.state === "running") {
+        try {
+          const an = ctx.createAnalyser()
+          an.fftSize = 512
+          const src = ctx.createMediaElementSource(a)
+          src.connect(an)
+          an.connect(ctx.destination)
+          nodos = [src, an]
+          const datos = new Uint8Array(an.fftSize)
+          const medir = () => {
+            an.getByteTimeDomainData(datos)
+            let suma = 0
+            for (const v of datos) suma += ((v - 128) / 128) ** 2
+            setNivel(Math.min(1, Math.sqrt(suma / datos.length) * 5))
+            raf = requestAnimationFrame(medir)
+          }
           raf = requestAnimationFrame(medir)
+        } catch {
+          /* sin analizador: suena igual, el orbe solo respira */
         }
-        raf = requestAnimationFrame(medir)
-      } catch {
-        /* sin analizador: suena igual, el orbe solo respira */
       }
       let listo = false
       const fin = () => {
         if (listo) return
         listo = true
         cancelAnimationFrame(raf)
-        void ctx?.close()
+        nodos.forEach((n) => n.disconnect())
         URL.revokeObjectURL(url)
         setNivel(0)
         resolve()
@@ -213,6 +227,9 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   /** Botón central: arranca, cierra tu turno o interrumpe a la IA según el estado. */
   const tocar = useCallback(() => {
     if (estado === "reposo") {
+      // Dentro del gesto: así el navegador deja sonar el audio que llegue después.
+      if (!audioCtx.current || audioCtx.current.state === "closed") audioCtx.current = new AudioContext()
+      void audioCtx.current.resume()
       activa.current = true
       void bucle()
     } else if (estado === "escuchando") parar.current?.()

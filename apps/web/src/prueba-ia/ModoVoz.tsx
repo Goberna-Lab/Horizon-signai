@@ -14,7 +14,7 @@ const TITULO: Record<EstadoVoz, string> = {
 const PISTA: Record<EstadoVoz, string> = {
   reposo: "Habla y haz una pausa: la IA responde con voz y vuelve a escucharte.",
   escuchando: "Haz una pausa al terminar, o toca la Luna para enviar ya.",
-  pensando: "Transcribiendo y preparando la respuesta en la Z6.",
+  pensando: "Transcribiendo (Geografo) y pensando la respuesta (Z6)…",
   hablando: "Toca la Luna para interrumpir y hablar tú.",
 }
 

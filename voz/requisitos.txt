@@ -1,4 +1,8 @@
 qwen-tts
+# motor por defecto: Kokoro-82M (inglés). misaki[en] necesita el modelo de spaCy y espeak-ng del sistema
+kokoro
+misaki[en]
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 faster-whisper
 # faster-whisper 1.2 usa av.open(metadata_errors=...), que PyAV 16+ quitó
 av>=11,<16

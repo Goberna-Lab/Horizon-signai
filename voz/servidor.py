@@ -1,11 +1,14 @@
 """horizon-voz: oído y boca en inglés para el chat de voz de Horizon, en Geografo.
 
-- Boca: Qwen3-TTS 0.6B CustomVoice, voz «Ryan», en la GPU. float32 por defecto: en la
-  A4000 midió más rápido que bfloat16, y en float16 el muestreo se rompe.
+- Boca (HVOZ_MOTOR):
+  - `kokoro` (por defecto): Kokoro-82M, voz «am_michael». ~0,03× tiempo real en GPU: la
+    primera frase suena en menos de un segundo. Es la que usa el chat de voz.
+  - `qwen`: Qwen3-TTS 0.6B CustomVoice, voz «Ryan». Más natural pero ~2× más lento que el
+    audio (esperas de ~10 s por frase en producción); queda como alternativa.
 - Oído: faster-whisper en CPU (int8), para no competir por la GPU con Ollama.
 
 Contrato (todo con `Authorization: Bearer <token>`, comprobado ANTES de leer el cuerpo):
-  POST /v1/hablar       {"texto": "...", "idioma"?: "English", "voz"?: "Ryan"} → audio/wav (PCM 16 bits)
+  POST /v1/hablar       {"texto": "...", "voz"?: "am_michael"}              → audio/wav (PCM 16 bits)
   POST /v1/transcribir  audio crudo (webm/opus, ogg, wav; ≤ 5 MB)        → {"texto", "ms"}
   GET  /v1/salud                                                       → {"listo", ...}
 Una petición a la vez por tipo: la GPU y la CPU no se reparten entre pedidos.
@@ -28,8 +31,11 @@ from fastapi.responses import JSONResponse, Response
 IP = os.environ.get("HVOZ_IP", "127.0.0.1")
 PUERTO = int(os.environ.get("HVOZ_PUERTO", "8796"))
 TOKEN = Path(os.environ.get("HVOZ_TOKEN_ARCHIVO", "/etc/horizon-voz/token")).read_text().strip()
-MODELO_TTS = os.environ.get("HVOZ_MODELO_TTS", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
-VOZ = os.environ.get("HVOZ_VOZ", "Ryan")
+MOTOR = os.environ.get("HVOZ_MOTOR", "kokoro")
+MODELO_TTS = os.environ.get(
+    "HVOZ_MODELO_TTS", "hexgrad/Kokoro-82M" if MOTOR == "kokoro" else "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+)
+VOZ = os.environ.get("HVOZ_VOZ", "am_michael" if MOTOR == "kokoro" else "Ryan")
 IDIOMA = os.environ.get("HVOZ_IDIOMA", "English")
 MODELO_STT = os.environ.get("HVOZ_MODELO_STT", "small.en")
 HILOS_STT = int(os.environ.get("HVOZ_HILOS_STT", "6"))
@@ -54,13 +60,21 @@ async def portero(request: Request, siguiente):
 
 def cargar():
     from faster_whisper import WhisperModel
-    from qwen_tts import Qwen3TTSModel
 
     t = time.perf_counter()
-    tts = Qwen3TTSModel.from_pretrained(
-        MODELO_TTS, device_map="cuda:0", dtype=DTYPE, attn_implementation="sdpa"
-    )
-    tts.generate_custom_voice(text="Hi.", language=IDIOMA, speaker=VOZ)  # calentar
+    if MOTOR == "kokoro":
+        from kokoro import KPipeline
+
+        # lang_code "a" = inglés americano ("b" = británico). La voz se baja del mismo repo.
+        tts = KPipeline(lang_code="a", repo_id=MODELO_TTS, device="cuda")
+        list(tts("Hi.", voice=VOZ))  # calentar
+    else:
+        from qwen_tts import Qwen3TTSModel
+
+        tts = Qwen3TTSModel.from_pretrained(
+            MODELO_TTS, device_map="cuda:0", dtype=DTYPE, attn_implementation="sdpa"
+        )
+        tts.generate_custom_voice(text="Hi.", language=IDIOMA, speaker=VOZ)  # calentar
     stt = WhisperModel(MODELO_STT, device="cpu", compute_type="int8", cpu_threads=HILOS_STT)
     estado.update(tts=tts, stt=stt)
     print(f"modelos cargados en {time.perf_counter() - t:.1f} s", flush=True)
@@ -68,8 +82,13 @@ def cargar():
 
 def sintetizar(texto: str, idioma: str, voz: str) -> bytes:
     with torch.inference_mode():
-        wavs, sr = estado["tts"].generate_custom_voice(text=texto, language=idioma, speaker=voz)
-    audio = np.clip(np.asarray(wavs[0], dtype=np.float32).squeeze(), -1, 1)
+        if MOTOR == "kokoro":
+            partes = [np.asarray(a, dtype=np.float32) for _, _, a in estado["tts"](texto, voice=voz)]
+            audio, sr = np.concatenate(partes) if partes else np.zeros(1, np.float32), 24000
+        else:
+            wavs, sr = estado["tts"].generate_custom_voice(text=texto, language=idioma, speaker=voz)
+            audio = wavs[0]
+    audio = np.clip(np.asarray(audio, dtype=np.float32).squeeze(), -1, 1)
     buf = io.BytesIO()
     sf.write(buf, audio, sr, format="WAV", subtype="PCM_16")
     return buf.getvalue()
@@ -89,6 +108,7 @@ async def salud():
     listo = estado["tts"] is not None and estado["stt"] is not None
     return {
         "listo": listo,
+        "motor": MOTOR,
         "voz": VOZ,
         "idioma": IDIOMA,
         "tts": MODELO_TTS,

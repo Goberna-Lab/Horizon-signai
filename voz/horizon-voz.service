@@ -1,5 +1,5 @@
 [Unit]
-Description=Horizon voz — Qwen3-TTS «Ryan» (GPU) y faster-whisper en inglés (CPU) para el chat de voz de Horizon
+Description=Horizon voz — Kokoro «am_michael» (GPU) y faster-whisper en inglés (CPU) para el chat de voz de Horizon
 # Servicio de USUARIO (systemctl --user) de manolito en Geografo: ~/.config/systemd/user/.
 # Escucha solo en la IP del tailnet; necesita `loginctl enable-linger manolito` para arrancar sin sesión.
 After=network-online.target
@@ -10,10 +10,12 @@ ExecStart=%h/.local/share/horizon-voz/venv/bin/python -I %h/.local/share/horizon
 Environment=HVOZ_IP=100.117.204.80
 Environment=HVOZ_PUERTO=8796
 Environment=HVOZ_TOKEN_ARCHIVO=%h/.config/horizon-voz/token
-Environment=HVOZ_VOZ=Ryan
+# Boca: Kokoro-82M «am_michael» (rápido). Para volver a Ryan (Qwen3-TTS, ~2× más lento que el audio):
+#   HVOZ_MOTOR=qwen, HVOZ_VOZ=Ryan, HVOZ_DTYPE=float32,
+#   HVOZ_MODELO_TTS=%h/.local/share/horizon-voz/modelos/qwen3-tts-0.6b-customvoice
+Environment=HVOZ_MOTOR=kokoro
+Environment=HVOZ_VOZ=am_michael
 Environment=HVOZ_IDIOMA=English
-Environment=HVOZ_DTYPE=float32
-Environment=HVOZ_MODELO_TTS=%h/.local/share/horizon-voz/modelos/qwen3-tts-0.6b-customvoice
 Environment=HVOZ_MODELO_STT=%h/.local/share/horizon-voz/modelos/faster-whisper-small.en
 Environment=HVOZ_HILOS_STT=4
 Environment=HF_HOME=%h/.local/share/horizon-voz/cache

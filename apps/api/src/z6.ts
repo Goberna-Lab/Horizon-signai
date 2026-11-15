@@ -265,13 +265,23 @@ export const z6 = new Hono()
     })
   })
   // Qué voz atiende ahora (la página lo muestra y decide el idioma de sus textos).
-  .get("/voz", (c) => {
+  // En inglés le pregunta a horizon-voz qué motor y voz tiene cargados (cambian con HVOZ_MOTOR).
+  .get("/voz", async (c) => {
     const v = servicioVoz()
-    return c.json(
-      v.idioma === "en"
-        ? { idioma: "en", voz: "Ryan", motor: "Qwen3-TTS 0.6B", equipo: "Geografo" }
-        : { idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" },
-    )
+    if (v.idioma === "es") return c.json({ idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" })
+    const NOMBRES: Record<string, string> = { kokoro: "Kokoro-82M", qwen: "Qwen3-TTS 0.6B" }
+    try {
+      const r = await fetch(`${v.url}/v1/salud`, {
+        headers: { Authorization: `Bearer ${v.token}` },
+        signal: AbortSignal.timeout(3000),
+      })
+      const d = (await r.json()) as { motor?: string; voz?: string }
+      // «am_michael» → «Michael»
+      const voz = (d.voz ?? "").replace(/^[a-z]{2}_/, "").replace(/^./, (x) => x.toUpperCase())
+      return c.json({ idioma: "en", voz: voz || "?", motor: NOMBRES[d.motor ?? ""] ?? d.motor ?? "?", equipo: "Geografo" })
+    } catch {
+      return c.json({ idioma: "en", voz: "?", motor: "sin respuesta", equipo: "Geografo" })
+    }
   })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.
   .post("/transcribir", async (c) => {

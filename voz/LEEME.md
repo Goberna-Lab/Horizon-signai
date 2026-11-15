@@ -6,7 +6,8 @@ voz sigue saliendo del `qwen3.6:27b` de la Z6; solo oír y hablar viven aquí.
 
 | Pieza | Modelo | Dónde | Por qué |
 |---|---|---|---|
-| Boca | Qwen3-TTS 12Hz 0.6B CustomVoice, voz **Ryan** (Apache 2.0) | GPU de Geografo (RTX A4000), **float32** | Elegida a oído en el comparador de voces. float32 midió más rápido que bfloat16; en float16 el muestreo se rompe |
+| Boca | **Kokoro-82M, voz `am_michael`** (Apache 2.0), inglés americano nativo | GPU de Geografo (RTX A4000), 0,9 GB | ~0,12 s por frase: la voz suena casi a la vez que llega la respuesta |
+| Boca alternativa | Qwen3-TTS 12Hz 0.6B CustomVoice, voz Ryan (Apache 2.0) | misma GPU, float32 (4,4 GB) | Más natural, pero en producción tardaba 9-11 s la primera frase y dejaba silencios de ~5 s entre frases (~2× más lento que el audio). Se cambió a Kokoro el 2026-11-14. Volver: `HVOZ_MOTOR=qwen` (ver la unidad) |
 | Oído | faster-whisper `small.en`, int8 (MIT) | CPU de Geografo | `argus-voz` (Z6) solo transcribe español |
 
 ## Por qué Geografo y no la Z6
@@ -16,12 +17,15 @@ tiene 23,5 GB útiles, el `qwen3.6:27b` de Ollama ocupa ~18,6 GB y Ryan 4,4 GB m
 decodificar el audio. No caben juntos. En la Z6 quedó instalado pero **desactivado**
 (`/opt/horizon-voz`, `systemctl disable horizon-voz`); se puede borrar.
 
-## Medido (2026-11-14, desde VPS2)
+## Medido (2026-11-14)
 
-- Ryan: **~1,7× tiempo real** (3,9 s de audio en 7,1 s). Por eso la página pide la voz **frase
-  por frase** y reproduce una mientras se genera la siguiente.
-- VRAM: 4,3-4,5 GB. Convive con `qwen3:8b` del chat de texto (5,3 GB) en los 16 GB de la A4000.
+- Kokoro `am_michael`: **0,12-0,13 s** por frase (2,8-5,7 s de audio). VRAM 0,9 GB.
+- Ryan (alternativa): ~1,7-2,7× tiempo real, 4,4 GB. La página pide la voz **frase por frase**
+  y reproduce una mientras se genera la siguiente, lo que con Ryan disimulaba parte de la espera.
 - Oído: ~1,7-2 s.
+- Kokoro necesita `misaki[en]`, el modelo `en_core_web_sm` de spaCy (en `requisitos.txt`) y
+  `espeak-ng` del sistema. Sus pesos y voces están en la caché HF del servicio
+  (`cache/hub/models--hexgrad--Kokoro-82M`, copiados sin enlaces) y se leen sin red.
 
 ## Cómo está instalado
 
@@ -31,7 +35,7 @@ Servicio **de usuario** de `manolito` (no hay sudo sin contraseña en Geografo),
 | Qué | Dónde |
 |---|---|
 | Código | `~/.local/share/horizon-voz/src/` (copia de `voz/servidor.py`) |
-| Python y venv | `~/.local/share/horizon-voz/{python,venv}` |
+| Python, venv y `uv` | `~/.local/share/horizon-voz/{python,venv,bin/uv}` |
 | Modelos | `~/.local/share/horizon-voz/modelos/` (carpetas fijas: `qwen-tts` consulta la API de HF aunque el modelo esté en caché, y el servicio corre offline) |
 | Token | `~/.config/horizon-voz/token` (600). Su copia está en el `.env` de VPS2 como `HVOZ_TOKEN` |
 | Unidad | `~/.config/systemd/user/horizon-voz.service` (copia de `voz/horizon-voz.service`) |
