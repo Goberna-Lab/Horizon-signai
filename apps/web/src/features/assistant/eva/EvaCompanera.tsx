@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react"
 import { useLocation, useNavigate } from "react-router"
 import { routes } from "@/app/routes"
-import { EVENTO_EVA, type AvisoEva, type EstadoEva } from "@/shared/eva"
+import { EVENTO_CASCO, EVENTO_EVA, type AvisoEva, type CascoEva, type EstadoEva } from "@/shared/eva"
 import { lang, setLang } from "@/shared/i18n"
 import { PREGUNTAS, PUENTES, SEGUIMOS } from "@horizon-signai/shared"
 import { decir, entender as entenderVoz, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type AccionIA, type Mensaje } from "@/prueba-ia/cliente"
@@ -244,6 +244,9 @@ export default function EvaCompanera() {
   const pos = useRef({ x: innerWidth - ANCHO - MARGEN, y: innerHeight - ALTO - MARGEN })
   const meta = useRef({ ...pos.current })
   const vel = useRef({ x: 0, y: 0 })
+  // En el casco del simulador (evaEnCasco de @/shared/eva): vive dentro del visor, quieta en ese punto y como holograma
+  const [casco, setCasco] = useState<CascoEva>(null)
+  const cascoRef = useRef<CascoEva>(null)
   const nivel = useRef(0)
   const arrastre = useRef<{ dx: number; dy: number; x0: number; y0: number; movio: boolean } | null>(null)
   const anclada = useRef(0)
@@ -404,7 +407,9 @@ export default function EvaCompanera() {
     const paso = () => {
       const p = pos.current
       const v = vel.current
-      if (!arrastre.current) {
+      const c = cascoRef.current
+      if (c) meta.current = { x: c.x - ANCHO / 2, y: c.y - ALTO / 2 } // dentro del visor no pasea: se queda ahí
+      if (!arrastre.current || c) {
         v.x = (v.x + (meta.current.x - p.x) * 0.035) * 0.84
         v.y = (v.y + (meta.current.y - p.y) * 0.035) * 0.84
         p.x += v.x
@@ -668,6 +673,8 @@ export default function EvaCompanera() {
       const g = guionDe(pathname, paginaDelMarco())
       usarPantalla(g.pantalla)
       if (ocupada.current || abiertaRef.current || conversandoRef.current || document.hidden) return
+      // Dentro del casco no describe la pantalla: ahí habla de lo que pasa en la caminata (eventos del simulador)
+      if (cascoRef.current) return
       const enLeccion = leccion.current && !!g.enMarco
       if (enLeccion ? Date.now() - finHabla.current < LECCION_MS : Date.now() - ultimo.current < COMENTARIO_MS) return
       const peligro = hayPeligro()
@@ -692,6 +699,17 @@ export default function EvaCompanera() {
       clearInterval(t)
     }
   }, [pathname, oculta, comentar])
+
+  // El simulador le avisa cuando el astronauta se pone o se quita el casco (ver evaEnCasco en @/shared/eva)
+  useEffect(() => {
+    const alCasco = (ev: Event) => {
+      const sitio = (ev as CustomEvent<CascoEva>).detail
+      cascoRef.current = sitio
+      setCasco(sitio ? { ...sitio } : null)
+    }
+    window.addEventListener(EVENTO_CASCO, alCasco)
+    return () => window.removeEventListener(EVENTO_CASCO, alCasco)
+  }, [])
 
   // Avisos de otras pantallas (simulador, alunizaje): ver EVENTOS en guion.ts. Y `enfocarEva`: resaltar algo.
   useEffect(() => {
@@ -1374,7 +1392,7 @@ export default function EvaCompanera() {
           </svg>
         </div>
       )}
-      <div ref={caja} className={`eva-caja${aLaDerecha ? " eva-caja--derecha" : ""}${alta ? " eva-caja--alta" : ""}`} style={{ width: ANCHO, height: ALTO }} data-estado={estado}>
+      <div ref={caja} className={`eva-caja${aLaDerecha ? " eva-caja--derecha" : ""}${alta ? " eva-caja--alta" : ""}${casco ? " eva-caja--casco" : ""}`} style={{ width: ANCHO, height: ALTO }} data-estado={estado}>
         <div
           className="eva-cuerpo"
           role="button"
@@ -1387,7 +1405,7 @@ export default function EvaCompanera() {
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && tocar()}
         >
           <Suspense fallback={null}>
-            <EvaLienzo estado={estado} nivel={nivel} velocidad={vel} mirar={mirar} ojos={ojos} />
+            <EvaLienzo estado={estado} nivel={nivel} velocidad={vel} mirar={mirar} ojos={ojos} holograma={!!casco} />
           </Suspense>
         </div>
 

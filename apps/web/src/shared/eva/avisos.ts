@@ -19,3 +19,12 @@ export const avisarEva = (tipo: string, texto?: string) =>
  */
 export const enfocarEva = (selector: string, texto?: string) =>
   window.dispatchEvent(new CustomEvent<AvisoEva>(EVENTO_EVA, { detail: { tipo: "enfocar", selector, texto } }))
+
+/**
+ * El casco del simulador: mientras el astronauta camina con el casco puesto, EVA vive dentro del visor (deja de volar
+ * por la pantalla, se queda en el punto dado y se dibuja como holograma). `null`: sale del casco y vuelve a volar.
+ * `x`, `y`: centro de EVA en la ventana, en píxeles.
+ */
+export const EVENTO_CASCO = "eva:casco"
+export type CascoEva = { x: number; y: number } | null
+export const evaEnCasco = (sitio: CascoEva) => window.dispatchEvent(new CustomEvent<CascoEva>(EVENTO_CASCO, { detail: sitio }))

@@ -11,9 +11,10 @@
 // esfuerzo (metabolismo de 120 W en reposo a 470 W al galope), el Sol o la sombra y las lámparas. El límite de regreso es
 // la mitad de lo que dura el consumible más escaso caminando. Sin O₂ o con el cartucho saturado la vista se cierra en
 // túnel y la misión se pierde. El módulo lunar guarda reservas para recargar; un aterrizaje duro rompe un tanque.
-// Mini misiones: tareas.ts. EVA (la de toda la app) lo comenta con `avisarEva`.
+// Mini misiones: tareas.ts. EVA (la de toda la app) lo comenta con `avisarEva` y, mientras dura la caminata, vive dentro
+// del visor como holograma (`evaEnCasco`): abajo a la derecha del vidrio, entre la retícula y las filas del traje.
 import * as THREE from 'three';
-import { avisarEva } from '@/shared/eva';
+import { avisarEva, evaEnCasco } from '@/shared/eva';
 import { tr } from '@/shared/i18n';
 import { VisorCasco, THETA_V, THETA_MAX, direccionAPantalla } from './casco/visorCasco';
 import { VisorHud } from './visorHud';
@@ -81,13 +82,13 @@ export class Caminata {
     if (e.code === 'Space' && once) { this._jumpReq = true; e.preventDefault(); }
     if (/^(Arrow|Key[WASD]$)/.test(e.code)) e.preventDefault();
     if (!once) return;
-    if (e.code === 'KeyG') this.visor.visor = this.visor.visor === 2 ? 1 : 2; // visor solar: arriba ↔ abajo
-    if (e.code === 'KeyL') this.lamps = !this.lamps;
+    if (e.code === 'KeyG') { this.visor.visor = this.visor.visor === 2 ? 1 : 2; if (this.visor.visor !== 2) avisarEva('visor-solar'); } // visor solar: arriba ↔ abajo
+    if (e.code === 'KeyL') { this.lamps = !this.lamps; if (this.lamps) avisarEva('luces'); }
     if (e.code === 'KeyE') this.tasks.interact();
     if (e.code === 'KeyB') this.tasks.deploy();
     if (e.code === 'KeyF') this.tasks.plantFlag();
     if (e.code === 'KeyR') this.recharge();
-    if (e.code === 'KeyT') this.timeScale = this.timeScale === 1 ? 10 : this.timeScale === 10 ? 60 : 1;
+    if (e.code === 'KeyT') { this.timeScale = this.timeScale === 1 ? 10 : this.timeScale === 10 ? 60 : 1; if (this.timeScale > 1) avisarEva('tiempo'); }
   }
 
   /**
@@ -113,6 +114,7 @@ export class Caminata {
   }
 
   stop() {
+    if (this.active || this._evaEn) { evaEnCasco(null); this._evaEn = null; } // EVA sale del casco y vuelve a volar
     this.active = false; this.keys.clear();
     this.hud.root.hidden = true;
     for (const o of this.lampGroup.children) if (o.isSpotLight) o.intensity = 0;
@@ -132,6 +134,7 @@ export class Caminata {
     Object.assign(this.s, { o2: O2_KG, water: WATER_KG, lioh: 0, batt: BATT_WH });
     this.lm.recharges++;
     this.notice = tr('Recharge complete: new O₂, water, LiOH cartridge and battery', 'Recarga completa: O₂, agua, cartucho de LiOH y batería nuevos'); this.sonido?.blip(true);
+    avisarEva('recarga');
   }
 
   /** Reintentar tras perder la misión: traje lleno y de vuelta junto al módulo. */
@@ -233,6 +236,13 @@ export class Caminata {
   _eva(dt) {
     const once = (key, fn) => { if (!this.events.has(key)) { this.events.add(key); fn(); } };
     if (this.walked > 4) once('primeros', () => avisarEva('primeros-pasos'));
+    // Su sarcasmo con lo que haces (EVA ya se limita a un comentario cada 90 s; aquí, además, cada uno espera su turno)
+    this._galope = this.fpRun > 0.5 ? (this._galope ?? 0) + dt : 0;
+    this._quieta = this._mv || this.lost ? 0 : (this._quieta ?? 0) + dt;
+    const cada = (key, seg, fn) => { const t = performance.now(); this._cada ??= {}; if (!this._cada[key] || t - this._cada[key] > seg * 1000) { this._cada[key] = t; fn(); } };
+    if (this._galope > 6) cada('galope', 120, () => avisarEva('galope'));
+    if (this._quieta > 40) { this._quieta = 0; cada('quieta', 180, () => avisarEva('quieta')); }
+    if (this.fatigue > 0.8) once('agotado', () => avisarEva('agotado'));
     // ¿Le da el Sol al astronauta? (relieve real hacia el Sol, una vez por segundo)
     this._litT -= dt;
     if (this._litT <= 0) {
@@ -275,6 +285,7 @@ export class Caminata {
   _hud(dt) {
     const v = this.view, cam = v.camera, W = v.host.clientWidth, H = v.host.clientHeight, vz = this.visor, d = this._data(), now = d.now, s = this.s;
     this.hud.resize(W, H);
+    this._colocarEva();
     const lm = d.lm, tg = this.tasks.target;
     const T = {
       lm: lm ? [lm.clone().add(new THREE.Vector3(0, 4, 0)), `LM · ${fmt(d.dLM)} m`] : null,
@@ -299,6 +310,16 @@ export class Caminata {
     this._hb = (this._hb ?? 1) - dt; if (!this.lost && this._hb <= 0) { this.hud.beat(); this._hb = 60 / Math.max(45, s.hr); }
     this._tickT -= dt; if (this._tickT > 0) return; this._tickT = 1 / 12;
     this._tick(d);
+  }
+
+  /** EVA dentro del vidrio: abajo a la derecha, sin tapar la retícula, las filas del traje ni las teclas. */
+  _colocarEva() {
+    const h = this.hud, r = this.view.host.getBoundingClientRect();
+    if (!h.W) return;
+    const x = Math.round(r.left + h.cx + 0.4 * h.a), y = Math.round(r.top + h.cy + 0.3 * h.b);
+    if (this._evaEn && this._evaEn.x === x && this._evaEn.y === y) return;
+    this._evaEn = { x, y };
+    evaEnCasco(this._evaEn);
   }
 
   _tick(d) {

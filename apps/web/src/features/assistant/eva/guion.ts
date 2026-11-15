@@ -412,6 +412,63 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     repetible: true,
     festejo: true,
   },
+  // Caminata con el casco (simulador de Jefferson: features/simulator/alunizaje/caminata.ts y tareas.ts). Ahí EVA vive
+  // dentro del visor como holograma y es sarcástica cuando todo va bien; con peligro, la versión seria o nada.
+  // Cifras: las del traje en la cabecera de caminata.ts (PLSS del Apollo / xEMU).
+  galope: {
+    texto: "Loping on the Moon. Apollo crews found it easier than running. Your oxygen does not agree.",
+    es: { texto: "Galope lunar. Las tripulaciones del Apolo lo preferían a correr. Tu oxígeno no opina lo mismo." },
+    repetible: true,
+  },
+  quieta: {
+    texto: "Enjoying the view? Take your time. The oxygen will not.",
+    es: { texto: "¿Disfrutando la vista? Tómate tu tiempo. El oxígeno no se lo toma." },
+    repetible: true,
+  },
+  agotado: {
+    texto: "You are exhausted. I suggest walking. Or breathing. Ideally both.",
+    serio: "You are exhausted. Walk, and catch your breath.",
+    es: { texto: "Estás agotado. Te sugiero caminar. O respirar. Idealmente las dos cosas.", serio: "Estás agotado. Camina y recupera el aliento." },
+  },
+  luces: {
+    texto: "Lamps on. Now the shadows are only slightly terrifying.",
+    es: { texto: "Luces encendidas. Ahora las sombras dan solo un poquito de miedo." },
+  },
+  "visor-solar": {
+    texto: "Sun visor down. Very stylish. Also, you can see again.",
+    es: { texto: "Visor solar abajo. Muy elegante. Y además vuelves a ver." },
+  },
+  recarga: {
+    texto: "Suit recharged. Try not to spend it all on jumping this time.",
+    es: { texto: "Traje recargado. Intenta no gastarlo todo en saltos esta vez." },
+    repetible: true,
+  },
+  tiempo: {
+    texto: "Time sped up. Your consumables noticed before you did.",
+    es: { texto: "Tiempo acelerado. Tus consumibles se dieron cuenta antes que tú." },
+  },
+  pata: {
+    texto: "The landing leg is fine. The lander is stable. Unlike your walking.",
+    es: { texto: "La pata está bien. La nave está estable. A diferencia de tu forma de caminar." },
+  },
+  sismometro: {
+    texto: "Seismometer listening. If the Moon says anything, you will be the second to know. After me.",
+    es: { texto: "Sismómetro escuchando. Si la Luna dice algo, lo sabrás justo después de mí." },
+  },
+  panel: {
+    texto: "Panel deployed, facing the Sun. At the pole that means almost vertical. Physics, not my idea.",
+    es: { texto: "Panel desplegado, de cara al Sol. En el polo eso es casi vertical. Física, no idea mía." },
+  },
+  "muestra-sol": {
+    texto: "Sample bagged. Regolith is as sharp as broken glass, by the way. Do not lick it.",
+    es: { texto: "Muestra guardada. El regolito corta como vidrio roto, por cierto. No lo pruebes." },
+  },
+  "eva-completa": {
+    texto: "All tasks done and you are back at the lander. I will pretend I never doubted you.",
+    es: { texto: "Todas las tareas hechas y de vuelta en el módulo. Haré como que nunca dudé de ti." },
+    festejo: true,
+    repetible: true,
+  },
   "aviso-critico": { texto: "", serio: "Warning.", es: { texto: "", serio: "Atención." }, critico: true, repetible: true },
 }
 

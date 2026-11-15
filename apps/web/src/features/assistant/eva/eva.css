@@ -289,3 +289,14 @@
 .eva-escucha__oido { flex-basis: 100%; color: var(--eva-tinta); font-style: italic; }
 @keyframes eva-escucha { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .eva-escucha[data-estado="escuchando"] i { animation: none; } }
+
+/* Dentro del visor del casco (simulador): EVA es un holograma cian proyectado en el vidrio. Su globo pasa a ser texto
+   de luz sobre el vidrio, como el HUD del traje; no se arrastra. */
+.eva-caja--casco .eva-cuerpo { cursor: default; filter: drop-shadow(0 0 10px rgba(79, 227, 255, 0.35)); }
+.eva-caja--casco .eva-globo {
+  border: 1px solid rgba(79, 227, 255, 0.55);
+  background: rgba(3, 18, 26, 0.72);
+  color: #d9f7ff;
+  box-shadow: 0 0 18px rgba(79, 227, 255, 0.18), inset 0 0 12px rgba(79, 227, 255, 0.08);
+  text-shadow: 0 0 6px rgba(79, 227, 255, 0.45);
+}

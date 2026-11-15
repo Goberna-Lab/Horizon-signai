@@ -129,7 +129,6 @@ export class Tareas {
     for (let k = 0; k < this.samples.length; k++) if (this._near(k)) {
       if (k === 1 && this.darkReal && !c.lamps) { c.notice = tr('Too dark: turn on the helmet lamps (L)', 'Está demasiado oscuro: enciende las lámparas del casco (L)'); c.sonido?.blip(); return; }
       const s = this.samples[k]; s.taken = true; s.mesh.visible = false; c.sonido?.blip(true);
-      if (s.name === 'sombra') avisarEva('muestra-sombra');
       return;
     }
     c.notice = tr('Nothing within reach', 'No hay nada a tu alcance');
@@ -192,7 +191,9 @@ export class Tareas {
     c.notice = link ? tr(`Houston: ${msg}. Copy.`, `Houston: ${msg}. Te copiamos.`) : tr(`${msg} (no link: logged in the suit)`, `${msg} (sin enlace: queda grabado en el traje)`);
     c.sonido?.blip(true); if (!link) c.sonido?.staticNoise(0.3);
     this.i++; if (this.i >= this.steps.length) this.done = true;
-    avisarEva('tarea-hecha');
+    // EVA comenta lo que acaba de hacer, con su sarcasmo (eventos de guion.ts); si no hay uno propio, «tarea hecha»
+    const evento = { pata: 'pata', seis: 'sismometro', panel: 'panel', sampleSol: 'muestra-sol', sampleSombra: 'muestra-sombra' }[s.kind];
+    avisarEva(this.done ? 'eva-completa' : evento ?? 'tarea-hecha');
   }
 
   dispose() { this.reset(); this.prints.geometry.dispose(); this.prints.material.map?.dispose(); this.prints.material.dispose(); this.group.removeFromParent(); }

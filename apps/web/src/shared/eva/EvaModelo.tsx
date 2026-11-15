@@ -13,6 +13,7 @@ import {
   estudioDeLuz,
   geometriasEva,
   LUZ,
+  LUZ_HOLOGRAMA,
   PLOMO,
   VISORES,
   type VisorEva,
@@ -41,6 +42,11 @@ type Props = {
   luz?: string
   /** Solo para la lámina: una animación ya preparada (por ejemplo, congelada en una pose). */
   animacion?: AnimacionEva
+  /**
+   * Holograma: la misma EVA, proyectada en luz cian (malla de alambre, borde brillante y su pantalla de LED), sin
+   * cerámica ni reflejos. La usa el simulador cuando vive dentro del visor del casco.
+   */
+  holograma?: boolean
 }
 
 /** Cámara con la que se la mira (la usan EvaLienzo y la lámina): un poco desde arriba y con sitio para la estela. */
@@ -56,7 +62,8 @@ export const CAMARA_EVA = { fov: 28, position: [0, 0.186, 6.3], rotation: [-0.04
  * Qué hace en cada estado y cómo pasa de uno a otro: animacion.ts. Cómo se pinta: materiales.ts.
  * Se dibuja dentro de un <Canvas> (ver EvaLienzo). No necesita luces: trae su estudio de reflejos.
  */
-export function EvaModelo({ estado, nivel, velocidad, mirar, ojos, visor = "domo", luz = LUZ, animacion }: Props) {
+export function EvaModelo({ estado, nivel, velocidad, mirar, ojos, visor = "domo", luz: luzPedida, animacion, holograma = false }: Props) {
+  const luz = luzPedida ?? (holograma ? LUZ_HOLOGRAMA : LUZ)
   const gl = useThree((s) => s.gl)
   const raiz = useRef<THREE.Group>(null!)
   const esfera = useRef<THREE.Group>(null!)
@@ -77,6 +84,19 @@ export function EvaModelo({ estado, nivel, velocidad, mirar, ojos, visor = "domo
       estela: crearMaterialEstela(luz),
     }
   }, [gl, visor, luz])
+  // Holograma: luz pura que se suma a lo que hay detrás (sin cerámica, sin reflejos, sin tapar nada)
+  useEffect(() => {
+    const { u, cuerpo, aro } = piezas
+    u.uHolo.value = holograma ? 1 : 0
+    for (const m of [cuerpo, aro]) {
+      m.transparent = holograma
+      m.blending = holograma ? THREE.AdditiveBlending : THREE.NormalBlending
+      m.depthWrite = !holograma
+      m.needsUpdate = true
+    }
+    aro.emissive.set(holograma ? luz : 0x000000)
+    aro.emissiveIntensity = holograma ? 0.5 : 1
+  }, [piezas, holograma, luz])
   useEffect(
     () => () => {
       piezas.cuerpo.dispose()
@@ -185,9 +205,10 @@ export function EvaModelo({ estado, nivel, velocidad, mirar, ojos, visor = "domo
     // Sin energía: plomo oscuro, mate y con pocos reflejos; al cargarse vuelve la cerámica blanca.
     const apagado = 1 - pose.energia
     u.uCuerpo.value.y = apagado
-    piezas.cuerpo.envMapIntensity = piezas.aro.envMapIntensity = 1 - 0.6 * apagado
-    piezas.cuerpo.clearcoat = piezas.aro.clearcoat = 1 - 0.65 * apagado
-    piezas.aro.color.copy(piezas.blanco).lerp(piezas.plomo, apagado * 0.95)
+    piezas.cuerpo.envMapIntensity = piezas.aro.envMapIntensity = holograma ? 0 : 1 - 0.6 * apagado
+    piezas.cuerpo.clearcoat = piezas.aro.clearcoat = holograma ? 0 : 1 - 0.65 * apagado
+    if (holograma) piezas.aro.color.setScalar(0)
+    else piezas.aro.color.copy(piezas.blanco).lerp(piezas.plomo, apagado * 0.95)
     piezas.lente.color
       .copy(piezas.color)
       .multiplyScalar(0.5 + 0.8 * Math.min(pose.propulsor, 1.4))

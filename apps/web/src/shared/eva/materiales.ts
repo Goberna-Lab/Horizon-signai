@@ -5,6 +5,8 @@ import * as THREE from "three"
 
 /** Luz de sus ojos, líneas y propulsor: «luz de Tierra» (comunicaciones), la misma de la página de voz. */
 export const LUZ = "#9AD7FF"
+/** Luz de EVA cuando es un holograma (dentro del visor del casco en el simulador): cian. */
+export const LUZ_HOLOGRAMA = "#4FE3FF"
 /** Rojo de la marca: solo para avisos (marcas del visor en alerta y batería baja). */
 export const ROJO = "#C8102E"
 export const BLANCO = "#FBFAF7" // cerámica blanca, apenas cálida
@@ -115,6 +117,8 @@ export function crearUniformes(visor: VisorEva, luz: THREE.ColorRepresentation =
     uOrbita: { value: o.planos },
     uOrbitaE: { value: o.ejes },
     uOrbitaC: { value: o.tramos },
+    /** 1 = holograma: sin cerámica, malla de alambre de luz, borde brillante y la pantalla de LED (ver HOLOGRAMA). */
+    uHolo: { value: 0 },
   }
 }
 
@@ -127,6 +131,7 @@ const PARS = /* glsl */ `
 varying vec3 vEvaPos;
 uniform mat3 normalMatrix;
 uniform float uTiempo;
+uniform float uHolo;
 uniform vec3 uLuz;
 uniform vec3 uRojo;
 uniform vec3 uPlomo;
@@ -342,6 +347,19 @@ diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.0015), evaVidrio);
 evaEmision += uLuz * (evaLinea * (0.2 + 1.5 * evaPulso * uPant.w) + evaHalo * 0.09 * (1.0 + 2.0 * uPant.w * evaPulso)) * uPant.z;
 evaEmision += uLuz * uPant.x * 0.1 * exp(-max(evaD, 0.0) * 26.0) * evaCeramica;
 evaEmision += uLuz * uCuerpo.x * 0.34 * smoothstep(-0.66, -1.0, evaP.y) * evaCeramica;
+// Holograma (EVA proyectada dentro del visor del casco): la cerámica desaparece; queda una malla de alambre de luz
+// sobre la esfera (meridianos y paralelos), un borde que brilla de canto y la pantalla con sus ojos. Se dibuja con
+// mezcla aditiva: lo negro no tapa nada, así que se ve a través de ella como una proyección.
+if (uHolo > 0.5) {
+  vec2 hM = vec2(atan(evaP.x, evaP.z) * 5.73, asin(clamp(evaP.y, -1.0, 1.0)) * 5.73); // 36 meridianos, 18 paralelos
+  vec2 hW = fwidth(hM) * 1.3 + 1e-4;
+  vec2 hL = smoothstep(vec2(0.5) - hW, vec2(0.5), abs(fract(hM) - 0.5));
+  float hMalla = max(hL.x, hL.y) * (1.0 - evaVidrio);
+  float hCanto = pow(1.0 - abs(dot(evaP, evaVer)), 2.2);
+  float hBarrido = 0.85 + 0.15 * sin(evaP.y * 60.0 - uTiempo * 3.0); // líneas de barrido que suben
+  evaEmision = (evaEmision * 1.6 + uLuz * (0.035 + 0.5 * hMalla + 1.1 * hCanto + 0.7 * evaLinea + 0.25 * evaJunta)) * hBarrido;
+  diffuseColor.rgb = vec3(0.0);
+}
 `
 
 const RUGOSIDAD = /* glsl */ `
