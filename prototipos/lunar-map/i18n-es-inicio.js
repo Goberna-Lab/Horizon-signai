@@ -111,6 +111,8 @@
     'Campaign views': 'Vistas de la campaña',
     'Details': 'Detalles',
     'Tracking': 'Seguimiento',
+    'Add mission': 'Agregar misión',
+    'Plan a new mission in the Planner': 'Planear una misión nueva en el planificador',
     'Oct 2026 → Jan 2027 · UTC': 'oct 2026 → ene 2027 · UTC',
     'Preparation': 'Preparación',
     'On the surface': 'En superficie',

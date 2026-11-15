@@ -84,6 +84,10 @@
 
 /* ---------- misiones ---------- */
 .mlist { display: flex; flex-direction: column; gap: 8px; }
+/* «Add mission»: abajo del panel, donde antes asomaba media tarjeta; abre el planificador para planear una misión nueva */
+.addm { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; margin-top: 8px; border: 1px dashed var(--borde-2); border-radius: 14px; color: var(--tinta); font-size: 13px; font-weight: 600; text-decoration: none; transition: border-color .18s ease, background-color .18s ease; }
+.addm:hover { border-color: var(--tinta); background: rgba(255,255,255,0.45); }
+.addm:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 .mrow { display: flex; flex-direction: column; gap: 7px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
 .mrow:hover { background: rgba(255,255,255,0.4); }
 .mrow:active { transform: translateY(1px); }
@@ -207,7 +211,9 @@
   .log { flex: 1 1 0; height: 0; min-height: 240px; max-height: none; }
   /* la lista de misiones mide lo mismo que el mapa de al lado y se desplaza por dentro */
   .upcoming { display: flex; flex-direction: column; min-height: 0; }
-  .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; }
+  .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; scroll-snap-type: y mandatory; margin-bottom: 8px; }
+  .upcoming .mrow { scroll-snap-align: start; }
+  .upcoming .addm { margin-top: auto; }
 }
 
 /* ---------- sin sitio para dos mitades: calendario y movimientos, uno encima del otro ---------- */
@@ -320,6 +326,7 @@
               <section class="paper panel upcoming" aria-labelledby="up-t">
                 <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
                 <div class="mlist" id="mlist"></div>
+                <a class="addm" href="index.html" title="Plan a new mission in the Planner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add mission</a>
               </section>
             </div>
           </div>
@@ -413,7 +420,27 @@
         (movs ? '<span class="mono cnt">' + past + ' logged · ' + (n.length - past) + ' scheduled</span>' : '') + '</button>';
     }).join('');
     $('upCount').textContent = missions.length;
+    fitMissions();
   }
+  /* la lista enseña solo tarjetas enteras, y abajo el botón «Add mission». El hueco sale del alto natural del radar de al
+   * lado (no del panel estirado, que cambiaría con la propia lista): caben las tarjetas enteras que entran, más la
+   * siguiente si le falta menos de la mitad (el panel crece esos píxeles). Las demás, desplazando. En pantallas estrechas,
+   * la lista completa. Se repite cuando el radar cambia de tamaño. */
+  function fitMissions() {
+    var ml = $('mlist'), scr = document.querySelector('.sites .screen'), btn = document.querySelector('.addm');
+    ml.style.flex = ''; ml.style.height = '';
+    if (window.innerWidth <= 1000 || !ml.offsetParent || !scr.offsetHeight) return;
+    var natural = scr.offsetTop + scr.offsetHeight + 17;            /* alto del panel del radar sin estirar */
+    var room = natural - ml.offsetTop - (btn.offsetHeight + 8 + 17); /* lo que deja la cabecera y el botón */
+    var kids = ml.children, used = 0, i;
+    for (i = 0; i < kids.length; i++) {
+      var h = kids[i].offsetHeight + (i ? 8 : 0);
+      if (used + h > room + (used ? h / 2 : h)) break;
+      used += h;
+    }
+    if (used) { ml.style.flex = 'none'; ml.style.height = used + 'px'; }
+  }
+  if (window.ResizeObserver) new ResizeObserver(function () { fitMissions(); }).observe(document.querySelector('.sites .screen'));
   function renderKpis() {
     var now = Date.now(), by = {};
     missions.forEach(function (m) { by[m.status] = (by[m.status] || 0) + 1; });
