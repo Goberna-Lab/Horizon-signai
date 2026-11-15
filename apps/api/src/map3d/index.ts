@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+import { gzipSync } from "node:zlib"
 import { Hono } from "hono"
 import { compress } from "hono/compress"
 import { db, enMemoria, esFalloDeConexion } from "./db.js"
@@ -79,9 +81,30 @@ function activo(key: string): Promise<Activo | null> {
 }
 const MIME: Record<string, string> = { webp: "image/webp", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png" }
 const tipoMime = (f: string) => MIME[f.toLowerCase()] ?? "application/octet-stream"
+/** Extensión de la URL versionada: Cloudflare solo cachea por defecto .bin, .webp, .jpg, etc. (no las rutas sin extensión). */
+const EXT: Record<string, string> = { webp: "webp", jpg: "jpg", jpeg: "jpg", png: "png" }
+const extDe = (f: string) => EXT[f.toLowerCase()] ?? "bin"
+const urlActivo = (key: string, format: string, sha256: string) => `/api/map3d/assets/${key}.${sha256.slice(0, 12)}.${extDe(format)}`
+const INMUTABLE = "public, max-age=31536000, immutable"
+
+// ------------------------------------------------------------------ paquete de datos (sitios + IAU + horizontes)
+/** Un solo archivo gzip (JSON) servido como octet-stream SIN Content-Encoding: el cliente lo descomprime con DecompressionStream. */
+interface Paquete { hash: string; bytes: Buffer }
+const paquetes = new Map<string, Paquete>() // el vigente y los anteriores (una pestaña vieja aún puede pedirlos)
+function paquete(): Promise<Paquete> {
+  return enMemoria("paquete", TTL, async () => {
+    const [s, i, h] = await Promise.all([enMemoria("sites", TTL, sitios), enMemoria("iau", TTL, iau), enMemoria("horizons", TTL, horizontes)])
+    const bytes = gzipSync(Buffer.from(JSON.stringify({ sites: s, iau: i, horizons: h })), { level: 9 })
+    const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 12)
+    const p = { hash, bytes }
+    if (paquetes.size > 4) paquetes.delete(paquetes.keys().next().value!)
+    paquetes.set(hash, p)
+    return p
+  })
+}
 
 // ------------------------------------------------------------------ consultas de metadatos
-async function meta() {
+export async function meta() {
   const s = db()
   const [datasets, assets, notas, cats, fuentes] = await Promise.all([
     s`select key, description, resolution_m::float8 as "resolutionM", srid, width, height, meta from ref.dataset order by id`,
@@ -98,9 +121,10 @@ async function meta() {
       assets.map((a) => [
         a.key,
         { key: a.key, format: a.format, encoding: a.encoding, sha256: a.sha256, byteSize: a.byteSize,
-          url: `/api/map3d/assets/${a.key}?v=${String(a.sha256).slice(0, 12)}` },
+          url: urlActivo(String(a.key), String(a.format), String(a.sha256)) },
       ]),
     ),
+    dataUrl: `/api/map3d/data.${(await paquete()).hash}.bin`,
     provenance: Object.fromEntries(notas.map((n) => [n.key, n.body])),
     categories: cats,
     sources: Object.fromEntries(fuentes.map((f) => [f.key, { citation: f.citation, url: f.url }])),
@@ -157,29 +181,45 @@ export const map3d = new Hono()
     await next()
   })
   .use("*", async (c, next) => {
-    if (c.req.path.includes("/assets/")) return next() // ya vienen comprimidos (zlib, webp, jpg)
+    if (c.req.path.includes("/assets/") || /\/data\.[0-9a-f]{12}\.bin$/.test(c.req.path)) return next() // ya vienen comprimidos (zlib, webp, jpg, gzip)
     return compress()(c, next)
   })
   .get("/meta", async (c) => json(c, await enMemoria("meta", TTL, meta)))
   .get("/sites", async (c) => json(c, await enMemoria("sites", TTL, sitios)))
   .get("/iau", async (c) => json(c, await enMemoria("iau", TTL, iau)))
   .get("/horizons", async (c) => json(c, await enMemoria("horizons", TTL, horizontes)))
-  .get("/assets/:key", async (c) => {
-    const key = c.req.param("key")
+  .get("/assets/:file", async (c) => {
+    const file = c.req.param("file")
+    const ver = /^([a-z0-9][a-z0-9_-]{0,80})\.([0-9a-f]{12})\.(bin|webp|jpg|png)$/.exec(file)
+    const key = ver ? ver[1]! : file
     if (!SLUG.test(key)) throw new Peticion("clave inválida")
     const a = await activo(key)
     if (!a) throw new Peticion("activo no encontrado", 404)
+    // Ruta versionada (inmutable, cacheable en el borde): el hash y la extensión deben coincidir con el contenido vigente.
+    if (ver && (!a.sha256.startsWith(ver[2]!) || extDe(a.format) !== ver[3])) {
+      return new Response(JSON.stringify({ error: "versión de activo no vigente" }), { status: 404, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } })
+    }
     const etag = `"${a.sha256}"`
+    // Ruta antigua `/assets/:key[?v=sha]`: se mantiene por compatibilidad.
     const v = c.req.query("v")
-    const inmutable = !!v && v.length >= 8 && a.sha256.startsWith(v)
+    const inmutable = !!ver || (!!v && v.length >= 8 && a.sha256.startsWith(v))
     const cabeceras = {
       ETag: etag,
-      "Cache-Control": inmutable ? "public, max-age=31536000, immutable" : "no-cache",
+      "Cache-Control": inmutable ? INMUTABLE : "no-cache",
       "Content-Type": tipoMime(a.format),
     }
     const inm = c.req.header("If-None-Match")
     if (inm && inm.split(",").some((x) => x.trim().replace(/^W\//, "") === etag)) return new Response(null, { status: 304, headers: cabeceras })
     return new Response(new Uint8Array(a.content), { headers: { ...cabeceras, "Content-Length": String(a.content.length) } })
+  })
+  .get("/:file{data\\.[0-9a-f]{12}\\.bin}", async (c) => {
+    const hash = c.req.param("file").slice(5, 17)
+    await paquete()
+    const p = paquetes.get(hash)
+    if (!p) return new Response(JSON.stringify({ error: "versión del paquete no vigente" }), { status: 404, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } })
+    const cabeceras = { ETag: `"${p.hash}"`, "Cache-Control": INMUTABLE, "Content-Type": "application/octet-stream" }
+    if (c.req.header("If-None-Match")?.includes(p.hash)) return new Response(null, { status: 304, headers: cabeceras })
+    return new Response(new Uint8Array(p.bytes), { headers: { ...cabeceras, "Content-Length": String(p.bytes.length) } })
   })
   .get("/sites/:slug/sun", async (c) => {
     const slug = c.req.param("slug")
@@ -231,3 +271,6 @@ export const map3d = new Hono()
     ])
     return json(c, { site: slug, from: desde, to: hasta, summary: resumen, hourly: serie })
   })
+
+/** Metadatos + URLs versionadas (el mismo objeto que `/meta`); lo usa la página para incrustarlo en el HTML. */
+export const manifiesto = () => enMemoria("meta", TTL, meta)

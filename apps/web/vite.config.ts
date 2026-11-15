@@ -8,6 +8,10 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   server: {
-    proxy: { "/api": "http://localhost:3000" },
+    proxy: {
+      "/api": "http://localhost:3000",
+      // El visor del mapa 3D lo sirve la API (manifiesto incrustado + preloads).
+      "/mapa-3d.html": "http://localhost:3000",
+    },
   },
 })

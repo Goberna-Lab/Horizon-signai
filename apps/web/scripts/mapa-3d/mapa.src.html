@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--__MAP3D_BOOT__-->
+<link rel="modulepreload" href="__THREE_URL__">
 <title>Mapa lunar 3D</title>
 <meta name="description" content="Relieve lunar 3D con datos LOLA (NASA) y todos los sitios de alunizaje (NSSDCA), con luz solar real (JPL Horizons). Hinomaru Signal, NASA Space Apps 2026.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -279,21 +281,34 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three' // el módulo empaquetado ya incluye OrbitControls
 
 // Los datos viven en PostgreSQL (db/) y llegan por /api/map3d. Se reconstruye el mismo objeto que antes iba embebido.
+// La API incrusta el manifiesto (el mismo objeto que /api/map3d/meta, con las URLs versionadas) en el HTML y precarga los
+// archivos del primer dibujo; sin manifiesto (base caída, plantilla estática) se pide /meta como antes.
 async function cargarDatos() {
-  const api = async (url) => {
-    const r = await fetch(url)
+  const api = async (url, opts) => {
+    const r = await fetch(url, opts)
     if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`)
     return r
   }
-  const meta = await (await api('/api/map3d/meta')).json()
-  const bin = async (k) => {
-    const a = meta.assets[k]
-    if (!a) throw new Error(`Falta el activo ${k}`)
-    return new Uint8Array(await (await api(a.url)).arrayBuffer())
+  let meta = null
+  try { meta = JSON.parse(document.getElementById('map3d-manifest')?.textContent || 'null') } catch (e) { console.warn(e) }
+  meta ??= await (await api('/api/map3d/meta')).json()
+  const url = (k) => { const a = meta.assets[k]; if (!a) throw new Error(`Falta el activo ${k}`); return a.url }
+  const bin = async (k, opts) => new Uint8Array(await (await api(url(k), opts)).arrayBuffer())
+  // Las texturas empiezan a bajarse y decodificarse ya, en paralelo con el relieve (se esperan donde se usan).
+  const imagen = (u) => {
+    const p = (async () => { const img = new Image(); img.src = u; await img.decode(); return img })()
+    p.catch(() => {}) // el error se informa donde se espera
+    return p
   }
-  const [alt, alb, polo, polo240, eph, sitios, iau, horizontes] = await Promise.all([
-    bin('global_elevation'), bin('global_albedo'), bin('pole_elevation_663'), bin('pole_elevation_240'), bin('ephemeris_de441'),
-    api('/api/map3d/sites').then((r) => r.json()), api('/api/map3d/iau').then((r) => r.json()), api('/api/map3d/horizons').then((r) => r.json()),
+  const g16 = imagen(url('gradient16')), tierra = imagen(url('earth_texture'))
+  const sueltos = () => Promise.all(['sites', 'iau', 'horizons'].map((k) => api('/api/map3d/' + k).then((r) => r.json())))
+    .then(([sites, iau, horizons]) => ({ sites, iau, horizons }))
+  // Sitios + IAU + horizontes: un solo archivo gzip (octet-stream, sin Content-Encoding) que se descomprime aquí.
+  const paquete = meta.dataUrl
+    ? api(meta.dataUrl).then((r) => new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()).catch((e) => { console.warn(e); return sueltos() })
+    : sueltos()
+  const [alt, alb, eph, { sites: sitios, iau, horizons: horizontes }] = await Promise.all([
+    bin('global_elevation'), bin('global_albedo'), bin('ephemeris_de441'), paquete,
   ])
   const D = meta.datasets, m = (k) => D[k].meta || {}
   const pick = (o, ...ks) => { for (const k of ks) if (o[k] != null) return o[k]; throw new Error('Falta ' + ks[0] + ' en /meta') }
@@ -301,10 +316,12 @@ async function cargarDatos() {
   const [fx, fy] = pick(m2, 'first_centre_xy')
   const CAT = { crewed: 'tripulada', robotic: 'robotica', sample_return: 'muestras', rover: 'rover', impact: 'impacto', candidate: 'candidata' }
   const cat = (c) => CAT[c] || c
+  url('pole_elevation_663'); url('pole_elevation_240') // fallan pronto si faltan
   return {
     global: { w: D.global_elevation.width, h: D.global_elevation.height, alt, alb, albMin: ua.min, albRango: ua.range },
-    polo: { n: D.pole_elevation_663.width, ext: pick(mp, 'extent_m'), paso: pick(mp, 'pixel_m'), alt: polo },
-    polo240: { n: D.pole_elevation_240.width, paso: pick(m2, 'pixel_m'), x0: fx, y0: fy, alt: polo240 },
+    // El polo sur (~4 MB) se baja después del primer dibujo, con prioridad baja: `cargar()` devuelve los bytes comprimidos.
+    polo: { n: D.pole_elevation_663.width, ext: pick(mp, 'extent_m'), paso: pick(mp, 'pixel_m'), cargar: () => bin('pole_elevation_663', { priority: 'low' }) },
+    polo240: { n: D.pole_elevation_240.width, paso: pick(m2, 'pixel_m'), x0: fx, y0: fy, cargar: () => bin('pole_elevation_240', { priority: 'low' }) },
     eph: { inicioUTC: pick(me, 'start_utc'), pasoS: pick(me, 'step_s'), filas: pick(me, 'rows'), d: eph },
     fuentes: Object.keys(meta.provenance).filter((k) => /^sources\.\d+$/.test(k)).sort((a, b) => a.slice(8) - b.slice(8)).map((k) => meta.provenance[k]),
     sitios: {
@@ -317,7 +334,7 @@ async function cargarDatos() {
       })),
     },
     horizontes, iau,
-    g16: meta.assets.gradient16.url, tierra: meta.assets.earth_texture.url,
+    g16, tierra, // promesas de HTMLImageElement ya decodificado
   }
 }
 let DATOS
@@ -416,13 +433,17 @@ function desdelta(bytes, w, h) {
   }
   return out
 }
+performance.mark('datos-descargados')
 const G = DATOS.global, P = DATOS.polo
-const [altG, albG, altP, ephB] = await Promise.all([inflar(G.alt), inflar(G.alb), inflar(P.alt), inflar(DATOS.eph.d)])
+const [altG, albG, ephB] = await Promise.all([inflar(G.alt), inflar(G.alb), inflar(DATOS.eph.d)])
 const HG = desdelta(altG, G.w, G.h)   // km, fila 0 = 90° N, columna 0 = 0° E
 const AG = albG                       // uint8
-const HP = desdelta(altP, P.n, P.n)   // km, estereográfica polar sur
 const P2 = DATOS.polo240
-const HP2 = desdelta(await inflar(P2.alt), P2.n, P2.n) // km, LOLA LDEM_75S_240M sin remuestrear
+// Polo sur: HP (663 m, estereográfica) y HP2 (240 m, LDEM_75S_240M sin remuestrear) llegan DESPUÉS del primer dibujo
+// (cargarPolo). Hasta entonces valen null: altura()/alturaFina() caen a la rejilla global, y lo que de verdad necesita
+// el polo (vista Polo Sur, ficha o clic dentro de 339 km del polo) espera con esperarPolo().
+let HP = null, HP2 = null, poloListo = false
+performance.mark('datos-inflados')
 const PASO2 = P2.paso / 1000, X02 = P2.x0 / 1000, Y02 = P2.y0 / 1000, BORDE2 = -X02 - 0.5
 const EPH = (() => {                  // Sol (x,y,z) y Tierra (x,y,z) unitarios, MOON_ME
   const n = DATOS.eph.filas, d = new Int16Array(ephB.buffer, ephB.byteOffset, n * 6), o = new Float32Array(n * 6)
@@ -461,7 +482,7 @@ function bilP2(x, y) {
 }
 /** Altura con el dato más fino disponible (240 m hasta 195 km del polo): para cifras, no para dibujar. */
 function alturaFina(lat, lon) {
-  if (lat < -82) { const [x, y] = estereo(lat, lon); if (Math.abs(x) < BORDE2 && Math.abs(y) < BORDE2) return { h: bilP2(x, y), polo: true, fino: true } }
+  if (HP2 && lat < -82) { const [x, y] = estereo(lat, lon); if (Math.abs(x) < BORDE2 && Math.abs(y) < BORDE2) return { h: bilP2(x, y), polo: true, fino: true } }
   return altura(lat, lon)
 }
 function pendienteFina(lat, lon) {
@@ -473,7 +494,7 @@ function pendienteFina(lat, lon) {
 }
 /** Altura (km) sobre 1737,4 km y de qué rejilla sale. */
 function altura(lat, lon) {
-  if (lat < -78) { const [x, y, rho] = estereo(lat, lon); if (rho <= RHO_CASQUETE) return { h: bilP(x, y), polo: true } }
+  if (HP && lat < -78) { const [x, y, rho] = estereo(lat, lon); if (rho <= RHO_CASQUETE) return { h: bilP(x, y), polo: true } }
   return { h: bilG(HG, lat, lon), polo: false }
 }
 /** Pendiente (°) por diferencias centradas. */
@@ -575,11 +596,13 @@ globo.castShadow = globo.receiveShadow = true
 scene.add(globo)
 
 // Casquete polar sur: la rejilla estereográfica de ~663 m, en 3D sobre la esfera (sin aplanar).
+// Sus arrays y el gradiente de 240 m se construyen en construirPolo(), cuando llegan HP y HP2 (después del primer dibujo).
 const NP = P.n
 const cGeo = new THREE.BufferGeometry()
-const cPos = new Float32Array(NP * NP * 3), cCol = new Float32Array(cPos.length), cU = new Float32Array(cPos.length)
-const cS = new Float32Array(NP * NP), cLL = new Float32Array(NP * NP * 2), cST = new Float32Array(NP * NP * 2)
-{
+let cPos, cCol, cU, cS, cLL, cST
+function construirPolo() {
+  cPos = new Float32Array(NP * NP * 3); cCol = new Float32Array(cPos.length); cU = new Float32Array(cPos.length)
+  cS = new Float32Array(NP * NP); cLL = new Float32Array(NP * NP * 2); cST = new Float32Array(NP * NP * 2)
   for (let f = 0; f < NP; f++) for (let c = 0; c < NP; c++) {
     const k = f * NP + c, x = -EXT_P + c * PASO_P, y = EXT_P - f * PASO_P, rho = Math.hypot(x, y)
     const lat = -90 + 2 * Math.atan(rho / (2 * R)) / RAD, lon = ((Math.atan2(x, y) / RAD) + 360) % 360
@@ -601,9 +624,7 @@ const cS = new Float32Array(NP * NP), cLL = new Float32Array(NP * NP * 2), cST =
   cGeo.setAttribute('position', new THREE.BufferAttribute(cPos, 3))
   cGeo.setAttribute('color', new THREE.BufferAttribute(cCol, 3))
   cGeo.setAttribute('st', new THREE.BufferAttribute(cST, 2))
-}
-// Gradiente del relieve a 240 m (dh/dx, dh/dy en el plano estereográfico), en media precisión.
-const gradTex = (() => {
+  // Gradiente del relieve a 240 m (dh/dx, dh/dy en el plano estereográfico), en media precisión.
   const n = P2.n, g = new Uint16Array(n * n * 2), aH = THREE.DataUtils.toHalfFloat
   for (let f = 0; f < n; f++) for (let c = 0; c < n; c++) {
     const i = f * n + c
@@ -611,11 +632,12 @@ const gradTex = (() => {
     g[i * 2] = aH((HP2[cp] - HP2[cm]) / (((cp - cm) || 1) * PASO2))
     g[i * 2 + 1] = aH((HP2[fm] - HP2[fp]) / ((((fp - fm) / n) || 1) * PASO2))
   }
-  const t = new THREE.DataTexture(g, n, n, THREE.RGFormat, THREE.HalfFloatType)
-  t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true
-  return t
-})()
-const uniCasq = { uGrad: { value: gradTex }, uExag: { value: 1 }, uN: { value: P2.n }, uPaso: { value: PASO2 }, uX0: { value: X02 }, uY0: { value: Y02 }, uBorde: { value: BORDE2 }, uR: { value: R } }
+  const gradTex = new THREE.DataTexture(g, n, n, THREE.RGFormat, THREE.HalfFloatType)
+  gradTex.magFilter = gradTex.minFilter = THREE.LinearFilter; gradTex.needsUpdate = true
+  uniCasq.uGrad.value = gradTex
+  scene.add(casquete)
+}
+const uniCasq = { uGrad: { value: null }, uExag: { value: 1 }, uN: { value: P2.n }, uPaso: { value: PASO2 }, uX0: { value: X02 }, uY0: { value: Y02 }, uBorde: { value: BORDE2 }, uR: { value: R } }
 const materialCasquete = material.clone()
 materialCasquete.onBeforeCompile = (sh) => {
   Object.assign(sh.uniforms, uniCasq)
@@ -649,13 +671,14 @@ const casquete = new THREE.Mesh(cGeo, materialCasquete)
 
 // Globo: normales del gradiente LDEM_16 (WebP gris de 5760 x 5760; arriba pendiente al este, abajo al norte, ±30°).
 const tex16 = await (async () => {
-  const img = new Image(); img.src = DATOS.g16; await img.decode()
+  const img = await DATOS.g16
   const t = new THREE.Texture(img)
   t.flipY = false; t.format = THREE.RedFormat; t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping
   t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true
   t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.needsUpdate = true
   return t
 })()
+performance.mark('textura-g16')
 const materialGlobo = material.clone()
 materialGlobo.onBeforeCompile = (sh) => {
   Object.assign(sh.uniforms, { uG16: { value: tex16 }, uExag: uniCasq.uExag })
@@ -678,14 +701,13 @@ materialGlobo.onBeforeCompile = (sh) => {
 }`)
 }
 globo.material = materialGlobo
-casquete.castShadow = casquete.receiveShadow = true
-scene.add(casquete)
+casquete.castShadow = casquete.receiveShadow = true // se añade a la escena en construirPolo()
 
 // Sol y Tierra en su dirección real y con su tamaño angular real (0,533° y ~1,9°).
 const DIST_CIELO = 20000
 const RADIO_TIERRA_VISTA = DIST_CIELO * Math.tan(0.95 * RAD) // ~1,9° de diámetro, como se ve desde la Luna
 const texTierra = await (async () => {
-  const img = new Image(); img.src = DATOS.tierra; await img.decode()
+  const img = await DATOS.tierra
   const t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.needsUpdate = true
   return t
 })()
@@ -749,23 +771,66 @@ function construirRelieve() {
   }
   globoGeo.attributes.position.needsUpdate = true
   globoGeo.computeVertexNormals()
+  globoGeo.computeBoundingSphere()
+  relievePolo()
+  colocarMarcas()
+  pedir(true)
+}
+function relievePolo() {
+  if (!HP) return
   for (let k = 0; k < HP.length; k++) {
-    const r = R + HP[k] * e
+    const r = R + HP[k] * exag
     cPos[k * 3] = cU[k * 3] * r; cPos[k * 3 + 1] = cU[k * 3 + 1] * r; cPos[k * 3 + 2] = cU[k * 3 + 2] * r
   }
   cGeo.attributes.position.needsUpdate = true
   cGeo.computeVertexNormals()
-  globoGeo.computeBoundingSphere(); cGeo.computeBoundingSphere()
-  colocarMarcas()
-  pedir(true)
+  cGeo.computeBoundingSphere()
+}
+const fijarColor = (arr, k, c) => { arr[k * 3] = lin(c[0]); arr[k * 3 + 1] = lin(c[1]); arr[k * 3 + 2] = lin(c[2]) }
+function pintarPolo() {
+  if (!HP) return
+  for (let k = 0; k < HP.length; k++) fijarColor(cCol, k, colorDe(modoColor, cLL[k * 2], cLL[k * 2 + 1], HP[k], cS[k]))
+  cGeo.attributes.color.needsUpdate = true
 }
 function pintar() {
-  const set = (arr, k, c) => { arr[k * 3] = lin(c[0]); arr[k * 3 + 1] = lin(c[1]); arr[k * 3 + 2] = lin(c[2]) }
-  for (let k = 0; k < gH.length; k++) set(gCol, k, colorDe(modoColor, gLL[k * 2], gLL[k * 2 + 1], gH[k], gS[k]))
-  for (let k = 0; k < HP.length; k++) set(cCol, k, colorDe(modoColor, cLL[k * 2], cLL[k * 2 + 1], HP[k], cS[k]))
-  globoGeo.attributes.color.needsUpdate = true; cGeo.attributes.color.needsUpdate = true
+  for (let k = 0; k < gH.length; k++) fijarColor(gCol, k, colorDe(modoColor, gLL[k * 2], gLL[k * 2 + 1], gH[k], gS[k]))
+  globoGeo.attributes.color.needsUpdate = true
+  pintarPolo()
   leyenda()
   pedir(true)
+}
+
+// ---------------------------------------------------------------- polo sur diferido
+// HP/HP2 se piden tras el primer dibujo (cargarPolo). Quien los necesita de verdad espera con esperarPolo().
+let poloPromesa = null
+const cargaEl = document.getElementById('carga'), cargaPadre = cargaEl.parentNode
+function cargarPolo() {
+  poloPromesa ??= (async () => {
+    const [a, b] = await Promise.all([P.cargar().then(inflar), P2.cargar().then(inflar)])
+    HP = desdelta(a, P.n, P.n); HP2 = desdelta(b, P2.n, P2.n)
+    construirPolo()
+    poloListo = true
+    // Todo lo que se calculó con la rejilla global mientras tanto se rehace con la fina.
+    relievePolo(); pintarPolo()
+    for (const s of SITIOS) s.h = altura(s.lat, s.lon).h
+    colocarMarcas(); claveAnillos = ''
+    if (propio) propio.pos = unit(propio.lat, propio.lon).multiplyScalar(R + altura(propio.lat, propio.lon).h * exag + 0.05)
+    if (fichaActual) mostrarFicha(fichaActual, true)
+    performance.mark('polo-listo')
+    pedir(true)
+  })().catch((e) => { poloPromesa = null; throw e })
+  return poloPromesa
+}
+/** Ejecuta fn cuando el polo esté listo; si aún no lo está, muestra el texto de carga hasta entonces. */
+function esperarPolo(fn) {
+  if (poloListo) return fn()
+  cargaEl.querySelector('span').textContent = t('cargando')
+  cargaPadre.appendChild(cargaEl)
+  cargarPolo().then(() => { cargaEl.remove(); fn() }, (e) => {
+    console.error(e)
+    cargaEl.querySelector('div').innerHTML = '<p style="max-width:32rem;padding:1rem;text-align:center">Could not load the south pole data. Reload to retry.</p>'
+    cargaEl.addEventListener('click', () => cargaEl.remove(), { once: true })
+  })
 }
 
 // ---------------------------------------------------------------- tiempo y luz
@@ -1038,6 +1103,7 @@ function irGlobo(dir) {
   controls.maxPolarAngle = Math.PI
 }
 function irSitio(lat, lon, dist, inclin = [0.75, 0.66]) {
+  if (lat < -78 && !poloListo) return esperarPolo(() => { if (vista === 'polo') irSitio(lat, lon, dist, inclin) })
   const up = unit(lat, lon), h = altura(lat, lon).h
   const o = up.clone().multiplyScalar(R + h * exag)
   // Norte arriba en pantalla; en el polo sur, 0° E arriba (como los mapas polares de LROC).
@@ -1152,6 +1218,7 @@ function mostrarFicha(f, refrescar) {
     nota = `<p class="nota">${t('centroSol')}</p>`
     acciones = `<div class="acciones"><button class="prim" data-acc="ir">${t('ir')}</button></div>`
   }
+  if (lat < -78 && !poloListo) { esperarPolo(() => { if (fichaActual === f) mostrarFicha(f, refrescar) }); return } // elevación y pendiente polares piden el polo
   const a = alturaFina(lat, lon), p = pendienteFina(lat, lon)
   F.innerHTML = `<button class="cerrar" aria-label="${t('quitar')}" data-acc="cerrar">×</button>${cab}
     <dl>${extra}<dt>${t('coords')}</dt><dd>${fmtLat(lat)}, ${fmtLon(lon)}</dd>
@@ -1367,14 +1434,17 @@ function cuadro(now) {
 // ---------------------------------------------------------------- inicio
 seg('vistas', 'vista', vista); seg('colores', 'color', modoColor); seg('luces', 'luz', modoLuz); seg('velocidad', 'vel', velocidad)
 $('anioV').textContent = filtro.anio
+performance.mark('ui-lista')
 fijarExag(6)
 pintar()
 textos()
 tamano()
 irGlobo(unit(10, 20))
-$('carga').remove()
+cargaEl.remove()
 requestAnimationFrame(cuadro)
-window.__mapa = { THREE, renderer, ajustarLuz, proyectarMarcas, camera, controls, scene, SITIOS, IAU, altura, pendiente, alturaFina, pendienteFina, cielo, estereo, seleccionar, irPolo, irGlobo, set fecha(ms) { ahoraMs = ms; actualizarTiempo() } }
+// Tras el primer dibujo se baja el polo sur (~4 MB, prioridad baja).
+requestAnimationFrame(() => requestAnimationFrame(() => { performance.mark('primer-dibujo'); cargarPolo().catch((e) => console.error(e)) }))
+window.__mapa = { cargarPolo, get poloListo() { return poloListo }, THREE, renderer, ajustarLuz, proyectarMarcas, camera, controls, scene, SITIOS, IAU, altura, pendiente, alturaFina, pendienteFina, cielo, estereo, seleccionar, irPolo, irGlobo, set fecha(ms) { ahoraMs = ms; actualizarTiempo() } }
 </script>
 </body>
 </html>
