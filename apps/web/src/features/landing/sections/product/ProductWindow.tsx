@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react"
 import { software as copy } from "../../content"
 import { Reveal } from "../Reveal"
 import { CalendarView } from "./CalendarView"
 import { CompareView } from "./CompareView"
+import { HorizonScene } from "./HorizonScene"
 import { LanderView } from "./LanderView"
 import { LearnView } from "./LearnView"
 import { MapView } from "./MapView"
-import { NightSky, STARS_FROM, starsAt } from "./NightSky"
 import { PlanBView } from "./PlanBView"
 import { darkness, type HeightId, LAST, sky } from "./sky"
 import "./product.css"
@@ -24,7 +24,8 @@ const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1)
  * No lleva barra propia: el selector de vistas va encima, con los controles de la página. En la vista Lander toda
  * la pantalla sigue al Sol del sitio: papel mientras está a la vista, cada vez más oscura según se acerca la puesta
  * y negra cuando se oculta; al acercarse la salida vuelve a aclarar. Solo ocurre con la ventana en pantalla: al
- * seguir bajando, la página recupera el papel. De noche, detrás de todo, aparece el cielo (`NightSky`).
+ * seguir bajando, la página recupera el papel. Detrás de la vista va el horizonte del sitio (`HorizonScene`): el
+ * Sol rasante se esconde tras el relieve justo cuando la cuenta cambia.
  */
 export function ProductWindow() {
   const [tab, setTab] = useState<Tab>("lander")
@@ -96,8 +97,6 @@ export function ProductWindow() {
       // La tinta cambia de oscura a clara en un tramo corto a mitad del fundido.
       const ink = clamp01((value - 0.5) / 0.1)
       root.style.setProperty("--night-text", (ink * ink * (3 - 2 * ink)).toFixed(3))
-      // Las estrellas asoman al final del anochecer y están todas cuando el Sol ya se ha puesto.
-      root.style.setProperty("--stars", starsAt(value).toFixed(3))
     }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       state.shown = night
@@ -128,9 +127,13 @@ export function ProductWindow() {
       state.raf = 0
       root?.style.removeProperty("--night")
       root?.style.removeProperty("--night-text")
-      root?.style.removeProperty("--stars")
     }
   }, [])
+
+  // La escena de fondo lee la hora de aquí cuadro a cuadro, sin volver a pintar React.
+  const clock = useRef(t)
+  clock.current = t
+  const scene = tab === "lander" ? presence : 0
 
   const take = useCallback((value: number) => {
     touched.current = true
@@ -143,8 +146,9 @@ export function ProductWindow() {
   }
 
   return (
-    <section className="ln-sec" id="software">
-      <NightSky level={shade} active={night > STARS_FROM - 0.06} />
+    // `--scene` dice cuánto se ve el horizonte de fondo: entra con la ventana y solo en la vista Lander.
+    <section className="ln-sec" id="software" style={{ "--scene": scene } as CSSProperties}>
+      <HorizonScene time={clock} horizon={sky[height].horizon} sunWindows={sky[height].windows.sun} level={shade} active={scene > 0} />
       <div className="ln-wrap">
         <Reveal as="h2" className="ln-title" wipe>
           {copy.title}

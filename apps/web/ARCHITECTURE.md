@@ -16,7 +16,7 @@ src/
         product/           La ventana del producto: las pantallas del software funcionando con datos reales.
                            ProductWindow.tsx es el marco (selector de vistas, tiempo compartido, día y noche) y
                            cada vista es un archivo: Lander, Compare, Calendar, Map, PlanB y Learn. PolarSky.tsx
-                           dibuja el cielo en polar, Timeline.tsx las ventanas, NightSky.tsx el cielo de noche y
+                           dibuja el cielo en polar, Timeline.tsx las ventanas, HorizonScene.tsx el horizonte de fondo y
                            sky.ts lee los datos
       flight/              El vuelo sobre el polo sur: un escenario fijo que el scroll recorre
         FlightStage.tsx    Escenario: lienzo, texto de las escenas, riel, tablero y scroll (GSAP ScrollTrigger)
@@ -124,11 +124,15 @@ Map, Plan B y Learn, con el diseño de las pantallas del producto.
   (`.ln` en `landing.css`; la paleta de noche está en `styles/tokens.css`). Solo ocurre con la ventana en pantalla:
   al seguir bajando, la página vuelve al papel. El vuelo conserva siempre los colores de día, porque su lienzo se
   dibuja con ellos.
-- **El cielo de noche** (`NightSky.tsx`): cuando es de noche aparecen, detrás de toda la sección, estrellas en tres
-  profundidades y una galaxia en espiral que gira despacio. Las capas cercanas se mueven más que las lejanas con el
-  puntero y con el scroll (parallax) y de vez en cuando cruza una estrella fugaz. Es decoración, no dato: los
-  puntos se reparten con una semilla fija. Se dibuja en un lienzo 2D solo mientras hay noche, y con "reducir
-  movimiento" se queda quieto.
+- **El horizonte de fondo** (`HorizonScene.tsx`): detrás de la vista Lander va lo que vería una persona de pie en
+  el sitio. El Sol solo aparece en el cambio: en las 40 horas previas a la puesta baja, grande y en el centro, con
+  su resplandor sobre el horizonte, hasta hundirse tras la cresta justo cuando la cuenta pasa a "Sunrise in"; al
+  amanecer sale igual y se desvanece al subir. El resto del día la página queda limpia y de noche quedan las
+  estrellas. El relieve es el horizonte real de Connecting Ridge en capas (montañas lejanas y cresta cercana, de
+  `sections/data/horizon.json`, más un suelo decorativo) y cada capa se mueve distinto con el puntero y con el
+  scroll (parallax). No es una simulación: en el polo el Sol real se desliza casi a ras del horizonte y su disco
+  es mucho más pequeño; lo exacto son el relieve y las horas. Con el fondo visible la ventana se vuelve casi
+  transparente. Se dibuja en un lienzo 2D, a 30 cuadros por segundo y solo si algo cambió.
 - **La vista Lander cabe entera en la pantalla** (desde 900 px de ancho): el bloque central toma el alto que queda
   libre y el cielo y las cifras se miden contra él (`cqh`). La nota de la vista va debajo de la ventana, como pie.
 - **Colores de dato:** el Sol va en el rojo de señal y la Tierra en azul (`--earth`), solo dentro de las figuras.

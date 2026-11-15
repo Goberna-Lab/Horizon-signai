@@ -445,4 +445,58 @@ console.log(`plan B: base ${JSON.stringify(cr.ground)}`)
 console.log(`        esperar un mes ${JSON.stringify(producto.planB.wait.figures)} desde ${producto.planB.wait.startUTC}`)
 
 // La copia temporal del motor ya no hace falta.
+// --- 7. El horizonte del sitio destacado en capas, para la vista "desde el suelo" de la ventana del software ----
+// Lo que tapa el cielo en cada rumbo, separado por distancia: el relieve cercano, el intermedio y el lejano. Es
+// la misma geometría que usa el motor para el horizonte de un punto del polo (`mascaraPolar`, esfera exacta), aquí
+// con el máximo de cada tramo en vez de la envolvente completa. Sale del relieve de 240 m: sirve para dibujar las
+// capas; el horizonte que decide si el Sol se ve sigue siendo el detallado de `sky.json`.
+const RAD = Math.PI / 180
+const R_M = 1_737_400
+const CORTES_M = [1_500, 12_000]
+function capasDelHorizonte(lat: number, lon: number): number[][] {
+  const f = lat * RAD
+  const l = lon * RAD
+  const u = [Math.cos(f) * Math.cos(l), Math.cos(f) * Math.sin(l), Math.sin(f)]
+  const este = [-Math.sin(l), Math.cos(l), 0]
+  const norte = [-Math.sin(f) * Math.cos(l), -Math.sin(f) * Math.sin(l), Math.cos(f)]
+  const [xs, ys] = estereoSur(lat, lon)
+  const h0 = alturaPolar(dem, xs, ys)
+  const capas = CORTES_M.map(() => new Array<number>(360).fill(-90)).concat([new Array<number>(360).fill(-90)])
+  for (let az = 0; az < 360; az++) {
+    const a = az * RAD
+    const d = [Math.cos(a) * norte[0] + Math.sin(a) * este[0], Math.cos(a) * norte[1] + Math.sin(a) * este[1], Math.cos(a) * norte[2]]
+    // Pasos de 120 m cerca (medio píxel del relieve) que crecen con la distancia, hasta 150 km.
+    for (let dist = 120; dist <= 150_000; dist += Math.max(120, dist * 0.012)) {
+      const t = dist / R_M
+      const px = Math.cos(t) * u[0] + Math.sin(t) * d[0]
+      const py = Math.cos(t) * u[1] + Math.sin(t) * d[1]
+      const pz = Math.cos(t) * u[2] + Math.sin(t) * d[2]
+      const h = alturaPolar(dem, (2 * R_M * py) / (1 - pz), (2 * R_M * px) / (1 - pz))
+      if (Number.isNaN(h)) break
+      const elevacion = Math.atan2((R_M + h) * Math.cos(t) - (R_M + h0), (R_M + h) * Math.sin(t)) / RAD
+      const capa = dist < CORTES_M[0] ? 0 : dist < CORTES_M[1] ? 1 : 2
+      if (elevacion > capas[capa][az]) capas[capa][az] = elevacion
+    }
+  }
+  return capas
+}
+const capas = capasDelHorizonte(destacado.latitudGrados, destacado.longitudEsteGrados)
+// Comprobación: el máximo de las tres capas tiene que coincidir con el horizonte que da el motor sobre el mismo relieve.
+const perfilPolar = perfilDesde(mascaraPolar(dem, destacado.latitudGrados, destacado.longitudEsteGrados), 0)
+let desvio = 0
+for (let az = 0; az < 360; az++) desvio = Math.max(desvio, Math.abs(Math.max(capas[0][az], capas[1][az], capas[2][az]) - horizonteEn(perfilPolar, az)))
+if (desvio > 0.35) throw new Error(`Las capas del horizonte no coinciden con el motor: ${desvio.toFixed(2)}° de diferencia`)
+const horizonteEnCapas = {
+  source: "LRO LOLA LDEM_75S_240M, same geometry as the engine's polar horizon. For drawing only: the horizon that decides visibility is the detailed one in sky.json.",
+  site: { id: cr.id, name: cr.name },
+  bandsKm: CORTES_M.map((m) => m / 1000),
+  // Elevación del relieve en cada rumbo (grados), un valor por grado: hasta 1,5 km, de 1,5 a 12 km y más lejos.
+  near: capas[0].map(r2),
+  mid: capas[1].map(r2),
+  far: capas[2].map(r2),
+}
+writeFileSync(join(FIGURAS, "horizon.json"), JSON.stringify(horizonteEnCapas))
+const extremos = (v: number[]) => `${Math.min(...v).toFixed(1)}..${Math.max(...v).toFixed(1)}`
+console.log(`horizon.json: cerca ${extremos(capas[0])}°, medio ${extremos(capas[1])}°, lejos ${extremos(capas[2])}°; diferencia con el motor ${desvio.toFixed(2)}°`)
+
 rmSync(tmp, { recursive: true, force: true })

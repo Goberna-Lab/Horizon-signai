@@ -37,11 +37,12 @@
   color: var(--paper);
 }
 
-/* --- Cielo de noche --------------------------------------------------------------------------------------------- */
+/* --- El horizonte de fondo -------------------------------------------------------------------------------------- */
 
 /*
- * Las estrellas y la galaxia (NightSky.tsx) van detrás de toda la sección y ocupan la pantalla entera: el lienzo
- * se queda fijo mientras la página pasa por encima. `--stars` va de 0 a 1 con el final del anochecer.
+ * La vista desde el sitio (HorizonScene.tsx) va detrás de toda la sección y ocupa la pantalla entera: el lienzo se
+ * queda fijo mientras la página pasa por encima. `--scene` (de 0 a 1) lo pone ProductWindow: entra con la ventana
+ * en pantalla y solo en la vista Lander.
  */
 .sw-sky {
   position: absolute;
@@ -49,7 +50,8 @@
   z-index: 0;
   overflow: clip;
   pointer-events: none;
-  opacity: var(--stars, 0);
+  opacity: var(--scene, 0);
+  transition: opacity 500ms;
 }
 
 .sw-sky canvas {
@@ -89,8 +91,9 @@
   --sw-on-terrain: color-mix(in srgb, rgb(244 239 230 / 0.82) calc(var(--night-text) * 100%), var(--paper-day));
   --sw-pad: clamp(16px, 2.2vw, 32px);
   border: 1.5px solid var(--sw-ink);
-  /* De noche el fondo se vuelve casi transparente: la vista flota sobre el cielo. */
-  background: color-mix(in srgb, var(--sw-bg) calc((1 - 0.88 * var(--stars, 0)) * 100%), transparent);
+  /* Con el horizonte de fondo la ventana se vuelve casi transparente: la vista flota sobre el paisaje. */
+  background: color-mix(in srgb, var(--sw-bg) calc((1 - 0.9 * var(--scene, 0)) * 100%), transparent);
+  transition: background-color 500ms;
   color: var(--sw-ink);
   font-family: var(--font-display);
 }
@@ -1489,7 +1492,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sw-views button {
+  .sw-views button,
+  .sw-sky,
+  .sw {
     transition: none;
   }
 }

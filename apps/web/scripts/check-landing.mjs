@@ -64,7 +64,7 @@ try {
   const date = page.locator(".sw-lander__date")
   const counts = () => page.locator(".sw-count").allInnerTexts().then((v) => v.join(" | ").replace(/\n/g, " "))
   const started = await date.textContent()
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(3000)
   check("time advances on its own", started !== (await date.textContent()))
 
   await page.locator(".sw-play").click()
@@ -76,7 +76,7 @@ try {
   /** Pulsa la línea de tiempo en una fracción del día lunar. Antes la trae a pantalla: un clic fuera no llega. */
   const clickTimeline = async (fraction) => {
     await plot.evaluate((el) => el.scrollIntoView({ block: "center" }))
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(1200)
     const box = await plot.boundingBox()
     await page.mouse.click(box.x + box.width * fraction, box.y + 10)
   }
@@ -122,7 +122,7 @@ try {
   /** Mueve el tiempo a una fracción del día lunar y devuelve la oscuridad de la ventana (0 día, 1 noche) y su fondo. */
   const shadeAt = async (fraction) => {
     await clickTimeline(fraction)
-    await page.waitForTimeout(900)
+    await page.waitForTimeout(1600)
     return page.locator(".ln").evaluate((el) => ({
       night: Number(el.style.getPropertyValue("--night")),
       background: getComputedStyle(el).backgroundColor,
@@ -140,19 +140,28 @@ try {
   check("dusk: the page darkens as sunset approaches", dusk.night > 0.2 && dusk.night < 0.95 && luminance(dusk.background) < luminance(day.background) - 0.1 && /sunset/i.test(dusk.label), JSON.stringify(dusk))
   const dark = await shadeAt(0.85)
   check("night: the whole page is black once the Sun has set", dark.night === 1 && luminance(dark.background) < 0.12 && luminance(dark.bar) < 0.12 && /sunrise/i.test(dark.label), JSON.stringify(dark))
-  const starsLit = () =>
+  /** Lo que hay dibujado en el horizonte de fondo: relieve, el rojo del Sol y estrellas. */
+  const sceneNow = () =>
     page.locator(".sw-sky canvas").evaluate((canvas) => {
       const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data
-      let lit = 0
-      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 40) lit++
-      return { lit, shown: Number(getComputedStyle(canvas.parentElement).opacity) }
+      let drawn = 0
+      let sun = 0
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] < 40) continue
+        drawn++
+        if (pixels[i] > 235 && pixels[i + 1] > 70 && pixels[i + 1] < 235 && pixels[i + 2] < 160 && pixels[i + 3] > 240) sun++
+      }
+      return { drawn, sun, shown: Number(getComputedStyle(canvas.parentElement).opacity) }
     })
-  const nightSky = await starsLit()
-  check("night: the starry sky is drawn behind the page", nightSky.shown === 1 && nightSky.lit > 300, JSON.stringify(nightSky))
+  const nightScene = await sceneNow()
+  check("night: the Sun is hidden behind the horizon", nightScene.shown > 0.9 && nightScene.drawn > 5000 && nightScene.sun < 200, JSON.stringify(nightScene))
   await shot("lander-night")
+  await shadeAt(0.672)
+  const duskScene = await sceneNow()
+  check("dusk: the setting Sun is on the horizon", duskScene.shown > 0.9 && duskScene.sun > 800, JSON.stringify(duskScene))
   await shadeAt(0.4)
-  const daySky = await starsLit()
-  check("day: no stars", daySky.shown === 0, JSON.stringify(daySky))
+  const dayScene = await sceneNow()
+  check("day: no Sun far from sunrise and sunset", dayScene.sun < 200, JSON.stringify(dayScene))
   await page.getByRole("tab", { name: "Compare", exact: true }).click()
   await page.waitForTimeout(1500)
   const other = await page.locator(".ln").evaluate((el) => Number(el.style.getPropertyValue("--night")))
