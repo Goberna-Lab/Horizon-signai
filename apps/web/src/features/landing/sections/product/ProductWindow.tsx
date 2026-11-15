@@ -29,7 +29,8 @@ const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1)
  * Sol rasante se esconde tras el relieve justo cuando la cuenta cambia.
  */
 export function ProductWindow() {
-  const [tab, setTab] = useState<Tab>("lander")
+  // La ventana abre en "Compare sites": la comparación de sitios es lo primero que se ve.
+  const [tab, setTab] = useState<Tab>("compare")
   const [height, setHeight] = useState<HeightId>("ground")
   const [t, setT] = useState(11 * 24)
   const [playing, setPlaying] = useState(false)

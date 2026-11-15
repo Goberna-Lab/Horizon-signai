@@ -6,12 +6,13 @@ import "lenis/dist/lenis.css"
 import { tr } from "@/shared/i18n"
 import { lang, setLang, type Lang } from "@/shared/i18n"
 import { brand, chooseLanguage, hud, loading, missionLog, opening, scenes } from "../content"
-import type { FlightHandle, LoadStep } from "./createFlight"
+import type { FlightHandle, LoadStep, SiteInfo } from "./createFlight"
 import type { Flight, ScreenPoint } from "./engine/renderer"
 import type { Frame } from "./engine/story"
 import { at, horizonAt, sky, span, stamp, stateOf } from "../sections/product/sky"
 import poster from "./data/poster.webp"
 import { MissionLog } from "./MissionLog"
+import { MissionPoints, PointDetail, pointMissions } from "./MissionPoints"
 import { ScenePanel } from "./ScenePanel"
 import { HERO_DAY, STOPS, SUNRISE_FROM } from "./stops"
 import "./flight.css"
@@ -28,6 +29,44 @@ const LEG_VH = 150
  */
 /** La parada de la bitácora de misiones. */
 const MISSION_STOP = scenes.findIndex((scene) => scene.id === "missions")
+/** La parada de los tres puntos de la misión elegida. */
+const POINTS_STOP = scenes.findIndex((scene) => scene.id === "points")
+
+/**
+ * Coloca la parada de los puntos sobre los de la misión: mira al centro de los tres desde lejos e inclinada (como la
+ * vista de Connecting Ridge), de lado al eje de los puntos y a la distancia que los deja bien separados en pantalla.
+ */
+function aimPoints(handle: FlightHandle, missionId: string, pointIndex: number) {
+  const mission = pointMissions.find((m) => m.id === missionId)
+  const sites = mission?.points.map((id) => handle.sites[id]).filter(Boolean) ?? []
+  if (sites.length === 0) return
+  const cx = sites.reduce((sum, site) => sum + site.xKm, 0) / sites.length
+  const cy = sites.reduce((sum, site) => sum + site.yKm, 0) / sites.length
+  // Los dos puntos más alejados entre sí marcan el eje: la cámara lo mira de lado, así cruza la pantalla de un lado
+  // a otro en vez de quedar en profundidad (donde los puntos se juntan).
+  let axis = [0, 1]
+  let diameter = 0
+  for (const a of sites)
+    for (const b of sites) {
+      const d = Math.hypot(b.xKm - a.xKm, b.yKm - a.yKm)
+      if (d > diameter) {
+        diameter = d
+        axis = [b.xKm - a.xKm, b.yKm - a.yKm]
+      }
+    }
+  const bearing = (Math.atan2(axis[0], axis[1]) * 180) / Math.PI + 90
+  // Cerca y con el campo abierto: el relieve se ve de cerca y los tres puntos siguen cabiendo, bien separados.
+  handle.flight.updateStop(POINTS_STOP, { at: [cx, cy], distance: Math.max(diameter * 0.9, 16), tilt: 56, bearing, fov: 50 })
+  aimPoint(handle, missionId, pointIndex, bearing)
+}
+
+/** La parada de cerca, sobre el punto elegido: el mismo rumbo, para que acercarse sea seguir bajando hacia él. */
+function aimPoint(handle: FlightHandle, missionId: string, index: number, bearing?: number) {
+  const mission = pointMissions.find((m) => m.id === missionId)
+  const site = mission ? handle.sites[mission.points[index]] : undefined
+  if (!site) return
+  handle.flight.updateStop(POINTS_STOP + 1, { at: [site.xKm, site.yKm], distance: 7, tilt: 62, fov: 40, ...(bearing === undefined ? {} : { bearing }) })
+}
 /**
  * Las misiones de la bitácora, agrupadas por sitio: una marca por sitio, con los códigos de sus misiones. Vistos desde
  * arriba los sitios del polo quedan a pocos píxeles: cada rótulo tiene su lado fijo para no pisarse con los vecinos.
@@ -172,6 +211,40 @@ export function FlightStage() {
   const [askLang, setAskLang] = useState(false)
   /** La misión de la bitácora bajo el puntero: su marca sobre el terreno se resalta. */
   const [focusMission, setFocusMission] = useState<string | null>(null)
+  /** La misión elegida en la bitácora: la parada de los puntos enseña los suyos. */
+  const [selectedMission, setSelectedMission] = useState(pointMissions[0]?.id ?? "")
+  const selectedRef = useRef(selectedMission)
+  /** El punto elegido de esa misión: la parada de cerca vuela a él (solo a él). */
+  const [chosenPoint, setChosenPoint] = useState(0)
+  const chosenRef = useRef(0)
+  /** El punto bajo el puntero (en el panel o en el terreno). */
+  const [focusPoint, setFocusPoint] = useState<string | null>(null)
+  /** Las cifras de los sitios, cuando la lámina ya está cargada. */
+  const [sites, setSites] = useState<Record<string, SiteInfo> | null>(null)
+  const handleRef = useRef<FlightHandle | null>(null)
+  /** Vuela a una parada del vuelo (lo pone el efecto del vuelo). */
+  const goToStop = useRef<(index: number) => void>(() => {})
+
+  // Al cambiar de misión, la parada de los puntos se coloca sobre los suyos.
+  useEffect(() => {
+    selectedRef.current = selectedMission
+    chosenRef.current = 0
+    setChosenPoint(0)
+    if (handleRef.current) aimPoints(handleRef.current, selectedMission, 0)
+  }, [selectedMission])
+
+  /** Elegir un punto: la parada de cerca se coloca sobre él y el vuelo va directo (es la parada siguiente). */
+  const pickPoint = (index: number) => {
+    chosenRef.current = index
+    setChosenPoint(index)
+    if (handleRef.current) aimPoint(handleRef.current, selectedRef.current, index)
+    goToStop.current(POINTS_STOP + 1)
+  }
+
+  const selectMission = (id: string, fly: boolean) => {
+    setSelectedMission(id)
+    if (fly) goToStop.current(POINTS_STOP)
+  }
   const limbEl = useRef<HTMLDivElement>(null)
   const statusEl = useRef<HTMLDivElement>(null)
   const cellEls = useRef<Record<string, HTMLElement | null>>({})
@@ -542,6 +615,20 @@ export function FlightStage() {
       // Las misiones de la bitácora, en sus sitios, mientras se ve esa parada.
       const missions = clamp01(1 - Math.abs(state.p - MISSION_STOP) / 0.45)
       for (const entry of MISSION_SITES) placeMark(`m:${entry.site}`, flight.project(handle.points[entry.site], point), missions)
+      // Los tres puntos de la misión elegida en su parada; de cerca, solo el elegido (resaltado).
+      const all = clamp01(1 - Math.abs(state.p - POINTS_STOP) / 0.45)
+      const close = clamp01(1 - Math.max(POINTS_STOP - state.p, state.p - (POINTS_STOP + 1), 0) / 0.45)
+      const chosen = pointMissions.find((m) => m.id === selectedRef.current)
+      chosen?.points.forEach((id, n) => {
+        const mine = n === chosenRef.current
+        placeMark(`p${n}`, flight.project(handle!.points[id], point), mine ? close : all)
+        const el = markEls.current[`p${n}`]
+        const here = mine && state.p > POINTS_STOP + 0.5
+        if (el && (el.dataset.here !== undefined) !== here) {
+          if (here) el.dataset.here = ""
+          else delete el.dataset.here
+        }
+      })
     }
 
     /** El scroll fija el punto de la ruta; de ahí salen el texto visible, el riel y la cámara. */
@@ -676,6 +763,22 @@ export function FlightStage() {
         },
       })
     }
+    // Ir a una parada desde la página (al elegir una misión en la bitácora), con el mismo recorrido que la rueda.
+    goToStop.current = (index: number) => {
+      const top = root.offsetTop
+      const span = root.offsetHeight - window.innerHeight
+      stepping = true
+      lenis.scrollTo(top + (index / LAST) * span, {
+        duration: STEP.duration,
+        easing: easeInOut,
+        lock: true,
+        force: true,
+        onComplete: () => {
+          stepping = false
+          lastWheel = performance.now()
+        },
+      })
+    }
     // En captura, antes que Lenis: así la rueda no se suma al recorrido.
     document.addEventListener("wheel", onWheel, { passive: false, capture: true })
     // Un solo reloj para todo: primero avanza el scroll y después se dibuja la escena, una vez por cuadro.
@@ -754,6 +857,9 @@ export function FlightStage() {
           return
         }
         handle = created
+        handleRef.current = created
+        setSites(created.sites)
+        aimPoints(created, selectedRef.current, chosenRef.current)
         if (import.meta.env.DEV) (window as unknown as { __flight?: FlightHandle }).__flight = created
         resize()
         apply()
@@ -1030,6 +1136,25 @@ export function FlightStage() {
                 <span className="fl-mark__label">{entry.ids.join(" · ")}</span>
               </div>
             ))}
+            {pointMissions
+              .find((m) => m.id === selectedMission)
+              ?.points.map((id, n) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="fl-mark fl-mark--plan"
+                  aria-label={`${n + 1} · ${sites?.[id]?.name ?? id}`}
+                  data-focus={focusPoint === id ? "" : undefined}
+                  data-side={n === 1 ? "left" : "right"}
+                  onClick={() => pickPoint(n)}
+                  onPointerEnter={() => setFocusPoint(id)}
+                  onPointerLeave={() => setFocusPoint(null)}
+                  ref={(el) => void (markEls.current[`p${n}`] = el)}
+                >
+                  <i className="fl-mark__num">{n + 1}</i>
+                  <span className="fl-mark__label">{sites?.[id]?.name ?? id}</span>
+                </button>
+              ))}
             {MARKS.map((mark) => (
               <div key={mark.id} className="fl-mark fl-mark--point" data-side={mark.side} ref={(el) => void (markEls.current[mark.id] = el)}>
                 <i className="fl-mark__cross" />
@@ -1094,7 +1219,21 @@ export function FlightStage() {
 
           {rest.map((scene, i) => (
             <article key={scene.id} className="fl-scene fl-scene--panel" data-scene={scene.id} id={`scene-${scene.id}`} ref={(el) => void (sceneEls.current[i + 1] = el)}>
-              {scene.id === "missions" ? <MissionLog scene={scene} onFocus={setFocusMission} /> : <ScenePanel scene={scene} open={mode === "static"} />}
+              {scene.id === "missions" ? (
+                <MissionLog scene={scene} selected={selectedMission} onFocus={setFocusMission} onSelect={(id) => selectMission(id, true)} />
+              ) : scene.id === "points" ? (
+                <MissionPoints
+                  selected={selectedMission}
+                  sites={sites}
+                  onSelect={(id) => selectMission(id, false)}
+                  onFocus={setFocusPoint}
+                  onPick={pickPoint}
+                />
+              ) : scene.id === "point" ? (
+                <PointDetail index={chosenPoint} selected={selectedMission} sites={sites} onBack={() => goToStop.current(POINTS_STOP)} />
+              ) : (
+                <ScenePanel scene={scene} open={mode === "static"} />
+              )}
             </article>
           ))}
         </div>

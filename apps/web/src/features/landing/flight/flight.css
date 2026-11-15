@@ -1073,7 +1073,9 @@
  * La bitácora de misiones: el panel de la izquierda a toda altura, una fila por misión (código, nombre, fecha y
  * sitio, y su estado). Al pasar por una fila se resalta su marca en el terreno.
  */
-.fl-scene--panel[data-scene="missions"] {
+.fl-scene--panel[data-scene="missions"],
+.fl-scene--panel[data-scene="points"],
+.fl-scene--panel[data-scene="point"] {
   top: calc(var(--bar) + var(--gutter));
   bottom: auto;
   width: min(480px, 100% - 2 * var(--gutter));
@@ -1094,17 +1096,45 @@
 }
 
 .fl-log__item {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-  padding: 11px 6px;
   border-bottom: var(--hairline);
   transition: background-color 140ms;
 }
 
-.fl-log__item:hover {
+.fl-log__item:hover,
+.fl-log__item[data-selected] {
   background: var(--shade);
+}
+
+/* La fila entera: un botón en las misiones que se pueden elegir. */
+.fl-log__row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  padding: 11px 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.fl-log__row {
+  cursor: pointer;
+}
+
+button.fl-log__row:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -2px;
+}
+
+.fl-log__main .fl-log__choose {
+  margin-top: 5px;
+  color: var(--signal);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .fl-log__id {
@@ -1152,6 +1182,258 @@
 .fl-log__item[data-status="done"] .fl-log__status {
   border-color: var(--shade);
   background: var(--shade);
+}
+
+/*
+ * Los tres puntos de la misión elegida: pestañas para cambiar de misión y una fila por punto con sus cifras reales;
+ * cada fila abre el planificador en ese punto.
+ */
+.fl-points__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+}
+
+.fl-points__tabs button {
+  margin-right: -1px;
+  padding: 7px 10px 6px;
+  border: var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.fl-points__tabs button[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.fl-points__tabs button:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.fl-points__intro {
+  margin-top: 12px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.fl-points__list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--rule);
+}
+
+.fl-points__item {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 6px;
+  color: inherit;
+  transition: background-color 140ms;
+}
+
+.fl-points__list li {
+  border-bottom: var(--hairline);
+}
+
+.fl-points__item:hover,
+.fl-points__item:focus-visible {
+  background: var(--shade);
+  outline: none;
+}
+
+.fl-points__n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--signal);
+  color: var(--paper);
+  font: 700 12px/1 var(--font-mono);
+}
+
+.fl-points__main strong {
+  display: block;
+  font: 700 0.9375rem/1.2 var(--font-display);
+}
+
+.fl-points__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font: 400 11px/1.3 var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.fl-points__figures b {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.fl-points__go {
+  font: 500 10px/1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--signal);
+}
+
+.fl-points__go::after {
+  content: " \2192";
+}
+
+/* Un punto de cerca: su nombre con el número, dónde está y sus cifras en una rejilla. */
+.fl-point .fl-scene__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fl-point .fl-scene__title .fl-points__n {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+
+.fl-point__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 16px 0 0;
+  border-top: var(--rule);
+}
+
+.fl-point__grid > div {
+  padding: 10px 8px 10px 0;
+  border-bottom: var(--hairline);
+}
+
+.fl-point__grid dt {
+  font: 500 10.5px/1.3 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.fl-point__grid dd {
+  margin-top: 4px;
+  font: 800 clamp(1.25rem, 1.8vw, 1.75rem) / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-point__note {
+  margin-top: 12px;
+  font: 400 11px/1.4 var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.fl-point__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: 14px;
+}
+
+.fl-point__nav button {
+  margin-right: -1px;
+  padding: 8px 12px 7px;
+  border: var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.fl-point__nav button[aria-current] {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--paper);
+}
+
+.fl-point__nav button:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* Los puntos sobre el terreno: numerados y clicables (abren el planificador en ese punto). */
+.fl__marks .fl-mark--plan {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  pointer-events: auto;
+  color: inherit;
+  cursor: pointer;
+}
+
+.fl-mark--plan:focus-visible .fl-mark__num {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+
+.fl-mark__num {
+  position: absolute;
+  left: -14px;
+  top: -14px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 1px var(--ink), 0 2px 8px rgb(0 0 0 / 0.25);
+  color: var(--paper);
+  font: 700 12px/1 var(--font-mono);
+  font-style: normal;
+  transition: transform 160ms var(--ease);
+}
+
+.fl-mark--plan .fl-mark__label {
+  left: 20px;
+  top: -11px;
+  background: var(--paper);
+}
+
+/* El segundo punto lleva la etiqueta a la izquierda: los puntos vecinos no se pisan. */
+.fl-mark--plan[data-side="left"] .fl-mark__label {
+  left: auto;
+  right: 20px;
+}
+
+.fl-mark--plan:hover .fl-mark__num,
+.fl-mark--plan[data-focus] .fl-mark__num,
+.fl-mark--plan[data-here] .fl-mark__num {
+  transform: scale(1.25);
+}
+
+/* El punto que se ve de cerca: un halo que late. */
+.fl-mark--plan[data-here] .fl-mark__num {
+  box-shadow: 0 0 0 1px var(--ink), 0 0 0 8px rgb(200 16 46 / 0.22), 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+.fl-mark--plan:hover .fl-mark__label,
+.fl-mark--plan[data-focus] .fl-mark__label,
+.fl-mark--plan[data-here] .fl-mark__label {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 /* Las misiones sobre el terreno: un punto en el sitio y sus códigos al lado. */

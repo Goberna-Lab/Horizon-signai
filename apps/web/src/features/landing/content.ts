@@ -135,13 +135,46 @@ export const missionLog = {
     done: tr("Real mission", "Misión real"),
   } as Record<MissionStatus, string>,
   missions: [
-    { id: "CR-01", name: tr("Landing at Connecting Ridge", "Alunizaje en Connecting Ridge"), when: tr("18 Dec 2026 · 09:00 UTC", "18 dic 2026 · 09:00 UTC"), status: "go", site: "connecting-ridge-roi-6", place: "Connecting Ridge · RoI 6" },
-    { id: "CR-02", name: tr("Science walk to the Shackleton rim", "Caminata científica al borde de Shackleton"), when: tr("19 Dec 2026 · 10:00 UTC", "19 dic 2026 · 10:00 UTC"), status: "pending", site: "connecting-ridge-roi-6", place: "Connecting Ridge → Shackleton rim" },
-    { id: "PS-03", name: tr("Survey of the peak next to Shackleton", "Reconocimiento del pico junto a Shackleton"), when: tr("Jan 2027 · date to be chosen", "ene 2027 · fecha por elegir"), status: "review", site: "peak-near-shackleton-roi-2", place: "Peak near Shackleton · RoI 2" },
-    { id: "SR-05", name: tr("Landing at the Shackleton rim", "Alunizaje en el borde de Shackleton"), when: tr("5 May 2027 · 09:00 UTC", "5 may 2027 · 09:00 UTC"), status: "review", site: "shackleton-rim-roi-4", place: "Shackleton rim · RoI 4" },
-    { id: "DG-04", name: tr("Sampling at the de Gerlache rim", "Muestreo en el borde de de Gerlache"), when: tr("No date · science team draft", "Sin fecha · borrador del equipo científico"), status: "draft", site: "de-gerlache-rim", place: "de Gerlache rim" },
-    { id: "IM-2", name: tr("Athena lander (Intuitive Machines)", "Módulo Athena (Intuitive Machines)"), when: tr("6 Mar 2025 · landed on its side", "6 mar 2025 · quedó de lado"), status: "done", site: "im-2", place: "Mons Mouton" },
-  ] as Array<{ id: string; name: string; when: string; status: MissionStatus; site: string; place: string }>,
+    { id: "CR-01", name: tr("Landing at Connecting Ridge", "Alunizaje en Connecting Ridge"), when: tr("18 Dec 2026 · 09:00 UTC", "18 dic 2026 · 09:00 UTC"), status: "go", site: "connecting-ridge-roi-6", place: "Connecting Ridge · RoI 6", points: ["connecting-ridge-roi-6", "de-gerlache-rim-roi-1", "peak-near-shackleton-roi-1"] },
+    { id: "CR-02", name: tr("Science walk to the Shackleton rim", "Caminata científica al borde de Shackleton"), when: tr("19 Dec 2026 · 10:00 UTC", "19 dic 2026 · 10:00 UTC"), status: "pending", site: "connecting-ridge-roi-6", place: "Connecting Ridge → Shackleton rim", points: ["connecting-ridge-roi-6", "shackleton-rim-roi-4", "peak-near-shackleton-roi-2"] },
+    { id: "PS-03", name: tr("Survey of the peak next to Shackleton", "Reconocimiento del pico junto a Shackleton"), when: tr("Jan 2027 · date to be chosen", "ene 2027 · fecha por elegir"), status: "review", site: "peak-near-shackleton-roi-2", place: "Peak near Shackleton · RoI 2", points: ["peak-near-shackleton-roi-1", "connecting-ridge-roi-6", "de-gerlache-rim-roi-1"] },
+    { id: "SR-05", name: tr("Landing at the Shackleton rim", "Alunizaje en el borde de Shackleton"), when: tr("5 May 2027 · 09:00 UTC", "5 may 2027 · 09:00 UTC"), status: "review", site: "shackleton-rim-roi-4", place: "Shackleton rim · RoI 4", points: ["shackleton-rim-roi-4", "de-gerlache-rim-roi-1", "peak-near-shackleton-roi-2"] },
+    { id: "DG-04", name: tr("Sampling at the de Gerlache rim", "Muestreo en el borde de de Gerlache"), when: tr("No date · science team draft", "Sin fecha · borrador del equipo científico"), status: "draft", site: "de-gerlache-rim", place: "de Gerlache rim", points: ["de-gerlache-rim-roi-1", "connecting-ridge-roi-6", "peak-near-shackleton-roi-1"] },
+    { id: "IM-2", name: tr("Athena lander (Intuitive Machines)", "Módulo Athena (Intuitive Machines)"), when: tr("6 Mar 2025 · landed on its side", "6 mar 2025 · quedó de lado"), status: "done", site: "im-2", place: "Mons Mouton", points: [] },
+  ] as Array<{ id: string; name: string; when: string; status: MissionStatus; site: string; place: string; points: string[] }>,
+  /** Lo que dice cada fila: elegir la misión lleva a sus tres puntos. */
+  choose: tr("See its 3 points", "Ver sus 3 puntos"),
+}
+
+/**
+ * Los tres puntos de la misión elegida: su sitio y otros dos sitios reales de la zona (a kilómetros entre sí, para que
+ * se distingan desde lejos), con las cifras del motor a ras de suelo
+ * (las trae la lámina, `plate.json`). Al hacer clic se abre el planificador en ese punto.
+ */
+export const missionPoints = {
+  label: tr("Mission points · real sites of the region", "Puntos de la misión · sitios reales de la zona"),
+  intro: tr(
+    "The mission's site and two other real sites of the region, kilometres apart, each measured against its own horizon for the lunar day from 1 December 2026, at ground level. Click one, or keep scrolling, to fly closer.",
+    "El sitio de la misión y otros dos sitios reales de la zona, a kilómetros entre sí, cada uno medido contra su propio horizonte en el día lunar desde el 1 de diciembre de 2026, a ras de suelo. Haz clic en uno, o sigue bajando, para acercarte.",
+  ),
+  sun: tr("Sun", "Sol"),
+  earth: tr("Earth", "Tierra"),
+  night: tr("Longest night", "Noche más larga"),
+  open: tr("See up close", "Ver de cerca"),
+  /** El panel de un punto de cerca. */
+  point: tr("Point", "Punto"),
+  of: tr("of", "de"),
+  position: tr("Position", "Posición"),
+  height: tr("Height", "Altura"),
+  both: tr("Sun and Earth at once", "Sol y Tierra a la vez"),
+  silence: tr("Longest silence (no Earth)", "Silencio más largo (sin Tierra)"),
+  panel: tr("Mean solar power", "Potencia solar media"),
+  fromSite: tr("from the mission site", "del sitio de la misión"),
+  note: tr(
+    "Ground level, lunar day from 1 December 2026. Computed with the project's engine: JPL Horizons DE441 and LOLA terrain.",
+    "A ras de suelo, día lunar desde el 1 de diciembre de 2026. Calculado con el motor del proyecto: JPL Horizons DE441 y relieve LOLA.",
+  ),
+  back: tr("All three points", "Los tres puntos"),
 }
 
 /** Las escenas del vuelo, en orden. La primera es el inicio de la página. */
@@ -165,23 +198,13 @@ export const scenes: Scene[] = [
     ),
   },
   {
-    id: "sun",
-    rail: tr("Low Sun", "Sol bajo"),
-    title: tr("The Sun never climbs.", "El Sol nunca sube."),
-    body: tr(
-      `At the south pole it circles the horizon and peaks at ${pole.sunMaxElevationDeg.toFixed(2)} degrees. Every ridge throws a shadow many kilometres long.`,
-      `En el polo sur da la vuelta al horizonte y llega como máximo a ${pole.sunMaxElevationDeg.toFixed(2)} grados. Cada cresta proyecta una sombra de muchos kilómetros.`,
-    ),
-    facts: [
-      { value: `${pole.sunMaxElevationDeg.toFixed(2)}°`, label: tr("Highest Sun over the pole, 2026 to 2030", "Sol más alto sobre el polo, 2026 a 2030") },
-      { value: `${facts.lunarDayDays.toFixed(1)} d`, label: tr("One turn around the horizon", "Una vuelta al horizonte") },
-    ],
-    quiz: {
-      ask: tr("How high does the Sun climb at the south pole?", "¿Qué tan alto sube el Sol en el polo sur?"),
-      options: tr(["Straight overhead", "About halfway up the sky", "Under 2 degrees"], ["Justo sobre la cabeza", "Hasta la mitad del cielo", "Menos de 2 grados"]),
-      right: 2,
-    },
+    id: "points",
+    rail: tr("Points", "Puntos"),
+    title: tr("Three points per mission.", "Tres puntos por misión."),
+    body: "",
   },
+  // De cerca, el punto elegido de la misión (el contenido sale de `missionPoints` y de la lámina).
+  { id: "point", rail: tr("Up close", "De cerca"), title: "", body: "" },
   {
     id: "power",
     rail: tr("Power", "Energía"),
@@ -270,8 +293,9 @@ export const software = {
     `No es una captura. Son las vistas del propio planificador, funcionando con efemérides y relieve reales: un día lunar en ${featured.name}, desde el 1 de diciembre de 2026. Mueve la fecha y mira cómo responde el plan.`,
   ),
   tabs: {
-    lander: tr("Lander", "Módulo"),
+    // Comparar va primero: es lo que se ve al llegar a la ventana del software.
     compare: tr("Compare", "Comparar"),
+    lander: tr("Lander", "Módulo"),
     calendar: tr("Calendar", "Calendario"),
     map: tr("Map", "Mapa"),
     planb: "Plan B",

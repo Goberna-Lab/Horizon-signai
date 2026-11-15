@@ -376,6 +376,19 @@ export class Flight {
     this.applySize()
   }
 
+  /**
+   * Cambia una parada en marcha (la de los puntos de la misión sigue a la misión elegida): a dónde mira, desde qué
+   * rumbo y a qué distancia. Se dibuja en el siguiente `frame()`.
+   */
+  updateStop(index: number, patch: Partial<Pick<Stop, "at" | "bearing" | "tilt" | "distance" | "fov">>): void {
+    const base = this.o.stops[index]
+    const current = this.stops[index]
+    if (!base || !current) return
+    Object.assign(base, patch)
+    this.stops[index] = { ...current, ...patch }
+    this.dirty = true
+  }
+
   /** Punto de la ruta: 0 es la primera parada y `stops.length - 1` la última. Se dibuja en el siguiente `frame()`. */
   setProgress(p: number): void {
     if (p === this.progress) return

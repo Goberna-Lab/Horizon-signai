@@ -61,7 +61,10 @@ try {
   await page.evaluate(() => window.scrollTo(0, document.querySelector("#software .sw").getBoundingClientRect().top + scrollY - 80))
   await page.waitForTimeout(1800)
 
-  // --- Ventana del producto: Lander --------------------------------------------------------------------------
+  // --- Ventana del producto: abre en Compare; las pruebas de Lander empiezan eligiéndolo --------------------------
+  check("window opens on Compare", await page.locator(".sw-compare").isVisible())
+  await page.getByRole("tab", { name: "Lander", exact: true }).click()
+  await page.waitForTimeout(400)
   const date = page.locator(".sw-lander__date")
   const counts = () => page.locator(".sw-count").allInnerTexts().then((v) => v.join(" | ").replace(/\n/g, " "))
   const started = await date.textContent()

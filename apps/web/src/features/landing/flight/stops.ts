@@ -28,7 +28,9 @@ export const STOPS: Stop[] = [
   // misiones a la izquierda y las misiones marcadas en sus sitios.
   { at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 2600, frameKm: 392, fov: 9.6, shift: [0.2, 0], day: 3.8, earth: 0, ring: 0 },
   // Sol rasante: la cámara baja al polo y mira hacia el Sol.
-  { at: [-6, -16], lift: 0, bearing: 207, tilt: 85, distance: 34, fov: 44, shift: [0.1, 0.1], day: 6, earth: 0, ring: 0, arc: 0.22 },
+  { at: [-6, -16], lift: 0, bearing: 207, tilt: 85, distance: 34, fov: 44, shift: [0.16, 0.06], day: 6, earth: 0, ring: 0, arc: 0.22 },
+  // De cerca, el punto elegido de la misión (FlightStage.tsx la coloca sobre él).
+  { at: FEATURED_SITE, lift: 0, bearing: 207, tilt: 62, distance: 7, fov: 40, shift: [0.16, 0.06], day: 6, earth: 0, ring: 0 },
   // Connecting Ridge con el Sol alto en su horizonte.
   { at: [-11, -12], lift: 0, bearing: 300, tilt: 64, distance: 30, fov: 36, shift: [0.14, 0], day: 11, earth: 0, ring: 1, arc: 0.3 },
   // Giro hacia la Tierra, que asoma sobre el relieve a 0° E.

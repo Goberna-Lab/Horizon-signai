@@ -15,6 +15,23 @@ export type FlightHandle = {
   /** Puntos del terreno (marco de la lámina, km) para rotular sitios. */
   points: Record<string, [number, number, number]>
   readouts: () => ReturnType<typeof readouts>
+  /** Los sitios de la lámina con su posición y sus cifras a ras de suelo (motor del proyecto). */
+  sites: Record<string, SiteInfo>
+}
+
+export type SiteInfo = {
+  name: string
+  lat: number
+  lon: number
+  xKm: number
+  yKm: number
+  heightM: number
+  sunPct: number
+  earthPct: number
+  bothPct: number
+  longestNightH: number
+  longestSilenceH: number
+  meanPanelWm2: number
 }
 
 export const STOP_COUNT = STOPS.length
@@ -79,10 +96,12 @@ export async function createFlight(
   })
   progress("light", 0)
   const points: FlightHandle["points"] = {}
+  const sites: FlightHandle["sites"] = {}
   for (const site of plate.sites) {
     const [xs, ys] = project(site.lat, site.lon, plate.radiusKm)
     points[site.id] = surfacePoint(grid, xs, ys, 0.15)
+    sites[site.id] = { name: site.name, lat: site.lat, lon: site.lon, xKm: xs, yKm: ys, heightM: site.heightM, ...site.ground }
   }
   const featured = plate.featured as Featured
-  return { flight, points, readouts: () => readouts(featured, flight.sky, flight.timeMs) }
+  return { flight, points, sites, readouts: () => readouts(featured, flight.sky, flight.timeMs) }
 }
