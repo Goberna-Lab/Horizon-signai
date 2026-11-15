@@ -18,6 +18,20 @@
 .app::after { content: ""; position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(200,16,46,0.6), transparent); }
 .app > * { position: relative; z-index: 1; }
 
+/* ---------- fondo: cuadrícula de plano técnico que se desliza despacio ----------
+ * Dos capas fijas detrás de los paneles: una fina (24 px, más marcada cada 120 px, con cruces) y otra mayor de ejes
+ * discontinuos con marcas cada 24 px y un círculo de referencia. Se mueven con transform (sin repintar), en sentidos
+ * opuestos, 120 px en 60 s y 480 px en 160 s, y se desvanecen hacia los bordes. Quietas con «reducir movimiento». */
+.app > .techgrid { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, rgba(0,0,0,0.25) 75%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, rgba(0,0,0,0.25) 75%, transparent 100%); }
+.techgrid::before, .techgrid::after { content: ""; position: absolute; will-change: transform; }
+.techgrid::before { inset: -120px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke-width='1'%3E%3Cpath stroke='rgba(17,17,17,0.045)' d='M24.5 0V120M0 24.5H120M48.5 0V120M0 48.5H120M72.5 0V120M0 72.5H120M96.5 0V120M0 96.5H120'/%3E%3Cpath stroke='rgba(17,17,17,0.09)' d='M0.5 0V120M0 0.5H120'/%3E%3Cpath stroke='rgba(17,17,17,0.32)' d='M0.5 115V126M115 0.5H126M0.5 0V6M0 0.5H6'/%3E%3C/g%3E%3C/svg%3E"); background-size: 120px 120px; animation: tg-fina 60s linear infinite; }
+.techgrid::after { inset: -480px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cg fill='none' stroke-width='1'%3E%3Cpath stroke='rgba(17,17,17,0.11)' stroke-dasharray='6 6' d='M240.5 0V480M0 240.5H480'/%3E%3Cpath stroke='rgba(17,17,17,0.13)' d='M0 236V245M236 0H245M24 236V245M236 24H245M48 236V245M236 48H245M72 236V245M236 72H245M96 236V245M236 96H245M120 236V245M236 120H245M144 236V245M236 144H245M168 236V245M236 168H245M192 236V245M236 192H245M216 236V245M236 216H245M240 236V245M236 240H245M264 236V245M236 264H245M288 236V245M236 288H245M312 236V245M236 312H245M336 236V245M236 336H245M360 236V245M236 360H245M384 236V245M236 384H245M408 236V245M236 408H245M432 236V245M236 432H245M456 236V245M236 456H245'/%3E%3Ccircle cx='240.5' cy='240.5' r='22' stroke='rgba(17,17,17,0.14)'/%3E%3Ccircle cx='240.5' cy='240.5' r='3' stroke='rgba(200,16,46,0.35)'/%3E%3Cpath stroke='rgba(17,17,17,0.16)' d='M60.5 60.5H78M60.5 60.5V78M419.5 419.5H402M419.5 419.5V402'/%3E%3C/g%3E%3C/svg%3E"); background-size: 480px 480px; animation: tg-mayor 160s linear infinite; }
+@keyframes tg-fina { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(120px, 120px, 0); } }
+@keyframes tg-mayor { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-480px, 480px, 0); } }
+@media (prefers-reduced-motion: reduce) { .techgrid::before, .techgrid::after { animation: none; } }
+
 /* ---------- barra superior ---------- */
 .top { display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; column-gap: 16px; }
 /* el reloj muestra solo la hora cuando la cabecera no tiene sitio para la fecha larga */
@@ -218,6 +232,7 @@
 </head>
 <body>
 <div class="app">
+  <div class="techgrid" aria-hidden="true"></div>
   <header class="top">
     <a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><h1 class="logo"><img src="logo.png" alt="Horizon Signai" width="223" height="24"></h1></a>
     <nav class="pillnav" aria-label="Sections">
