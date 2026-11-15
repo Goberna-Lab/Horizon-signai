@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
+<!-- Y de vuelta: el flujo regresa a Missions entre misión y misión. -->
+<link rel="prefetch" href="inicio.html"><link rel="prefetch" href="campaign.js"><link rel="prefetch" href="mission.js"><link rel="prefetch" href="i18n-es-inicio.js">
 <style>
 /* Consola del coordinador: tres monitores sobre un pupitre inclinado */
 .app { position: relative; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: radial-gradient(ellipse 90% 70% at 50% 18%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
@@ -541,7 +543,10 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('slipMsg').innerHTML = moved
       ? '<b>Schedule slip ' + (d > 0 ? '+' : '−') + Math.abs(d) + ' d</b> from the ' + fDate(PLAN.landingMs) + ' plan: ' + (nogo ? nogo + ' of ' + ids.length + ' zones fail.' : 'every zone still passes.')
       : '<b>On plan</b> (' + fDate(PLAN.landingMs) + '). Move the date: what does a slip do to each zone?';
+    /* el cambio de ejemplo es el de la misión CR-01: con el plan de otra misión, el botón solo sirve para volver al plan */
+    var planCR01 = PLAN.landingMs === Date.UTC(2026, 11, 18, 9);
     $('slipToggle').textContent = moved ? 'Plan' : 'Slip';
+    $('slipToggle').hidden = !moved && !planCR01;
     $('slipToggle').title = moved ? 'Back to the plan: ' + fDate(PLAN.landingMs) : 'Example slip: land on ' + fDate(SLIP.landingMs);
     var span = sc.stayDays * DAY;
     $('slip').querySelectorAll('[data-shift]').forEach(function (b) { var t = sc.landingMs + (+b.dataset.shift) * DAY; b.disabled = t < TABLA.inicioMs || t + span > TABLA.finMs; });
@@ -1067,6 +1072,11 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     if (!a || typeof a.tipo !== 'string') return false;
     var w;
     if (a.tipo === 'planner') {
+      /* El flujo guiado de EVA abre cada misión con su propio plan: `plan` (AAAA-MM-DDTHH:MM) es la fecha contra la que
+       * se mide el cambio de calendario, y `reset` vacía la comparación y cierra los diálogos de la misión anterior. */
+      var pm = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(a.plan || '');
+      if (pm) PLAN.landingMs = Date.UTC(+pm[1], pm[2] - 1, +pm[3], +pm[4], +pm[5]);
+      if (a.reset) { cmpList = []; saveCmp(); if (!cmp.hidden) closeCmp(); if (!dlg.hidden) closeDlg(); if (pt) { pt = null; delete Z.P; delete MAP.P; ids = ['A', 'B', 'C']; drawPoint(); } }
       if (a.zone && ids.indexOf(a.zone) >= 0) state.site = a.zone;
       if (a.date || a.time) {
         var cur = new Date(sc.landingMs), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(a.date || ''), h = /^(\d{2}):(\d{2})$/.exec(a.time || '');

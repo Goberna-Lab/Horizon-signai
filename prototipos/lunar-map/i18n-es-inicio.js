@@ -263,3 +263,14 @@
     ]
   });
 })();
+
+/* misión SR-05 (2026-11-15) */
+LunarI18n.add({
+  exact: {
+    'Landing at the Shackleton rim': 'Alunizaje en el borde de Shackleton',
+    '5 May 2027 · 09:00 UTC · Zone C': '5 may 2027 · 09:00 UTC · Zona C',
+    "Registers the mission: landing at the Shackleton rim, at the science team's request": 'Registra la misión: alunizaje en el borde de Shackleton, a pedido del equipo de ciencia',
+    'Shackleton rim · RoI 4': 'Borde de Shackleton · RoI 4'
+  }
+});
+

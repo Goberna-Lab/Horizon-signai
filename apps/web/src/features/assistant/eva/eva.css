@@ -262,3 +262,21 @@
   .eva-rayo__pulso, .eva-rayo__onda { display: none; }
   .eva-cuerpo { transition: none; }
 }
+
+/*
+ * El riel del flujo de misiones, dentro del globo: las seis etapas en orden. La actual lleva su nombre y va en rojo;
+ * las hechas, en tinta; las que faltan, apagadas. No son botones: las etapas no se saltan.
+ */
+.eva-riel { display: grid; gap: 4px; }
+.eva-riel ol { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.eva-riel li { display: inline-flex; align-items: center; gap: 5px; height: 20px; min-width: 20px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--eva-gris); color: #8a857c; font-size: 0.68rem; line-height: 1; white-space: nowrap; }
+.eva-riel li b { font-weight: 600; }
+.eva-riel li[data-estado="hecha"] { background: var(--eva-tinta); border-color: var(--eva-tinta); color: var(--eva-papel); }
+.eva-riel li[data-estado="actual"] { background: var(--eva-rojo); border-color: var(--eva-rojo); color: #fff; padding: 0 9px; }
+.eva-riel__mision { font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: #6b655c; }
+/* Elegir misión y contestar el repaso: una opción por fila. */
+.eva-pregunta--lista { flex-direction: column; align-items: stretch; }
+.eva-pregunta--lista button { text-align: left; white-space: normal; background: transparent; color: var(--eva-tinta); }
+.eva-pregunta--lista button:hover:not(:disabled) { background: var(--eva-tinta); color: var(--eva-papel); }
+.eva-pregunta--lista button:disabled { opacity: 0.55; cursor: default; border-style: dashed; }
+.eva-pregunta--lista small { opacity: 0.75; font-size: 0.9em; }

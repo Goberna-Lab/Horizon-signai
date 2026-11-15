@@ -16,12 +16,14 @@
     { id: 'CR-01', name: 'Landing at Connecting Ridge', meta: '18 Dec 2026 · 09:00 UTC · Zone A', status: 'GO', site: 'A', bars: ['ok', 'ok', 'ok', 'warn', 'ok'], legend: 'fuel · light · Sun · Earth · night', href: 'index.html' },
     { id: 'CR-02', name: 'Science walk to the Shackleton rim', meta: '19 Dec 2026 · 10:00 UTC · 2 stops', status: 'PEND', site: 'A', bars: ['ok', 'warn', 'ok', 'ok', 'ok'], legend: 'slope · O₂ · power · Earth · light', href: 'planificar.html' },
     { id: 'PS-03', name: 'Survey of the peak next to Shackleton', meta: 'Jan 2027 · date to be chosen · Zone B', status: 'REV', site: 'B', bars: ['ok', 'ok', 'warn', 'warn', 'warn'], legend: 'fuel · light · Sun · Earth · night', href: 'index.html' },
+    { id: 'SR-05', name: 'Landing at the Shackleton rim', meta: '5 May 2027 · 09:00 UTC · Zone C', status: 'REV', site: 'C', bars: ['ok', 'warn', 'warn', 'ok', 'warn'], legend: 'fuel · light · Sun · Earth · night', href: 'index.html' },
     { id: 'DG-04', name: 'Sampling at the de Gerlache rim', meta: 'no date · science team draft', status: 'DRAFT', site: 'D', bars: ['ok', 'none', 'none', 'none', 'none'], legend: 'fuel · light · Sun · Earth · night', href: 'planificar.html' }
   ];
   var STATUS_LABEL = { GO: 'GO', PEND: 'PENDING SIGN-OFF', REV: 'REVIEW', DRAFT: 'DRAFT', OK: 'APPROVED' };
   var SITES = {
     A: { x: 294, y: 402, name: 'Connecting Ridge · RoI 6' },
     B: { x: 862, y: 518, name: 'Peak near Shackleton · RoI 2' },
+    C: { x: 407, y: 322, name: 'Shackleton rim · RoI 4' },
     D: { x: 300, y: 560, name: 'de Gerlache rim' }
   };
   /* Sun above the real horizon, with the panel at 2 m (motor de Horizon Signal: JPL Horizons DE441 + horizonte LOLA/PGDA):
@@ -71,6 +73,7 @@
       [U(2026, 10, 14, 16, 20), 'CR-01', 'sim', 'Planning', '18.6-year illumination sweep over zones A, B and C (Mazarico 2011)', 'index.html'],
       [U(2026, 10, 20, 10, 5), 'CR-01', 'rev', 'Coordination', 'Changes zone C to RoI 4 on the Shackleton rim: the mosaic centre falls on the inner wall (11% Sun)', 'index.html'],
       [U(2026, 10, 23, 13, 45), 'CR-01', 'sim', 'Flight Director', 'First simulated descent with the Apollo 11 profile: P63 · P64 · P66 in 11 min 50 s', 'index.html'],
+      [U(2026, 10, 26, 15, 10), 'SR-05', 'plan', 'Planning', 'Registers the mission: landing at the Shackleton rim, at the science team\'s request', 'index.html'],
       [U(2026, 10, 28, 9, 30), 'PS-03', 'rev', 'Coordination', 'Put under review: without a local illumination series the date cannot be set', 'index.html'],
       [U(2026, 11, 2, 12, 10), 'CR-02', 'plan', 'Planning', 'Draws three routes for the walk: safe, short and scientific', 'planificar.html'],
       [U(2026, 11, 3, 15, 0), 'CR-02', 'sim', 'Planning', 'Short route not viable: one stretch reaches ' + M.num(short.pmax, 1) + '°, above the 15° limit', 'planificar.html'],

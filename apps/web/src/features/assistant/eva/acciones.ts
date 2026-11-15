@@ -45,6 +45,7 @@ const PANTALLAS: Record<string, string> = {
   planner: plannerPath(),
   missions: routes.lunarMap,
   map: routes.map3d,
+  simulator: routes.simulator, // solo la usa el flujo guiado (la IA no tiene esta orden)
   walk: `${routes.lunarMap}#walk`,
 }
 

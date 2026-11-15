@@ -419,10 +419,13 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
 export const TEXTOS = {
   en: {
     hola: "Hi, I am EVA. What is your name?",
-    deNuevo: (nombre: string) => `Welcome back, ${nombre}. I can guide you through the whole thing. Who is visiting today?`,
-    oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. I can guide you through the whole thing. Who is visiting today?` : "I can guide you through the whole thing. Who is visiting today?"),
+    deNuevo: (nombre: string) => `Welcome back, ${nombre}. We have three missions to get ready, step by step. First, who is visiting today?`,
+    oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. We have three missions to get ready, step by step. First, who is visiting today?` : "We have three missions to get ready, step by step. First, who is visiting today?"),
     /** El recorrido guiado: la pregunta desde el panel y los botones de cada paso. */
-    quien: "I can guide you, step by step. Who is visiting today?",
+    quien: "We have three missions to get ready, step by step. First, who is visiting today?",
+    etapas: "Steps of the mission flow",
+    lista: "ready",
+    listas: "missions ready",
     /** Lo primero que pregunta, antes de saludar: en qué idioma seguir. Se contesta con dos botones. */
     cualIdioma: "English or Spanish?",
     /** Lo que muestra mientras toda la app pasa a este idioma (la página se recarga). */
@@ -432,7 +435,7 @@ export const TEXTOS = {
     /** El campo para preguntarle en medio de un recorrido: una pregunta la contesta la IA y el recorrido sigue donde iba. */
     duda: "Ask me about this…",
     dudaRotulo: "Your question for EVA about this step",
-    recorrido: "Guided tour",
+    recorrido: "Mission flow",
     leccion: "Great. This is Mission control. I will walk you through it, one part at a time.",
     luego: "No problem. Tap me whenever you want to talk.",
     /** Lo que dice, todavía en este idioma, al notar que le hablan en el otro. */
@@ -468,16 +471,19 @@ export const TEXTOS = {
   },
   es: {
     hola: "Hola, soy EVA. ¿Cómo te llamas?",
-    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. Puedo guiarte por todo. ¿Quién nos visita hoy?`,
-    oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. Puedo guiarte por todo. ¿Quién nos visita hoy?` : "Puedo guiarte por todo. ¿Quién nos visita hoy?"),
-    quien: "Puedo guiarte, paso a paso. ¿Quién nos visita hoy?",
+    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?`,
+    oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?` : "Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?"),
+    quien: "Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?",
+    etapas: "Pasos del flujo de misión",
+    lista: "lista",
+    listas: "misiones listas",
     cualIdioma: "¿Inglés o español?",
     reconfigurando: "Reconfigurando idioma…",
     siguiente: "Siguiente",
     parar: "Parar",
     duda: "Pregúntame sobre esto…",
     dudaRotulo: "Tu pregunta para EVA sobre este paso",
-    recorrido: "Recorrido guiado",
+    recorrido: "Flujo de misiones",
     leccion: "Genial. Este es el control de misión. Te lo muestro parte por parte.",
     luego: "No hay problema. Tócame cuando quieras hablar.",
     detectado: "Inglés detectado. Reconfigurando idioma…",

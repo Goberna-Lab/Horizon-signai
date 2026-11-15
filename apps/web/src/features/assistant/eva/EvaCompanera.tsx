@@ -12,7 +12,7 @@ import { dondePonerse } from "./colocarse"
 import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, TEXTOS, type Comentario } from "./guion"
 import { detectarIdioma, nombreDe, type Idioma } from "./idioma"
 import { intencionDe } from "./intencion"
-import { RECORRIDOS, type Recorrido } from "./recorridos"
+import { ETAPAS, FINAL, INICIO, MISIONES, NO_ESA, PERFILES, VUELTA, YA_LISTA, type Mision, type Paso, type Recorrido } from "./recorridos"
 import { sugerenciasDe, type Sugerencia } from "./sugerencias"
 import { enOraciones, estaGrabada, precargarVoz, sinVocativo, vozGrabada, type VozDeOracion } from "./vozGrabada"
 import "./eva.css"
@@ -25,7 +25,7 @@ const PRIMERO_MS = 2500 // espera al llegar a una pantalla antes del primero
 const PASEO_MS = [9000, 15000] // cada cuánto cambia de lugar si nadie la ocupa
 const ANCLA_MS = 30_000 // si la arrastras, se queda ahí este tiempo
 const GLOBO_MS = 6000 // el globo queda a la vista tras terminar de hablar
-const CARGA_MS = 2600 // lo que tarda en encenderse y cargarse antes de saludar
+const CARGA_MS = 1600 // lo que tarda en encenderse y cargarse antes de saludar (antes 2,6 s: se notaba la espera)
 const PREGUNTA_MS = 45_000 // si nadie contesta su pregunta, la retira
 const IDIOMA_MS = 90_000 // la del idioma es la primera y abre todo lo demás: espera más
 // Una oración con el nombre de la persona no puede estar grabada. En inglés se pide en vivo y se espera esto; si no
@@ -35,6 +35,24 @@ const DICHAS = "horizon-signai.eva.dichas.v1"
 const SILENCIO = "horizon-signai.eva.silencio.v1"
 const IDIOMA = "horizon-signai.eva.idioma.v1"
 const SALUDO = "horizon-signai.eva.saludo.v1" // en sessionStorage: saluda una vez por visita
+const MISIONES_LISTAS = "horizon-signai.eva.misiones.v1" // en sessionStorage: las misiones del flujo ya preparadas en esta visita
+const leerListas = (): string[] => {
+  try {
+    const v: unknown = JSON.parse(sessionStorage.getItem(MISIONES_LISTAS) ?? "[]")
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []
+  } catch {
+    return []
+  }
+}
+const guardarListas = (ids: string[]) => {
+  try {
+    sessionStorage.setItem(MISIONES_LISTAS, JSON.stringify(ids))
+  } catch {
+    /* sin almacenamiento: el avance vale mientras no se recargue */
+  }
+}
+/** Cómo se sigue en un paso del flujo: con «Next», eligiendo una misión o acertando la pregunta de repaso. */
+const tipoDe = (p: Paso) => (p.elige ? "mision" : p.repaso ? "repaso" : "paso")
 const IDIOMA_ELEGIDO = "horizon-signai.eva.idioma-elegido.v1" // en sessionStorage: ya contestó «English or Spanish?»
 const MARGEN = 16
 
@@ -276,7 +294,15 @@ export default function EvaCompanera() {
   // EVA arranca en el idioma de la app (el selector EN / ES de cada pantalla). Si en la conversación le hablan en el
   // otro idioma, cambia ella sola para esa visita (fijarIdioma), sin recargar la página ni tocar el de la app.
   const [idioma, setIdioma] = useState<Idioma>(lang)
-  const [pregunta, setPregunta] = useState<"idioma" | "nombre" | "oferta" | "paso" | null>(null)
+  const [pregunta, setPregunta] = useState<"idioma" | "nombre" | "oferta" | "paso" | "mision" | "repaso" | null>(null)
+  // El flujo de misiones (./recorridos.ts): en qué etapa va y con qué misión (el riel del globo), las misiones ya
+  // preparadas, la misión en curso y quién llegó (solo cambia la primera frase).
+  const [riel, setRiel] = useState<{ etapa: number; mision: Mision | null } | null>(null)
+  const [listas, setListas] = useState<string[]>(leerListas)
+  const listasRef = useRef(listas)
+  listasRef.current = listas
+  const misionActual = useRef<Mision | null>(null)
+  const perfil = useRef<(typeof PERFILES)[number] | null>(null)
   // El recorrido guiado en curso (./recorridos.ts) y el rótulo de por dónde va («3 / 10»).
   const recorrido = useRef<{ r: Recorrido; i: number } | null>(null)
   const [avance, setAvance] = useState("")
@@ -576,15 +602,16 @@ export default function EvaCompanera() {
       const sitio = dondePonerse(rectDe(el), { ancho: innerWidth, alto: innerHeight }, { ancho: ANCHO, alto: ALTO }, chica ? 36 : 84)
       ladoGlobo.current = sitio.globo
       volarA(sitio.x, sitio.y)
-      // El vuelo es un resorte: llega, se pasa un poco y vuelve. Dispara cuando ya se asentó (o tras 1,8 s).
-      for (let k = 0; k < 36; k++) {
+      // El vuelo es un resorte: llega, se pasa un poco y vuelve. Dispara cuando ya casi se asentó (o tras 1,2 s): no hace
+      // falta que pare del todo para empezar a hablar.
+      for (let k = 0; k < 24; k++) {
         await esperar(50)
         const lejos = Math.hypot(meta.current.x - pos.current.x, meta.current.y - pos.current.y)
-        if (k > 5 && lejos < 10 && Math.hypot(vel.current.x, vel.current.y) < 0.8) break
+        if (k > 3 && lejos < 24 && Math.hypot(vel.current.x, vel.current.y) < 2) break
       }
       foco.current = el
       setApuntando(true)
-      await esperar(350)
+      await esperar(150)
     },
     [volarA, ANCHO, ALTO, chica],
   )
@@ -703,7 +730,7 @@ export default function EvaCompanera() {
   const preguntar = useCallback(
     async (frase: string, tipo: "idioma" | "nombre" | "oferta") => {
       // Mientras pregunta quién llega, trae ya la voz del primer paso de cada recorrido: al elegir, empieza sin espera.
-      if (tipo === "oferta") for (const r of RECORRIDOS) precargarVoz(idiomaRef.current, r.pasos[0].texto[idiomaRef.current])
+      if (tipo === "oferta") for (const frase of [INICIO.pasos[0].texto, ...PERFILES.map((x) => x.saludo)]) precargarVoz(idiomaRef.current, frase[idiomaRef.current])
       // El campo o los botones salen mientras lo dice, no al terminar: se le puede contestar desde ya.
       const dicho = hablar(frase, null)
       setPregunta(tipo)
@@ -774,7 +801,7 @@ export default function EvaCompanera() {
       } else salio = ms > (ruta.current === routes.landing ? 5000 : 900)
       // La página se acaba de recargar porque eligió el otro idioma: no espera otra vez al Sol para saludar.
       if (enVisita(IDIOMA_ELEGIDO) && !yaSaludo() && ms > 500) salio = true
-      if (salio || ms > 14_000) {
+      if (salio || ms > 9000) { // como mucho 9 s (antes 14): si la animación del Sol tarda, no se la espera
         clearInterval(id)
         void despertar()
       }
@@ -796,6 +823,19 @@ export default function EvaCompanera() {
     ocupada.current = false
     soltarGlobo()
   }, [pathname])
+  // Mientras pide elegir misión, tocarla en el dashboard (la lista de Missions, dentro del marco) también la elige.
+  useEffect(() => {
+    if (pregunta !== "mision") return
+    const d = marco()
+    if (!d) return
+    const alClic = (ev: Event) => {
+      const fila = (ev.target as Element | null)?.closest?.(".mrow[data-id]")
+      const id = fila?.getAttribute("data-id")
+      if (id) void alMisionRef.current(id)
+    }
+    d.addEventListener("click", alClic)
+    return () => d.removeEventListener("click", alClic)
+  }, [pregunta])
   /** Espera a que una parte de la pantalla esté a la vista (en la página o en el planificador incrustado). */
   const buscarParte = async (selector: string) => {
     for (let k = 0; k < 25; k++) {
@@ -808,6 +848,8 @@ export default function EvaCompanera() {
   /** El recorrido termina (o no empieza): la IA vuelve a poder manejar la app. */
   const terminarRecorrido = () => {
     recorrido.current = null
+    misionActual.current = null
+    setRiel(null)
     usarAcciones(cumplir.current)
   }
   /** El recorrido se queda esperando en su paso: el globo con el texto, «Next», «Stop» y el campo para preguntar. */
@@ -818,7 +860,7 @@ export default function EvaCompanera() {
     clearTimeout(ocultarGlobo.current)
     setGlobo(enElGlobo)
     setAvance(`${t.i + 1} / ${t.r.pasos.length}`)
-    setPregunta("paso")
+    setPregunta(tipoDe(t.r.pasos[t.i]))
     intensidadDelRayo(false, 2200)
   }
   /**
@@ -846,18 +888,21 @@ export default function EvaCompanera() {
     precargarVoz(idioma, proximo ? proximo.texto[idioma] : t.r.fin[idioma])
     if (p.accion) {
       await ejecutarAccion(p.accion, (destino) => navegar(destino))
-      await esperar(p.espera ?? 700)
+      await esperar(p.espera ?? 250)
     }
     if (!sigo()) return
     const el = p.selector ? await buscarParte(p.selector) : undefined
     if (!sigo()) return
     if (el) await irA(el)
     if (!sigo()) return
-    const frase = p.texto[idiomaRef.current]
-    // «Next», «Stop» y el campo salen mientras lo dice: quien ya entendió sigue sin esperar a que termine.
+    // Lo primero del flujo lleva delante una frase según quién llegó.
+    const saludo = t.r === INICIO && t.i === 0 ? perfil.current?.saludo[idiomaRef.current] : ""
+    const frase = `${saludo ? `${saludo} ` : ""}${p.texto[idiomaRef.current]}`
+    // «Next» (o las misiones, o las respuestas) y el campo salen mientras lo dice: quien ya entendió sigue sin esperar.
     setAvance(`${t.i + 1} / ${t.r.pasos.length}`)
+    setRiel({ etapa: p.etapa, mision: misionActual.current })
     const dicho = hablar(frase, null)
-    setPregunta("paso")
+    setPregunta(tipoDe(p))
     if (!(await dicho) || recorrido.current !== t) return
     esperarEnPaso(frase)
   }
@@ -873,9 +918,64 @@ export default function EvaCompanera() {
       void darPaso()
       return
     }
+    const m = misionActual.current
+    if (seguir && m && t.r === m.recorrido) {
+      // Misión preparada: lo dice, la anota y pasa a la etapa 6 (elegir la siguiente) o, si era la última, al cierre.
+      setRiel({ etapa: 5, mision: m })
+      if (!(await hablar(t.r.fin[idiomaRef.current], "alegre")) || recorrido.current !== t) {
+        if (recorrido.current === t) esperarEnPaso(t.r.pasos[t.i].texto[idiomaRef.current]) // le quitaron la palabra: vuelve al paso
+        return
+      }
+      const ahora = [...new Set([...listasRef.current, m.id])]
+      listasRef.current = ahora
+      setListas(ahora)
+      guardarListas(ahora)
+      misionActual.current = null
+      if (MISIONES.every((x) => ahora.includes(x.id))) {
+        terminarRecorrido()
+        ocupada.current = false
+        await hablar(FINAL[idiomaRef.current], "alegre")
+        return
+      }
+      recorrido.current = { r: VUELTA, i: 0 }
+      void darPaso()
+      return
+    }
     terminarRecorrido()
     ocupada.current = false
     await hablar(seguir ? t.r.fin[idiomaRef.current] : TEXTOS[idiomaRef.current].luego, seguir ? "alegre" : null)
+  }
+  /** Eligieron una misión (en el globo o tocándola en el dashboard): empieza su recorrido, de la etapa 2 a la 5. */
+  const alMision = async (id: string) => {
+    const t = recorrido.current
+    if (!t || !t.r.pasos[t.i].elige) return
+    const m = MISIONES.find((x) => x.id === id)
+    if (!m || listasRef.current.includes(m.id)) {
+      const frase = (m ? YA_LISTA : NO_ESA)[idiomaRef.current]
+      if (!(await hablar(frase, null)) || recorrido.current !== t) return
+      esperarEnPaso(frase)
+      return
+    }
+    misionActual.current = m
+    recorrido.current = { r: m.recorrido, i: 0 }
+    void darPaso()
+  }
+  const alMisionRef = useRef(alMision)
+  alMisionRef.current = alMision
+  /** Contestaron la pregunta de repaso: si aciertan, sigue; si no, lo explica y deja probar otra vez. */
+  const alRepaso = async (k: number) => {
+    const t = recorrido.current
+    const r = t?.r.pasos[t.i].repaso
+    if (!t || !r) return
+    if (k !== r.correcta) {
+      const frase = r.fallo[idiomaRef.current]
+      if (!(await hablar(frase, null)) || recorrido.current !== t) return
+      esperarEnPaso(frase)
+      return
+    }
+    // Las respuestas siguen a la vista mientras festeja: si le quitan la palabra, se puede volver a contestar.
+    if (!(await hablar(r.acierto[idiomaRef.current], "alegre")) || recorrido.current !== t) return
+    void alPaso(true)
   }
   /** «Otra vez»: repite lo que dijo en este paso, sin rehacer lo que hizo en la app. */
   const repetirPaso = async () => {
@@ -902,15 +1002,23 @@ export default function EvaCompanera() {
     await responder(q)
   }
   /** Eligieron quién llega (o «ahora no»): empieza su recorrido. */
-  const alQuien = async (id: Recorrido["id"] | null) => {
+  const alQuien = async (id: string | null) => {
     cerrarPregunta()
-    const r = RECORRIDOS.find((x) => x.id === id)
-    if (!r) {
+    const quien = PERFILES.find((x) => x.id === id)
+    if (!quien) {
       terminarRecorrido()
       await hablar(TEXTOS[idiomaRef.current].luego, null)
       return
     }
-    recorrido.current = { r, i: 0 }
+    perfil.current = quien
+    misionActual.current = null
+    // Si ya había preparado las tres en esta visita, el flujo empieza de nuevo.
+    if (MISIONES.every((x) => listasRef.current.includes(x.id))) {
+      listasRef.current = []
+      setListas([])
+      guardarListas([])
+    }
+    recorrido.current = { r: listasRef.current.length ? VUELTA : INICIO, i: 0 }
     void darPaso()
   }
   /**
@@ -1149,6 +1257,20 @@ export default function EvaCompanera() {
         {/* Una pregunta suya: el globo se queda abierto con el campo o los botones para contestar. */}
         {pregunta && !abierta && (
           <div className="eva-globo eva-globo--pregunta">
+            {/* El riel del flujo: las seis etapas en orden, la actual con su nombre, y la misión en curso. */}
+            {riel && (pregunta === "paso" || pregunta === "mision" || pregunta === "repaso") && (
+              <div className="eva-riel">
+                <ol aria-label={T.etapas}>
+                  {ETAPAS.map((e, k) => (
+                    <li key={e.en} data-estado={k + 1 < riel.etapa ? "hecha" : k + 1 === riel.etapa ? "actual" : "falta"} aria-current={k + 1 === riel.etapa ? "step" : undefined} title={e[idioma]}>
+                      <b>{k + 1}</b>
+                      {k + 1 === riel.etapa && <span>{e[idioma]}</span>}
+                    </li>
+                  ))}
+                </ol>
+                <span className="eva-riel__mision">{riel.mision ? `${riel.mision.id} · ${riel.mision.nombre[idioma]}` : `${listas.length} / ${MISIONES.length} ${T.listas}`}</span>
+              </div>
+            )}
             <p aria-live="polite">{globo}</p>
             {pregunta === "idioma" ? (
               <div className="eva-pregunta eva-pregunta--idioma">
@@ -1167,14 +1289,31 @@ export default function EvaCompanera() {
                   {T.saltar}
                 </button>
               </form>
+            ) : pregunta === "mision" ? (
+              <div className="eva-pregunta eva-pregunta--lista">
+                {MISIONES.map((m) => {
+                  const lista = listas.includes(m.id)
+                  return (
+                    <button key={m.id} type="button" disabled={lista} onClick={() => void alMision(m.id)}>
+                      <b>{lista ? "✓" : m.id}</b> {m.nombre[idioma]} <small>· {lista ? T.lista : m.tema[idioma]}</small>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : pregunta === "repaso" ? (
+              <div className="eva-pregunta eva-pregunta--lista">
+                {recorrido.current?.r.pasos[recorrido.current.i].repaso?.opciones.map((o, k) => (
+                  <button key={o.en} type="button" onClick={() => void alRepaso(k)}>
+                    {o[idioma]}
+                  </button>
+                ))}
+              </div>
             ) : pregunta === "paso" ? (
               <>
+                {/* Solo «Next»: en el flujo las etapas no se saltan ni se dejan a medias con un botón. */}
                 <div className="eva-pregunta">
                   <button type="button" onClick={() => void alPaso(true)}>
                     {T.siguiente} · {avance}
-                  </button>
-                  <button type="button" className="eva-pregunta__suave" onClick={() => void alPaso(false)}>
-                    {T.parar}
                   </button>
                 </div>
                 {/* Preguntarle en medio del recorrido: contesta la IA y el recorrido sigue en este paso. */}
@@ -1187,7 +1326,7 @@ export default function EvaCompanera() {
               </>
             ) : (
               <div className="eva-pregunta eva-pregunta--quien">
-                {RECORRIDOS.map((r) => (
+                {PERFILES.map((r) => (
                   <button key={r.id} type="button" onClick={() => void alQuien(r.id)}>
                     {r.boton[idioma]}
                   </button>

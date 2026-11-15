@@ -4,7 +4,7 @@
 // grabación (vozGrabada.test.ts). Sin React ni DOM.
 import { EVENTOS, fraseDe, guionDe, TEXTOS } from "./guion.ts"
 import type { Idioma } from "./idioma"
-import { RECORRIDOS } from "./recorridos.ts"
+import { frasesSueltas, RECORRIDOS } from "./recorridos.ts"
 import { sugerenciasDe } from "./sugerencias.ts"
 import { claveDe, enOraciones, sinVocativo } from "./vozGrabada.ts"
 
@@ -95,6 +95,8 @@ export function frasesDelGuion(): FraseDelGuion[] {
       r.pasos.forEach((p, k) => agregar(idioma, p.texto[idioma], `recorrido ${r.id} ${k + 1}`))
       agregar(idioma, r.fin[idioma], `recorrido ${r.id} fin`)
     }
+    // Lo demás del flujo de misiones: el saludo según quién llega, las respuestas del repaso y el cierre.
+    for (const frase of frasesSueltas(idioma)) agregar(idioma, frase, "flujo de misiones")
   }
   return frases
 }

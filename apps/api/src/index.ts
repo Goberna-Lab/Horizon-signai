@@ -30,6 +30,12 @@ app.on(["GET", "HEAD"], ["/lunar-map", "/lunar-map/*"], servirLunarMap)
 
 if (webDist) {
   // three.js y demás archivos con hash en el nombre: caché de un año (Cloudflare también los cachea por la extensión .js).
+  // La voz grabada de EVA: cada archivo se llama por la huella de su idioma y su texto (eva/vozGrabada.ts), así que no
+  // cambia nunca. Sin esto cada frase se volvía a pedir a VPS2 (~0,3-0,5 s de ida y vuelta desde Perú).
+  app.use("/eva-voz/*", async (c, next) => {
+    await next()
+    if (c.res.status === 200) c.res.headers.set("Cache-Control", "public, max-age=31536000, immutable")
+  })
   app.use("/vendor/*", async (c, next) => {
     await next()
     if (c.res.status === 200) c.res.headers.set("Cache-Control", "public, max-age=31536000, immutable")

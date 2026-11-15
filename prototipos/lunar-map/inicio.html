@@ -9,6 +9,8 @@
 <!-- Títulos de los paneles: display caps, la tipografía compartida del proyecto (apps/web/public/ui/display-caps.css) -->
 <link rel="stylesheet" href="/ui/display-caps.css">
 <link rel="stylesheet" href="shared.css">
+<!-- El flujo guiado pasa de aquí al planificador: sus archivos se piden ya, con la página en reposo, para que abra sin espera. -->
+<link rel="prefetch" href="index.html"><link rel="prefetch" href="data/efemerides-luna.js"><link rel="prefetch" href="data/zonas.js"><link rel="prefetch" href="engine.js"><link rel="prefetch" href="terrain.js"><link rel="prefetch" href="i18n-es.js">
 <style>
 /* Centro de misiones: dashboard de la campaña. Indicadores, calendario y bitácora al centro; misiones a la izquierda; firma, mapa y asistente a la derecha */
 .app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
