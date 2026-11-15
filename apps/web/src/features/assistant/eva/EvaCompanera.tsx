@@ -507,6 +507,16 @@ export default function EvaCompanera() {
     setPregunta(null)
     clearTimeout(esperaPregunta.current)
   }
+  // Si cambian de pantalla con una pregunta suya abierta, la retira: en la pantalla nueva le toca guiar.
+  const preguntaRef = useRef(pregunta)
+  preguntaRef.current = pregunta
+  useEffect(() => {
+    if (!preguntaRef.current) return
+    setPregunta(null)
+    clearTimeout(esperaPregunta.current)
+    ocupada.current = false
+    soltarGlobo()
+  }, [pathname])
   /** Contestaron el nombre (o lo saltaron). Si se presentaron en español, primero se reconfigura. */
   const alNombre = async (ev?: FormEvent) => {
     ev?.preventDefault()
@@ -624,7 +634,9 @@ export default function EvaCompanera() {
 
   if (oculta) return null
 
-  const aLaDerecha = pos.current.x < innerWidth / 2 // el globo y el panel van hacia el lado con más espacio
+  // El globo y el panel van hacia el lado con más espacio, según a dónde va (no dónde está): así, cuando vuela a
+  // apuntar algo, el globo sale del lado contrario y no tapa lo que señala.
+  const aLaDerecha = meta.current.x < innerWidth / 2
   return (
     <>
       {/* El rayo con el que apunta: sale de su visor, llega a lo que señala y lo encierra con cuatro esquinas. */}
