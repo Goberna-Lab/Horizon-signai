@@ -57,9 +57,13 @@
 .flap b { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 50px; border-radius: 10px; background: linear-gradient(180deg, #2E2E32 0%, #1A1A1D 50%, #111113 50%, #1C1C1F 100%); color: var(--crema); font-family: var(--f-disp); font-size: 27px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.6), 0 3px 0 #000, 0 8px 14px rgba(17,17,17,0.2); text-shadow: 0 0 10px rgba(244,239,230,0.25); }
 .flap b::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0,0,0,0.75); box-shadow: 0 1px 0 rgba(255,255,255,0.06); }
 .flap span { font-family: var(--f-mono); font-size: 9px; font-weight: 700; letter-spacing: .18em; color: var(--gris-2); text-shadow: 0 1px 0 rgba(255,255,255,0.9); }
-.steps { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--borde); }
-.steps li { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--gris); }
+/* los cuatro pasos en una fila: la luz arriba, el texto debajo y una línea que los une */
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--borde); }
+.steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-size: 11px; line-height: 1.25; color: var(--gris); }
+.steps li::before { content: ""; position: absolute; top: 4.5px; left: calc(-50% + 11px); right: calc(50% + 11px); height: 1px; background: var(--borde); }
+.steps li:first-child::before { display: none; }
 .steps li.done { color: var(--tinta); }
+.steps li.done + li.done::before { background: var(--tinta); }
 .steps li .lamp { flex: none; }
 
 /* ---------- misiones ---------- */
@@ -147,24 +151,18 @@
 .sites .tag { position: absolute; left: 8px; top: 8px; height: 26px; font-size: 11px; }
 .sites .caption { right: 8px; bottom: 6px; font-size: 9px; }
 
-/* ---------- decisiones aprobadas ---------- */
-.alist li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 2px; border-bottom: 1px solid rgba(17,17,17,0.07); }
-.alist li:last-child { border-bottom: 0; }
-.alist .ck { flex: none; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; background: var(--tinta); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
-.alist .w { font-size: 13px; font-weight: 500; line-height: 1.3; }
-.alist .m { font-size: 10.5px; color: var(--gris-2); }
-.alist li.fresh { animation: fresh 2.4s ease-out both; border-radius: 10px; }
 
 
 .foot { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 9.5px; color: var(--gris-2); }
 .foot button { border: 0; background: none; padding: 0; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
 
-@media (prefers-reduced-motion: reduce) { .alist li.fresh, .ev.fresh { animation: none; } .tip { transition: none; } .log { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) { .ev.fresh { animation: none; } .tip { transition: none; } .log { scroll-behavior: auto; } }
 
 /* ---------- columnas a la par: el último panel de cada columna baja hasta el fondo; la bitácora llena el hueco ---------- */
 @media (min-width: 1001px) {
   .main { align-items: stretch; }
   .col > :last-child { flex-grow: 1; }
+  .col > .pending:last-child { flex-grow: 0; } /* la firma pendiente no se estira: quedaría un hueco vacío dentro */
   .movs { display: flex; flex-direction: column; }
   .log { flex: 1 1 0; height: 0; min-height: 360px; max-height: none; }
 }
@@ -181,7 +179,7 @@
   .main { display: flex; flex-direction: column; min-width: 0; }
   .col, .col.right { display: contents; }
   .main > .col > * { min-width: 0; max-width: 100%; }
-  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .cal { order: 4; } .movs { order: 5; } .upcoming { order: 6; } .sites { order: 7; } .approved { order: 8; }
+  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .cal { order: 4; } .movs { order: 5; } .upcoming { order: 6; } .sites { order: 7; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .utc small { display: none; }
 }
@@ -214,7 +212,7 @@
   </header>
 
   <div class="main">
-    <!-- izquierda: tiempo, firma pendiente y decisiones -->
+    <!-- izquierda: próximo hito y firma pendiente -->
     <div class="col">
       <section class="paper panel next" aria-labelledby="next-t">
         <div class="ph"><h2 id="next-t" class="display-caps">Next milestone</h2><span class="mono aux">CR-01</span></div>
@@ -247,10 +245,6 @@
         </div>
       </section>
 
-      <section class="paper panel approved" aria-labelledby="ap-t">
-        <div class="ph"><h2 id="ap-t" class="display-caps">Approved decisions</h2><span class="aux"><span id="apCount">3</span> signed</span></div>
-        <ul class="alist" id="alist"></ul>
-      </section>
     </div>
 
     <!-- centro: indicadores, calendario y bitácora -->
@@ -378,14 +372,6 @@
       ['Operations scheduled', movs ? next.length : '—', next.length ? 'next: ' + next[0].text.split(':')[0].split(' · ')[0] + ' · ' + C.fmtDay(next[0].t).replace(/ \d{4}$/, '') : 'calculating…', '']
     ];
     $('kpis').innerHTML = k.map(function (x) { return '<div class="paper flat kpi"><p>' + x[0] + '</p><b class="' + x[3] + '">' + x[1] + '</b><small>' + x[2] + '</small></div>'; }).join('');
-  }
-  function renderApproved() {
-    var tickSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>';
-    var list = C.decisions();
-    $('alist').innerHTML = list.map(function (a) {
-      return '<li class="' + (a.fresh ? 'fresh' : '') + '"><span class="ck">' + tickSvg + '</span><span><p class="w"><span class="mono" style="font-size:11px;font-weight:600;margin-right:6px">' + a.id + '</span>' + a.w + '</p><p class="mono m">' + a.m + '</p></span></li>';
-    }).join('');
-    $('apCount').textContent = list.length;
   }
   function renderSites() {
     var sel = current();
@@ -532,7 +518,7 @@
     state.sel = id; if (filter) logF.mission = id;
     renderMissions(); renderSites(); renderCal(); renderFilters(); renderLog(true);
   }
-  function renderAll() { missions = C.missions(); renderSteps(); renderKpis(); renderMissions(); renderApproved(); renderSites(); renderPending(); renderFilters(); if (movs) { renderCal(); renderLog(); } }
+  function renderAll() { missions = C.missions(); renderSteps(); renderKpis(); renderMissions(); renderSites(); renderPending(); renderFilters(); if (movs) { renderCal(); renderLog(); } }
 
   /* ---------- aprobación en dos pasos ---------- */
   function wireApprove(btn) {

@@ -91,9 +91,6 @@
     'Approved': 'Aprobada',
     'You have no pending decisions. The next one will come with the final Flight Director Go.': 'No tienes decisiones pendientes. La siguiente llegará con el Go final de dirección de vuelo.',
 
-    /* ---------- decisiones aprobadas ---------- */
-    'Approved decisions': 'Decisiones aprobadas',
-    'signed': 'firmadas',
     'Apollo 11 descent profile adapted to the pole': 'Perfil de descenso del Apollo 11 adaptado al polo',
     'Zone A · Connecting Ridge RoI 6 confirmed for the landing': 'Zona A · Connecting Ridge RoI 6 confirmada para el alunizaje',
     'Safe backup route for the walk': 'Ruta segura de respaldo para la caminata',
