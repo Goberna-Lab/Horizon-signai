@@ -148,16 +148,16 @@ Built with TypeScript, React 19, Vite 7, three.js, Hono, PostgreSQL 17 with Post
 
 ## Team
 
+Team **Hinomaru Signal**, Lima, Peru ([team page](https://www.spaceappschallenge.org/2026/find-a-team/hinomaru-signal/?tab=members)).
+
 | Member | Area |
 |---|---|
-| Estephano | Core engine, data, shared map, coordination |
-| Jean | Dashboard |
-| Francisco | Planner |
-| Manuel | Voice, chat and AI assistant |
-| Angel | Landing page |
-| Jefferson | Simulation and landing |
-
-<!-- TODO team: replace with the full names as registered on the Space Apps team page -->
+| Estephano Orbegoso Franceschi (team owner) | Core engine, data, shared map, coordination |
+| Jean Pierre Alcantara Mestanza | Dashboard |
+| Francisco Daniel Gonzales Vargas | Planner |
+| Manuel Antonio Espinoza Melgarejo | Voice, chat and AI assistant |
+| Angel Baldeon | Landing page |
+| Jefferson Erick Abendaño Cordova | Simulation and landing |
 
 ## References
 

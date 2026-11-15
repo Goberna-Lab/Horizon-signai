@@ -4,7 +4,7 @@ Paste-ready English text for each field of the project form. Field names and rul
 
 Before pasting, resolve every `TODO`:
 
-- **Link to Project Demo** is empty.
+- **Link to Project Demo** points to the 7-slide deck served by the site (`/demo.html`); it works once the site is deployed.
 - **Team names** go on the team page and on the demo slides, not in this file.
 - **Incomplete citations** are marked `TODO` in the last field. They are the ones listed as incomplete in [08-datos-y-fuentes.md](08-datos-y-fuentes.md), section 7.
 - The Canadian Space Agency page from the challenge resources is not listed because the project does not use it (08, section 6).
@@ -25,7 +25,9 @@ It matters because at the pole a small change of site or date changes power and 
 
 ## Link to Project Demo
 
-TODO: public link to the demo (a video of 30 seconds or less, or at most 7 slides including title and intro). It must open without login.
+https://signal-horizon.goberna.us/demo.html
+
+(7 slides, the limit, in English, with the team name, the members and the challenge on the first slide. Opens without login; check it in a private window before pasting.)
 
 ## Link to Final Project
 
