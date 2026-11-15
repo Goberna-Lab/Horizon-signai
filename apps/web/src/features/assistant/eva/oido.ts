@@ -16,7 +16,12 @@ const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/"
 
 export type EstadoOido = "apagado" | "pidiendo" | "escuchando" | "oyendo" | "negado"
 
-export function useOido(alOir: (wav: Blob) => void) {
+/** Lo que se sabe de una frase dicha, para los tiempos (./tiempos.ts). */
+export type FraseOida = { hablaMs: number; vadMs: number }
+// Silencio que el VAD espera antes de cerrar la frase: la persona terminó de hablar hace esto (redemptionMs).
+const ESPERA_VAD_MS = 600
+
+export function useOido(alOir: (wav: Blob, info: FraseOida) => void) {
   const [estado, setEstado] = useState<EstadoOido>("apagado")
   const vad = useRef<MicVAD | null>(null)
   const microfono = useRef<MediaStream | null>(null)
@@ -43,7 +48,7 @@ export function useOido(alOir: (wav: Blob) => void) {
         resumeStream: async () => stream,
         baseAssetPath: VAD_CDN,
         onnxWASMBasePath: ORT_CDN,
-        redemptionMs: 600,
+        redemptionMs: ESPERA_VAD_MS,
         preSpeechPadMs: 300,
         positiveSpeechThreshold: 0.6,
         negativeSpeechThreshold: 0.4,
@@ -53,7 +58,8 @@ export function useOido(alOir: (wav: Blob) => void) {
         onVADMisfire: () => setEstado("escuchando"),
         onSpeechEnd: (audio) => {
           setEstado("escuchando")
-          alOirRef.current(aWav(audio))
+          // El audio viene a 16 kHz e incluye el relleno previo (preSpeechPadMs): es lo que duró la frase.
+          alOirRef.current(aWav(audio), { hablaMs: Math.round(audio.length / 16), vadMs: ESPERA_VAD_MS })
         },
       })
       if (quiere.current) await vad.current.start()

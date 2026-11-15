@@ -4,7 +4,7 @@ import { routes } from "@/app/routes"
 import { EVENTO_CASCO, EVENTO_EVA, type AvisoEva, type CascoEva, type EstadoEva } from "@/shared/eva"
 import { lang, setLang } from "@/shared/i18n"
 import { PREGUNTAS, PUENTES, RESCATE, SEGUIMOS } from "@horizon-signai/shared"
-import { decir, entender as entenderVoz, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type AccionIA, type Mensaje } from "@/prueba-ia/cliente"
+import { decir, entender as entenderVoz, enviarTiempos, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type AccionIA, type Mensaje } from "@/prueba-ia/cliente"
 import { crearColaDeVoz, type FraseDeVoz } from "@/prueba-ia/colaDeVoz"
 import { olvidar, recordar, recordarNombre, recuerdos } from "@/prueba-ia/memoria"
 import { useVoz } from "@/prueba-ia/useVoz"
@@ -15,7 +15,8 @@ import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, PISTAS, T
 import { nombreDe, pideOtroIdioma, type Idioma } from "./idioma"
 import { intencionDe } from "./intencion"
 import { ETAPAS, FINAL, INICIO, MISIONES, NO_ESA, PERFILES, VUELTA, YA_LISTA, type Mision, type Paso, type Recorrido } from "./recorridos"
-import { useOido } from "./oido"
+import { useOido, type FraseOida } from "./oido"
+import * as tiempos from "./tiempos"
 import { sugerenciasDe, type Sugerencia } from "./sugerencias"
 import { enOraciones, estaGrabada, precargarVoz, sinVocativo, vozGrabada, type VozDeOracion } from "./vozGrabada"
 import "./eva.css"
@@ -94,6 +95,9 @@ const anotarEnVisita = (k: string) => {
 const yaSaludo = () => enVisita(SALUDO)
 const anotarSaludo = () => anotarEnVisita(SALUDO)
 /** Espera `ms`. Con `corte`, termina antes si lo cortan. */
+// Los tiempos de cada conversación van también al log del API, sin el texto de la persona (./tiempos.ts).
+tiempos.alCerrar(enviarTiempos)
+
 // El murmullo de la vez anterior (PUENTES): el siguiente es otro, para que no suene siempre igual.
 let ultimoPuente = -1
 const otroPuente = (lista: string[]) => {
@@ -342,8 +346,8 @@ export default function EvaCompanera() {
   manosRef.current = manos
   const [oido, setOido] = useState("") // lo último que entendió, para mostrarlo en su globo
   const fraseActual = useRef({ frase: "", hasta: 0 }) // lo que dice EVA y hasta cuándo su eco puede colarse
-  const oidoEva = useOido((wav) => void alOirFraseRef.current(wav))
-  const alOirFraseRef = useRef<(wav: Blob) => Promise<void>>(async () => {})
+  const oidoEva = useOido((wav, info) => void alOirFraseRef.current(wav, info))
+  const alOirFraseRef = useRef<(wav: Blob, info?: FraseOida) => Promise<void>>(async () => {})
   const encenderManosRef = useRef<() => Promise<void>>(async () => {})
   const [duda, setDuda] = useState("") // lo que le escriben en un paso del recorrido
   const [apuntando, setApuntando] = useState(false)
@@ -611,7 +615,15 @@ export default function EvaCompanera() {
       await esperar(lectura, corte.signal)
     } else {
       mostrar("")
-      const cola = crearColaDeVoz({ ctx, asistente: "educational", alHablar: mostrar, alNivel: (v) => (nivel.current = v), alEmpezar: () => {}, respetarPuntuacion: true })
+      const cola = crearColaDeVoz({
+        ctx,
+        asistente: "educational",
+        alHablar: mostrar,
+        alNivel: (v) => (nivel.current = v),
+        alEmpezar: () => {},
+        respetarPuntuacion: true,
+        alAgendar: (_, empieza) => tiempos.marcar("respuestaSuena", empieza), // la respuesta grabada (si hay registro abierto)
+      })
       const callar = () => void cola.detener()
       corte.signal.addEventListener("abort", callar)
       let conVoz = 0
@@ -1174,7 +1186,12 @@ export default function EvaCompanera() {
     recordar(q)
     hilo.current = [...hilo.current, { role: "user", content: q }, { role: "assistant", content: p.respuesta[idioma] }]
     const frase = enPausa ? `${p.respuesta[idioma]} ${SEGUIMOS[idioma]}` : p.respuesta[idioma]
-    if (!(await hablar(frase, null))) return
+    tiempos.dato("tipo", "faq")
+    tiempos.dato("faq", id)
+    const dicha = await hablar(frase, null)
+    tiempos.marcar("fin")
+    tiempos.cerrar(dicha ? "ok" : "interrumpida")
+    if (!dicha) return
     if (enPausa && recorrido.current === enPausa) esperarEnPaso(enPausa.r.pasos[enPausa.i].texto[idiomaRef.current])
     else if (espera === "oferta") void preguntar(TEXTOS[idiomaRef.current].quien, "oferta")
   }
@@ -1183,25 +1200,37 @@ export default function EvaCompanera() {
    * texto se prueba primero lo que EVA espera (./escucha.ts: «siguiente», una misión, la respuesta…), sin esperar a
    * la segunda línea; si no es eso, contesta la pregunta frecuente grabada o, si no hay ninguna, la IA con un puente.
    */
-  const alOirFrase = async (wav: Blob) => {
+  const alOirFrase = async (wav: Blob, info?: FraseOida) => {
     const espera = preguntaRef.current
     if (!espera || espera === "idioma") return
     const idioma = idiomaRef.current
+    // Tiempos (./tiempos.ts): el instante 0 es cuando terminó de hablar, antes del silencio que espera el VAD.
+    tiempos.empezar("voz", idioma, info?.vadMs ?? 0)
+    tiempos.marcar("vad")
+    if (info) tiempos.dato("hablaMs", info.hablaMs)
     let texto = ""
     let resuelto = false
     try {
       await entenderVoz(wav, idioma, (e) => {
         if (e.t === "oido") {
+          tiempos.marcar("oido")
+          tiempos.dato("oidoServidorMs", e.ms)
           texto = e.texto.trim()
           // Su propia voz colándose por los parlantes: se ignora.
           if (!texto || (Date.now() < fraseActual.current.hasta && esEco(texto, fraseActual.current.frase))) {
             texto = ""
+            tiempos.dato("tipo", "ignorado")
+            tiempos.cerrar(texto ? "su propio eco" : "nada que oír")
             return
           }
+          tiempos.pregunta(texto)
+          tiempos.dato("palabras", texto.split(/\s+/).length)
           setOido(texto)
           const r = entenderFrase(texto, espera as QueEspera, opcionesDe(espera))
           if (r.tipo === "nada") return
           resuelto = true
+          tiempos.dato("tipo", r.tipo === "orden" ? `orden:${r.orden}` : r.tipo) // lo resuelve el navegador, sin IA
+          tiempos.cerrar()
           if (r.tipo === "nombre") void alNombre(undefined, r.nombre)
           else if (r.tipo === "opcion") {
             if (espera === "oferta") void alQuien(PERFILES[r.k]?.id ?? null)
@@ -1213,13 +1242,18 @@ export default function EvaCompanera() {
           else callarEnPaso()
         } else if (e.t === "parecida" && texto && !resuelto) {
           resuelto = true
+          tiempos.marcar("parecida")
           if (e.id) void contestarGrabada(e.id, texto, espera)
-          else if (texto.split(/\s+/).length >= 3) void responder(texto)
-          else setOido(`${texto} · ${TEXTOS[idioma].noEntendi}`)
+          else if (texto.split(/\s+/).length >= 3) void responder(texto, "voz")
+          else {
+            tiempos.dato("tipo", "corta")
+            tiempos.cerrar("no entendió")
+            setOido(`${texto} · ${TEXTOS[idioma].noEntendi}`)
+          }
         }
       })
     } catch {
-      /* sin red o sin voz: quedan los botones */
+      tiempos.cerrar("error") // sin red o sin voz: quedan los botones
     }
   }
   alOirFraseRef.current = alOirFrase
@@ -1266,7 +1300,11 @@ export default function EvaCompanera() {
   // grabado («Mmm, let's see.», PUENTES); en inglés, si la respuesta no está a ~1 s, el eco del API, que nombra el tema
   // con sus palabras clave («Ah, the distance between the Earth and the Moon.»: packages/shared/src/eco.ts); luego la
   // respuesta. Si a los RESCATE_MS no empezó, una frase grabada (RESCATE) para que el silencio no parezca un cuelgue.
-  const responder = async (q: string) => {
+  const responder = async (q: string, origen: tiempos.Origen = "texto") => {
+    // Tiempos: la voz ya abrió su registro al oír la frase; lo escrito o sugerido lo abre aquí.
+    if (!tiempos.hayRegistro()) tiempos.empezar(origen, idiomaRef.current)
+    tiempos.dato("tipo", "ia")
+    tiempos.pregunta(q)
     const enPausa = recorrido.current
     cerrarPregunta()
     if (!enPausa) quitarFoco()
@@ -1283,10 +1321,24 @@ export default function EvaCompanera() {
     setEstado("pensando")
     mostrar("…")
     const ctx = await audioListo()
-    if (turno.current !== mio) return
+    if (turno.current !== mio) return tiempos.cerrar("interrumpida")
     const conVoz = !silencioRef.current && !!ctx && ctx.state === "running"
+    tiempos.dato("conVoz", conVoz)
+    // Qué es cada frase de la cola, para saber cuándo suena cada cosa (lo que no está aquí es el murmullo o el rescate).
+    const tipoDe = new WeakMap<object, "eco" | "respuesta">()
     const cola = conVoz
-      ? crearColaDeVoz({ ctx, asistente: "educational", alHablar: mostrar, alNivel: (v) => (nivel.current = v), alEmpezar: () => setEstado("hablando"), respetarPuntuacion: true })
+      ? crearColaDeVoz({
+          ctx,
+          asistente: "educational",
+          alHablar: mostrar,
+          alNivel: (v) => (nivel.current = v),
+          alEmpezar: () => setEstado("hablando"),
+          respetarPuntuacion: true,
+          alAgendar: (f, empieza) => {
+            const tipo = tipoDe.get(f)
+            tiempos.marcar(tipo === "eco" ? "ecoSuena" : tipo === "respuesta" ? "respuestaSuena" : "murmullo", empieza)
+          },
+        })
       : null
     const callar = () => void cola?.detener()
     corte.signal.addEventListener("abort", callar)
@@ -1302,28 +1354,44 @@ export default function EvaCompanera() {
       antes = decirGuion(otroPuente(PUENTES[idiomaRef.current]), idiomaRef.current, cola, corte.signal, PAUSA.frase).catch(() => 0)
       rescate = setTimeout(() => {
         if (escrito || corte.signal.aborted) return
+        tiempos.marcar("rescate")
         antes = antes.then(() => decirGuion(RESCATE[idiomaRef.current], idiomaRef.current, cola, corte.signal)).catch(() => 0)
       }, RESCATE_MS)
     }
+    let frases = 0
+    tiempos.marcar("pedido")
     try {
       await turnoDeVoz(
         hilo.current,
         (e) => {
           if (e.t === "texto") {
+            tiempos.marcar("primerTexto")
             escrito += e.d
             if (!conVoz) {
               setEstado("hablando")
               mostrar(escrito)
             }
-          } else if (e.t === "eco") esEco = true
-          else if (e.t === "frase") {
+          } else if (e.t === "eco") {
+            esEco = true
+            tiempos.marcar("ecoLlega")
+          } else if (e.t === "frase") {
+            tipoDe.set(e, esEco ? "eco" : "respuesta")
+            if (!esEco) {
+              tiempos.marcar("respuestaLlega")
+              frases++
+            }
             fraseActual.current = { frase: escrito, hasta: Infinity }
             const pausa = antesSono === "murmullo" ? PAUSA.pensar() : antesSono === "eco" ? PAUSA.idea() : PAUSA.frase()
             antesSono = esEco ? "eco" : "frase"
             esEco = false
             antes = antes.then(() => cola?.agregar(e, pausa))
-          } else if (e.t === "fin") escrito = e.respuesta
-          else if (e.t === "error") throw new Error(e.msg)
+          } else if (e.t === "fin") {
+            escrito = e.respuesta
+            // Lo que midió el servidor (desde que le llegó el pedido): ver turnoDeVoz en apps/api/src/z6.ts.
+            tiempos.dato("servidorMs", e.ms)
+            tiempos.dato("servidorPrimeraVozMs", e.primeraVozMs)
+            for (const [k, v] of Object.entries(e.tiempos ?? {})) tiempos.dato(`servidor_${k}`, v)
+          } else if (e.t === "error") throw new Error(e.msg)
         },
         corte.signal,
         undefined,
@@ -1331,9 +1399,14 @@ export default function EvaCompanera() {
       )
       await antes
       await cola?.terminada()
+      tiempos.marcar("fin")
+      tiempos.dato("frases", frases)
+      tiempos.dato("respuestaCaracteres", escrito.length)
+      tiempos.cerrar(corte.signal.aborted ? "interrumpida" : "ok")
       fraseActual.current = { frase: escrito, hasta: Date.now() + 2500 }
       if (!corte.signal.aborted) mostrar(escrito)
     } catch {
+      tiempos.cerrar(corte.signal.aborted ? "interrumpida" : "error")
       if (!corte.signal.aborted) {
         escrito = ""
         mostrar(TEXTOS[idiomaRef.current].sinSenal)
@@ -1359,7 +1432,7 @@ export default function EvaCompanera() {
     const q = (directo ?? texto).trim()
     if (!q) return
     setTexto("")
-    await responder(q)
+    await responder(q, directo ? "sugerencia" : "texto")
   }
 
   // Arrastrarla; un toque sin arrastre abre o cierra el panel (o la enciende, si está apagada).

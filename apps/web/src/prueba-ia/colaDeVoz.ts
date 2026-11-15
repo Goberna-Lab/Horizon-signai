@@ -26,12 +26,14 @@ type Opciones = {
   alEmpezar: () => void
   /** Silencios en comas y puntos dentro de cada frase (ver pausasDePuntuacion). EVA los usa; /prueba-ia no. */
   respetarPuntuacion?: boolean
+  /** Cada frase al quedar agendada: `empieza` es el performance.now() en que va a sonar (para medir tiempos). */
+  alAgendar?: (f: FraseDeVoz, empieza: number) => void
 }
 
 
 const aBytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
 
-export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar, respetarPuntuacion = false }: Opciones) {
+export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar, respetarPuntuacion = false, alAgendar }: Opciones) {
   const personaje = PERSONAJES[asistente]
   const conWebAudio = !!ctx && ctx.state === "running"
   const fuentes: AudioScheduledSourceNode[] = []
@@ -120,6 +122,7 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar, r
       fuentes.push(fuente)
     }
     siguiente = inicio + buffer.duration + corrido
+    alAgendar?.(f, performance.now() + (inicio - ctx!.currentTime) * 1000)
     // Cada palabra se corre lo que suman los silencios que tiene antes.
     const desfase = (t: number) => cortes.reduce((s, c) => (c.t <= t ? s + c.silencio : s), 0)
     // La última palabra de una frase llega sin espacio detrás: sin esto se leía «North Pole.The».
@@ -149,6 +152,7 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar, r
       a.onended = fin
       a.onerror = fin
       a.onplay = () => {
+        alAgendar?.(f, performance.now())
         if (!empezo) {
           empezo = true
           alEmpezar()

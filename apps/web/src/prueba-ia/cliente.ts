@@ -109,7 +109,7 @@ export type EventoTurno =
   | { t: "texto"; d: string }
   | { t: "eco"; texto: string }
   | ({ t: "frase" } & import("./colaDeVoz").FraseDeVoz)
-  | { t: "fin"; respuesta: string; modelo: string; ms: number; primeraVozMs: number }
+  | { t: "fin"; respuesta: string; modelo: string; ms: number; primeraVozMs: number; tiempos?: Record<string, number | boolean> }
   | { t: "error"; msg: string }
 
 // Opus es ~15 veces más liviano que WAV; Safari antiguo no lo decodifica: ahí, MP3.
@@ -170,6 +170,20 @@ export const turnoDeVoz = async (
     signal,
   })
   await leerEventos(r, alEvento)
+}
+
+/**
+ * Los tiempos de una conversación con EVA (eva/tiempos.ts), sin texto de la persona: al log del API. sendBeacon sale
+ * aunque la página se esté cerrando; si no hay, fetch con keepalive. Nunca lanza.
+ */
+export const enviarTiempos = (registro: unknown) => {
+  const cuerpo = JSON.stringify(registro)
+  try {
+    if (navigator.sendBeacon?.("/api/z6/eva/tiempos", new Blob([cuerpo], { type: "application/json" }))) return
+    void fetch("/api/z6/eva/tiempos", { method: "POST", headers: { "Content-Type": "application/json" }, body: cuerpo, keepalive: true }).catch(() => {})
+  } catch {
+    /* sin red: queda en el navegador */
+  }
 }
 
 /** Lo que el API entendió de una frase dicha a EVA con manos libres (ver /voz/entender en apps/api/src/z6.ts). */

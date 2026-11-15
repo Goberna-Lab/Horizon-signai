@@ -43,7 +43,7 @@ const MAX_TTS = 600
 // y el timbre robóticos se le ponen en el navegador (apps/web/src/prueba-ia/personajes.ts).
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/voz/entender", "/chat", "/chat/stream", "/transcribir", "/hablar", "/decir", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
+const PUBLICAS = new Set(["/eva/tiempos", "/voz/entender", "/chat", "/chat/stream", "/transcribir", "/hablar", "/decir", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
 // Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
 const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
@@ -323,6 +323,9 @@ const turnoDeVoz = (
     // ya está: como ChatGPT, solo rellena cuando hace falta (ver packages/shared/src/eco.ts). Solo con la voz rápida
     // (Kokoro en Geografo, inglés): la de español tarda 3-5 s por frase, más que la respuesta.
     let empezoRespuesta = false
+    // Tiempos del servidor para el registro de EVA (eva/tiempos.ts en la web), en ms desde que llegó el pedido.
+    const tiempos: Record<string, number | boolean> = {}
+    const desde = () => Math.round(performance.now() - t0)
     const conEco = eco && !acuse && voz.idioma === "en" && persona.idioma === "en"
     if (conEco) {
       const i = n++
@@ -332,6 +335,7 @@ const turnoDeVoz = (
           // cargarlo tarda más que el tope del eco, y así nadie volvía a cargarlo: pasó en producción el 2026-11-15).
           // Se le pide que lo cargue, sin esperar: el próximo turno ya tiene eco. No en cada turno: el pedido de
           // calentar compite con el del eco en el mismo modelo y lo hacía llegar tarde (medido).
+          tiempos.ecoTema = desde()
           if (!t) calentarEco()
           const frase = armarEco(t, persona.idioma, vecesEco)
           if (!frase) return null
@@ -345,6 +349,7 @@ const turnoDeVoz = (
           const falta = ESPERA_ECO_MS - (performance.now() - t0)
           if (r && falta > 0 && !empezoRespuesta) await new Promise((ok) => setTimeout(ok, falta))
           if (!r || empezoRespuesta || corte.signal.aborted || errorDeVoz) return
+          tiempos.ecoSono = true
           emitir({ t: "eco", texto: r.frase })
           if (!primeraVozMs) primeraVozMs = Math.round(performance.now() - t0)
           emitir({ t: "frase", i, ...r.f })
@@ -372,6 +377,8 @@ const turnoDeVoz = (
     // Los trozos van como nota al final de la pregunta, no en el sistema: así el comienzo del prompt no cambia y el
     // modelo no vuelve a evaluar todo el historial en cada turno (ver sistemaVoz en asistentes.ts).
     const extra = await contextoRag(msgs[msgs.length - 1].content, true)
+    tiempos.rag = desde()
+    tiempos.ragExtractos = extra.length > 0
     const notas = [
       extra ? `[Note from the app, not from the person. ${extra}]` : "",
       conEco ? NOTA_ECO : "",
@@ -422,12 +429,16 @@ const turnoDeVoz = (
           if (d.error) throw new Error(d.error)
           const delta = notas.pasar(filtro.pasar(d.message?.content ?? ""))
           if (!delta) continue
+          tiempos.primerToken ??= desde()
           respuesta += delta
           buffer += delta
           emitir({ t: "texto", d: delta })
           const [listas, resto] = cortarFrases(buffer, n === 0)
           buffer = resto
-          if (listas.length) empezoRespuesta = true
+          if (listas.length) {
+            empezoRespuesta = true
+            tiempos.primeraFrase ??= desde()
+          }
           for (const f of listas) {
             // Primera frase del 27B tras un acuse: si lo repite, se dice sin él (ya sonó).
             const sin: string | null = acuse && n === 1 && !repetida ? quitarAcuse(f, acuse) : null
@@ -452,7 +463,7 @@ const turnoDeVoz = (
       respuesta = sinNotas(respuesta)
       if (repetida) respuesta = respuesta.replace(repetida[0], repetida[1])
       if (acuse) respuesta = `${acuse} ${respuesta.trim()}`
-      emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs })
+      emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs, tiempos })
     } catch (e) {
       if (!corte.signal.aborted) emitir({ t: "error", msg: String(e) })
     } finally {
@@ -736,6 +747,42 @@ export const z6 = new Hono()
     } catch {
       return c.json({ idioma: "en", voz: "?", motor: "sin respuesta", equipo: "Geografo" })
     }
+  })
+  // Tiempos de una conversación con EVA (apps/web/src/features/assistant/eva/tiempos.ts), uno por pregunta: se escriben
+  // en el log como «[eva-tiempos] {json}» para medir la latencia real que viven las personas. Solo números y etiquetas
+  // cortas: nunca el texto de la pregunta ni la IP. Para sacarlos y resumirlos: apps/api/scripts/tiempos-eva.ts.
+  .post("/eva/tiempos", async (c) => {
+    const crudo = await c.req.text().catch(() => "")
+    if (crudo.length > 4000) return c.json({ ok: false }, 413)
+    let r: Record<string, unknown>
+    try {
+      r = JSON.parse(crudo) as Record<string, unknown>
+    } catch {
+      return c.json({ ok: false }, 400)
+    }
+    const etiqueta = (v: unknown) => (typeof v === "string" ? v.replace(/[^\w:.\- ]/g, "").slice(0, 40) : undefined)
+    // Claves cortas; valores: números (redondeados) o sí/no. Texto solo en estas claves (etiquetas que pone la web), para
+    // que ningún pedido pueda meter frases en el log.
+    const CON_TEXTO = new Set(["tipo", "fin", "faq"])
+    const valor = (k: string, v: unknown) =>
+      typeof v === "boolean" ? v : typeof v === "number" && Number.isFinite(v) && Math.abs(v) < 1e7 ? Math.round(v) : CON_TEXTO.has(k) ? etiqueta(v) : undefined
+    const numeros = (o: unknown) =>
+      Object.fromEntries(
+        Object.entries(o && typeof o === "object" ? o : {})
+          .filter(([k, v]) => /^\w{1,40}$/.test(k) && valor(k, v) !== undefined)
+          .slice(0, 40)
+          .map(([k, v]) => [k, valor(k, v)]),
+      )
+    const limpio = {
+      id: etiqueta(r.id),
+      origen: etiqueta(r.origen),
+      idioma: etiqueta(r.idioma),
+      hora: typeof r.hora === "string" ? r.hora.slice(0, 30) : undefined,
+      marcas: numeros(r.marcas),
+      datos: numeros(r.datos),
+    }
+    console.log(`[eva-tiempos] ${JSON.stringify(limpio)}`)
+    return c.json({ ok: true })
   })
   // Turno de voz en streaming (texto + audio por frase + tiempos por palabra). Ver turnoDeVoz.
   .post("/voz/turno", async (c) => {
