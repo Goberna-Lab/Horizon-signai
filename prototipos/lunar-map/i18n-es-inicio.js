@@ -191,9 +191,9 @@
 
     /* ---------- sitios de misión ---------- */
     'Mission sites': 'Sitios de misión',
-    'polar stereographic': 'estereográfica polar',
-    'Map of the south pole with the mission sites': 'Mapa del polo sur con los sitios de las misiones',
-    'Sun at 8° · generated terrain · PGDA sites': 'Sol a 8° · relieve generado · sitios PGDA',
+    'radar · 200 km': 'radar · 200 km',
+    'Radar of the lunar south pole, 200 km: the 13 candidate zones at their real distance and the campaign mission sites': 'Radar del polo sur lunar, 200 km: las 13 zonas candidatas a su distancia real y los sitios de las misiones de la campaña',
+    'real distances · LOLA 240 m': 'distancias reales · LOLA 240 m',
     'Peak near Shackleton · RoI 2': 'Pico cerca de Shackleton · RoI 2',
     'Shackleton rim · RoI 4': 'Borde de Shackleton · RoI 4',
     'de Gerlache rim': 'Borde de de Gerlache',
@@ -215,7 +215,7 @@
     'APPROVED': 'APROBADA',
 
     /* ---------- pie ---------- */
-    'Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate': 'Campaña de ejemplo: las misiones, las firmas y la bitácora son datos de muestra · sitios, Sol y Tierra reales (JPL Horizons DE441, horizontes LOLA/PGDA) · relieve del mapa generado para ilustrar',
+    'Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · radar: real distances over LOLA 240 m relief': 'Campaña de ejemplo: las misiones, las firmas y la bitácora son datos de muestra · sitios, Sol y Tierra reales (JPL Horizons DE441, horizontes LOLA/PGDA) · radar: distancias reales sobre el relieve LOLA de 240 m',
     'Reset demo': 'Restablecer demo',
 
     /* ---------- tarjeta de firma ---------- */
@@ -251,7 +251,18 @@
       [/^([A-Z]{2}-\d{2}) · Peak near Shackleton · RoI 2$/, '$1 · Pico cerca de Shackleton · RoI 2'],
       [/^([A-Z]{2}-\d{2}) · de Gerlache rim$/, '$1 · Borde de de Gerlache'],
 
+      /* ficha de un punto del radar de Mission sites */
+      [/^(\d+) km from the pole · (.+)$/, '$1 km del polo · $2'],
+      [/^Missions: (.+)$/, 'Misiones: $1'],
+
       /* ---------- trozos: «ahora», rol antes de una fecha, día de la semana y mes ---------- */
+      [/\bPeak near Shackleton\b/, 'Pico cerca de Shackleton'],
+      [/\bShackleton rim\b/, 'Borde de Shackleton'],
+      [/\bde Gerlache Rim 2\b/, 'Borde de de Gerlache 2'],
+      [/\bMalapert Massif\b/, 'Macizo Malapert'],
+      [/\bNobile Rim (\d)\b/, 'Borde de Nobile $1'],
+      [/\bMons Mouton Plateau\b/, 'Meseta de Mons Mouton'],
+      [/\bPeak near Cabeus B\b/, 'Pico cerca de Cabeus B'],
       [/^NOW · (?=\d{1,2} [A-Z][a-z]{2} \d{4}\b)/, 'AHORA · '],
       [/^(Science team|Data|Planning|Coordination|Flight Director|Navigation) · (?=\d{1,2} [A-Z][a-z]{2} \d{4}\b)/, function (m, quien) { return ROL[quien] + ' · '; }],
       [/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) (?=\d{1,2} [A-Z][a-z]{2} \d{4}\b)/, function (m, dia) { return DIA[dia] + ' '; }],
