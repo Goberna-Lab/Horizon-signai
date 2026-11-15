@@ -55,6 +55,7 @@ const SISTEMA_VOZ: Record<ServicioVoz["idioma"], string> = {
   en:
     "You are the Horizon Signai voice assistant. You are speaking out loud: always answer in English, " +
     "in one to three short sentences, with no lists, no markdown, no emojis and no special symbols. " +
+    "Always start with a very short first sentence of at most eight words, then continue. " +
     "Write numbers as words when they are short.",
 }
 
@@ -112,7 +113,8 @@ const preguntar = async (mensajes: Mensaje[], voz: boolean) => {
 const FORMATOS_VOZ = new Set(["opus", "mp3", "wav"])
 
 // Saca del buffer las frases ya completas (fin de frase seguido de espacio: «3.5» no corta).
-// La primera puede cortarse en una coma si ya es larga, para que la voz arranque antes.
+// La primera puede cortarse en una coma (desde 25 caracteres), para que la voz arranque antes;
+// además el prompt de voz pide abrir con una frase corta (≤ 8 palabras).
 export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], string] => {
   const listas: string[] = []
   let resto = buffer
@@ -121,7 +123,7 @@ export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], str
     const fin = resto.match(/^[\s\S]*?[.!?…]+["'”)\]]*(?=\s)/)
     if (fin) corte = fin[0].length
     else if (esPrimera && listas.length === 0) {
-      const coma = /^[\s\S]{40,}?[,;:](?=\s)/.exec(resto)
+      const coma = /^[\s\S]{25,}?[,;:—](?=\s)/.exec(resto)
       if (coma) corte = coma[0].length
     }
     if (corte < 0) break

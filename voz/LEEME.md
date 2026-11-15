@@ -33,7 +33,7 @@ decodificar el audio. No caben juntos. En la Z6 quedó instalado pero **desactiv
   WAV (23 KB contra 248 KB por frase): subirlo desde Geografo y bajarlo al navegador costaba ~1,5-2 s.
 - **Fase 2:** el API de VPS2 expone `POST /api/z6/voz/turno`. Lee la respuesta de la Z6 en
   streaming, manda cada frase a esta voz apenas se completa (la primera puede cortarse en una coma
-  si ya pasa de 40 caracteres) y devuelve NDJSON: texto, audio de cada frase (base64) y los tiempos
+  si ya pasa de 25 caracteres; el prompt pide abrir con una frase de ≤ 8 palabras) y devuelve NDJSON: texto, audio de cada frase (base64) y los tiempos
   de cada palabra (`palabras: true` → cabecera `X-Palabras`). El navegador agenda las frases sin
   huecos con Web Audio y muestra cada palabra al pronunciarse.
 - Medido en local: primer texto 0,4 s, **primera voz ~1,0-1,5 s** desde que llega la pregunta
