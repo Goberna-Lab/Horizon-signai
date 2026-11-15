@@ -84,10 +84,9 @@
 
 /* ---------- misiones ---------- */
 .mlist { display: flex; flex-direction: column; gap: 8px; }
-/* «Add mission»: abajo del panel, donde antes asomaba media tarjeta; abre el planificador para planear una misión nueva */
-.addm { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; margin-top: 8px; border: 1px dashed var(--borde-2); border-radius: 14px; color: var(--tinta); font-size: 13px; font-weight: 600; text-decoration: none; transition: border-color .18s ease, background-color .18s ease; }
-.addm:hover { border-color: var(--tinta); background: rgba(255,255,255,0.45); }
-.addm:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+/* «Add mission»: el botón rojo de la página (.btn.red), abajo del panel, donde antes asomaba media tarjeta; abre el
+   planificador para planear una misión nueva */
+.addm { flex: none; width: 100%; margin-top: 8px; font-size: 14px; }
 .mrow { display: flex; flex-direction: column; gap: 7px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
 .mrow:hover { background: rgba(255,255,255,0.4); }
 .mrow:active { transform: translateY(1px); }
@@ -326,7 +325,7 @@
               <section class="paper panel upcoming" aria-labelledby="up-t">
                 <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
                 <div class="mlist" id="mlist"></div>
-                <a class="addm" href="index.html" title="Plan a new mission in the Planner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add mission</a>
+                <a class="btn red addm" href="index.html" title="Plan a new mission in the Planner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add mission</a>
               </section>
             </div>
           </div>
