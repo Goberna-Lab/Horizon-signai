@@ -1,5 +1,5 @@
-// Sonido del alunizaje, sintetizado con Web Audio (sin archivos): alarma de programa del guiado, impacto y estática de
-// radio. La voz no va aquí: quien habla es la EVA de toda la aplicación, avisada con `avisarEva` de `@/shared/eva`.
+// Sonido del alunizaje y la caminata, sintetizado con Web Audio (sin archivos): alarma de programa del guiado, impacto,
+// estática de radio, pitidos del HUD y la alarma maestra del traje. La voz no va aquí: quien habla es la EVA de toda la aplicación, avisada con `avisarEva` de `@/shared/eva`.
 // Los navegadores no dejan sonar audio antes de un gesto: se intenta al montar y otra vez con la primera tecla o clic.
 
 export class Sonido {
@@ -95,9 +95,29 @@ export class Sonido {
     this.noise(dur, 0.09, "bandpass", 2300, 0.6)
   }
 
-  /** Al desmontar el simulador: listeners y AudioContext. */
+  /** Pitido corto del HUD (aviso, tarea hecha). */
+  blip(alto = false) {
+    this.tone(alto ? 1560 : 1180, 0.05, 0.045, "triangle")
+  }
+
+  private alarmaT = 0
+  /** Alarma maestra del traje: dos tonos que se repiten mientras dure el estado crítico. */
+  alarma(on: boolean) {
+    window.clearInterval(this.alarmaT)
+    this.alarmaT = 0
+    if (!on) return
+    const sonar = () => {
+      this.tone(1046, 0.18, 0.05, "square")
+      this.tone(784, 0.18, 0.05, "square", 0.22)
+    }
+    sonar()
+    this.alarmaT = window.setInterval(sonar, 1400)
+  }
+
+  /** Al desmontar el simulador: listeners, alarma y AudioContext. */
   dispose() {
     if (this.disposed) return
+    this.alarma(false)
     this.disposed = true
     window.removeEventListener("pointerdown", this.unlock)
     window.removeEventListener("keydown", this.unlock)

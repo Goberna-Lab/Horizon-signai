@@ -114,8 +114,8 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   };
   scene.add(view.astro.object, view.astro.dust);
   view.astro.object.visible = false;
-  // Caminata con el casco después del primer paso; R vuelve a volar el descenso
-  const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start() }));
+  // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
+  const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start(), sonido }));
   const sim = new LandingSim(view);
   await sim.start();
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)

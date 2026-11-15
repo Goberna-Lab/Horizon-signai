@@ -700,7 +700,7 @@ export class LandingSim {
     this.state = 'eva'; this.locks = false;
     this.lfp.hidden = true;
     if (this.pathG) this.pathG.visible = false;
-    v.caminata?.start(this.path.at(-1), v.heading, this.lmPos);
+    v.caminata?.start(this.path.at(-1), v.heading, this.lmPos, { lm: this.lm, result: this.result });
     this.say('Armstrong', tr("That's one small step for a man, one giant leap for mankind.", 'Es un pequeño paso para un hombre, un gran salto para la humanidad.'));
   }
 
