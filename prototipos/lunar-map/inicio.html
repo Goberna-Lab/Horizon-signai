@@ -91,7 +91,8 @@
 .tab[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
 .tab:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 .pair { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.pair > .tabs { align-self: flex-start; }
+/* las pestañas van sobre «Mission sites», bajo los indicadores */
+.swap { align-self: flex-start; }
 .pairrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .pair.mv-first .movs { order: -1; }
 
@@ -199,13 +200,13 @@
   .main { display: flex; flex-direction: column; min-width: 0; }
   .col, .duo { display: contents; }
   .main > .col > * { min-width: 0; max-width: 100%; }
-  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .sites { order: 4; } .upcoming { order: 5; } .pair { order: 6; }
+  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .swap { order: 4; } .sites { order: 5; } .upcoming { order: 6; } .pair { order: 7; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .utc small { display: none; }
 }
 @media (max-width: 560px) {
-  .pair .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; border-radius: 18px; }
-  .pair .tab { height: auto; min-height: 34px; padding: 6px 10px; border-radius: 15px; font-size: 13px; line-height: 1.15; white-space: normal; }
+  .swap { align-self: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; border-radius: 18px; }
+  .swap .tab { height: auto; min-height: 34px; padding: 6px 10px; border-radius: 15px; font-size: 13px; line-height: 1.15; white-space: normal; }
   .brand small, .brand .sep { display: none; }
   .pillnav { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
   .pillnav a, .pillnav span { flex: none; padding: 0 12px; }
@@ -269,9 +270,14 @@
 
     </div>
 
-    <!-- derecha: indicadores; sitios de misión y misiones a la par; calendario y bitácora a la par (las pestañas eligen cuál va a la izquierda) -->
+    <!-- derecha: indicadores; pestañas; sitios de misión y misiones a la par; calendario y bitácora a la par (las pestañas eligen cuál va a la izquierda) -->
     <div class="col">
       <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
+
+      <div class="tabs swap" id="pairTabs" role="group" aria-label="Panel on the left">
+        <button type="button" class="tab display-caps" data-first="cal" aria-pressed="true">Campaign calendar</button>
+        <button type="button" class="tab display-caps" data-first="mv" aria-pressed="false">Mission movements</button>
+      </div>
 
       <div class="duo">
         <section class="paper panel sites" aria-labelledby="sites-t">
@@ -295,10 +301,6 @@
       </div>
 
       <div class="pair" id="pair">
-        <div class="tabs" role="group" aria-label="Panel on the left">
-          <button type="button" class="tab display-caps" data-first="cal" aria-pressed="true">Campaign calendar</button>
-          <button type="button" class="tab display-caps" data-first="mv" aria-pressed="false">Mission movements</button>
-        </div>
         <div class="pairrow">
           <section class="paper panel cal" id="cal-p" aria-labelledby="cal-t">
             <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
@@ -688,8 +690,8 @@
   var localT = null;
   function local() { if (!localT) localT = L.localScene(); return localT; }
 
-  /* calendario y movimientos a la par: la pestaña elegida pone su panel a la izquierda (o arriba, si van apilados) */
-  var pair = $('pair'), pairTabs = [].slice.call(pair.querySelectorAll('.tab'));
+  /* calendario y movimientos a la par: la pestaña elegida (sobre «Mission sites») pone su panel a la izquierda (o arriba, si van apilados) */
+  var pair = $('pair'), pairTabs = [].slice.call(document.querySelectorAll('#pairTabs .tab'));
   pairTabs.forEach(function (tb) {
     tb.addEventListener('click', function () {
       pairTabs.forEach(function (x) { x.setAttribute('aria-pressed', x === tb); });
