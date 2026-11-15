@@ -1,0 +1,35 @@
+/* Mapa polar compartido (pmap-*). Las tres variables se registran para que la transición las interpole. */
+@property --pmap-zoom { syntax: "<number>"; inherits: true; initial-value: 1; }
+@property --pmap-tx { syntax: "<length>"; inherits: true; initial-value: 0px; }
+@property --pmap-ty { syntax: "<length>"; inherits: true; initial-value: 0px; }
+.pmap { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border: var(--rule); background: #e9e3d8; }
+.ws[data-view="mission"] .pmap { aspect-ratio: 16 / 9; }
+.pmap__world { position: absolute; left: 0; top: 0; width: 1000px; height: 1000px; transform-origin: 0 0; transform: translate(var(--pmap-tx), var(--pmap-ty)) scale(var(--pmap-zoom)); }
+.pmap[data-ready="true"] .pmap__world { transition: --pmap-zoom 700ms var(--ease), --pmap-tx 700ms var(--ease), --pmap-ty 700ms var(--ease); }
+.pmap__world > img { width: 1000px; height: 1000px; max-width: none; user-select: none; }
+.pmap__grid { position: absolute; inset: 0; width: 1000px; height: 1000px; fill: none; stroke: rgb(17 17 17 / 0.28); stroke-width: 0.6; stroke-dasharray: 2 3; }
+.pmap-anchor { position: absolute; width: 0; height: 0; }
+.pmap-anchor > *, .pmap-pin > button { transform: scale(calc(1 / var(--pmap-zoom))); transform-origin: 0 0; }
+.pmap__lat b, .pmap__pole b, .pmap-place b { position: absolute; font: 400 10px/1 var(--font-mono); color: rgb(17 17 17 / 0.6); white-space: nowrap; }
+.pmap__lat b { left: 4px; top: 4px; }
+.pmap__pole i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border: 1.5px solid var(--ink); border-radius: 50%; }
+.pmap__pole b { left: 9px; top: -5px; }
+.pmap-place i { position: absolute; left: -2.5px; top: -2.5px; width: 5px; height: 5px; background: rgb(17 17 17 / 0.55); }
+.pmap-place b { left: 7px; top: -5px; }
+.pmap-pin button { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; }
+.pmap-pin i { position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; border: 2px solid var(--paper); background: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.pmap-pin[data-state="bad"] i { background: var(--signal); box-shadow: 0 0 0 1px var(--signal); }
+.pmap-pin[data-state="wait"] i { background: var(--shade); }
+.pmap-pin[data-selected="true"] i { outline: 2px solid var(--ink); outline-offset: 3px; }
+.pmap-pin b { position: absolute; left: 14px; top: -9px; padding: 2px 5px; background: var(--paper); font: 600 11px/1.3 var(--font-mono); white-space: nowrap; }
+.pmap-pin[data-dim="true"] { opacity: 0.35; }
+.pmap-rays > .pmap-ray { position: absolute; left: -1px; top: -150px; width: 2px; height: 150px; transform-origin: 1px 150px; background: var(--signal); }
+.pmap-ray[data-body="earth"] { background: var(--earth); }
+.pmap-ray[data-seen="false"] { opacity: 0.4; background: repeating-linear-gradient(to top, currentColor 0 6px, transparent 6px 10px); color: var(--ink); }
+.pmap-ray b { position: absolute; left: 50%; top: -12px; padding: 1px 5px; background: var(--paper); font: 600 11px/1.3 var(--font-mono); white-space: nowrap; }
+.pmap__title, .pmap__earth, .pmap__scale { position: absolute; padding: 4px 8px; background: var(--paper); border: 1px solid var(--ink); font: 500 11px/1.2 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.pmap__title { left: 12px; top: 12px; }
+.pmap__earth { right: 12px; top: 12px; }
+.pmap__earth::before { content: "↑ "; }
+.pmap__scale { left: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px; text-transform: none; }
+.pmap__scale i { display: block; height: 4px; border: 1px solid var(--ink); border-top: 0; }

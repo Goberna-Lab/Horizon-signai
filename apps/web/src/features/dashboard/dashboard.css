@@ -1,0 +1,48 @@
+/* Dashboard (db-*): aviso, cifras, cronograma, lista de misiones y Sol y enlace. */
+.db-alert { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border: var(--rule); }
+.db-alert[data-state="bad"] { background: var(--signal); border-color: var(--signal); color: var(--paper); }
+.db-alert__text { flex: 1; font-size: 0.9375rem; }
+.db-alert__undo { font: 400 12px/1.3 var(--font-mono); }
+.db-alert__undo button { border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.ui-btn--onsignal { border-color: var(--paper); color: var(--paper); }
+.ui-btn--onsignal:hover { background: var(--paper); color: var(--signal); }
+.db-summary { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; }
+.db-kpis { display: flex; border: var(--rule); }
+.db-kpis > div { padding: 8px 14px; }
+.db-kpis > div + div { border-left: var(--hairline); }
+.db-kpis dt { font: 500 10.5px/1.2 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
+.db-kpis dd { font: 700 1.6rem/1.1 var(--font-serif); white-space: nowrap; }
+.db-kpis [data-alert="true"] dd { color: var(--signal); }
+.db-schedule { position: relative; }
+.db-schedule__months { position: relative; height: 16px; font: 400 10px/1 var(--font-mono); color: var(--ink-soft); }
+.db-schedule__months span { position: absolute; white-space: nowrap; }
+.db-schedule__track { position: relative; height: 34px; border-top: var(--rule); border-bottom: var(--hairline); }
+.db-schedule__now { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); }
+.db-schedule__mission { position: absolute; top: 6px; height: 20px; border: 0; background: var(--ink); color: var(--paper); cursor: pointer; overflow: visible; }
+.db-schedule__mission[data-state="bad"] { background: var(--signal); }
+.db-schedule__mission b { position: absolute; left: 0; top: 22px; font: 500 10px/1 var(--font-mono); color: var(--ink); white-space: nowrap; }
+.db-schedule__mission[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.db-missions ul { list-style: none; }
+.db-mission { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 12px 0; border-top: var(--hairline); }
+.db-mission[data-selected="true"] { box-shadow: inset 3px 0 0 var(--ink); padding-left: 10px; }
+.db-mission[data-state="bad"][data-selected="true"] { box-shadow: inset 3px 0 0 var(--signal); }
+.db-mission__pick { position: absolute; inset: 0; border: 0; background: transparent; cursor: pointer; }
+.db-mission__name { font: 700 1.25rem/1.1 var(--font-serif); }
+.db-mission__name small { margin-left: 8px; font: 400 10px/1 var(--font-mono); text-transform: uppercase; color: var(--ink-soft); }
+.db-mission__meta, .db-mission__when, .db-mission__why { grid-column: 1 / -1; font: 400 12px/1.35 var(--font-mono); color: var(--ink-soft); }
+.db-mission[data-state="bad"] .db-mission__why { color: var(--signal); }
+.db-mission__open { position: relative; grid-column: 1 / -1; justify-self: start; margin-top: 4px; }
+.db-missions__restore { margin-top: 10px; }
+.db-meters { display: flex; flex-direction: column; gap: 10px; }
+.db-meter p { display: flex; justify-content: space-between; gap: 10px; font-size: 0.8125rem; white-space: nowrap; }
+.db-meter strong { font: 700 1rem/1 var(--font-serif); }
+.db-meter small { font: 400 11px/1 var(--font-mono); color: var(--ink-soft); }
+.db-meter__bar { height: 8px; margin-top: 5px; background: repeating-linear-gradient(135deg, rgb(17 17 17 / 0.25) 0 1.5px, transparent 1.5px 5px); }
+.db-meter__bar i { display: block; height: 100%; background: var(--ink); }
+.db-meter[data-body="sun"] .db-meter__bar i { background: var(--signal); }
+.db-meter[data-body="earth"] .db-meter__bar i { background: var(--earth); }
+.db-count { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; border-top: var(--hairline); padding-top: 12px; }
+.db-count dt { font: 500 10.5px/1.2 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
+.db-count dd { font: 700 1.4rem/1.15 var(--font-serif); white-space: nowrap; }
+.db-count dd small { font: 400 11px/1.3 var(--font-mono); white-space: normal; }
+.db-count .db-count__date { font: 400 11px/1.3 var(--font-mono); color: var(--ink-soft); }
