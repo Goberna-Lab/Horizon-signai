@@ -61,3 +61,7 @@
 .sim-lfp-haz small { color: var(--c); letter-spacing: .4em; font-size: 10px; } .sim-lfp-haz b { font-size: 30px; color: var(--c); line-height: 1.1; }
 .sim-lfp-haz span { color: #e6f4fa; font-size: 13px; }
 
+
+/* Tarjeta final: salir a caminar o volver a volar */
+.sim-lfp-end-acts { display: flex; flex-wrap: wrap; gap: 10px; }
+.sim-lfp-end button.sec { color: #111111; background: transparent; border: 1px solid #111111; }

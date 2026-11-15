@@ -353,6 +353,7 @@ export class LandingSim {
     this.flag = null;
     if (this.pathG) { v.scene.remove(this.pathG); this.pathG = null; }
     if (this.lfp) this.lfp.hidden = true;
+    v.caminata?.stop();
     this._clearBoom();
     if (this.fp && v.eva) v.eva.root.style.visibility = '';
     this.fp = false; this.distant = false;
@@ -629,9 +630,78 @@ export class LandingSim {
       <dl><div><dt>${tr('Contact speed', 'Velocidad de contacto')}</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>${tr('Footpad tilt', 'Inclinación de las patas')}</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
       <div><dt>${tr('Off target', 'Desvío del objetivo')}</dt><dd>${fmt(miss)} m</dd></div><div><dt>${tr('Fuel left', 'Combustible restante')}</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
       <div><dt>${tr('Powered descent', 'Descenso propulsado')}</dt><dd>${clock(this.t)}</dd></div><div><dt>${tr('Earth link', 'Enlace con la Tierra')}</dt><dd>${v.now?.earth.visible ? tr('direct', 'directo') : tr('below the horizon', 'bajo el horizonte')}</dd></div></dl>
-      <button type="button">${tr('Fly the descent again', 'Volar el descenso otra vez')}</button>`;
-    card.querySelector('button').addEventListener('click', () => this.start());
+      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
+        <button type="button" data-act="again" class="${R.kind === 'tip' || R.kind === 'crash' ? '' : 'sec'}">${tr('Fly the descent again', 'Volar el descenso otra vez')}</button></div>`;
+    card.addEventListener('click', (e) => {
+      const act = e.target.closest?.('button')?.dataset.act;
+      if (act === 'again') this.start();
+      if (act === 'out') { card.remove(); this.endEl = null; this._startEgress(); }
+    });
     v.host.append(card); this.endEl = card;
+  }
+
+  /* ---------------- Salida y primer paso ---------------- */
+
+  /** Abre la escotilla: el astronauta sale de espaldas al porche y baja la escalera (en primera persona). */
+  _startEgress() {
+    const v = this.view;
+    this.state = 'egress'; this.eT = 0;
+    const m = new THREE.Matrix4().compose(this.lm.position, this.lm.quaternion, new THREE.Vector3(1, 1, 1));
+    this.eg = Object.fromEntries(Object.entries(EG).map(([k, p]) => [k, new THREE.Vector3(...p).applyMatrix4(m)]));
+    const g = new THREE.Vector3(0, 0, 3.05 * S + 1.15).applyMatrix4(m);
+    g.y = v.groundY(g.x, g.z);
+    this.eg.ground = g;
+    this.path = [g]; // punto donde queda de pie al terminar
+    v.astro.object.visible = !this.fp; v.astro.dust.visible = true; // en primera persona se baja con sus ojos: el cuerpo no se dibuja
+    v.controls.target.copy(this.eg.hatch).add(new THREE.Vector3(0, 1, 0));
+    v.camera.position.copy(v.controls.target).addScaledVector(this.u, 6.4).addScaledVector(this.side, 3.9).add(new THREE.Vector3(0, 0.3, 0));
+    this.say('Armstrong', tr('Hatch open. Backing out onto the porch.', 'Escotilla abierta. Salgo de espaldas al porche.'));
+  }
+
+  /** Salida: porche (agachado, de espaldas) → escalera peldaño a peldaño → salto al plato → primer paso. */
+  _egress(dt) {
+    const v = this.view, a = v.astro, E = this.eg;
+    this.eT += dt;
+    let t = this.eT, i = 0;
+    while (i < EG_T.length && t > EG_T[i]) { t -= EG_T[i]; i++; }
+    if (i >= EG_T.length) { this._firstStep(); return; }
+    const k = t / EG_T[i], e = k * k * (3 - 2 * k);
+    const facing = Math.atan2(-this.u.x, -this.u.z); // de cara al LM, como bajaban en Apollo
+    const once = (key, fn) => { if (!this.events.has(key)) { this.events.add(key); fn(); } };
+    let p, head = facing, speed = 0;
+    if (i === 0) p = E.hatch.clone().lerp(E.porch, e); // sale agachado por la escotilla
+    else if (i === 1) { // baja el primer pie a la escalera, agarrado a los pasamanos
+      p = E.porch.clone().lerp(E.top, e);
+      once('eg1', () => this.say('Armstrong', tr('Going down the ladder.', 'Bajando por la escalera.')));
+    } else if (i === 2) { // un peldaño cada vez
+      const f = k * RUNGS, n = Math.min(RUNGS - 1, Math.floor(f)), c = f - n;
+      p = E.top.clone().lerp(E.bottom, (n + sstep(0.2, 0.9, c)) / RUNGS);
+      if (k > 0.55) once('eg2', () => this.say('Armstrong', tr("I'm at the foot of the ladder. The LM footpads are only sunk in a few centimeters.", 'Estoy al pie de la escalera. Las patas del LM se hundieron solo unos centímetros.')));
+    } else if (i === 3) { // salto del último peldaño al plato (queda a casi un metro)
+      const j = Math.min(1, k / 0.55), je = j * j * (3 - 2 * j);
+      p = E.bottom.clone().lerp(E.pad, je);
+      p.y += Math.sin(Math.PI * j) * 0.32;
+      if (k > 0.7) once('eg3', () => this.say('Armstrong', tr("I'm going to step off the pad now.", 'Voy a bajar del plato ahora.')));
+    } else { // primer paso sobre el regolito, dándose la vuelta
+      p = E.pad.clone().lerp(E.ground, e);
+      p.y += Math.sin(Math.PI * k) * 0.1;
+      head = facing + Math.PI * sstep(0.35, 1, k);
+      speed = 1.0;
+    }
+    a.object.position.copy(p);
+    v.heading = head;
+    a.object.rotation.y = head;
+    a.update(dt, speed);
+  }
+
+  /** Primer paso: empieza la caminata con el casco (caminata.ts). */
+  _firstStep() {
+    const v = this.view;
+    this.state = 'eva'; this.locks = false;
+    this.lfp.hidden = true;
+    if (this.pathG) this.pathG.visible = false;
+    v.caminata?.start(this.path.at(-1), v.heading, this.lmPos);
+    this.say('Armstrong', tr("That's one small step for a man, one giant leap for mankind.", 'Es un pequeño paso para un hombre, un gran salto para la humanidad.'));
   }
 
   _orient(aT) {
