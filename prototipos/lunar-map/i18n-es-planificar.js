@@ -19,7 +19,8 @@
       'Sections': 'Secciones',
       'Missions': 'Misiones',
       'Planner': 'Planificador',
-      '3D Map': 'Mapa 3D',
+      'Mission log': 'Bitácora de misión',
+      'Opens the 3D Moon': 'Abre la Luna en 3D',
       'Example campaign · south pole': 'Campaña de ejemplo · polo sur',
       '19 Dec 2026 · 10:00 UTC': '19 dic 2026 · 10:00 UTC',
 

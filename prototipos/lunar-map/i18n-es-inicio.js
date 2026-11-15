@@ -58,11 +58,10 @@
     'Sections': 'Secciones',
     'Missions': 'Misiones',
     'Planner': 'Planificador',
-    '3D Map': 'Mapa 3D',
+    'Mission log': 'Bitácora de misión',
+    'Opens the 3D Moon': 'Abre la Luna en 3D',
     'Landing': 'Alunizaje',
     'Walk · concept': 'Caminata · concepto',
-    'Mission coordination': 'Coordinación de misión',
-    'South pole · shift A': 'Polo sur · turno A',
 
     /* ---------- próximo hito ---------- */
     'Next milestone': 'Próximo hito',

@@ -25,9 +25,6 @@
 .topr { display: flex; align-items: center; gap: 10px; }
 .utc { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px; border-radius: 999px; font-size: 13px; color: var(--gris); }
 .utc b { color: var(--tinta); font-weight: 600; }
-.who { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px 0 8px; border-radius: 999px; }
-.who .av { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(180deg, #3A3A3A, var(--tinta)); color: var(--crema); font-family: var(--f-disp); font-size: 13px; font-weight: 700; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 0 #000; }
-.who p { font-size: 13px; font-weight: 600; line-height: 1.2; } .who span { font-size: 11.5px; color: var(--gris); }
 
 /* ---------- rejilla principal ---------- */
 .main { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
@@ -186,7 +183,7 @@
   .main > .col > * { min-width: 0; max-width: 100%; }
   .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .cal { order: 4; } .movs { order: 5; } .upcoming { order: 6; } .sites { order: 7; } .approved { order: 8; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .who, .utc small { display: none; }
+  .utc small { display: none; }
 }
 @media (max-width: 560px) {
   .brand small, .brand .sep { display: none; }
@@ -209,12 +206,10 @@
     <nav class="pillnav" aria-label="Sections">
       <span aria-current="page">Missions</span>
       <a href="index.html">Planner</a>
-      <a href="/3d-map" target="_top">3D Map</a>
     </nav>
     <div class="topr">
-      <span class="paper flat langsw mono" data-lang-toggle></span>
       <span class="paper flat utc mono"><small id="today">—</small><b id="utc">--:--:-- UTC</b></span>
-      <span class="paper flat who"><span class="av" aria-hidden="true">CM</span><span><p>Mission coordination</p><span>South pole · shift A</span></span></span>
+      <a class="paper flat logbtn" href="/3d-map" target="_top" title="Opens the 3D Moon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg><span>Mission log</span></a>
     </div>
   </header>
 

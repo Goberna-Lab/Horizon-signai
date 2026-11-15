@@ -72,6 +72,10 @@ h1.disp, h2.disp { font-family: var(--f-serif); font-variant-numeric: lining-num
 .pillnav { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-btn); background: var(--crema); border: 1px solid var(--borde); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); }
 .pillnav a, .pillnav span { display: flex; align-items: center; height: 40px; padding: 0 var(--s-4); border-radius: var(--r-btn); color: var(--gris); font-size: 15px; font-weight: 500; text-decoration: none; white-space: nowrap; transition: background-color var(--m-out) var(--ease), color var(--m-out) var(--ease); }
 .pillnav a:hover { background: rgba(17,17,17,0.06); color: var(--tinta); transition-duration: var(--m-in); }
+/* «Mission log»: abre el mapa 3D (/3d-map) */
+.logbtn { display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 18px 0 16px; border-radius: 999px; color: var(--tinta); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color .15s ease; }
+.logbtn:hover { background: #FFFFFF; }
+.logbtn:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 .pillnav [aria-current] { background: var(--tinta); color: var(--crema); font-weight: 600; }
 /* cabecera: misma posición de la píldora en todas las páginas. Cada página pone .top en rejilla de tres
  * columnas iguales; la marca va a la izquierda, la píldora centrada en la ventana a 1 px del borde superior
@@ -170,7 +174,3 @@ button.tag { cursor: pointer; transition: background-color var(--m-out) var(--ea
 .grain { position: absolute; inset: 0; pointer-events: none; opacity: .14; mix-blend-mode: overlay; background-image: var(--grano); background-size: 160px 160px; }
 
 /* selector EN / ES (i18n.js lo rellena): píldora del mismo alto que el reloj */
-.langsw { display: inline-flex; align-items: center; gap: 2px; height: 52px; padding: 0 8px; border-radius: 999px; }
-.langsw button { height: 30px; padding: 0 10px; border: 0; border-radius: 999px; background: none; color: var(--gris); font: inherit; font-size: 12px; font-weight: 600; letter-spacing: .06em; cursor: pointer; }
-.langsw button:hover { color: var(--tinta); }
-.langsw button[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }

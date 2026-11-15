@@ -30,9 +30,6 @@ button, input, select { font: inherit; color: inherit; }
 .sol { width: 22px; height: 22px; border-radius: 50%; background: var(--red); }
 .cab h1 { margin: 0; font: 600 var(--s-3)/1 var(--font-display); letter-spacing: 0.01em; }
 .cab small { display: block; color: var(--ink-2); font-size: var(--s--1); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
-.idioma { display: flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
-.idioma button { border: 0; background: none; padding: 3px 9px; font-size: var(--s--1); cursor: pointer; color: var(--ink-2); }
-.idioma button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .bloque { padding: 10px 20px; }
 .bloque + .bloque { border-top: 1px solid var(--rule); }
 .rotulo { font-size: var(--s--1); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); margin: 0 0 6px; display: flex; justify-content: space-between; }
@@ -211,9 +208,6 @@ details.fuentes a { color: var(--ink); }
     <header class="cab">
       <div class="sol" aria-hidden="true"></div>
       <div><h1><a href="/" target="_top" style="color: inherit; text-decoration: none" title="Horizon Signai">Horizon Signai</a></h1><small data-t="subtitulo"></small></div>
-      <div class="idioma" role="group" aria-label="Idioma / Language">
-        <button data-idioma="en">EN</button><button data-idioma="es">ES</button>
-      </div>
     </header>
     <div class="bloque">
       <p class="rotulo"><span data-t="vista"></span></p>
@@ -1139,7 +1133,6 @@ function textos() {
   document.documentElement.lang = idioma
   document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t(el.dataset.t) })
   document.querySelectorAll('[data-tp]').forEach((el) => { el.placeholder = t(el.dataset.tp) })
-  document.querySelectorAll('[data-idioma]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.idioma === idioma))
   $('fuentes').innerHTML = FUENTES[idioma].map((f) => `<li>${f}</li>`).join('')
   chips(); agencias(); lista(); leyenda(); actualizarTiempo(); estado()
   if (fichaActual) mostrarFicha(fichaActual, true)
@@ -1290,12 +1283,6 @@ lienzo.addEventListener('pointerup', (e) => {
   lista()
 })
 
-// Cambiar de idioma aquí lo cambia en toda la app: se guarda la preferencia compartida y la pantalla que envuelve al mapa
-// (aviso «storage») se recarga con ese idioma. Suelto, el mapa cambia en el acto.
-document.querySelectorAll('[data-idioma]').forEach((b) => b.addEventListener('click', () => {
-  idioma = b.dataset.idioma; textos()
-  try { localStorage.setItem(CLAVE_IDIOMA, idioma) } catch { /* sin almacenamiento */ }
-}))
 $('vistas').addEventListener('click', (e) => {
   const v = e.target.closest('button')?.dataset.vista
   if (!v) return

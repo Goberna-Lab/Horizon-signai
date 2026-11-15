@@ -43,7 +43,7 @@ Our user is the mission planner who has to pick a landing site and date, and pic
 | Power and communication assessment | `/planner`: verdict plus six figures per scenario: Sun in view, Earth in view, both at once, longest night, longest silence, mean panel irradiance (W/m²). |
 | Multiple visualization approaches | 2D polar map, horizon view, timelines, 3D globe, and the scroll-driven flight on the landing page. |
 | Temporal dynamics | `/planner`: timeline from 30 days before to 60 days after landing. `/dashboard`: stay timeline. `/3d-map`: Sun, Earth and shadows change with the date. |
-| Accessibility across skill levels | Every screen in English or Spanish (EN / ES switch). Plain-word verdicts and proposals for a first read; exact figures, definitions and CSV export for engineers; the landing page and EVA for students and the public. |
+| Accessibility across skill levels | Every screen in English or Spanish (EVA asks which one). Plain-word verdicts and proposals for a first read; exact figures, definitions and CSV export for engineers; the landing page and EVA for students and the public. |
 
 ## NASA data at the core
 
