@@ -1,6 +1,5 @@
 import { Link } from "react-router"
 import { routes } from "@/app/routes"
-import { LangToggle } from "@/shared/i18n/LangToggle"
 import { actions, brand } from "../content"
 
 export function Header() {
@@ -9,9 +8,7 @@ export function Header() {
       <Link className="ln-bar__brand" to={routes.landing}>
         {brand.name}
       </Link>
-      {/* El idioma va junto a la acción. */}
       <div className="ln-bar__end">
-        <LangToggle className="ln-bar__lang" />
         {/* En un teléfono la acción lleva la etiqueta corta, para que quepa el selector de idioma (landing.css). */}
         <Link className="ln-bar__cta" to={actions.planner.to} aria-label={actions.planner.label}>
           <span className="ln-bar__cta-full">{actions.planner.label}</span>
