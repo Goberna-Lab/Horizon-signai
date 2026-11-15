@@ -189,7 +189,7 @@ Map, Plan B y Learn, con el diseño de las pantallas del producto.
 - **La vista Lander cabe entera en la pantalla** (desde 900 px de ancho): el bloque central toma el alto que queda
   libre y el cielo y las cifras se miden contra él (`cqh`). La nota de la vista va debajo de la ventana, como pie.
 - **Colores de dato:** el Sol va en el rojo de señal y la Tierra en azul (`--earth`), solo dentro de las figuras.
-  Los títulos y las cifras usan la serif del software (Playfair Display, autoalojada).
+  Los títulos y las cifras usan Archivo con -0.03em (`--font-serif` y `--font-serif-tracking`; antes Playfair Display).
 - **Veredictos:** "Viable", "Limited" y "Not viable" usan umbrales de ejemplo, escritos en la propia pantalla
   (viable desde 75 % de Sol y 25 % de Tierra; no viable por debajo de 35 % de Sol o 5 % de Tierra). Están en
   `sections/product/sky.ts` (`verdictOf`); en el planificador real los define el usuario.

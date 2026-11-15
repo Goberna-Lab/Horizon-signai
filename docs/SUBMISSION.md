@@ -144,7 +144,7 @@ Challenge resources: JPL Horizons is the source of all ephemerides. LROC Quickma
 
 - "Astronaut" 3D model by Javi_DaviYT (Sketchfab), CC BY 4.0, reduced in size for the landing page.
 - NASA 3D Resources "Apollo Lunar Module" model (listed under NASA Data; its record states "free and without copyright").
-- Fonts: Archivo, Playfair Display and IBM Plex Mono (self-hosted through Fontsource); Cormorant Garamond and Jost (Google Fonts) on the 3D Moon.
+- Fonts: Archivo and IBM Plex Mono (self-hosted through Fontsource); Jost (Google Fonts) for body text on the 3D Moon and Inter, Space Grotesk and IBM Plex Mono (Google Fonts) on the planner pages.
 - EVA's 3D body is drawn in code with three.js; it is not an external model.
 
 **Open-source software**

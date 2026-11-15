@@ -8,13 +8,15 @@
 <title>Horizon Signai · 3D Moon</title>
 <meta name="description" content="Relieve lunar 3D con datos LOLA (NASA) y todos los sitios de alunizaje (NSSDCA), con luz solar real (JPL Horizons). Horizon Signai, NASA Space Apps 2026.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Jost:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap">
+<!-- Títulos y nombres en Archivo autoalojada (antes Cormorant Garamond): apps/web/public/ui/display-caps.css -->
+<link rel="stylesheet" href="/ui/display-caps.css">
 <style>
 :root {
   --paper: #F4EFE6; --paper-2: #ECE5D9; --ink: #161412; --ink-2: #5E574E; --rule: #D8D0C3;
   --red: #C8102E; --mon: #0E0D0C; --mon-2: #1C1B19; --mon-rule: #36322D; --mon-fg: #F4EFE6; --mon-fg-2: #A39B8F;
   --c-tripulada: #E0263F; --c-robotica: #F4EFE6; --c-muestras: #E3B24F; --c-rover: #86BFA9; --c-impacto: #8C857B; --c-candidata: #E8893A;
-  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-display: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Jost", "Avenir Next", "Century Gothic", system-ui, sans-serif;
   --s--1: clamp(0.74rem, 0.72rem + 0.1vw, 0.8rem); --s-0: clamp(0.86rem, 0.84rem + 0.12vw, 0.94rem);
   --s-1: clamp(1rem, 0.96rem + 0.2vw, 1.12rem); --s-3: clamp(1.5rem, 1.3rem + 0.9vw, 2rem);
@@ -28,7 +30,7 @@ button, input, select { font: inherit; color: inherit; }
 #panel { background: var(--paper); display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--mon-rule); }
 .cab { padding: 18px 20px 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
 .sol { width: 22px; height: 22px; border-radius: 50%; background: var(--red); }
-.cab h1 { margin: 0; font: 600 var(--s-3)/1 var(--font-display); letter-spacing: 0.01em; }
+.cab h1 { margin: 0; font: 600 var(--s-3)/1 var(--font-display); letter-spacing: -0.03em; }
 .cab small { display: block; color: var(--ink-2); font-size: var(--s--1); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
 .bloque { padding: 10px 20px; }
 .bloque + .bloque { border-top: 1px solid var(--rule); }
@@ -105,7 +107,7 @@ details.fuentes a { color: var(--ink); }
   box-shadow: 0 18px 40px rgba(0,0,0,0.45); display: none; max-height: calc(100% - 290px); min-height: 0; overflow: auto; }
 #ficha.vis { display: block; animation: entra 0.22s ease-out; }
 @keyframes entra { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-#ficha h2 { margin: 0 28px 2px 0; font: 600 var(--s-3)/1.05 var(--font-display); }
+#ficha h2 { margin: 0 28px 2px 0; font: 600 var(--s-3)/1.05 var(--font-display); letter-spacing: -0.03em; }
 #ficha .sub { color: var(--ink-2); font-size: var(--s--1); text-transform: uppercase; letter-spacing: 0.07em; display: flex; gap: 8px; align-items: center; }
 #ficha .sub i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset; }
 #ficha dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 12px 0 10px; }
@@ -126,7 +128,7 @@ details.fuentes a { color: var(--ink); }
 @keyframes late { 50% { transform: scale(0.82); opacity: 0.6; } }
 #abrirPanel { display: none; }
 .iau { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; white-space: nowrap; transform: translate(-50%, -50%);
-  font-family: var(--font-display); font-style: italic; font-weight: 600; color: #EFE6D3; letter-spacing: 0.01em;
+  font-family: var(--font-display); font-style: italic; font-weight: 600; color: #EFE6D3; letter-spacing: -0.03em;
   text-shadow: 0 0 2px #0E0D0C, 0 0 5px #0E0D0C, 0 0 9px rgba(14,13,12,0.8); line-height: 1; }
 .iau.sat { font-weight: 500; color: #CFC5B3; }
 .iau.mar { font-style: normal; font-family: var(--font-body); font-weight: 500; text-transform: uppercase; letter-spacing: 0.22em; color: #E8C98F; }
@@ -150,7 +152,7 @@ details.fuentes a { color: var(--ink); }
     radial-gradient(0.8px 0.8px at 60% 48%, rgba(255,250,235,0.45), transparent 60%),
     linear-gradient(160deg, #1B1915 0%, #0F0E0C 100%);
   box-shadow: 0 14px 34px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
-#tip strong { display: block; font: italic 600 1.18rem/1.1 var(--font-display); color: #E8C98F; margin-bottom: 4px; letter-spacing: 0.01em; }
+#tip strong { display: block; font: italic 600 1.18rem/1.1 var(--font-display); color: #E8C98F; margin-bottom: 4px; letter-spacing: -0.03em; }
 #tip p { margin: 0; color: #DCD3C3; }
 #tip .mejor { margin-top: 8px; padding-top: 7px; border-top: 1px dashed rgba(232,201,143,0.28); color: var(--mon-fg); }
 #tip .mejor b { color: #E8C98F; font-weight: 600; }
