@@ -32,7 +32,7 @@ y abrir `http://localhost:8765/inicio.html`. Los datos se cargan como scripts, a
 
 | Archivo | Pantalla | Área en el repo |
 |---|---|---|
-| `inicio.html` | Centro de misiones: próximo hito y cuenta regresiva, firma pendiente, decisiones aprobadas, KPIs, calendario de campaña, movimientos de las misiones, sitios de misión, lista de misiones y asistente | Dashboard (`features/dashboard/`) |
+| `inicio.html` | Centro de misiones: próximo hito y cuenta regresiva, firma pendiente, decisiones aprobadas, KPIs, calendario de campaña, movimientos de las misiones, sitios de misión y lista de misiones | Dashboard (`features/dashboard/`) |
 | `campaign.js` | Datos de la campaña de ejemplo: misiones CR-01, CR-02, PS-03 y DG-04, movimientos registrados y programados, aprobación de CR-02 (en `localStorage`) | Dashboard |
 | `index.html` | Planificador · paso 1, Alunizaje: zonas candidatas, escenario editable, Go/No-Go, «Cómo cumplir», comparación, punto propio, horizonte real, línea de tiempo y simulación del descenso | Planificador (`features/mission-planner/`) |
 | `planificar.html` | Planificador · paso 2, Caminata: capas, plan de caminata con tres rutas, supervivencia y perfil de elevación | Planificador |

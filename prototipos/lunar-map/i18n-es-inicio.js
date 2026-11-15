@@ -87,7 +87,6 @@
     'Distance': 'Distancia',
     'Max slope': 'Pend. máx.',
     'O₂ on return': 'O₂ al volver',
-    'Analyse': 'Analizar',
     'Approve': 'Aprobar',
     'Confirm approval': 'Confirmar aprobación',
     'Approved': 'Aprobada',
@@ -223,79 +222,8 @@
     'Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate': 'Campaña de ejemplo: las misiones, las firmas y la bitácora son datos de muestra · sitios, Sol y Tierra reales (JPL Horizons DE441, horizontes LOLA/PGDA) · relieve del mapa generado para ilustrar',
     'Reset demo': 'Restablecer demo',
 
-    /* ---------- asistente ---------- */
-    'Assistant': 'Asistente',
-    'Example answers · LOLA · PGDA · Horizons': 'Respuestas de ejemplo · LOLA · PGDA · Horizons',
-    'New': 'Nuevo',
-    'Suggested questions': 'Preguntas sugeridas',
-    'Context': 'Contexto',
-    'Ask the assistant': 'Pregunta al asistente',
-    'Ask about a mission or a route…': 'Pregunta por una misión o una ruta…',
-    'Send question': 'Enviar pregunta',
-    'You': 'Tú',
-    'Typing': 'Escribiendo',
-    /* preguntas sugeridas y la del botón «Analyse» (también se ven en la burbuja de quien pregunta) */
-    'Shall I approve CR-02?': '¿Apruebo CR-02?',
-    'Compare the zones': 'Compara las zonas',
-    'When is there Sun?': '¿Cuándo hay Sol?',
-    'Campaign status': 'Estado de la campaña',
-    'Can I approve the CR-02 scientific route?': '¿Puedo aprobar la ruta científica de CR-02?',
-    /* saludo y aviso de aprobación: cada entrada es un nodo de texto, cortado donde hay una negrita */
-    'Hello. The campaign is up to date: no sign-offs pending. Ask me about a mission, a zone or a route.': 'Hola. La campaña va al día: no hay firmas pendientes. Pregúntame por una misión, una zona o una ruta.',
-    'Hello. You have': 'Hola. Tienes',
-    'one route to sign': 'una ruta por firmar',
-    '(CR-02). Ask me about it or about any mission, zone or route.': '(CR-02). Pregúntame por ella o por cualquier misión, zona o ruta.',
-    'I logged the approval of': 'Registré la aprobación de',
-    'CR-02 · scientific route': 'CR-02 · ruta científica',
-    /* respuesta: ¿se puede aprobar la caminata? */
-    'Yes, with one condition. The scientific route is': 'Sí, con una condición. La ruta científica mide',
-    'long and no stretch exceeds': 'y ningún tramo supera los',
-    'of slope, below the 15° limit. The weak point is oxygen: the crew returns with': 'de pendiente, por debajo del límite de 15°. El punto débil es el oxígeno: el equipo vuelve con el',
-    'of the reserve. I recommend approving it with a': 'de la reserva. Te recomiendo aprobarla con un',
-    'mandatory return at stop 2': 'retorno obligatorio en la parada 2',
-    'if consumption runs above forecast.': 'si el consumo supera lo previsto.',
-    /* respuesta: zonas candidatas */
-    'All three candidate zones are GO for 18 Dec, with the panel and antenna at 2 m.': 'Las tres zonas candidatas tienen GO para el 18 dic, con el panel y la antena a 2 m.',
-    'has the most Sun (91%); the peak near Shackleton (RoI 2) has the most time with Sun and Earth at once (50%).': 'es la de más Sol (91%); el pico cerca de Shackleton (RoI 2), la de más tiempo con Sol y Tierra a la vez (50%).',
-    /* respuesta: Sol */
-    'With the panel at 2 m, at': 'Con el panel a 2 m, en',
-    'the Sun does not set between October and January (see the calendar). At contact on 18 Dec it is': 'el Sol no se pone entre octubre y enero (lo ves en el calendario). En el contacto del 18 dic está a',
-    'above the horizon, and Earth at +6.5°.': 'sobre el horizonte, y la Tierra a +6.5°.',
-    /* respuesta: estado de la campaña */
-    'The campaign is up to date.': 'La campaña va al día.',
-    'walk is already approved.': 'ya está aprobada.',
-    'You have': 'Tienes',
-    'one pending decision': 'una decisión pendiente',
-    ': the CR-02 scientific route.': ': la ruta científica de CR-02.',
-    'needs a date and': 'necesita elegir fecha y',
-    'is still a draft. We have': 'sigue en borrador. Llevamos',
-    'logged.': 'registrados.',
-    /* respuesta por defecto */
-    'In this prototype I answer with examples about the campaign. With': 'En este prototipo respondo con ejemplos sobre la campaña. Con',
-    'as context, try asking whether the walk can be approved, how the zones compare, or when there is Sun.': 'como contexto, prueba a preguntarme si se puede aprobar la caminata, cómo se comparan las zonas o cuándo hay Sol.',
-    /* fuentes */
-    'Sources · DTM 5 m PGDA · LOLA LDEM_75S · 2.2 km/h, 8 %/h of O₂': 'Fuentes · DTM 5 m PGDA · LOLA LDEM_75S · 2.2 km/h, 8 %/h de O₂',
-    'Sources · JPL Horizons DE441 · horizonte LOLA/PGDA': 'Fuentes · JPL Horizons DE441 · horizonte LOLA/PGDA',
-    'Sources · Campaign log': 'Fuentes · Bitácora de la campaña',
-
-    /* ---------- tarjetas del asistente ---------- */
-    'CR-02 · Scientific route': 'CR-02 · Ruta científica',
-    'Scientific route over the Connecting Ridge terrain': 'Ruta científica sobre el relieve de Connecting Ridge',
-    'generated terrain 9.4 m · Sun 5°': 'relieve generado 9.4 m · Sol 5°',
-    'Round trip': 'Ida y vuelta',
-    'Approve route': 'Aprobar ruta',
-    'Open walk': 'Abrir caminata',
-    'Candidate zones': 'Zonas candidatas',
-    '2026–2030 · at 2 m': '2026–2030 · a 2 m',
-    'Zone': 'Zona',
-    'Earth': 'Tierra',
-    'Open landing': 'Abrir alunizaje',
-    'Sun at Connecting Ridge · RoI 6': 'Sol en Connecting Ridge · RoI 6',
-    'Oct → Jan · at 2 m': 'oct → ene · a 2 m',
-    'Sun at contact': 'Sol al contacto',
-    'Earth at contact': 'Tierra al contacto',
-    'Windows': 'Ventanas',
-    'Longest night': 'Noche más larga'
+    /* ---------- tarjeta de firma ---------- */
+    'Open walk': 'Abrir caminata'
   };
 
   LunarI18n.add({
@@ -326,11 +254,6 @@
       /* sitio elegido en el mapa */
       [/^([A-Z]{2}-\d{2}) · Peak near Shackleton · RoI 2$/, '$1 · Pico cerca de Shackleton · RoI 2'],
       [/^([A-Z]{2}-\d{2}) · de Gerlache rim$/, '$1 · Borde de de Gerlache'],
-      /* asistente */
-      [/^at (\d\d:\d\d) UTC\. It is in the movement log and I told Planning about the mandatory return at stop 2\.$/, 'a las $1 UTC. Quedó en la bitácora de movimientos y avisé a Planificación del retorno obligatorio en la parada 2.'],
-      [/^is GO for landing in (\d+) days and the$/, function (m, a) { return 'tiene GO para el alunizaje en ' + n(a, 'día', 'días') + ' y la caminata de'; }],
-      [/^is GO for landing in (\d+) days\.$/, function (m, a) { return 'tiene GO para el alunizaje en ' + n(a, 'día', 'días') + '.'; }],
-      [/^Sources · /, 'Fuentes · '],
 
       /* ---------- trozos: «ahora», rol antes de una fecha, día de la semana y mes ---------- */
       [/^NOW · (?=\d{1,2} [A-Z][a-z]{2} \d{4}\b)/, 'AHORA · '],
