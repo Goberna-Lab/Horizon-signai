@@ -1,0 +1,63 @@
+/* Alunizaje (/simulador): lecturas del descenso, mapa, gráficos y tarjeta final. Portado de nuestro navegador; tipografía del equipo. */
+.sim-alz { position: absolute; inset: 0; background: #000; overflow: hidden; cursor: grab; }
+.sim-alz:active { cursor: grabbing; } .sim-alz canvas { display: block; }
+.sim-alz .sim-lander-hud, .sim-alz .sim-lander-log, .sim-alz .sim-lander-banner { display: none !important; }
+@keyframes vhblink { 50% { opacity: .25; } }
+.sim-lfp { position: absolute; inset: 0; z-index: 7; pointer-events: none; color: #c9f4ff; font: 500 13px/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; --ac: #ffab5e; }
+.sim-lfp[hidden] { display: none; }
+.sim-lfp small { display: block; font-size: 10px; letter-spacing: .34em; color: var(--ac); }
+.sim-lfp b { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sim-lfp-top { position: absolute; top: 7%; left: 50%; transform: translateX(-50%); text-align: center; } .sim-lfp-top b { display: block; font-size: 18px; letter-spacing: .14em; text-transform: uppercase; margin-top: 4px; }
+.sim-lfp-alt { position: absolute; left: 9%; top: 44%; display: grid; grid-template-columns: auto auto; column-gap: 14px; align-items: end; }
+.sim-lfp-alt small { grid-column: 1 / -1; } .sim-lfp-alt b { font-size: 46px; line-height: 1; }
+.sim-lfp-tape { grid-row: 2; grid-column: 2; width: 8px; height: 110px; background: repeating-linear-gradient(0deg, rgba(170, 232, 255, .35) 0 2px, transparent 2px 10px); position: relative; }
+.sim-lfp-tape u { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: #7fe6ff; transform-origin: bottom; }
+.sim-lfp-r { position: absolute; right: 9%; top: 30%; display: grid; gap: 12px; text-align: right; } .sim-lfp-r p { margin: 0; } .sim-lfp-r b { font-size: 24px; } .sim-lfp-r p.bad b { color: #ff5c70; animation: vhblink .8s steps(2) infinite; }
+.sim-lfp-flash { position: absolute; left: 50%; top: 17%; transform: translateX(-50%); width: min(60%, 760px); text-align: center; font-size: 17px; line-height: 1.35; font-weight: 700; letter-spacing: .12em; color: var(--ac); opacity: 0; transition: opacity .3s; text-wrap: balance; } .sim-lfp-flash.show { opacity: 1; }
+.sim-lfp-radio { position: absolute; left: 50%; bottom: calc(10% + 13.6vw + 34px); transform: translateX(-50%); max-width: 60%; text-align: center; color: #e6f4fa; font-size: 14px; letter-spacing: .02em; padding: 4px 14px; border-left: 2px solid #7fe6ff; border-right: 2px solid #7fe6ff; opacity: 0; transition: opacity .35s; }
+.sim-lfp-radio.show { opacity: 1; } .sim-lfp-radio.houston { border-color: var(--ac); } .sim-lfp-radio.nolink { color: #ff8a98; border-color: #ff5c70; }
+.sim-lfp-keys { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); display: flex; gap: 22px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #9fc2d0; white-space: nowrap; }
+.sim-lfp-keys b { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; margin-right: 8px; border: 1.5px solid #c9f4ff; border-radius: 13px; font-size: 11px; letter-spacing: 0; }
+.sim-lfp.egress .sim-lfp-alt, .sim-lfp.egress .sim-lfp-r, .sim-lfp.egress .sim-lfp-map, .sim-lfp.egress .sim-lfp-keys .orb { opacity: 0; transition: opacity .6s; }
+.sim-cine-mode .sim-lfp { display: none; }
+.sim-lfp-map { position: absolute; left: 6%; top: 6%; width: 220px; display: grid; gap: 5px; }
+.sim-lfp-map .mp { position: relative; width: 220px; height: 220px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 1.5px rgba(201, 244, 255, .55), 0 0 0 6px rgba(201, 244, 255, .08); }
+.sim-lfp-map canvas, .sim-lfp-map .mp svg { position: absolute; inset: 0; width: 100%; height: 100%; } .sim-lfp-map canvas { opacity: .8; }
+.sim-lfp-map svg { overflow: visible; fill: none; } .sim-lfp-map text { fill: #c9f4ff; stroke: none; font: 600 9px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; }
+.sim-lfp-map .all { stroke: rgba(127, 230, 255, .55); stroke-width: 1.5; stroke-dasharray: 4 3; } .sim-lfp-map .done { stroke: #7fe6ff; stroke-width: 2.2; }
+.sim-lfp-map .tg { stroke: #ffab5e; stroke-width: 2; } .sim-lfp-map .ship path { fill: #fff; } .sim-lfp-map .ship .halo { stroke: #fff; stroke-width: 1; opacity: .6; animation: lfpping 1.6s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.sim-lfp-map .sc { stroke: #c9f4ff; stroke-width: 2; }
+.sim-lfp-map .pf { width: 220px; height: 74px; } .sim-lfp-map .pf .gnd { stroke: rgba(255, 171, 94, .7); stroke-width: 1.5; } .sim-lfp-map .pf .dot { fill: #fff; stroke: #04090d; stroke-width: 1.5; }
+@keyframes lfpping { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.8); opacity: 0; } }
+.sim-lfp-map .vf .all { stroke: rgba(255, 171, 94, .55); } .sim-lfp-map .vf .done { stroke: #ffab5e; }
+.sim-lfp-prof { position: absolute; left: 6%; right: 6%; bottom: 10%; display: grid; gap: 4px; }
+.sim-lfp-prof svg { width: 100%; height: auto; overflow: visible; fill: none; background: linear-gradient(180deg, rgba(3, 9, 14, .55), rgba(3, 9, 14, .25)); border-top: 1px solid rgba(201, 244, 255, .25); }
+.sim-lfp-prof text { fill: #9fc2d0; stroke: none; font: 600 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .04em; }
+.sim-lfp-prof .g { stroke: rgba(201, 244, 255, .12); stroke-width: 1; } .sim-lfp-prof .g0 { stroke: rgba(255, 171, 94, .6); stroke-width: 1.5; }
+.sim-lfp-prof .terr { fill: rgba(207, 199, 182, .16); stroke: rgba(207, 199, 182, .5); stroke-width: 1; }
+.sim-lfp-prof .all { stroke: rgba(127, 230, 255, .55); stroke-width: 2; stroke-dasharray: 7 5; } .sim-lfp-prof .done { stroke: #7fe6ff; stroke-width: 3; }
+.sim-lfp-prof .tgt circle { stroke: #ffab5e; stroke-width: 2; }
+.sim-lfp-prof .drop { stroke: #ffffff; stroke-width: 1; stroke-dasharray: 2 3; opacity: .7; }
+.sim-lfp-prof .lm .ds { fill: #d9a441; } .sim-lfp-prof .lm .as { fill: #e8edf2; } .sim-lfp-prof .lm .lg { stroke: #e8edf2; stroke-width: 1.6; } .sim-lfp-prof .lm .fl { fill: #ffd08a; }
+.sim-lfp-prof .tag { fill: #fff; font-size: 13px; }
+.sim-lfp.egress .sim-lfp-prof { opacity: 0; transition: opacity .6s; }
+.sim-lfp-keys { bottom: 4.5%; }
+
+/* Tarjeta final al posarse: lenguaje del equipo (papel, tinta, un solo color de señal) */
+.sim-lfp-end { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); /* abajo: la nave posada queda a la vista */ z-index: 9; width: min(440px, calc(100% - 32px)); display: grid; gap: 14px;
+  padding: 22px 24px; background: #F4EFE6; color: #111111; border: 1px solid #111111; font-family: "Archivo Variable", system-ui, sans-serif; }
+.sim-lfp-end small { font: 600 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: #C8102E; }
+.sim-lfp-end b { font-size: 28px; line-height: 1.1; font-weight: 700; }
+.sim-lfp-end dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.sim-lfp-end dt { font: 500 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
+.sim-lfp-end dd { margin: 2px 0 0; font: 600 16px "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.sim-lfp-end button { justify-self: start; font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
+.sim-lfp-end button:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
+.sim-lfp-end p { margin: 0; font-size: 14px; line-height: 1.45; } .sim-lfp-end p.real { color: rgba(17, 17, 17, .72); font-style: italic; } .sim-lfp-end p.why2 { color: rgba(17, 17, 17, .6); font-size: 13px; }
+
+/* P66: riesgo del terreno justo bajo la nave (solo informa; no hay control manual) */
+.sim-lfp-haz { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); display: grid; justify-items: center; gap: 2px; text-align: center; padding: 8px 18px; background: rgba(4, 8, 12, .55); border-top: 2px solid var(--c); --c: #4cc38a; }
+.sim-lfp-haz.warn { --c: #e3b341; } .sim-lfp-haz.bad { --c: #e5534b; } .sim-lfp-haz[hidden] { display: none; }
+.sim-lfp-haz small { color: var(--c); letter-spacing: .4em; font-size: 10px; } .sim-lfp-haz b { font-size: 30px; color: var(--c); line-height: 1.1; }
+.sim-lfp-haz span { color: #e6f4fa; font-size: 13px; }
+
