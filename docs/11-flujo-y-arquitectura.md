@@ -41,7 +41,7 @@ Landing (/)  ──►  Dashboard (/dashboard)  ──►  Planificador (/planif
 | `MissionRow` (misión + lugar + evaluación) | `shared/planning/hooks.ts` | Dashboard, Planificador |
 | `MissionContext`, `AssistantRequest`, `AssistantReply` | `packages/shared/src/assistant.ts` | IA (web y API) |
 | `AssistantDock({ mode, context })` | `features/assistant/AssistantDock.tsx` | ya montado en el escritorio; el simulador lo monta con `mode="educational"` |
-| Ruta del simulador con misión | `/simulador?mission=<id>` | el botón "Simulate this landing" del Planificador |
+| Ruta del planificador con un escenario | `/planner#z=…&t=…&stay=…` (`plannerPath()` en `app/routes.ts`) | el botón "Compare zones and dates" del detalle de misión, "Compare in the planner" del mapa 3D y "Link" del planificador. La pantalla `/simulador` todavía no existe (muestra "SOON" y no se enlaza) |
 
 ## Estado al 2026-11-15
 

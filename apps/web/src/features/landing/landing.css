@@ -138,10 +138,11 @@
 
 /* --- Barra superior ----------------------------------------------------------------------------------------- */
 
-/* En la entrada de la portada (pantalla negra) la barra espera a que el negro se retire. */
+/* En la entrada de la portada (pantalla negra) la barra entra pronto: es el único camino al planificador desde el
+   primer pantallazo (antes esperaba 6,2 s a que el negro se retirara, y un juez puede no esperar tanto). */
 @media (prefers-reduced-motion: no-preference) {
   .ln:has(.fl__limb) .ln-bar {
-    animation: ln-bar-in 800ms var(--ease) 6200ms both;
+    animation: ln-bar-in 800ms var(--ease) 1600ms both;
   }
 
   :root:not([data-intro]) .ln:has(.fl__limb) .ln-bar {

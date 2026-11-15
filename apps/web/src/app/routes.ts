@@ -21,5 +21,8 @@ export const routes = {
 export const plannerPath = (scenario?: Record<string, string | number>) =>
   `${routes.lunarMap}#${scenario ? new URLSearchParams(Object.entries(scenario).map(([k, v]) => [k, String(v)])).toString() : "landing"}`
 
+/** "Missions": la campaña de ejemplo del prototipo. Es también lo que abre `/planner` a secas. */
+export const missionsPath = `${routes.lunarMap}#missions`
+
 /** La ruta del planificador de una misión. */
 export const missionPath = (missionId: string) => `${routes.missionPlanner}/${encodeURIComponent(missionId)}`

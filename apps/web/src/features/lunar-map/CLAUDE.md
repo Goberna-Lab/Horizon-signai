@@ -2,7 +2,7 @@
 
 Lo que abre el botón "Open the planner" de la landing: el Dashboard y el Planificador de `prototipos/lunar-map/`, a pantalla completa y en inglés.
 
-- **Qué hay:** `LunarMapPage` es solo un iframe. `/planner` abre `/lunar-map/inicio.html` (Missions, la campaña de ejemplo); `/planner#landing` abre el planificador (`index.html`), `/planner#walk` la caminata, y `/planner#z=B&t=2027-04-03T09:00&stay=3&…` el planificador con ese escenario (`plannerPath()` en `app/routes.ts`; claves: `z`, `t`, `stay`, `panel`, `antenna`, `battery`, `earth`, `sun`, `el`, `site`, `lat`, `lon`). Así llegan el botón "Link" del planificador, el mapa 3D y el escritorio de misiones.
+- **Qué hay:** `LunarMapPage` es solo un iframe. `/planner` (y `/planner#missions`) abre `/lunar-map/inicio.html` (Missions, la campaña de ejemplo); `/planner#landing` abre el planificador (`index.html`), `/planner#walk` la caminata, y `/planner#z=B&t=2027-04-03T09:00&stay=3&…` el planificador con ese escenario (`plannerPath()` en `app/routes.ts`; claves: `z`, `t`, `stay`, `panel`, `antenna`, `battery`, `earth`, `sun`, `el`, `site`, `lat`, `lon`, `name`). Así llegan el botón "Link" del planificador, el mapa 3D y el escritorio de misiones.
 - **Idioma:** las páginas siguen el idioma de la app (`horizon-signai.lang`) con `prototipos/lunar-map/i18n.js` y sus diccionarios `i18n-es*.js`. Un texto nuevo en esas páginas necesita su entrada en el diccionario.
 - **EVA:** el planificador expone `LunarPlanner.text()` y `LunarPlanner.run(orden)` para la asistente (ver `features/assistant/CLAUDE.md`).
 - **Antes:** `LunarMapPage` era un iframe fijo a `/lunar-map/inicio.html`. No suma nada al bundle y la pantalla se carga de forma diferida (`router.tsx`).

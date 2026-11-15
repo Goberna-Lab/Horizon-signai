@@ -281,3 +281,18 @@ LunarI18n.add({
     "Opens NASA's LROC Quickmap centred on this place, in south polar projection": 'Abre LROC Quickmap de la NASA centrado en este lugar, en proyección polar sur'
   }
 });
+
+/* añadidos tras la auditoría de pantallas (2026-11-15) */
+LunarI18n.add({
+  exact: {
+    'Compare': 'Comparar',
+    'Illustrative layers': 'Capas ilustrativas',
+    'These two overlays are drawn over generated relief to illustrate. They are not measurements, and the verdict does not use them.': 'Estas dos capas se dibujan sobre relieve generado, para ilustrar. No son mediciones y el veredicto no las usa.',
+    'Descent (Apollo 11 example)': 'Descenso (ejemplo del Apollo 11)',
+    '496 kg spare · the same for every zone and date · TN D-6846': 'sobran 496 kg · igual para toda zona y fecha · TN D-6846'
+  },
+  patterns: [
+    [/^Sun: over (\d+ h|\d+ d \d+ h)$/, 'Sol: más de $1']
+  ]
+});
+
