@@ -312,7 +312,7 @@
           <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">radar · 200 km</span></div>
           <div class="screen">
             <div class="glass-inner">
-              <canvas id="radar" role="img" aria-label="Radar of the lunar south pole, 200 km: the 13 candidate zones at their real distance and the campaign mission sites"></canvas>
+              <canvas id="radar" role="img" aria-label="Radar of the lunar south pole, 200 km: the campaign mission sites at their real distance"></canvas>
               <div class="rtip" id="rtip" hidden></div>
               <div class="fx" aria-hidden="true"><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
               <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
@@ -403,11 +403,11 @@
    * Centro: el polo sur. Distancia = arco sobre la Luna (R = 1737,4 km); rumbo = longitud este (0° arriba, 90° E a la
    * derecha, como el mapa del planificador). Fondo: relieve real de LOLA 240 m (data/radar-polo-sur.jpg, tools/mapa-polo.py).
    * Solo pasa el barrido (visual): los puntos no llevan rótulos y dan su detalle al pasar el ratón (o al tocarlos).
-   * Las 13 candidatas salen de data/candidatas.js. Color = veredicto del planificador (blanco GO, ámbar REVIEW, rojo NO GO)
+   * Solo aparecen los sitios donde la campaña tiene alguna misión: una candidata de data/candidatas.js sale en el radar
+   * cuando se crea una misión en ella. Color = veredicto del planificador (blanco GO, ámbar REVIEW, rojo NO GO)
    * con el mismo escenario que él (el guardado en este navegador o, si no hay, su vista inicial): el motor, las efemérides y
    * los horizontes (engine.js, data/efemerides-luna.js, data/zonas.js) se cargan después de pintar la página; hasta
-   * entonces los puntos van en menta. Los sitios con misiones de la campaña (A–D) llevan un aro y el de la misión elegida
-   * uno más marcado. Tocar uno de esos puntos elige su misión. */
+   * entonces los puntos van en menta. El sitio de la misión elegida lleva un aro. Tocar un punto elige su misión. */
   var RKM = 200, KMDEG = Math.PI / 180 * 1737.4, PHOS = '155,255,228';
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var CAND = (window.LunarData && window.LunarData.candidatas || []).map(function (c) { return { z: c.z, nombre: c.nombre, lat: c.lat, lon: c.lon, km: (90 + c.lat) * KMDEG, a: c.lon * Math.PI / 180 }; });
@@ -475,13 +475,13 @@
     /* los puntos: brillan al pasar el barrido */
     rPts = [];
     CAND.forEach(function (c) {
+      if (!bySite[c.z]) return;   /* solo los sitios con alguna misión de la campaña */
       var r = c.km / RKM * R, x = cx + r * Math.sin(c.a), y = cy - r * Math.cos(c.a), ids = bySite[c.z] || null, hov = rHover.indexOf(c.z) >= 0;
       var since = ((theta - c.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), glow = reduceMotion ? 0.5 : Math.exp(-since / 1.2);
       var col = verdicts && verdicts[c.z] ? VCOL[verdicts[c.z]] : 'rgb(' + PHOS + ')';
       ctx.globalAlpha = 0.22 + 0.5 * glow; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.8, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = 'rgba(4,17,13,0.9)'; ctx.lineWidth = 1; ctx.stroke();
-      if (ids) { ctx.strokeStyle = 'rgba(' + PHOS + ',0.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 4.6, 0, Math.PI * 2); ctx.stroke(); }
       if (hov) { ctx.strokeStyle = '#F5F5F6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.stroke(); }
       rPts.push({ c: c, x: x, y: y, ids: ids });
     });
