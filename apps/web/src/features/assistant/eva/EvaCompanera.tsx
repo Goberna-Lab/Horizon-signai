@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router"
 import { routes } from "@/app/routes"
 import { EVENTO_CASCO, EVENTO_EVA, type AvisoEva, type CascoEva, type EstadoEva } from "@/shared/eva"
 import { lang, setLang } from "@/shared/i18n"
-import { PREGUNTAS, PUENTES, SEGUIMOS } from "@horizon-signai/shared"
+import { PREGUNTAS, PUENTES, RESCATE, SEGUIMOS } from "@horizon-signai/shared"
 import { decir, entender as entenderVoz, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type AccionIA, type Mensaje } from "@/prueba-ia/cliente"
 import { crearColaDeVoz, type FraseDeVoz } from "@/prueba-ia/colaDeVoz"
 import { olvidar, recordar, recordarNombre, recuerdos } from "@/prueba-ia/memoria"
@@ -94,6 +94,17 @@ const anotarEnVisita = (k: string) => {
 const yaSaludo = () => enVisita(SALUDO)
 const anotarSaludo = () => anotarEnVisita(SALUDO)
 /** Espera `ms`. Con `corte`, termina antes si lo cortan. */
+// El murmullo de la vez anterior (PUENTES): el siguiente es otro, para que no suene siempre igual.
+let ultimoPuente = -1
+const otroPuente = (lista: string[]) => {
+  let k = Math.floor(Math.random() * lista.length)
+  if (lista.length > 1 && k === ultimoPuente) k = (k + 1 + Math.floor(Math.random() * (lista.length - 1))) % lista.length
+  ultimoPuente = k
+  return lista[k]!
+}
+// Si a esta altura la IA no dijo nada de su respuesta (sin contar murmullo ni eco), EVA dice RESCATE una vez.
+const RESCATE_MS = 6500
+
 const esperar = (ms: number, corte?: AbortSignal) =>
   new Promise<void>((listo) => {
     if (corte?.aborted) return listo()
@@ -198,7 +209,18 @@ async function vozDeOracion(oracion: string, idioma: Idioma, corte: AbortSignal)
  * Dice una frase del guion por la cola de voz. Las voces de sus oraciones se piden a la vez y se encolan en orden; las
  * grabadas llegan al instante. Devuelve cuántas oraciones llegaron a tener voz.
  */
-async function decirGuion(frase: string, idioma: Idioma, cola: ColaDeVoz, corte: AbortSignal) {
+// Pausas entre lo que EVA dice al contestar (pedido de Manuel, 2026-11-15: «muy rápido, sin pequeñas pausas de idea»):
+// Kokoro no hace pausa con «…» (medido), así que el silencio lo pone la cola de voz. Un poco al azar para que no suene
+// a metrónomo. En segundos.
+const azar = (min: number, max: number) => min + Math.random() * (max - min)
+const PAUSA = {
+  frase: () => azar(0.25, 0.4), // entre dos frases de una misma idea
+  pensar: () => azar(0.5, 0.7), // tras el murmullo: está pensando
+  idea: () => azar(0.6, 0.8), // tras el eco, antes de empezar a responder
+}
+
+// `pausa`: silencio entre sus oraciones. Por defecto ninguno: los recorridos sincronizan el rayo con la voz grabada.
+async function decirGuion(frase: string, idioma: Idioma, cola: ColaDeVoz, corte: AbortSignal, pausa: () => number = () => 0) {
   const voces = enOraciones(frase).map((o) => vozDeOracion(o, idioma, corte))
   let i = 0
   let conVoz = 0
@@ -206,7 +228,7 @@ async function decirGuion(frase: string, idioma: Idioma, cola: ColaDeVoz, corte:
     const voz = await pedido
     if (corte.aborted) break
     if (voz?.length) conVoz++
-    for (const f of voz ?? []) cola.agregar({ ...f, i: i++ })
+    for (const f of voz ?? []) cola.agregar({ ...f, i: i++ }, pausa())
   }
   return conVoz
 }
@@ -589,7 +611,7 @@ export default function EvaCompanera() {
       await esperar(lectura, corte.signal)
     } else {
       mostrar("")
-      const cola = crearColaDeVoz({ ctx, asistente: "educational", alHablar: mostrar, alNivel: (v) => (nivel.current = v), alEmpezar: () => {} })
+      const cola = crearColaDeVoz({ ctx, asistente: "educational", alHablar: mostrar, alNivel: (v) => (nivel.current = v), alEmpezar: () => {}, respetarPuntuacion: true })
       const callar = () => void cola.detener()
       corte.signal.addEventListener("abort", callar)
       let conVoz = 0
@@ -1111,7 +1133,7 @@ export default function EvaCompanera() {
     } catch {
       /* sin almacenamiento: vale para esta página */
     }
-    for (const frase of [...PUENTES[idiomaRef.current], SEGUIMOS[idiomaRef.current]]) precargarVoz(idiomaRef.current, frase)
+    for (const frase of [...PUENTES[idiomaRef.current], SEGUIMOS[idiomaRef.current], RESCATE[idiomaRef.current]]) precargarVoz(idiomaRef.current, frase)
     const ctx = audioCtx.current
     if (!ctx || ctx.state !== "running") return // sin toque todavía: lo abre el primer toque en la página
     const ok = await oidoEva.encender(ctx)
@@ -1192,7 +1214,7 @@ export default function EvaCompanera() {
         } else if (e.t === "parecida" && texto && !resuelto) {
           resuelto = true
           if (e.id) void contestarGrabada(e.id, texto, espera)
-          else if (texto.split(/\s+/).length >= 3) void responder(texto, true)
+          else if (texto.split(/\s+/).length >= 3) void responder(texto)
           else setOido(`${texto} · ${TEXTOS[idioma].noEntendi}`)
         }
       })
@@ -1240,8 +1262,11 @@ export default function EvaCompanera() {
    * y atiende. Si estaba en un recorrido, el recorrido queda en pausa y, al terminar de contestar, EVA vuelve a
    * esperar en el mismo paso: el guion sigue donde iba.
    */
-  // `puente`: dice una frase grabada («Buena pregunta…») mientras la IA prepara la respuesta (lo usa la voz).
-  const responder = async (q: string, puente = false) => {
+  // Para que no quede en silencio mientras la IA piensa (pedido de Manuel, 2026-11-15): al instante, un murmullo
+  // grabado («Mmm, let's see.», PUENTES); en inglés, si la respuesta no está a ~1 s, el eco del API, que nombra el tema
+  // con sus palabras clave («Ah, the distance between the Earth and the Moon.»: packages/shared/src/eco.ts); luego la
+  // respuesta. Si a los RESCATE_MS no empezó, una frase grabada (RESCATE) para que el silencio no parezca un cuelgue.
+  const responder = async (q: string) => {
     const enPausa = recorrido.current
     cerrarPregunta()
     if (!enPausa) quitarFoco()
@@ -1261,17 +1286,24 @@ export default function EvaCompanera() {
     if (turno.current !== mio) return
     const conVoz = !silencioRef.current && !!ctx && ctx.state === "running"
     const cola = conVoz
-      ? crearColaDeVoz({ ctx, asistente: "educational", alHablar: mostrar, alNivel: (v) => (nivel.current = v), alEmpezar: () => setEstado("hablando") })
+      ? crearColaDeVoz({ ctx, asistente: "educational", alHablar: mostrar, alNivel: (v) => (nivel.current = v), alEmpezar: () => setEstado("hablando"), respetarPuntuacion: true })
       : null
     const callar = () => void cola?.detener()
     corte.signal.addEventListener("abort", callar)
     let escrito = ""
-    // El puente suena primero; las frases de la IA se encolan detrás, en orden.
+    // Qué sonó justo antes de la próxima frase de la IA: decide la pausa (PAUSA).
+    let antesSono: "murmullo" | "eco" | "frase" = "murmullo"
+    let esEco = false
+    // El murmullo suena primero; el eco y las frases de la IA se encolan detrás, en orden.
     let antes: Promise<unknown> = Promise.resolve()
-    if (puente && cola) {
-      const lista = PUENTES[idiomaRef.current]
+    let rescate: ReturnType<typeof setTimeout> | undefined
+    if (cola) {
       setEstado("hablando")
-      antes = decirGuion(lista[Math.floor(Math.random() * lista.length)]!, idiomaRef.current, cola, corte.signal).catch(() => 0)
+      antes = decirGuion(otroPuente(PUENTES[idiomaRef.current]), idiomaRef.current, cola, corte.signal, PAUSA.frase).catch(() => 0)
+      rescate = setTimeout(() => {
+        if (escrito || corte.signal.aborted) return
+        antes = antes.then(() => decirGuion(RESCATE[idiomaRef.current], idiomaRef.current, cola, corte.signal)).catch(() => 0)
+      }, RESCATE_MS)
     }
     try {
       await turnoDeVoz(
@@ -1283,13 +1315,19 @@ export default function EvaCompanera() {
               setEstado("hablando")
               mostrar(escrito)
             }
-          } else if (e.t === "frase") {
+          } else if (e.t === "eco") esEco = true
+          else if (e.t === "frase") {
             fraseActual.current = { frase: escrito, hasta: Infinity }
-            antes = antes.then(() => cola?.agregar(e))
+            const pausa = antesSono === "murmullo" ? PAUSA.pensar() : antesSono === "eco" ? PAUSA.idea() : PAUSA.frase()
+            antesSono = esEco ? "eco" : "frase"
+            esEco = false
+            antes = antes.then(() => cola?.agregar(e, pausa))
           } else if (e.t === "fin") escrito = e.respuesta
           else if (e.t === "error") throw new Error(e.msg)
         },
         corte.signal,
+        undefined,
+        conVoz, // el eco solo tiene sentido si EVA habla
       )
       await antes
       await cola?.terminada()
@@ -1303,6 +1341,7 @@ export default function EvaCompanera() {
         await esperar(2500, corte.signal)
       }
     } finally {
+      clearTimeout(rescate)
       corte.signal.removeEventListener("abort", callar)
       cola?.cerrar()
       nivel.current = 0

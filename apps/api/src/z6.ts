@@ -1,8 +1,9 @@
 import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
-import { atenuarWav, clasificarOido, filtroDeNotas, SIN_RESPUESTA, sinNotas, type Z6Respuesta } from "@horizon-signai/shared"
+import { armarEco, atenuarWav, clasificarOido, filtroDeNotas, paraKokoro, paraPiper, SIN_RESPUESTA, sinNotas, type Z6Respuesta } from "@horizon-signai/shared"
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
 import { parecida, precalentarParecidas } from "./assistant/parecidas.js"
+import { temaDeEco } from "./assistant/eco.js"
 import { contextoRag } from "./assistant/rag.js"
 import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, notaDeIdioma, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
 
@@ -175,11 +176,22 @@ const preguntar = async (mensajes: Mensaje[], voz: boolean, persona: Persona) =>
 //   {t:"texto", d}                                   cada trozo de texto que llega del modelo
 //   {t:"frase", i, texto, mime, audio, palabras, dur} audio (base64) de la frase i y sus palabras
 //                                                    [[texto, espacio, inicio_s, fin_s], …]
+//   {t:"eco", texto}                                 con `eco`: la frase de espera, antes de su {t:"frase"}
 //   {t:"fin", respuesta, modelo, ms, primeraVozMs}   o {t:"error", msg}
 // Así la voz empieza con la primera frase, no al final, y el navegador muestra cada palabra
 // cuando se pronuncia.
 
 const FORMATOS_VOZ = new Set(["opus", "mp3", "wav"])
+
+// Con eco, el 27B no debe volver a acusar recibo ni repetir la pregunta: ya sonó el eco (ver turnoDeVoz).
+const NOTA_ECO =
+  '[Note from the app: while you think, the app may say out loud a short line naming the topic, like "Ah, the distance to the Moon." ' +
+  'Start directly with the answer: no acknowledgement, no "good question", and do not restate the question.]'
+// Para rotar las plantillas del eco entre turnos (que no suene dos veces seguidas la misma).
+let vecesEco = 0
+// Antes de esto el eco no suena (desde que llega la pregunta al API): si el 27B ya tiene su primera frase, va directo.
+// El murmullo grabado del navegador cubre ese primer segundo.
+const ESPERA_ECO_MS = 900
 
 // Saca del buffer las frases ya completas (fin de frase seguido de espacio: «3.5» no corta).
 // La primera puede cortarse en una coma (desde 25 caracteres), para que la voz arranque antes;
@@ -211,7 +223,8 @@ const vozDeFrase = async (texto: string, formato: string, persona: Persona, señ
     fetch(`${voz.url}/v1/hablar`, {
       method: "POST",
       headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(voz.idioma === "en" ? { texto, formato, palabras: true, voz: v } : { texto, voz: "es-ivi" }),
+      // Kokoro (inglés) recibe el texto con las correcciones de pronunciación; el subtítulo sigue con el original.
+      body: JSON.stringify(voz.idioma === "en" ? { texto: paraKokoro(texto), formato, palabras: true, voz: v } : { texto: paraPiper(texto), voz: "es-ivi" }),
       signal: AbortSignal.any([señal, AbortSignal.timeout(limite)]),
     })
   let r: Response | null = null
@@ -247,6 +260,8 @@ const vozDeFrase = async (texto: string, formato: string, persona: Persona, señ
 // recibe como prefill (en modo chat con think:false se corta o sale vacío: medido) sino como nota
 // al final del último mensaje, que no rompe la caché. La respuesta final incluye el acuse.
 // `primero`: evento que sale antes que todo (lo usa /voz/escuchar para mandar lo que oyó).
+// Con `eco` (EVA): mientras el 27B piensa, dice una frase que repite la pregunta con sus palabras clave
+// (packages/shared/src/eco.ts). Sale como {t:"eco", texto} y una frase más; no entra en la respuesta ni en el historial.
 const turnoDeVoz = (
   msgs: Mensaje[],
   formato: string,
@@ -254,6 +269,7 @@ const turnoDeVoz = (
   persona: Persona,
   acuse = "",
   primero?: unknown,
+  eco = false,
 ): Response => {
   const voz = servicioVoz()
   const enc = new TextEncoder()
@@ -295,6 +311,36 @@ const turnoDeVoz = (
         })
     }
 
+    // El eco va primero en la cola: su lugar se reserva ya. El modelo chico escribe el tema (~0,5 s) y su voz se pide
+    // enseguida, en paralelo; pero el eco no suena antes de ESPERA_ECO_MS ni si para entonces la primera frase del 27B
+    // ya está: como ChatGPT, solo rellena cuando hace falta (ver packages/shared/src/eco.ts). Solo con la voz rápida
+    // (Kokoro en Geografo, inglés): la de español tarda 3-5 s por frase, más que la respuesta.
+    let empezoRespuesta = false
+    const conEco = eco && !acuse && voz.idioma === "en" && persona.idioma === "en"
+    if (conEco) {
+      const i = n++
+      const listo = temaDeEco(msgs[msgs.length - 1].content, persona.idioma, textoUrl(), textoModelo(), corte.signal)
+        .then(async (t) => {
+          const frase = armarEco(t, persona.idioma, vecesEco)
+          if (!frase) return null
+          vecesEco++ // solo cuenta el que se usó: así nunca suena la misma plantilla dos veces seguidas
+          return { frase, f: await vozDeFrase(frase, formato, persona, corte.signal) }
+        })
+        .catch(() => null) // sin eco, la respuesta llega igual
+      cola = cola
+        .then(async () => {
+          const r = await listo
+          const falta = ESPERA_ECO_MS - (performance.now() - t0)
+          if (r && falta > 0 && !empezoRespuesta) await new Promise((ok) => setTimeout(ok, falta))
+          if (!r || empezoRespuesta || corte.signal.aborted || errorDeVoz) return
+          emitir({ t: "eco", texto: r.frase })
+          if (!primeraVozMs) primeraVozMs = Math.round(performance.now() - t0)
+          emitir({ t: "frase", i, ...r.f })
+        })
+        .catch((e: unknown) => {
+          if (!corte.signal.aborted && !errorDeVoz) errorDeVoz = e
+        })
+    }
     if (acuse) {
       hablarFrase(acuse)
       const ultimo = msgs[msgs.length - 1]
@@ -316,6 +362,7 @@ const turnoDeVoz = (
     const extra = await contextoRag(msgs[msgs.length - 1].content, true)
     const notas = [
       extra ? `[Note from the app, not from the person. ${extra}]` : "",
+      conEco ? NOTA_ECO : "",
       persona.acciones && voz.idioma === "en" ? RECORDATORIO_ACCIONES : "",
       // Lo último antes de contestar: el idioma elegido, que una pregunta en el otro idioma no cambia (asistentes.ts).
       voz.idioma === "en" ? notaDeIdioma(persona.idioma) : "",
@@ -368,6 +415,7 @@ const turnoDeVoz = (
           emitir({ t: "texto", d: delta })
           const [listas, resto] = cortarFrases(buffer, n === 0)
           buffer = resto
+          if (listas.length) empezoRespuesta = true
           for (const f of listas) {
             // Primera frase del 27B tras un acuse: si lo repite, se dice sin él (ya sonó).
             const sin: string | null = acuse && n === 1 && !repetida ? quitarAcuse(f, acuse) : null
@@ -679,13 +727,13 @@ export const z6 = new Hono()
   })
   // Turno de voz en streaming (texto + audio por frase + tiempos por palabra). Ver turnoDeVoz.
   .post("/voz/turno", async (c) => {
-    const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; formato?: string; acuse?: unknown; asistente?: unknown; recuerdos?: unknown } | null
+    const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; formato?: string; acuse?: unknown; eco?: unknown; asistente?: unknown; recuerdos?: unknown } | null
     const msgs = limpiarMensajes(cuerpo)
     if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
     if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const formato = FORMATOS_VOZ.has(cuerpo?.formato ?? "") ? cuerpo!.formato! : "opus"
     const acuse = typeof cuerpo?.acuse === "string" ? cuerpo.acuse.replace(/[[\]"«»]/g, "").trim().slice(0, 80) : ""
-    return turnoDeVoz(msgs, formato, c.req.raw.signal, personaDe(cuerpo), acuse)
+    return turnoDeVoz(msgs, formato, c.req.raw.signal, personaDe(cuerpo), acuse, undefined, cuerpo?.eco === true)
   })
   // Qué quiso decir el usuario al hablar encima de la respuesta: add | correct | new | stop | ignore.
   .post("/voz/clasificar", async (c) => {
@@ -839,7 +887,7 @@ export const z6 = new Hono()
       const r = await fetch(`${voz.url}/v1/hablar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(voz.idioma === "en" ? { texto, voz: vozDe(personaDe(cuerpo).asistente) } : { texto, voz: "es-ivi" }),
+        body: JSON.stringify(voz.idioma === "en" ? { texto: paraKokoro(texto), voz: vozDe(personaDe(cuerpo).asistente) } : { texto: paraPiper(texto), voz: "es-ivi" }),
         signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
       })
       if (!r.ok) return c.json({ ok: false, error: `Voz respondió ${r.status}` }, 502)

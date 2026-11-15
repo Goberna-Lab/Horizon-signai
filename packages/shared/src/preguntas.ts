@@ -246,10 +246,29 @@ export const PREGUNTAS: PreguntaFrecuente[] = [
   },
 ]
 
-/** Lo que dice mientras la IA piensa una respuesta: ganar tiempo sin silencio. Uno al azar. */
+/**
+ * El murmullo que EVA dice al instante cuando le preguntan algo (grabado: suena sin esperar al servidor). Al azar, sin
+ * repetir el anterior. En inglés es corto porque detrás viene el eco, que nombra el tema (packages/shared/src/eco.ts):
+ * dos rellenos por turno como mucho. En español no hay eco (la voz en vivo tarda 3-5 s por frase), así que el murmullo
+ * es más largo y ocupa él solo el silencio. Nada de «great question» ni de prometer lo que no hace. En español, «Emm» y
+ * «Umm», nunca «Mmm»: Piper (espeak) lee «Mmm» como «eme-eme-eme» (medido).
+ */
 export const PUENTES: Record<"en" | "es", string[]> = {
-  en: ["Good question. Let me check my notes.", "Hmm. Give me a second.", "Interesting one. Let me think."],
-  es: ["Buena pregunta. Déjame revisar mis notas.", "Mmm. Dame un segundo.", "Interesante. Déjame pensarlo."],
+  en: ["Mmm.", "Hmm.", "Ooh.", "Mmm, let's see.", "Hmm, let's see.", "Oh, okay."],
+  es: [
+    "Emm, a ver. Déjame revisar mis notas.",
+    "Ajá. Dame un segundo, lo reviso.",
+    "Umm, veamos. Ya te cuento.",
+    "A ver, déjame consultar mis notas.",
+    "Emm. Un momento, lo busco.",
+    "Ajá, déjame ver qué tengo.",
+  ],
+}
+
+/** Si la respuesta tarda mucho (ver RESCATE_MS en EvaCompanera.tsx): una vez, para que el silencio no parezca un cuelgue. */
+export const RESCATE: Record<"en" | "es", string> = {
+  en: "Still working on it, one more second.",
+  es: "Sigo en eso, un segundo más.",
 }
 
 /** Tras contestar una pregunta en medio del flujo, para volver al paso. */

@@ -107,6 +107,7 @@ export type EventoTurno =
   | EventoOido
   | EventoIntencion
   | { t: "texto"; d: string }
+  | { t: "eco"; texto: string }
   | ({ t: "frase" } & import("./colaDeVoz").FraseDeVoz)
   | { t: "fin"; respuesta: string; modelo: string; ms: number; primeraVozMs: number }
   | { t: "error"; msg: string }
@@ -159,11 +160,13 @@ export const turnoDeVoz = async (
   alEvento: (e: EventoTurno) => void,
   signal?: AbortSignal,
   acuse?: string,
+  /** EVA: que el API diga una frase que repite la pregunta mientras el modelo piensa (ver turnoDeVoz en z6.ts). */
+  eco?: boolean,
 ) => {
   const r = await pedir("/voz/turno", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, formato: formatoDeVoz(), acuse, ...persona() }),
+    body: JSON.stringify({ messages, formato: formatoDeVoz(), acuse, eco, ...persona() }),
     signal,
   })
   await leerEventos(r, alEvento)

@@ -1,5 +1,6 @@
 import type { AssistantMode } from "@horizon-signai/shared"
 import { entonarBuffer } from "./entonacion"
+import { pausasDePuntuacion } from "./puntuacion"
 import { PERSONAJES } from "./personajes"
 import { crearVozRobot } from "./vozRobot"
 
@@ -23,11 +24,14 @@ type Opciones = {
   alNivel: (n: number) => void
   /** Se llama una vez, cuando empieza a sonar la primera frase. */
   alEmpezar: () => void
+  /** Silencios en comas y puntos dentro de cada frase (ver pausasDePuntuacion). EVA los usa; /prueba-ia no. */
+  respetarPuntuacion?: boolean
 }
+
 
 const aBytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
 
-export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }: Opciones) {
+export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar, respetarPuntuacion = false }: Opciones) {
   const personaje = PERSONAJES[asistente]
   const conWebAudio = !!ctx && ctx.state === "running"
   const fuentes: AudioScheduledSourceNode[] = []
@@ -82,7 +86,9 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }:
     raf = requestAnimationFrame(animar)
   }
 
-  const agendar = async (f: FraseDeVoz) => {
+  // `pausa`: silencio (s) entre el final de la frase anterior y esta, si esta ya estaba lista. Si llega tarde, el
+  // silencio de la espera ya hace de pausa y no se suma otro.
+  const agendar = async (f: FraseDeVoz, pausa: number) => {
     const bytes = aBytes(f.audio)
     const crudo = await ctx!.decodeAudioData(bytes.buffer.slice(0) as ArrayBuffer)
     if (detenida) return
@@ -95,22 +101,31 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }:
         console.warn("[voz] sin entonación:", e)
       }
     }
-    const inicio = Math.max(ctx!.currentTime + 0.05, siguiente)
-    siguiente = inicio + buffer.duration
-    const fuente = ctx!.createBufferSource()
-    fuente.buffer = buffer
-    fuente.connect(entrada!)
-    pendientes++
-    fuente.onended = () => {
-      pendientes--
-      comprobarFin()
+    const inicio = Math.max(ctx!.currentTime + 0.05, siguiente > 0 ? siguiente + pausa : 0)
+    // La frase en tramos separados por los silencios de la puntuación (uno solo si no hay cortes).
+    const cortes = respetarPuntuacion ? pausasDePuntuacion(f.palabras, buffer.duration) : []
+    const bordes = [0, ...cortes.map((c) => c.t), buffer.duration]
+    let corrido = 0 // silencio acumulado antes del tramo
+    for (let j = 0; j < bordes.length - 1; j++) {
+      if (j > 0) corrido += cortes[j - 1]!.silencio
+      const fuente = ctx!.createBufferSource()
+      fuente.buffer = buffer
+      fuente.connect(entrada!)
+      pendientes++
+      fuente.onended = () => {
+        pendientes--
+        comprobarFin()
+      }
+      fuente.start(inicio + bordes[j]! + corrido, bordes[j]!, bordes[j + 1]! - bordes[j]!)
+      fuentes.push(fuente)
     }
-    fuente.start(inicio)
-    fuentes.push(fuente)
+    siguiente = inicio + buffer.duration + corrido
+    // Cada palabra se corre lo que suman los silencios que tiene antes.
+    const desfase = (t: number) => cortes.reduce((s, c) => (c.t <= t ? s + c.silencio : s), 0)
     // La última palabra de una frase llega sin espacio detrás: sin esto se leía «North Pole.The».
     const separar = linea.length > 0 && !/\s$/.test(linea[linea.length - 1].texto)
     f.palabras.forEach(([texto, espacio, ini], k) =>
-      linea.push({ t: inicio + ini, texto: (k === 0 && separar ? " " : "") + texto + espacio }),
+      linea.push({ t: inicio + ini + desfase(ini), texto: (k === 0 && separar ? " " : "") + texto + espacio }),
     )
     if (!empezo) {
       empezo = true
@@ -119,8 +134,8 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }:
     }
   }
 
-  const enFila = (f: FraseDeVoz) =>
-    new Promise<void>((resolve) => {
+  const enFila = (f: FraseDeVoz, pausa: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, empezo ? pausa * 1000 : 0)).then(() => new Promise<void>((resolve) => {
       if (detenida) return resolve()
       const url = URL.createObjectURL(new Blob([aBytes(f.audio)], { type: f.mime }))
       const a = new Audio(url)
@@ -142,16 +157,17 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }:
         alHablar(hablado)
       }
       void a.play().catch(fin)
-    })
+    }))
 
   return {
-    agregar(f: FraseDeVoz) {
+    /** `pausa` (s): silencio antes de esta frase si viene pegada a la anterior (EVA las usa para sonar menos apurada). */
+    agregar(f: FraseDeVoz, pausa = 0) {
       if (detenida) return
       if (conWebAudio) {
-        decodificar = decodificar.then(() => agendar(f)).catch(() => {})
+        decodificar = decodificar.then(() => agendar(f, pausa)).catch(() => {})
       } else {
         pendientes++
-        fallbackCola = fallbackCola.then(() => enFila(f))
+        fallbackCola = fallbackCola.then(() => enFila(f, pausa))
       }
     },
     /** Resuelve cuando terminó de sonar todo lo agregado (llamar después del último agregar). */
