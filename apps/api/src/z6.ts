@@ -274,16 +274,25 @@ const turnoDeVoz = (
     let n = 0
     let repetida: [string, string] | null = null // [frase del 27B, la misma sin el acuse repetido]
     let cola: Promise<void> = Promise.resolve() // una frase a la vez y en orden
+    // La cola nunca queda rechazada: solo se espera al final, y una promesa rechazada sin nadie esperándola tumba
+    // el proceso (Node 22). Pasaba al interrumpir a EVA: el corte aborta la voz de la frase en curso y el error
+    // de la cola, que ya nadie iba a esperar, reiniciaba el API (medido en producción el 2026-11-15, una vez por
+    // minuto en manos libres). El primer error de voz se guarda y se lanza donde se espera la cola.
+    let errorDeVoz: unknown = null
     const hablarFrase = (crudo: string) => {
       const i = n++
       const texto = paraHablar(crudo)
       if (!texto) return
-      cola = cola.then(async () => {
-        if (corte.signal.aborted) return
-        const f = await vozDeFrase(texto, formato, persona, corte.signal)
-        if (!primeraVozMs) primeraVozMs = Math.round(performance.now() - t0)
-        emitir({ t: "frase", i, ...f })
-      })
+      cola = cola
+        .then(async () => {
+          if (corte.signal.aborted || errorDeVoz) return
+          const f = await vozDeFrase(texto, formato, persona, corte.signal)
+          if (!primeraVozMs) primeraVozMs = Math.round(performance.now() - t0)
+          emitir({ t: "frase", i, ...f })
+        })
+        .catch((e: unknown) => {
+          if (!corte.signal.aborted && !errorDeVoz) errorDeVoz = e
+        })
     }
 
     if (acuse) {
@@ -363,6 +372,7 @@ const turnoDeVoz = (
       }
       if (buffer.trim()) hablarFrase(buffer)
       await cola
+      if (errorDeVoz) throw errorDeVoz
       if (repetida) respuesta = respuesta.replace(repetida[0], repetida[1])
       if (acuse) respuesta = `${acuse} ${respuesta.trim()}`
       emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs })
