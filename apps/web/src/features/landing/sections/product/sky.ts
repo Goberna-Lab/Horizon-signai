@@ -77,8 +77,18 @@ export function darkness(windows: number[][], t: number): number {
   return smooth(clamp01((1 - turn.hours / DUSK_H) / NIGHTFALL))
 }
 
-/** Velocidad del tiempo durante el cambio, respecto a la normal (0.5 = la mitad). */
-export const TURN_TEMPO = 0.5
+/**
+ * Cuánto se aparta la ventana para dejar ver la puesta (o la salida), de 0 a 1: entra unas 20 horas antes de que
+ * el Sol se oculte, cuando la cresta empieza a taparlo, y sale unas horas después, con la corona ya escondida.
+ */
+export function spotlight(windows: number[][], t: number): number {
+  const turn = turnOf(windows, t)
+  if (!turn) return 0
+  return 1 - smooth(clamp01(turn.up ? (turn.hours - 14) / 6 : (turn.hours - 5) / 4))
+}
+
+/** Velocidad del tiempo durante el cambio, respecto a la normal (0.5 sería la mitad). */
+export const TURN_TEMPO = 0.35
 
 /**
  * Velocidad del tiempo cuando corre solo, de 0 a 1: se frena alrededor de la puesta y de la salida para que el

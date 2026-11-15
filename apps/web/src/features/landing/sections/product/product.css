@@ -189,10 +189,61 @@
   background: radial-gradient(closest-side, transparent 58%, rgb(120 220 190 / 0.16) 74%, rgb(255 190 140 / 0.12) 90%, transparent);
 }
 
+/* La marca de la puesta: baja desde la cresta. Solo se ve en el momento de la puesta, cuando la ventana se aparta. */
+.hz__mark {
+  top: 0;
+  left: 0;
+  opacity: 0;
+  font: 500 12px/1.55 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgb(244 239 230 / 0.95);
+  will-change: transform, opacity;
+}
+
+.hz__mark p {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 0 0 12px;
+  border-left: 1px solid var(--signal-night);
+}
+
+.hz__mark span:first-child {
+  color: #ff7385;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hz__twinkle {
     animation: none;
   }
+}
+
+/*
+ * El momento de la puesta. `--cinema` (de 0 a 1, lo pone ProductWindow en la sección) aparta la ventana: se van el
+ * fondo, los filetes y todo menos la cuenta del Sol, la fecha y el botón de pausa. Está registrada como número para
+ * que el navegador la pueda animar: al pausar, la ventana vuelve con suavidad.
+ */
+@property --cinema {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+#software {
+  transition: --cinema 600ms var(--ease);
+}
+
+.sw-lander .sw-view__head,
+.sw-lander__sky,
+.sw-lander .sw-chips,
+.sw-lander .sw-count[data-body="earth"],
+.sw-lander .sw-stats,
+.sw-lander__foot .sw-label,
+.sw-lander .sw-legend,
+.sw-lander .sw-time,
+.sw-caption {
+  opacity: calc(1 - var(--cinema, 0));
 }
 
 #software > .ln-wrap {
@@ -215,7 +266,9 @@
   --sw-bg: var(--paper);
   --sw-ink: var(--ink);
   --sw-soft: var(--ink-soft);
-  --sw-rule: color-mix(in srgb, rgb(244 239 230 / 0.36) calc(var(--night-text) * 100%), var(--ink-day));
+  --sw-rule-solid: color-mix(in srgb, rgb(244 239 230 / 0.36) calc(var(--night-text) * 100%), var(--ink-day));
+  /* Los filetes se van con la ventana en el momento de la puesta. */
+  --sw-rule: color-mix(in srgb, transparent calc(var(--cinema, 0) * 100%), var(--sw-rule-solid));
   --sw-hair: var(--shade);
   --sw-terrain: color-mix(in srgb, #4b4742 calc(var(--night) * 100%), var(--ink-day));
   --sw-sun: var(--signal);
@@ -223,10 +276,10 @@
   --sw-hatch: color-mix(in srgb, rgb(244 239 230 / 0.3) calc(var(--night-text) * 100%), rgb(17 17 17 / 0.34));
   --sw-on-terrain: color-mix(in srgb, rgb(244 239 230 / 0.82) calc(var(--night-text) * 100%), var(--paper-day));
   --sw-pad: clamp(16px, 2.2vw, 32px);
-  border: 1.5px solid var(--sw-ink);
+  border: 1.5px solid color-mix(in srgb, transparent calc(var(--cinema, 0) * 100%), var(--sw-ink));
   /* Con el horizonte de fondo la ventana se vuelve casi transparente: la vista flota sobre el paisaje. */
   /* De noche hace de visor ahumado: se oscurece lo justo para leer con el Sol detrás. */
-  background: color-mix(in srgb, var(--sw-bg) calc((1 - var(--scene, 0) * (0.9 - 0.5 * var(--night))) * 100%), transparent);
+  background: color-mix(in srgb, var(--sw-bg) calc((1 - var(--scene, 0) * (0.9 - 0.5 * var(--night))) * (1 - var(--cinema, 0)) * 100%), transparent);
   transition: background-color 500ms;
   color: var(--sw-ink);
   font-family: var(--font-display);

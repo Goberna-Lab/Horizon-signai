@@ -29,8 +29,8 @@ export function LanderView({ t, height, playing, onTime, onPlay, onHeight }: Lan
   const earthAbove = earthEl - horizonAt(view.horizon, earthAz)
   const signal = !earth.visible ? "off" : earthAbove < 1 ? "limited" : "on"
 
-  const countdown = (state: { visible: boolean; hours: number | null }, labels: { set: string; rise: string; always: string }) => (
-    <div className="sw-count">
+  const countdown = (body: "sun" | "earth", state: { visible: boolean; hours: number | null }, labels: { set: string; rise: string; always: string }) => (
+    <div className="sw-count" data-body={body}>
       <span>{state.hours === null ? labels.always : state.visible ? labels.set : labels.rise}</span>
       <strong>{state.hours === null ? copy.whole : span(state.hours)}</strong>
     </div>
@@ -71,8 +71,8 @@ export function LanderView({ t, height, playing, onTime, onPlay, onHeight }: Lan
               {copy.signal[signal]}
             </span>
           </div>
-          {countdown(sun, copy.sun)}
-          {countdown(earth, copy.earth)}
+          {countdown("sun", sun, copy.sun)}
+          {countdown("earth", earth, copy.earth)}
           <dl className="sw-stats">
             <div>
               <dt>{copy.stats.sun}</dt>

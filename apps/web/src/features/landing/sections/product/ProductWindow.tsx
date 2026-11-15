@@ -8,7 +8,7 @@ import { LanderView } from "./LanderView"
 import { LearnView } from "./LearnView"
 import { MapView } from "./MapView"
 import { PlanBView } from "./PlanBView"
-import { darkness, type HeightId, LAST, sky, tempo } from "./sky"
+import { darkness, type HeightId, LAST, sky, spotlight, tempo } from "./sky"
 import "./product.css"
 
 type Tab = keyof typeof copy.tabs
@@ -134,6 +134,11 @@ export function ProductWindow() {
   const clock = useRef(t)
   clock.current = t
   const scene = tab === "lander" ? presence : 0
+  // El momento de la puesta: con el reloj corriendo, la ventana se aparta y deja el paisaje a pantalla completa;
+  // quedan la cuenta del Sol, la fecha y el botón de pausa. Al pausar o tocar la línea de tiempo, vuelve.
+  const cinema = tab === "lander" && running ? spotlight(sky[height].windows.sun, t) * presence : 0
+  const spot = useRef(cinema)
+  spot.current = cinema
 
   const take = useCallback((value: number) => {
     touched.current = true
@@ -147,8 +152,8 @@ export function ProductWindow() {
 
   return (
     // `--scene` dice cuánto se ve el horizonte de fondo: entra con la ventana y solo en la vista Lander.
-    <section className="ln-sec" id="software" style={{ "--scene": scene } as CSSProperties}>
-      <HorizonScene time={clock} horizon={sky[height].horizon} sunWindows={sky[height].windows.sun} earthWindows={sky[height].windows.earth} level={shade} active={scene > 0} />
+    <section className="ln-sec" id="software" style={{ "--scene": scene, "--cinema": cinema.toFixed(3) } as CSSProperties}>
+      <HorizonScene time={clock} horizon={sky[height].horizon} sunWindows={sky[height].windows.sun} earthWindows={sky[height].windows.earth} level={shade} cinema={spot} active={scene > 0} />
       <div className="ln-wrap">
         <Reveal as="h2" className="ln-title" wipe>
           {copy.title}
