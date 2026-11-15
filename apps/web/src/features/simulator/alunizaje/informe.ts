@@ -8,6 +8,7 @@
 //   · Cumplida con incidentes: igual, pero con alunizaje duro o inclinado, salidas de ruta o pulso por encima de 150 lpm.
 //   · Perdida: la nave volcó o se destruyó, o el astronauta se quedó sin consumibles.
 import { tr } from '@/shared/i18n';
+import { retosHtml } from './retos';
 
 const WALK_KMH = 2.2, STOP_MIN = 20; // prototipos/lunar-map/mission.js
 const fmt = (n, d = 0) => Number(n).toLocaleString(tr('en-US', 'es-ES'), { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -30,7 +31,7 @@ export function datosDelInforme(view, cam) {
   if (st.crateres) incidentes.push(tr(`${st.crateres} crater alerts`, `${st.crateres} alertas de cráter`));
   const veredicto = perdida ? 'perdida' : completa ? (incidentes.length ? 'incidentes' : 'cumplida') : 'incompleta';
   const cons = { o2: s.o2 / 0.82, agua: s.water / 3.86, co2: 1 - s.lioh / 8870, bat: s.batt / 279 };
-  return { completa, al, ruta: view.plan?.ruta ?? 'cientifica', planM, planS, realM: cam.walked, realS: s.t, paradas, muestras, cons, st, incidentes, veredicto, recargas: cam.lm?.recharges ?? 0, sitio: view.siteName ?? '' };
+  return { perdida, completa, al, ruta: view.plan?.ruta ?? 'cientifica', planM, planS, realM: cam.walked, realS: s.t, paradas, muestras, cons, st, incidentes, veredicto, recargas: cam.lm?.recharges ?? 0, sitio: view.siteName ?? '' };
 }
 
 const TITULO = {
@@ -67,6 +68,7 @@ export function mostrarInforme(view, d, acciones = {}) {
     </tbody></table>
     <div class="sim-inf-cons"><span class="lbl">${tr('Suit left at the end', 'Traje al terminar')}</span>
       ${barra('O₂', d.cons.o2)}${barra(tr('Water', 'Agua'), d.cons.agua)}${barra('LiOH', d.cons.co2)}${barra(tr('Battery', 'Batería'), d.cons.bat)}</div>
+    ${d.perdida ? '' : retosHtml(d)}
     <p class="nota">${tr('Planned figures: the route and times of the Planner (2.2 km/h, 20 min per stop, out and back). Flown: this simulation.', 'Planificado: la ruta y los tiempos del Planificador (2,2 km/h, 20 min por parada, ida y vuelta). Real: esta simulación.')}</p>
     <div class="sim-lfp-end-acts">
       <button type="button" data-act="volar">${tr('Fly the mission again', 'Volar la misión otra vez')}</button>

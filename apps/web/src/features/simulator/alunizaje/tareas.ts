@@ -186,6 +186,7 @@ export class Tareas {
     for (let k = 0; k < this.samples.length; k++) if (this._near(k)) {
       if (this.samples[k].name === 'sombra' && this.darkReal && !c.lamps) { c.notice = tr('Too dark: turn on the helmet lamps (L)', 'Está demasiado oscuro: enciende las lámparas del casco (L)'); c.sonido?.blip(); return; }
       const s = this.samples[k]; s.taken = true; s.mesh.visible = false; c.sonido?.blip(true);
+      if (s.name === 'sombra' && c.lamps && c.stats) c.stats.sombraConLuces = true; // mini misión «A la oscuridad»
       return;
     }
     c.notice = tr('Nothing within reach', 'No hay nada a tu alcance');

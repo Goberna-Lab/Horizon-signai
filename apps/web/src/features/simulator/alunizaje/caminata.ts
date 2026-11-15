@@ -21,6 +21,7 @@ import { VisorCasco, THETA_V, THETA_MAX, direccionAPantalla } from './casco/viso
 import { VisorHud } from './visorHud';
 import { Tareas } from './tareas';
 import { datosDelInforme, mostrarInforme } from './informe';
+import { avisoRetos } from './retos';
 
 const G = 1.62;
 const EYE = 1.68;        // altura de los ojos (m)
@@ -117,6 +118,7 @@ export class Caminata {
     this.tasks.reset(); this.tasks.start(lm);
     this.hud.lost(null); this.hud.tunnel(0); this.hud.root.hidden = false; this.hud.root.classList.remove('nopower'); this.hud.boot();
     this._sinBateria = false; this.sonido?.casco(true); // ventilador del traje
+    this.notice = avisoRetos();
     if (result?.kind === 'hard') this.notice = tr('The hard landing ruptured a lander tank: only half the O₂ and water are left to recharge the suit', 'El aterrizaje duro rompió un tanque del módulo: solo queda la mitad de O₂ y agua para recargar el traje');
   }
 

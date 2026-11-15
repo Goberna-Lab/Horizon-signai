@@ -84,3 +84,12 @@
 .sim-inf-bar i { height: 10px; border: 1px solid #111111; display: block; } .sim-inf-bar i b { display: block; height: 100%; background: #111111; } .sim-inf-bar em { font-style: normal; text-align: right; }
 .sim-informe button { font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
 .sim-informe button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
+/* Mini misiones (retos.ts) dentro del informe */
+.sim-retos { display: grid; gap: 4px; } .sim-retos .lbl { font: 600 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
+.sim-reto { border-bottom: 1px solid #c9c1b6; padding: 4px 0; }
+.sim-reto summary { display: grid; grid-template-columns: 18px auto 1fr; gap: 2px 8px; align-items: baseline; cursor: pointer; list-style: none; }
+.sim-reto summary::-webkit-details-marker { display: none; }
+.sim-reto i { font-style: normal; font-weight: 800; color: rgba(17, 17, 17, .4); } .sim-reto.ok i { color: #111111; }
+.sim-reto b { font-size: 14px; } .sim-reto em { font: 600 10px "IBM Plex Mono", ui-monospace, monospace; text-transform: uppercase; letter-spacing: .08em; color: #F4EFE6; background: #C8102E; padding: 1px 6px; justify-self: start; font-style: normal; }
+.sim-reto span { grid-column: 2 / -1; font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace; color: rgba(17, 17, 17, .65); }
+.sim-reto p { margin: 6px 0 4px 26px; font-size: 13px; line-height: 1.45; }
