@@ -44,7 +44,7 @@ export class VisorHud {
       <div class="sim-vh-ladder"><div>${[-60, -45, -30, -15, 15, 30, 45, 60].map((d) => `<i style="--d:${d}" class="${d < 0 ? 'neg' : ''}"><b>${Math.abs(d)}</b></i>`).join('')}</div></div>
       <div class="sim-vh-reticle"><svg class="a" viewBox="-50 -50 100 100"><circle r="34"/></svg><svg class="b" viewBox="-50 -50 100 100"><circle r="44"/></svg>
         <svg class="c" viewBox="-50 -50 100 100"><path d="M-48 0h12M36 0h12M0 -48v12M0 36v12"/><circle r="1.6"/></svg><i class="pulse"></i></div>
-      <div class="sim-vh-marks">${['lm', 'sun', 'earth', 'obj', 'crater'].map((k) => `<div class="mk ${k}" data-t="${k}"><u></u><em></em><b></b></div>`).join('')}</div>
+      <div class="sim-vh-marks">${['lm', 'sun', 'earth', 'obj', 'crater', 'base'].map((k) => `<div class="mk ${k}" data-t="${k}"><u></u><em></em><b></b></div>`).join('')}</div>
       <div class="sim-vh-keys">${KEYS.map(([k, g, n]) => `<span data-key="${k}"><b>${g}</b><i>${n}</i></span>`).join('')}</div>
       <div class="sim-vh-tunnel"></div>
       <div class="sim-vh-lost" hidden><small>${tr('MISSION LOST', 'MISIÓN PERDIDA')}</small><b></b><p></p><em>${tr('Press <u>R</u> to try again · <u>Q</u> to fly the descent again', 'Pulsa <u>R</u> para reintentar · <u>Q</u> para volver a volar el descenso')}</em></div>

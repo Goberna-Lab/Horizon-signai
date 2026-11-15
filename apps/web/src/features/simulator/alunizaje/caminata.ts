@@ -278,6 +278,8 @@ export class Caminata {
       if (this.view.now?.earth.visible) once('tierra', () => avisarEva('tierra-a-la-vista'));
       const d = this._data();
       if (d.dLM != null && d.dLM > 300) once('lejos', () => avisarEva('lejos'));
+      const base = this.view.base?.centro;
+      if (base && Math.hypot(this.pos.x - base.x, this.pos.z - base.z) < 35) once('base', () => avisarEva('base'));
     }
   }
 
@@ -317,6 +319,7 @@ export class Caminata {
       sun: now ? [cam.position.clone().addScaledVector(dir(now.sun.az, now.sun.el), 1000), `${tr('SUN', 'SOL')} · ${fmt(now.sun.frac * 100)} %`] : null,
       earth: now ? [cam.position.clone().addScaledVector(dir(now.earth.az, now.earth.el), 1000), now.earth.visible ? tr('EARTH · LINK', 'TIERRA · ENLACE') : tr('EARTH · HIDDEN', 'TIERRA · OCULTA')] : null,
       obj: tg ? [tg.clone().add(new THREE.Vector3(0, 1.1, 0)), `${tr('TARGET', 'OBJETIVO')} · ${fmt(this.pos.distanceTo(tg))} m`] : null,
+      base: v.base ? [v.base.centro.clone().add(new THREE.Vector3(0, 8, 0)), `${tr('ARTEMIS BASE', 'BASE ARTEMIS')} · ${fmt(this.pos.distanceTo(v.base.centro))} m`] : null,
       crater: this.crater ? [new THREE.Vector3(this.crater.c.x, v.groundY(this.crater.c.x, this.crater.c.z) + 0.5, this.crater.c.z), tr(`CRATER · Ø ${fmt(this.crater.c.rad * 2)} m`, `CRÁTER · Ø ${fmt(this.crater.c.rad * 2)} m`)] : null,
     };
     // Con el ojo de pez del casco, una dirección del mundo cae en pantalla según `direccionAPantalla`
@@ -330,6 +333,7 @@ export class Caminata {
     const compass = [{ az: 0, label: 'N', cls: 'card' }, { az: 90, label: 'E', cls: 'card' }, { az: 180, label: 'S', cls: 'card' }, { az: 270, label: tr('W', 'O'), cls: 'card' }];
     if (now) compass.push({ az: now.sun.az, label: '☀', cls: now.sun.frac > 0.5 ? 'sun' : 'sun dim' }, { az: now.earth.az, label: '◐', cls: now.earth.visible ? 'earth' : 'earth dim' });
     if (lm) compass.push({ az: d.bearingLM, label: 'LM', cls: 'lm' });
+    if (v.base) { const b = v.base.centro; compass.push({ az: ((Math.atan2(b.x - this.pos.x, -(b.z - this.pos.z)) * 180) / Math.PI + 360) % 360, label: 'BASE', cls: 'lm' }); }
     const ppr = H / 2 / THETA_V; // píxeles por radián en el centro (ojo de pez equidistante)
     this.hud.frame({ yawDeg: d.yawDeg, pitch: this.pitch, ppr, marks, compass, moving: !!this._mv, shift: [vz.desp.x * (H / 2), -vz.desp.y * (H / 2), vz.giroCasco] });
     // Latido del HUD al ritmo del pulso

@@ -463,6 +463,27 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     texto: "Sample bagged. Regolith is as sharp as broken glass, by the way. Do not lick it.",
     es: { texto: "Muestra guardada. El regolito corta como vidrio roto, por cierto. No lo pruebes." },
   },
+  // Llegada a la base Artemis de la caminata (simulador: base.ts)
+  base: {
+    texto: "The Artemis base. Habitats, panels, a landing pad, and nobody home. Very on brand for the Moon.",
+    es: { texto: "La base Artemis. Hábitats, paneles, una plataforma de aterrizaje y nadie en casa. Muy de la Luna." },
+  },
+  // Nadie toca nada en el simulador durante un rato (AFK): EVA se burla de la ausencia, por turnos
+  "ausente-1": {
+    texto: "Hello? Your oxygen keeps running even when you do not.",
+    es: { texto: "¿Hola? Tu oxígeno sigue corriendo aunque tú no." },
+    repetible: true,
+  },
+  "ausente-2": {
+    texto: "Still there? I will assume you went out for a sandwich. On the Moon. Bold move.",
+    es: { texto: "¿Sigues ahí? Asumiré que saliste por un sándwich. En la Luna. Qué valor." },
+    repetible: true,
+  },
+  "ausente-3": {
+    texto: "If you fell asleep, at least it is quiet up here. No air, no snoring.",
+    es: { texto: "Si te dormiste, al menos aquí arriba hay silencio. Sin aire no hay ronquidos." },
+    repetible: true,
+  },
   // Cráter grande delante y la persona intenta cruzarlo: aviso crítico con el lado por el que rodearlo
   "crater-izquierda": {
     texto: "Crater. Do not cross it, the walls are loose regolith. Go around it on the left.",

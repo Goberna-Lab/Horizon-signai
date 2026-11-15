@@ -122,6 +122,7 @@
 .sim-vh-marks .mk { position: absolute; left: 0; top: 0; will-change: transform; color: #8dffb0; }
 .sim-vh-marks .sun { color: #ffd25a; }
 .sim-vh-marks .earth { color: #6fb4ff; }
+.sim-vh-marks .base { color: #c9a6ff; }
 .sim-vh-marks .crater { color: #ff5c70; } .sim-vh-marks .crater u { border-style: solid; animation-duration: 1.6s; }
 .sim-vh-marks u { position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; border-radius: 50%; border: 1.5px dashed currentColor; opacity: .75; animation: sim-vhspin 9s linear infinite; will-change: transform; }
 .sim-vh-marks em { inset: auto; left: -20px; top: -20px; width: 40px; height: 40px; animation-duration: 2.4s; }

@@ -1,16 +1,18 @@
 // @ts-nocheck — mundo mínimo para el alunizaje: terreno del sitio, cielo, luz y el bucle de dibujo.
-// Los datos salen de nuestro navegador (relieve LOLA + detalle fino alrededor de Connecting Ridge · RoI 6):
-//   fine.i16  6 x 6 km a 10 m (decímetros)   ·   wide.i16  20 x 20 km a 80 m   ·   site.json  Sol, Tierra y horizonte
+// El sitio y su cielo para la fecha (sitio.ts): cualquiera de los 28 sitios del Planificador; por defecto Connecting
+// Ridge · RoI 6, que trae relieve fino a 10 m. Encima, cerca del punto, el suelo de detalle con cráteres y rocas.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import fineUrl from './data/fine.i16?url';
-import wideUrl from './data/wide.i16?url';
-import siteUrl from './data/site.json?url';
+import { cargarSitio } from './sitio';
 import { LandingSim } from './landing';
 import { Sonido } from './sonido';
 import { makeDetail, buildDetail, disposeDetail, DETAIL_HALF } from './detalle';
 import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
+import { crearBase } from './base';
+import { avisarEva } from '@/shared/eva';
+
+const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
 
 const D2R = Math.PI / 180;
 const SKY_D = 60000;
@@ -51,9 +53,10 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement): Promise<() => void> {
-  const [site, fineBuf, wideBuf] = await Promise.all([fetch(siteUrl).then((r) => r.json()), fetch(fineUrl).then((r) => r.arrayBuffer()), fetch(wideUrl).then((r) => r.arrayBuffer())]);
-  const fine = sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half), wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
+export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?: string; ms?: number } = {}): Promise<() => void> {
+  const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
+  const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
+  const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
   const FH = site.fine.half - 40;
   const baseY = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? fine(x, z) : wide(x, z));
   // Cerca del sitio, el suelo de detalle (cráteres pequeños y rocas, detalle.ts) sobre el relieve LOLA
@@ -140,6 +143,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     astro: createAstronaut(), // procedural: baja la escalera y camina (en primera persona casi no se ve)
     pos: new THREE.Vector3(), heading: 0, quality: 0,
   };
+  view.base = crearBase(scene, groundY); // Base Artemis: destino de la caminata, a ~230 m
   scene.add(view.astro.object, view.astro.dust);
   view.astro.object.visible = false;
   // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
@@ -150,6 +154,16 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
 
   const onKey = (e) => { if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.target.closest?.('button,input,select,textarea')) sim.skip(); };
   window.addEventListener('keydown', onKey);
+  // AFK: si nadie toca teclado ni ratón, EVA se burla de la ausencia (tres frases por turnos; ella además se limita
+  // a un comentario cada 90 s y no lo dice si está hablando de otra cosa)
+  let tocado = performance.now(), ausencias = 0;
+  const marcar = () => { tocado = performance.now(); };
+  for (const ev of ['keydown', 'pointerdown', 'pointermove', 'wheel']) window.addEventListener(ev, marcar, { passive: true });
+  const afk = window.setInterval(() => {
+    if (document.hidden || performance.now() - tocado < AFK_S * 1000) return;
+    avisarEva(`ausente-${(ausencias++ % 3) + 1}`);
+    tocado = performance.now() - (AFK_S - 90) * 1000; // la siguiente, tras 90 s más sin tocar nada
+  }, 5000);
   const resize = () => { const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
   const ro = new ResizeObserver(resize); ro.observe(host); resize();
   let last = performance.now();
@@ -166,11 +180,12 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
 
   return () => {
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
+    window.clearInterval(afk); for (const ev of ['keydown', 'pointerdown', 'pointermove', 'wheel']) window.removeEventListener(ev, marcar);
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
     caminata.dispose(); view.astro.dispose();
-    disposeDetail(detailMesh); glowTex.dispose();
+    disposeDetail(detailMesh); glowTex.dispose(); view.base.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
 }
