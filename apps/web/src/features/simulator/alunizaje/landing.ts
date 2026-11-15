@@ -290,7 +290,7 @@ export class LandingSim {
     this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5 });
     const A = this.plan.final;
     this.target = new THREE.Vector3(A.x, A.hz.y - 0.103 * S - 0.02, A.z);
-    this.result = null; this.tiltDeg = 0; this.touchH = 0; this.hzNow = null; this._zc = null;
+    this.result = null; this.tiltDeg = 0; if (v.pers) v.pers.serio = false; this.touchH = 0; this.hzNow = null; this._zc = null;
     for (const [i, ph] of this.phases.entries()) { const a0 = this._state(i, 0), a1 = this._state(i, 1); Object.assign(ph, { p0: a0.p, v0: a0.v, p1: a1.p, v1: a1.v }); }
     this.fuel = this._state(0, 0).fuelS;
 
@@ -666,6 +666,7 @@ export class LandingSim {
         this.flash(`ALTITUDE ERROR · ENGINE CUT OFF AT ${Math.round(F.cutM)} m`, 4000);
         this.say('Aldrin', 'The engine shut down! We\'re still in the air!');
         this.view.eva?.sfx?.programAlarm?.();
+        if (this.view.pers) this.view.pers.serio = true;
         this.view.voz?.say(`Danger. Altitude error. The guidance shut down the engine at ${Math.round(F.cutM)} meters. We are falling.`, { prio: 2, key: 'fault', cooldownS: 5 });
       } else {
         this.flash('CONTACT LIGHT · ENGINE STOP');
@@ -699,6 +700,7 @@ export class LandingSim {
         : g === 2 ? `Danger. The landing point has ${a.rock > ROCK_BIG ? 'a large boulder' : `a ${Math.round(a.tilt)} degree slope`}. We could tip over.`
         : g === 1 ? `Caution. We will land tilted about ${Math.round(a.tilt)} degrees.` : 'Landing zone is clear below.', { prio: g === 2 ? 2 : 1, key: 'p66', cooldownS: 5 });
       this._zc = P.lit ? g : null;
+      if (this.view.pers) this.view.pers.serio = g === 2 || !P.lit; // con peligro, EVA no bromea
     });
     // Durante P66, si cambia lo que hay justo debajo, EVA lo dice (solo informa: aquí no hay nada que pilotar)
     const hz = this.hzNow, voz = this.view.voz;
@@ -744,7 +746,7 @@ export class LandingSim {
       this.tipAxis = new THREE.Vector3().crossVectors(UP, down.normalize()).normalize();
       this.tiltDeg = Math.min(hz.tilt, 25);
       if (R.kind === 'tip') { this.say('Aldrin', 'We\'re going over!'); this.flash('THE LANDER IS TIPPING OVER', 4000); }
-      const msg = { ok: 'Nominal landing. Welcome to the lunar south pole.', tilt: `We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, hard: `Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, tip: 'The lander is tipping over. Mission lost.', crash: 'Impact. The descent stage ruptured and the propellant ignited. Mission lost.' }[R.kind];
+      const msg = { ok: v.pers?.linea('landed') ?? 'Nominal landing. Welcome to the lunar south pole.', tilt: `We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, hard: `Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, tip: 'The lander is tipping over. Mission lost.', crash: 'Impact. The descent stage ruptured and the propellant ignited. Mission lost.' }[R.kind];
       v.voz?.say(msg, { prio: R.kind === 'ok' ? 1 : 2, key: 'res', cooldownS: 5 });
     }
     const R = this.result;

@@ -8,6 +8,7 @@ import wideUrl from './data/wide.i16?url';
 import siteUrl from './data/site.json?url';
 import { LandingSim } from './landing';
 import { Voz } from './voz';
+import { Personalidad, LINEAS_FIJAS } from './evaPersonalidad';
 
 // Lo que EVA dice siempre igual en el descenso: se pide a la voz del equipo al entrar, para que después suene sin espera
 // (frase por frase: las partes fijas de los avisos con cifras también se reutilizan).
@@ -15,7 +16,7 @@ const FRASES_FIJAS = [
   'The guidance will fly us down the planned trajectory. I will warn you of any hazard.',
   'Landing zone is clear below.', 'Clear ground below.', 'We are in shadow. I cannot see the ground, only the laser altimeter.',
   'Danger.', 'Caution.', 'We could tip over.', 'We would tip over.',
-  'Nominal landing. Welcome to the lunar south pole.', 'Panels and antenna are misaligned.', 'The landing gear may be damaged.',
+  ...LINEAS_FIJAS, 'Panels and antenna are misaligned.', 'The landing gear may be damaged.',
   'The lander is tipping over. Mission lost.',
   'Altitude error.', 'We are falling.', 'Impact.', 'The descent stage ruptured and the propellant ignited.', 'Mission lost.',
 ];
@@ -120,7 +121,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
     astro: { object: new THREE.Object3D(), dust: new THREE.Object3D(), update() {}, pose: null },
     pos: new THREE.Vector3(), heading: 0, quality: 0,
-    voz,
+    voz, pers: new Personalidad(voz), // EVA: juguetona si todo va bien, seria con peligro
   };
   view.voz.precargar([`Powered descent initiated toward ${site.site ?? 'the landing site'}.`, ...FRASES_FIJAS]);
   const sim = new LandingSim(view);

@@ -1,24 +1,33 @@
 // EVA: la asistente de voz de la nave durante el descenso (portada de nuestro simulador NASA). Habla en inglés.
-// Voz: primero la API del equipo (POST /api/z6/hablar → WAV, mismo origen), que suena por la radio con un filtro
-// robótico hecho con Web Audio; si tarda más de 3 s o falla, la síntesis del navegador en inglés.
-// Siempre muestra lo que dice como subtítulo, por si no hay voz o el sonido está apagado. Cola con prioridades: lo
-// urgente corta lo que esté diciendo; lo mismo (misma clave) no se repite antes de su `cooldownS`.
-// Antes del primer clic o tecla el navegador no deja sonar audio: en vez de pasar a la voz del sistema (otra voz, peor),
-// la cola espera a ese gesto y entonces habla con la del equipo.
+// Voz de mujer, Kokoro-82M `af_heart`, en este orden:
+//  · «eva» (por defecto): en la Z6 del equipo (POST /api/z6/eva, el API pone el token). Al arrancar se prueba con
+//    «Ready.»: si responde audio, se usa; si no (hoy no existe), se genera en el navegador con kokoro-js en un worker
+//    (evaVozWorker.ts; la primera vez baja el modelo, ~90 MB). Si la Z6 falla a mitad de sesión, también pasa al worker.
+//  · «equipo»: si el worker no puede cargar, la API de voz del equipo (POST /api/z6/hablar, voz de hombre).
+//  · «navegador»: si todo eso falla, la síntesis del sistema (voz femenina en inglés si la hay).
+// Con voz generada nunca se cambia a otra voz por tardar, solo si falla de verdad. El subtítulo está oculto hasta que
+// suena la frase y muestra solo la frase que se dice. Lo normal espera a tener todas las frases y suena de corrido; un
+// peligro arranca con la primera. Timbre de EVA (vozEve) y su chirrido antes de hablar, en vez de radio y tonos Quindar.
+// Cola con prioridades: lo urgente corta lo que esté diciendo; lo mismo (misma clave) no se repite antes de `cooldownS`.
+// Antes del primer clic o tecla el navegador no deja sonar audio: la cola espera a ese gesto en vez de cambiar de voz.
 // También pone los efectos del descenso (alarma, impacto, estática) sobre el mismo AudioContext.
-// `?voz=navegador` usa solo la voz del navegador; `?voz=apagada`, solo subtítulos.
+// `?voz=equipo|navegador|apagada` fuerza otro modo; `?evavoz=af_bella` prueba otra voz de Kokoro.
 
 const TTS_URL = "/api/z6/hablar"
+const EVA_Z6_URL = "/api/z6/eva"
 const CACHE_NAME = "eva-voz-v1"
 /** Como mucho 2 pedidos a la vez: el servidor del equipo admite 4 en vuelo para todos sus usuarios. */
 const MAX_EN_VUELO = 2
-const ESPERA_API_MS = 3000 // solo para un peligro (prio 2): mejor otra voz que llegar tarde
-const ESPERA_API_INFO_MS = 9500 // lo demás espera a la voz del equipo: así suena siempre la misma
 const TIMEOUT_API_MS = 9000
+const TIMEOUT_Z6_MS = 8000
+const COLA_MAX = 4
 
-type Modo = "equipo" | "navegador" | "apagada"
+type Modo = "eva" | "equipo" | "navegador" | "apagada"
 export type Prioridad = 0 | 1 | 2 // 0 info · 1 aviso · 2 peligro (corta lo que se esté diciendo)
-type Turno = { text: string; prio: Prioridad; ps: string[]; audios: (Promise<AudioBuffer | null> | null)[] }
+type Audio = Promise<AudioBuffer | null> | null
+type Turno = { text: string; prio: Prioridad; ps: string[]; audios: Audio[] }
+type PedidoK = { text: string; bajo: boolean; ok: (b: ArrayBuffer | null) => void; ko: (e: Error) => void }
+type RespuestaK = { id: number; wav?: ArrayBuffer | null; error?: string }
 
 /** Se habla frase por frase: la primera suena mientras llegan las demás, y las frases fijas se reutilizan. */
 export const partes = (t: string) =>
@@ -50,9 +59,81 @@ export function hablado(t: string) {
 const abrirCache = (): Promise<Cache | null> | null =>
   typeof caches !== "undefined" && isSecureContext ? caches.open(CACHE_NAME).catch(() => null) : null
 
+/* ── Timbre de EVA ────────────────────────────────────────────────────────────────────────────────────────
+ * Robot original (no copia ninguna voz real): sobre la voz de base, brillo en los agudos, menos graves, un poco de
+ * modulación en anillo (el brillo metálico) y un chirrido de dos notas antes de hablar, como un robot que «despierta».
+ * El tono no se toca: subirlo vuelve la voz una ardilla. */
+function vozEve(ctx: AudioContext, buf: AudioBuffer, dest: AudioNode, when: number, ringMix = 0.16) {
+  const src = ctx.createBufferSource()
+  src.buffer = buf
+  src.playbackRate.value = 1.06 // un pelo más ágil
+  const hp = ctx.createBiquadFilter()
+  hp.type = "highpass"
+  hp.frequency.value = 260
+  const pk = ctx.createBiquadFilter()
+  pk.type = "peaking"
+  pk.frequency.value = 1900
+  pk.gain.value = 3
+  pk.Q.value = 1.2
+  const air = ctx.createBiquadFilter()
+  air.type = "highshelf"
+  air.frequency.value = 3800
+  air.gain.value = 5
+  const dry = ctx.createGain()
+  dry.gain.value = 0.9
+  const ring = ctx.createGain()
+  ring.gain.value = 0
+  const car = ctx.createOscillator()
+  car.frequency.value = 140
+  car.connect(ring.gain)
+  const wet = ctx.createGain()
+  wet.gain.value = ringMix
+  src.connect(hp).connect(pk).connect(air)
+  air.connect(dry).connect(dest)
+  air.connect(ring).connect(wet).connect(dest)
+  car.start(when)
+  src.start(when)
+  return {
+    src,
+    stop: () => {
+      try {
+        car.stop()
+      } catch {
+        /* ya paró */
+      }
+    },
+  }
+}
+
+/** Chirrido de dos notas antes de hablar: sube y baja. En un aviso de peligro, más agudo y triple. */
+function chirridoEve(ctx: AudioContext, dest: AudioNode, when: number, alerta = false) {
+  const nota = (f0: number, f1: number, t: number, d: number, v: number) => {
+    const o = ctx.createOscillator()
+    const g = ctx.createGain()
+    o.type = "sine"
+    o.frequency.setValueAtTime(f0, when + t)
+    o.frequency.exponentialRampToValueAtTime(f1, when + t + d)
+    g.gain.setValueAtTime(0, when + t)
+    g.gain.linearRampToValueAtTime(v, when + t + 0.012)
+    g.gain.exponentialRampToValueAtTime(0.001, when + t + d)
+    o.connect(g).connect(dest)
+    o.start(when + t)
+    o.stop(when + t + d + 0.02)
+  }
+  if (alerta) {
+    nota(1500, 2300, 0, 0.08, 0.06)
+    nota(1500, 2300, 0.11, 0.08, 0.06)
+    nota(2300, 1200, 0.22, 0.09, 0.05)
+  } else {
+    nota(900, 1700, 0, 0.11, 0.05)
+    nota(1700, 1250, 0.13, 0.12, 0.045)
+  }
+}
+
 export class Voz {
   private readonly el: HTMLDivElement
-  private readonly mode: Modo
+  private mode: Modo
+  private readonly vozEva = new URLSearchParams(location.search).get("evavoz") ?? "af_heart"
   private readonly cache = abrirCache()
   private readonly synth: SpeechSynthesis | null = typeof speechSynthesis !== "undefined" ? speechSynthesis : null
   private readonly corte = new AbortController() // corta los pedidos en curso al desmontar
@@ -67,6 +148,7 @@ export class Voz {
   private ctx: AudioContext | null = null
   private out: GainNode | null = null
   private src: AudioBufferSourceNode | null = null
+  private srcStop: (() => void) | null = null
   private voice: SpeechSynthesisVoice | null = null
   private female = false
   private hideT = 0
@@ -74,10 +156,25 @@ export class Voz {
   private disposed = false
   private noiseBuf: AudioBuffer | null = null
   private gesto: (() => void) | null = null
+  // Z6: null mientras se prueba; después true (se usa) o false (se usa el worker)
+  private z6: boolean | null = null
+  private z6p: Promise<void> | null = null
+  // Worker de Kokoro: una frase cada vez; lo que se dice ahora pasa delante de la precarga
+  private w: Worker | null = null
+  private kq: PedidoK[] = []
+  private kid = 0
+  private kbusy = false
+  private kOk = false
+  private readonly kwait = new Map<number, PedidoK>()
 
   constructor(host: HTMLElement) {
     const q = new URLSearchParams(location.search).get("voz")
-    this.mode = q === "navegador" || q === "apagada" ? q : "equipo"
+    this.mode =
+      q === "eva" || q === "equipo" || q === "navegador" || q === "apagada"
+        ? q
+        : typeof Worker !== "undefined"
+          ? "eva"
+          : "equipo"
     const el = (this.el = document.createElement("div"))
     el.className = "eva-voz"
     el.hidden = true
@@ -90,6 +187,16 @@ export class Voz {
     this.unlock()
     window.addEventListener("pointerdown", this.unlock)
     window.addEventListener("keydown", this.unlock)
+    if (this.mode === "eva") this.probarZ6()
+  }
+
+  get on() {
+    return this.mode !== "apagada"
+  }
+
+  /** Hablando o con algo en cola (la personalidad no comenta encima de otra frase). */
+  get ocupada() {
+    return this.busy || this.queue.length > 0
   }
 
   private pickVoice = () => {
@@ -105,10 +212,7 @@ export class Voz {
       if (!AC) return
       const ctx = (this.ctx = new AC())
       this.out = ctx.createGain()
-      const lp = ctx.createBiquadFilter() // banda de la radio
-      lp.type = "lowpass"
-      lp.frequency.value = 3400
-      this.out.connect(lp).connect(ctx.destination)
+      this.out.connect(ctx.destination)
     }
     if (this.ctx.state === "suspended") void this.ctx.resume().catch(() => {})
   }
@@ -116,6 +220,119 @@ export class Voz {
   private get audioOk() {
     return this.ctx?.state === "running" && !!this.out
   }
+
+  /* ── Backends de la voz de EVA ── */
+
+  /** ¿Está EVA en la Z6? Una frase corta de prueba: si responde audio, se usa la Z6; si no, la voz en el navegador. */
+  private probarZ6() {
+    this.z6p = this.pedirZ6("Ready.").then(
+      () => {
+        this.z6 = true
+      },
+      () => {
+        this.z6 = false
+        this.arrancarWorker()
+      },
+    )
+  }
+
+  private pedirZ6(texto: string) {
+    return new Promise<void>((ok) => this.reservar(ok)).then(() =>
+      fetch(EVA_Z6_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto, voz: this.vozEva, formato: "wav" }),
+        signal: AbortSignal.any([this.corte.signal, AbortSignal.timeout(TIMEOUT_Z6_MS)]),
+      })
+        .then((r) => {
+          if (!r.ok || !/audio/.test(r.headers.get("content-type") ?? "")) throw new Error("z6 " + r.status)
+          return r.arrayBuffer()
+        })
+        .finally(() => this.liberar()),
+    )
+  }
+
+  /** Audio de EVA: de la Z6 si está; si falla a mitad, pasa al navegador para el resto de la sesión. */
+  private audioEva(texto: string, bajo: boolean): Promise<ArrayBuffer | null> {
+    return (this.z6p ?? Promise.resolve()).then(() =>
+      this.z6
+        ? this.pedirZ6(texto).catch(() => {
+            if (this.disposed) throw new Error("desmontado")
+            this.z6 = false
+            this.arrancarWorker()
+            return this.pedirK(texto, bajo)
+          })
+        : this.pedirK(texto, bajo),
+    )
+  }
+
+  /** Arranca el worker de Kokoro y empieza a cargar el modelo. Si no puede, EVA pasa a la voz del equipo. */
+  private arrancarWorker() {
+    if (this.w || this.disposed) return
+    try {
+      this.w = new Worker(new URL("./evaVozWorker.ts", import.meta.url), { type: "module" })
+    } catch {
+      this.pasarAEquipo("no se pudo crear el worker")
+      return
+    }
+    this.w.onmessage = ({ data }: MessageEvent<RespuestaK>) => {
+      const r = this.kwait.get(data.id)
+      this.kwait.delete(data.id)
+      this.kbusy = false
+      if (data.error && !this.kOk) {
+        console.warn("EVA: Kokoro no cargó, uso la voz del equipo:", data.error)
+        this.pasarAEquipo(data.error)
+        return
+      }
+      if (data.error) r?.ko(new Error(data.error))
+      else {
+        this.kOk = true
+        r?.ok(data.wav ?? null)
+      }
+      this.siguienteK()
+    }
+    this.w.onerror = (e) => console.warn("EVA: worker de voz", e.message)
+    void this.pedirK("", true).catch(() => {}) // cargar el modelo ya, mientras empieza el descenso
+  }
+
+  private pasarAEquipo(motivo: string) {
+    this.mode = "equipo"
+    this.w?.terminate()
+    this.w = null
+    this.kbusy = false
+    const e = new Error(motivo)
+    for (const [, x] of this.kwait) x.ko(e)
+    this.kwait.clear()
+    for (const x of this.kq.splice(0)) x.ko(e)
+  }
+
+  /** Pide una frase al worker. Lo que EVA va a decir ahora pasa delante de la precarga. */
+  private pedirK(text: string, bajo: boolean) {
+    return new Promise<ArrayBuffer | null>((ok, ko) => {
+      if (!this.w) return ko(new Error("sin worker"))
+      const j: PedidoK = { text, bajo, ok, ko }
+      if (bajo) this.kq.push(j)
+      else this.ponerDelante(j)
+      this.siguienteK()
+    })
+  }
+
+  private ponerDelante(j: PedidoK) {
+    const i = this.kq.findIndex((x) => x.bajo)
+    if (i < 0) this.kq.push(j)
+    else this.kq.splice(i, 0, j)
+  }
+
+  private siguienteK() {
+    if (this.kbusy || !this.w || !this.kq.length) return
+    const j = this.kq.shift()!
+    const id = ++this.kid
+    this.kbusy = true
+    this.kwait.set(id, j)
+    this.w.postMessage({ id, text: j.text, voice: this.vozEva })
+  }
+
+  /* ── Efectos del descenso ── */
 
   /** Tono sintetizado: `when` en segundos desde ahora; `slideTo`, frecuencia final (barrido). */
   private tone(freq: number, dur: number, vol: number, type: OscillatorType = "sine", when = 0, slideTo?: number) {
@@ -182,6 +399,8 @@ export class Voz {
     this.noise(dur, 0.09, "bandpass", 2300, 0.6)
   }
 
+  /* ── Cola ── */
+
   private quitarGesto() {
     if (!this.gesto) return
     window.removeEventListener("pointerdown", this.gesto, true)
@@ -198,7 +417,7 @@ export class Voz {
     this.el.hidden = true
   }
 
-  /** Al desmontar el simulador: cola, audio, pedidos, AudioContext y voz del navegador. */
+  /** Al desmontar el simulador: cola, audio, pedidos, worker, AudioContext y voz del navegador. */
   dispose() {
     if (this.disposed) return
     this.stop()
@@ -207,6 +426,7 @@ export class Voz {
     clearTimeout(this.guard)
     this.corte.abort()
     for (const sig of this.espera.splice(0)) sig() // salen y fallan con el pedido ya cortado
+    this.pasarAEquipo("desmontado")
     window.removeEventListener("pointerdown", this.unlock)
     window.removeEventListener("keydown", this.unlock)
     this.quitarGesto()
@@ -227,51 +447,72 @@ export class Voz {
     } catch {
       /* ya paró */
     }
-    this.src = null
+    this.srcStop?.()
+    this.src = this.srcStop = null
   }
 
   /**
-   * Audio de una frase de la API del equipo, o null si falla. Tres capas para que no espere:
-   * memoria (esta sesión) → Cache Storage (sesiones anteriores, permanente) → la API (≈2 s).
+   * Audio de una frase, o null si falla. Tres capas para que no espere: memoria (esta sesión) → Cache Storage
+   * (sesiones anteriores, permanente; la clave `af_heart|frase` es la misma para la Z6 y el navegador) → generarla.
+   * `bajo`: precarga, que cede el paso a lo que se va a decir ahora.
    */
-  private fetchFrase(frase: string): Promise<AudioBuffer | null> | null {
-    if (this.mode !== "equipo" || this.fallos >= 3 || this.disposed) return null
-    const ya = this.audio.get(frase)
-    if (ya) return ya
-    const clave = new Request(location.origin + "/eva-voz/" + encodeURIComponent(frase))
-    let contado = false
-    const red = () =>
-      new Promise<void>((ok) => this.reservar(ok)).then(() => {
-        // Si la API ya falló 3 veces mientras esta frase esperaba turno, no se pide: la voz del equipo está caída
-        if (this.fallos >= 3 || this.disposed) {
-          this.liberar()
-          throw new Error("voz del equipo no disponible")
+  private fetchFrase(frase: string, bajo = false): Audio {
+    const local = this.mode === "eva"
+    if (!(local || this.mode === "equipo") || this.fallos >= 3 || this.disposed) return null
+    const k = (local ? this.vozEva + "|" : "") + frase
+    const ya = this.audio.get(k)
+    if (ya) {
+      if (!bajo) {
+        // Una frase precargada que ahora hace falta: se promociona en la cola del worker
+        const j = this.kq.find((x) => x.bajo && x.text === hablado(frase))
+        if (j) {
+          j.bajo = false
+          this.kq.splice(this.kq.indexOf(j), 1)
+          this.ponerDelante(j)
         }
-        const signal = AbortSignal.any([this.corte.signal, AbortSignal.timeout(TIMEOUT_API_MS)])
-        return fetch(TTS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ texto: hablado(frase) }),
-          signal,
-        })
-          .then((r) => {
-            if (!r.ok || !/audio/.test(r.headers.get("content-type") ?? "")) throw new Error("voz " + r.status)
-            return r.arrayBuffer()
+      }
+      return ya
+    }
+    const clave = new Request(location.origin + "/eva-voz/" + encodeURIComponent(k))
+    const guardar = (b: ArrayBuffer) => {
+      void this.cache
+        ?.then((c) => c?.put(clave, new Response(b.slice(0), { headers: { "Content-Type": "audio/wav" } })))
+        .catch(() => {})
+      return b
+    }
+    let contado = false
+    const contar = (e: unknown): never => {
+      // Se cuenta ya, antes de dar turno al siguiente: si no, las frases en espera salen igual contra una API caída
+      if (!this.disposed) this.fallos++
+      contado = true
+      throw e
+    }
+    const red = (): Promise<ArrayBuffer> =>
+      local
+        ? this.audioEva(hablado(frase), bajo).then((b) => {
+            if (!b) throw new Error("sin audio")
+            return guardar(b)
           })
-          .then((b) => {
-            void this.cache
-              ?.then((c) => c?.put(clave, new Response(b.slice(0), { headers: { "Content-Type": "audio/wav" } })))
-              .catch(() => {})
-            return b
+        : new Promise<void>((ok) => this.reservar(ok)).then(() => {
+            // Si la API ya falló 3 veces mientras esta frase esperaba turno, no se pide: la voz del equipo está caída
+            if (this.fallos >= 3 || this.disposed) {
+              this.liberar()
+              throw new Error("voz del equipo no disponible")
+            }
+            return fetch(TTS_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ texto: hablado(frase) }),
+              signal: AbortSignal.any([this.corte.signal, AbortSignal.timeout(TIMEOUT_API_MS)]),
+            })
+              .then((r) => {
+                if (!r.ok || !/audio/.test(r.headers.get("content-type") ?? "")) throw new Error("voz " + r.status)
+                return r.arrayBuffer()
+              })
+              .then(guardar)
+              .catch(contar)
+              .finally(() => this.liberar())
           })
-          .catch((e: unknown) => {
-            // Se cuenta ya, antes de dar turno al siguiente: si no, las frases en espera salen igual contra una API caída
-            if (!this.disposed) this.fallos++
-            contado = true
-            throw e
-          })
-          .finally(() => this.liberar())
-      })
     const bytes = this.cache
       ? this.cache
           .then((c) => c?.match(clave))
@@ -290,10 +531,10 @@ export class Voz {
       })
       .catch(() => {
         if (!this.disposed && !contado) this.fallos++
-        this.audio.delete(frase)
+        this.audio.delete(k)
         return null
       })
-    this.audio.set(frase, p)
+    this.audio.set(k, p)
     if (this.audio.size > 80) this.audio.delete(this.audio.keys().next().value as string)
     return p
   }
@@ -313,51 +554,28 @@ export class Voz {
 
   /** Frases que EVA dice siempre igual: se piden en segundo plano para que después suenen sin espera. */
   precargar(frases: readonly string[]) {
-    if (this.mode !== "equipo") return
-    for (const f of frases) for (const x of partes(f)) void this.fetchFrase(x)
+    if (this.mode !== "eva" && this.mode !== "equipo") return
+    for (const f of frases) for (const x of partes(f)) void this.fetchFrase(x, true)
   }
 
-  /** Suena por la radio: banda estrecha, un poco de saturación y un trémolo rápido que la vuelve robótica. */
-  private play(buf: AudioBuffer, done: () => void, primera: boolean) {
+  /** Suena con el timbre de EVA, tras su chirrido de robot si es la primera frase. */
+  private play(buf: AudioBuffer, done: () => void, primera: boolean, alerta: boolean) {
     const ctx = this.ctx!
-    const src = ctx.createBufferSource()
-    src.buffer = buf
-    const hp = ctx.createBiquadFilter()
-    hp.type = "highpass"
-    hp.frequency.value = 320
-    const pk = ctx.createBiquadFilter()
-    pk.type = "peaking"
-    pk.frequency.value = 2400
-    pk.gain.value = 5
-    pk.Q.value = 1.1
-    const sh = ctx.createWaveShaper()
-    const c = new Float32Array(256)
-    for (let i = 0; i < 256; i++) {
-      const x = i / 127.5 - 1
-      c[i] = Math.tanh(2.2 * x) / Math.tanh(2.2)
-    }
-    sh.curve = c
-    const g = ctx.createGain()
-    g.gain.value = 0.85
-    const trem = ctx.createOscillator() // modulación metálica
-    const td = ctx.createGain()
-    trem.frequency.value = 55
-    td.gain.value = 0.18
-    trem.connect(td).connect(g.gain)
-    src.connect(hp).connect(pk).connect(sh).connect(g).connect(this.out!)
+    const t0 = ctx.currentTime + (primera ? 0.32 : 0.05)
+    if (primera) chirridoEve(ctx, this.out!, ctx.currentTime, alerta)
+    const { src, stop } = vozEve(ctx, buf, this.out!, t0)
     src.onended = () => {
-      trem.stop()
-      if (this.src === src) this.src = null
+      stop()
+      if (this.src === src) this.src = this.srcStop = null
       done()
     }
     this.src = src
-    trem.start()
-    src.start(ctx.currentTime + (primera ? 0.26 : 0.06)) // la primera, tras el tono de la radio
+    this.srcStop = stop
   }
 
   /** key: para no repetir lo mismo antes de `cooldownS`. */
   say(text: string, { prio = 0, key = text, cooldownS = 45 }: { prio?: Prioridad; key?: string; cooldownS?: number } = {}) {
-    if (this.disposed) return
+    if (this.disposed || !this.on) return
     const now = performance.now()
     const t = this.last.get(key)
     if (t && now - t < cooldownS * 1000) return
@@ -369,17 +587,16 @@ export class Voz {
       this.busy = false
     }
     const ps = partes(text)
-    const audios = this.mode === "apagada" ? [] : ps.map((x) => this.fetchFrase(x)) // se piden ya, mientras espera
-    this.queue.push({ text, prio, ps, audios })
+    this.queue.push({ text, prio, ps, audios: ps.map((x) => this.fetchFrase(x)) }) // se piden ya, mientras espera
     this.queue.sort((a, b) => b.prio - a.prio)
-    if (this.queue.length > 4) this.queue.length = 4 // si se acumula, lo menos importante se descarta
+    if (this.queue.length > COLA_MAX) this.queue.length = COLA_MAX // si se acumula, lo menos importante se descarta
     this.next()
   }
 
   private next() {
     if (this.disposed || this.busy || !this.queue.length) return
-    // Con la voz del equipo y el audio aún bloqueado: se espera al primer gesto en vez de cambiar de voz
-    if (this.mode === "equipo" && this.fallos < 3 && !this.audioOk) {
+    // Con voz generada y el audio aún bloqueado: se espera al primer gesto en vez de cambiar de voz
+    if ((this.mode === "eva" || this.mode === "equipo") && this.fallos < 3 && !this.audioOk) {
       if (!this.gesto) {
         this.gesto = () => {
           this.quitarGesto()
@@ -394,11 +611,10 @@ export class Voz {
     const { text, prio, ps, audios } = this.queue.shift()!
     this.busy = true
     clearTimeout(this.hideT)
-    this.el.hidden = false
+    const span = this.el.querySelector("span")!
     this.el.className = "eva-voz p" + prio
-    this.el.querySelector("span")!.textContent = text
-    if (prio >= 2) this.tone(1560, 0.05, 0.045, "triangle")
-    else this.tone(2525, 0.25, 0.05)
+    span.textContent = text
+    this.el.hidden = !!audios[0] // con voz generada, el subtítulo espera a que empiece a sonar
     const id = ++this.turno
     const done = () => {
       if (!this.busy || this.turno !== id) return
@@ -409,36 +625,35 @@ export class Voz {
       }, 1600)
       window.setTimeout(() => this.next(), 250)
     }
-    const words = text.split(/\s+/).length
-    const fallbackMs = 1200 + words * 330
-    const first = audios[0]
-    if (!first) return this.browser(text, done, fallbackMs)
-    // Frase por frase. Si la primera tarda más de 3 s (o falla), mejor la voz del navegador que llegar tarde.
+    if (!audios[0]) {
+      if (this.audioOk && this.ctx && this.out) chirridoEve(this.ctx, this.out, this.ctx.currentTime, prio >= 2)
+      this.browser(text, done, 1200 + text.split(/\s+/).length * 330)
+      return
+    }
+    // Frase por frase y siempre con la misma voz: nunca se cambia a la del navegador porque tarde, solo si falla.
+    // El subtítulo muestra solo la frase que se está diciendo, y aparece a la vez que la voz, no antes.
     let i = 0
-    let ya = false
-    const plan = window.setTimeout(() => {
-      if (this.turno !== id || !this.busy) return
-      ya = true
-      this.browser(text, done, fallbackMs)
-    }, prio >= 2 ? ESPERA_API_MS : ESPERA_API_INFO_MS)
     const sigue = () => {
       if (this.turno !== id || !this.busy) return
       if (i >= audios.length) return done()
       void (audios[i] ?? Promise.resolve(null)).then((buf) => {
-        if (this.turno !== id || !this.busy || (i === 0 && ya)) return
-        if (i === 0) {
-          clearTimeout(plan)
-          ya = true
-        }
-        if (buf && this.audioOk) this.play(buf, () => (i++, sigue()), i === 0)
+        if (this.turno !== id || !this.busy) return
+        span.textContent = ps[i]
+        this.el.hidden = false
+        if (buf && this.audioOk) this.play(buf, () => (i++, sigue()), i === 0, prio >= 2)
         else {
-          const resto = ps.slice(i).join(" ")
-          this.browser(resto, done, 1200 + resto.split(/\s+/).length * 330)
+          // falló esta frase: se lee y se sigue
+          const ms = 900 + ps[i].split(/\s+/).length * 330
+          i++
+          window.setTimeout(sigue, ms)
         }
       })
     }
-    sigue()
-    this.guard = window.setTimeout(done, fallbackMs + 20000)
+    // Para que suene de corrido, sin pausas mientras se genera la siguiente: se espera a tenerlas todas.
+    // Un aviso de peligro no espera: arranca con la primera.
+    if (prio >= 2) sigue()
+    else void Promise.all(audios).then(sigue)
+    this.guard = window.setTimeout(done, 60000) // por si algo se cuelga
   }
 
   private browser(text: string, done: () => void, fallbackMs: number) {
@@ -459,7 +674,7 @@ export class Voz {
         } catch {
           done()
         }
-      }, 260) // tras el tono de la radio
+      }, 320) // tras el chirrido
       this.guard = window.setTimeout(done, fallbackMs + 6000) // por si el navegador nunca avisa del final
     } else this.guard = window.setTimeout(done, fallbackMs) // sin voz: el subtítulo queda el tiempo de leerlo
   }
