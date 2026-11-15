@@ -49,6 +49,22 @@
 .met small { font-size: var(--t-label); color: var(--gris-2); }
 .met b { font-size: var(--t-body); font-weight: 600; font-variant-numeric: tabular-nums; }
 .met b.na { font-weight: 500; color: var(--gris-3); }
+/* cifras de la tarjeta: el nombre va como icono (sol, Tierra, sol + señal, Luna); su ficha explica qué es */
+.met .mi { display: inline-flex; align-items: center; align-self: center; height: 16px; cursor: help; }
+.met .mi svg { display: block; height: 16px; width: auto; }
+.met .mi:hover svg { filter: drop-shadow(0 0 3px rgba(17,17,17,0.25)); }
+#mtip { position: fixed; z-index: 60; left: 0; top: 0; width: min(270px, calc(100vw - 24px)); pointer-events: none; font-size: 12px; line-height: 1.45; opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity .18s ease, transform .18s ease, visibility 0s .18s; }
+#mtip.vis { opacity: 1; visibility: visible; transform: none; transition: opacity .18s ease, transform .18s ease; }
+#mtip .carta { border-radius: 12px; padding: 11px 13px; border: 1px solid rgba(232,201,143,0.32); color: #DCD3C3;
+  background: radial-gradient(1px 1px at 18% 22%, rgba(255,250,235,0.85), transparent 60%), radial-gradient(1px 1px at 72% 14%, rgba(255,250,235,0.6), transparent 60%),
+    radial-gradient(1.2px 1.2px at 88% 64%, rgba(255,250,235,0.7), transparent 60%), radial-gradient(1px 1px at 41% 82%, rgba(255,250,235,0.5), transparent 60%),
+    linear-gradient(160deg, #1B1915 0%, #0F0E0C 100%);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.03); }
+#mtip strong { display: flex; align-items: center; gap: 7px; font: italic 600 15px/1.1 "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif; color: #E8C98F; letter-spacing: -0.03em; margin-bottom: 4px; }
+#mtip strong svg { height: 15px; width: auto; }
+#mtip p { margin: 0; }
+#mtip .ahora { margin-top: 7px; padding-top: 6px; border-top: 1px dashed rgba(232,201,143,0.28); color: #B9B1A3; font-family: var(--f-mono); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { #mtip, #mtip.vis { transition: none; transform: none; } }
 .card .note { font-size: var(--t-label); line-height: 1.35; color: var(--gris); }
 .card .note.bad { color: var(--rojo); }
 /* botón único bajo las tarjetas: simular y, ya simulado, confirmar */
@@ -508,6 +524,22 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
   /* ---------- tarjetas: cifras de la estadía del escenario ---------- */
   var cards = $('cards'), metLabels = ['Sunlight', 'Earth visible', 'Sun + Earth', 'Longest night'];
+  /* cada cifra se nombra con un icono: sol, Tierra, sol + señal verde (las dos cosas a la vez) y Luna (la noche) */
+  var SUN_RAYS = '<g stroke="#E3A01B" stroke-width="2" stroke-linecap="round"><path d="M12 2.6v2.4M12 19v2.4M2.6 12h2.4M19 12h2.4M5.4 5.4l1.7 1.7M16.9 16.9l1.7 1.7M5.4 18.6l1.7-1.7M16.9 7.1l1.7-1.7"></path></g>';
+  var MET_ICON = [
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4" fill="#F2B624" stroke="#E3A01B" stroke-width="1"></circle>' + SUN_RAYS + '</svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#2F7FC1" stroke="#1D5E95" stroke-width="1"></circle><path d="M6.6 7.6c1.6-.7 3.1.1 3.3 1.5.2 1.4-1 2-.6 3.1.5 1.2 2.1 1 2.4 2.5.3 1.3-.6 2.7-1.8 3.3-1.8-.5-3.4-1.9-4.2-3.6-.6-1.4-.3-2.5.4-3.3-.4-1.2-.2-2.6.5-3.5z" fill="#43A34F"></path><path d="M14.4 5.4c1.6.4 3 1.5 3.8 2.9-.9.4-2 .1-2.6-.6-.6-.7-1.4-1.1-1.2-2.3z" fill="#43A34F"></path></svg>',
+    '<svg viewBox="0 0 44 24" aria-hidden="true"><g transform="translate(0 0)"><circle cx="12" cy="12" r="4.4" fill="#F2B624" stroke="#E3A01B" stroke-width="1"></circle>' + SUN_RAYS + '</g>' +
+      '<g fill="none" stroke="#1F9D55" stroke-width="2.2" stroke-linecap="round"><path d="M27 10.2a11 11 0 0 1 14 0"></path><path d="M29.6 13.4a6.6 6.6 0 0 1 8.8 0"></path></g><circle cx="34" cy="17" r="1.9" fill="#1F9D55"></circle></svg>',
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.2 3.2a8.8 8.8 0 1 0 5.6 15.6 9.4 9.4 0 0 1-5.6-15.6z" fill="#8C919E" stroke="#6B707C" stroke-width="1"></path><circle cx="10" cy="13" r="1.2" fill="#6B707C"></circle><circle cx="12.6" cy="17" r="0.9" fill="#6B707C"></circle></svg>'
+  ];
+  var MET_MEANS = [
+    'Share of the stay with the Sun above the real horizon, seen from the solar panel: the lander has power.',
+    'Share of the stay with Earth above the horizon, seen from the antenna: direct contact with mission control.',
+    'Share of the stay with sunlight and Earth contact at the same time: power and communication together.',
+    'Longest stretch without Sun during the stay: the lander lives on its battery, so it must last it.'
+  ];
+  var metTips = {};   /* por zona, el detalle de cada cifra con el escenario actual */
   function renderCards() {
     cards.innerHTML = ids.map(function (z) {
       var e = ev[z], f = e.figures, m = e.means, mz = Z[z].mazarico || null, stay = 'Stay of ' + sc.stayDays + ' d from landing';
@@ -515,11 +547,12 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       var tips = [stay + ' · 2026–2030 mean with the panel at ' + metros(sc.panelM) + ': ' + Math.round(m.sunPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.sol + '%' : Z[z].aproximado ? ' · approximate horizon' : ''),
         stay + ' · 2026–2030 mean with the antenna at ' + metros(sc.antennaM) + ': ' + Math.round(m.earthPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.tierra + '%' : Z[z].aproximado ? ' · approximate horizon' : ''),
         stay + ' · 2026–2030 mean: ' + Math.round(m.bothPct) + '%', 'Longest run without Sun during the stay; the battery lasts ' + sc.requirements.batteryH + ' h'];
+      metTips[z] = tips;
       var nt = noteOf(e);
       return '<button type="button" class="card" role="radio" data-site="' + z + '" aria-checked="' + (z === state.site) + '">' +
         '<span class="row"><span class="nm"><span class="badge">' + z + '</span>' + MAP[z].name + '</span><span class="verdict ' + e.verdict.replace(' ', '') + '">' + e.verdict + '</span></span>' +
         '<span class="mono sub">' + coordTxt(Z[z].lat, Z[z].lon) + (Z[z].aproximado ? ' · <span class="aprox" title="Horizon from the 240 m LOLA terrain: terrain smaller than ~500 m does not appear (SPEC E24)">approx.</span>' : '') + '</span>' +
-        '<span class="met">' + metLabels.map(function (l, i) { return '<span><b title="' + tips[i] + '">' + vals[i] + '</b><small>' + l + '</small></span>'; }).join('') + '</span>' +
+        '<span class="met">' + metLabels.map(function (l, i) { return '<span><b>' + vals[i] + '</b><span class="mi" role="img" aria-label="' + l + '" data-z="' + z + '" data-m="' + i + '">' + MET_ICON[i] + '</span></span>'; }).join('') + '</span>' +
         '<span class="note' + (nt[1] ? ' ' + nt[1] : '') + '">' + nt[0] + '</span></button>';
     }).join('');
     var t = new Date(sc.landingMs);
@@ -531,6 +564,18 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('scBtn').title = (isPlan() ? 'CR-01 plan' : 'Scenario different from the CR-01 plan') + ': battery ' + sc.requirements.batteryH + ' h, minimum Earth ' + sc.requirements.minEarthPct + '% of the stay. Click to edit.';
   }
   cards.addEventListener('click', function (evt) { var b = evt.target.closest('.card'); if (b) pick(b.dataset.site); });
+  /* ficha de un icono, con el estilo de la del Mission log: qué significa y la cifra de esta zona con el escenario actual */
+  var mtip = document.createElement('div'); mtip.id = 'mtip'; mtip.setAttribute('role', 'tooltip'); document.body.appendChild(mtip);
+  function showMetTip(el) {
+    var i = +el.dataset.m, z = el.dataset.z, d = metTips[z] && metTips[z][i];
+    mtip.innerHTML = '<div class="carta"><strong>' + MET_ICON[i] + '<span>' + metLabels[i] + '</span></strong><p>' + MET_MEANS[i] + '</p>' + (d ? '<p class="ahora">' + d + '</p>' : '') + '</div>';
+    var r = el.getBoundingClientRect(), w = mtip.offsetWidth || 270, h = mtip.offsetHeight || 120;
+    var x = Math.max(12, Math.min(window.innerWidth - w - 12, r.left + r.width / 2 - 30)), y = r.top - h - 10 < 8 ? r.bottom + 10 : r.top - h - 10;
+    mtip.style.left = x + 'px'; mtip.style.top = y + 'px'; mtip.classList.add('vis');
+  }
+  cards.addEventListener('mouseover', function (evt) { var el = evt.target.closest('.mi'); if (el) showMetTip(el); });
+  cards.addEventListener('mouseout', function (evt) { var el = evt.target.closest('.mi'); if (el && !el.contains(evt.relatedTarget)) mtip.classList.remove('vis'); });
+  cards.addEventListener('scroll', function () { mtip.classList.remove('vis'); });
 
   /* ---------- el calendario se mueve: cuánto se apartó el aterrizaje del plan, y botones para moverlo ---------- */
   function renderSlip() {
