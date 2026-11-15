@@ -84,7 +84,11 @@ h1.disp, h2.disp { font-family: var(--f-serif); font-variant-numeric: lining-num
 .top > :first-child { grid-column: 1; grid-row: 1; justify-self: start; }
 .top > :last-child:not(.pillnav) { grid-column: 3; grid-row: 1; justify-self: end; }
 /* logo: píldora con la luna y «Lunar Map»; misma proporción en todas las páginas */
-.brand { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 20px; border-radius: 999px; }
+.brand { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0; }
+/* el logo va suelto, sin la píldora de papel; la fecha y la hora de cada página, sin borde */
+.top .brand { background: none; border: 0; box-shadow: none; }
+.top .brand::after { display: none; }
+.top .utc, .top .clock, .top .date { border-color: transparent; }
 /* logo de Horizon Signai (logo.png, fondo transparente, 3x de 24 px de alto) */
 .brand .logo { display: flex; flex: none; }
 .brand .logo img { display: block; height: 24px; width: auto; }
