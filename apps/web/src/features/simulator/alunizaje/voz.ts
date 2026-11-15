@@ -3,13 +3,17 @@
 // robótico hecho con Web Audio; si tarda más de 3 s o falla, la síntesis del navegador en inglés.
 // Siempre muestra lo que dice como subtítulo, por si no hay voz o el sonido está apagado. Cola con prioridades: lo
 // urgente corta lo que esté diciendo; lo mismo (misma clave) no se repite antes de su `cooldownS`.
+// Antes del primer clic o tecla el navegador no deja sonar audio: en vez de pasar a la voz del sistema (otra voz, peor),
+// la cola espera a ese gesto y entonces habla con la del equipo.
+// También pone los efectos del descenso (alarma, impacto, estática) sobre el mismo AudioContext.
 // `?voz=navegador` usa solo la voz del navegador; `?voz=apagada`, solo subtítulos.
 
 const TTS_URL = "/api/z6/hablar"
 const CACHE_NAME = "eva-voz-v1"
 /** Como mucho 2 pedidos a la vez: el servidor del equipo admite 4 en vuelo para todos sus usuarios. */
 const MAX_EN_VUELO = 2
-const ESPERA_API_MS = 3000
+const ESPERA_API_MS = 3000 // solo para un peligro (prio 2): mejor otra voz que llegar tarde
+const ESPERA_API_INFO_MS = 9500 // lo demás espera a la voz del equipo: así suena siempre la misma
 const TIMEOUT_API_MS = 9000
 
 type Modo = "equipo" | "navegador" | "apagada"
@@ -68,6 +72,8 @@ export class Voz {
   private hideT = 0
   private guard = 0
   private disposed = false
+  private noiseBuf: AudioBuffer | null = null
+  private gesto: (() => void) | null = null
 
   constructor(host: HTMLElement) {
     const q = new URLSearchParams(location.search).get("voz")
@@ -111,14 +117,15 @@ export class Voz {
     return this.ctx?.state === "running" && !!this.out
   }
 
-  /** Tono corto por la radio (tonos Quindar del Apollo: 2525 Hz al abrir, 250 ms; pitido más agudo si es un peligro). */
-  private tone(freq: number, dur: number, vol: number, type: OscillatorType = "sine") {
+  /** Tono sintetizado: `when` en segundos desde ahora; `slideTo`, frecuencia final (barrido). */
+  private tone(freq: number, dur: number, vol: number, type: OscillatorType = "sine", when = 0, slideTo?: number) {
     if (!this.audioOk || !this.ctx || !this.out) return
-    const t = this.ctx.currentTime
+    const t = this.ctx.currentTime + when
     const o = this.ctx.createOscillator()
     const g = this.ctx.createGain()
     o.type = type
-    o.frequency.value = freq
+    o.frequency.setValueAtTime(freq, t)
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur)
     g.gain.setValueAtTime(0, t)
     g.gain.linearRampToValueAtTime(vol, t + 0.008)
     g.gain.setValueAtTime(vol, t + dur - 0.02)
@@ -126,6 +133,60 @@ export class Voz {
     o.connect(g).connect(this.out)
     o.start(t)
     o.stop(t + dur + 0.02)
+  }
+
+  /** Ruido filtrado con caída exponencial. */
+  private noise(dur: number, vol: number, type: BiquadFilterType, freq: number, q = 0.8) {
+    if (!this.audioOk || !this.ctx || !this.out) return
+    const ctx = this.ctx
+    if (!this.noiseBuf) {
+      const n = ctx.sampleRate * 2
+      this.noiseBuf = ctx.createBuffer(1, n, ctx.sampleRate)
+      const d = this.noiseBuf.getChannelData(0)
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1
+    }
+    const t = ctx.currentTime
+    const s = ctx.createBufferSource()
+    const f = ctx.createBiquadFilter()
+    const g = ctx.createGain()
+    s.buffer = this.noiseBuf
+    s.loop = true
+    f.type = type
+    f.frequency.value = freq
+    f.Q.value = q
+    g.gain.setValueAtTime(0, t)
+    g.gain.linearRampToValueAtTime(vol, t + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur)
+    s.connect(f).connect(g).connect(this.out)
+    s.start(t, Math.random())
+    s.stop(t + dur + 0.05)
+  }
+
+  /** Alarma de programa del ordenador de guiado: tres pares de tonos. */
+  programAlarm() {
+    for (let i = 0; i < 3; i++) {
+      this.tone(880, 0.14, 0.07, "square", i * 0.35)
+      this.tone(660, 0.14, 0.07, "square", i * 0.35 + 0.16)
+    }
+  }
+
+  /** Explosión de la nave, transmitida por el suelo y la estructura: golpe grave largo y retumbo. */
+  boom() {
+    this.noise(2.6, 0.5, "lowpass", 140, 0.7)
+    this.tone(46, 1.6, 0.4, "sine", 0, 22)
+    this.noise(0.4, 0.3, "bandpass", 700, 0.6)
+  }
+
+  /** Estática de radio al perder la señal. */
+  staticNoise(dur = 0.7) {
+    this.noise(dur, 0.09, "bandpass", 2300, 0.6)
+  }
+
+  private quitarGesto() {
+    if (!this.gesto) return
+    window.removeEventListener("pointerdown", this.gesto, true)
+    window.removeEventListener("keydown", this.gesto, true)
+    this.gesto = null
   }
 
   /** Corta lo que esté diciendo y vacía la cola. */
@@ -148,6 +209,7 @@ export class Voz {
     for (const sig of this.espera.splice(0)) sig() // salen y fallan con el pedido ya cortado
     window.removeEventListener("pointerdown", this.unlock)
     window.removeEventListener("keydown", this.unlock)
+    this.quitarGesto()
     this.synth?.removeEventListener("voiceschanged", this.pickVoice)
     void this.ctx?.close().catch(() => {})
     this.ctx = this.out = null
@@ -177,8 +239,14 @@ export class Voz {
     const ya = this.audio.get(frase)
     if (ya) return ya
     const clave = new Request(location.origin + "/eva-voz/" + encodeURIComponent(frase))
+    let contado = false
     const red = () =>
       new Promise<void>((ok) => this.reservar(ok)).then(() => {
+        // Si la API ya falló 3 veces mientras esta frase esperaba turno, no se pide: la voz del equipo está caída
+        if (this.fallos >= 3 || this.disposed) {
+          this.liberar()
+          throw new Error("voz del equipo no disponible")
+        }
         const signal = AbortSignal.any([this.corte.signal, AbortSignal.timeout(TIMEOUT_API_MS)])
         return fetch(TTS_URL, {
           method: "POST",
@@ -196,13 +264,19 @@ export class Voz {
               .catch(() => {})
             return b
           })
+          .catch((e: unknown) => {
+            // Se cuenta ya, antes de dar turno al siguiente: si no, las frases en espera salen igual contra una API caída
+            if (!this.disposed) this.fallos++
+            contado = true
+            throw e
+          })
           .finally(() => this.liberar())
       })
     const bytes = this.cache
       ? this.cache
           .then((c) => c?.match(clave))
+          .catch(() => undefined) // solo un fallo de la caché pasa a la red (no un fallo de la red, que se pediría dos veces)
           .then((r) => r?.arrayBuffer() ?? red())
-          .catch(red)
       : red()
     const p = bytes
       .then((b) => {
@@ -215,7 +289,7 @@ export class Voz {
         return buf
       })
       .catch(() => {
-        if (!this.disposed) this.fallos++
+        if (!this.disposed && !contado) this.fallos++
         this.audio.delete(frase)
         return null
       })
@@ -304,6 +378,19 @@ export class Voz {
 
   private next() {
     if (this.disposed || this.busy || !this.queue.length) return
+    // Con la voz del equipo y el audio aún bloqueado: se espera al primer gesto en vez de cambiar de voz
+    if (this.mode === "equipo" && this.fallos < 3 && !this.audioOk) {
+      if (!this.gesto) {
+        this.gesto = () => {
+          this.quitarGesto()
+          this.unlock()
+          window.setTimeout(() => this.next(), 120)
+        }
+        window.addEventListener("pointerdown", this.gesto, true)
+        window.addEventListener("keydown", this.gesto, true)
+      }
+      return
+    }
     const { text, prio, ps, audios } = this.queue.shift()!
     this.busy = true
     clearTimeout(this.hideT)
@@ -333,7 +420,7 @@ export class Voz {
       if (this.turno !== id || !this.busy) return
       ya = true
       this.browser(text, done, fallbackMs)
-    }, ESPERA_API_MS)
+    }, prio >= 2 ? ESPERA_API_MS : ESPERA_API_INFO_MS)
     const sigue = () => {
       if (this.turno !== id || !this.busy) return
       if (i >= audios.length) return done()

@@ -17,6 +17,7 @@ const FRASES_FIJAS = [
   'Danger.', 'Caution.', 'We could tip over.', 'We would tip over.',
   'Nominal landing. Welcome to the lunar south pole.', 'Panels and antenna are misaligned.', 'The landing gear may be damaged.',
   'The lander is tipping over. Mission lost.',
+  'Altitude error.', 'We are falling.', 'Impact.', 'The descent stage ruptured and the propellant ignited.', 'Mission lost.',
 ];
 
 const D2R = Math.PI / 180;
@@ -109,18 +110,22 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0x9aa6c0, 0.05), new THREE.HemisphereLight(0x0a0c12, 0xbdb7aa, 0.35 * site.sun.frac + 0.04));
 
   // La simulación espera una "vista" con estas piezas (en nuestro navegador las da la escena 3D completa)
+  const voz = new Voz(host); // EVA: avisa en voz alta del arranque, del terreno en P66 y del resultado
+  // Efectos del descenso sobre el AudioContext de la voz (no hay audio del traje: la radio del registro no suena)
+  const sfx = { radio() {}, static: (d) => voz.staticNoise(d), boom: () => voz.boom(), programAlarm: () => voz.programAlarm() };
   const view = {
     host, renderer, scene, camera, groundY, baseY: groundY, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
-    eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx: { radio() {}, static() {} }, yaw: 0, pitch: 0, _lookT: 0 },
+    eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 },
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
     astro: { object: new THREE.Object3D(), dust: new THREE.Object3D(), update() {}, pose: null },
     pos: new THREE.Vector3(), heading: 0, quality: 0,
-    voz: new Voz(host), // EVA: avisa en voz alta del arranque, del terreno en P66 y del resultado
+    voz,
   };
   view.voz.precargar([`Powered descent initiated toward ${site.site ?? 'the landing site'}.`, ...FRASES_FIJAS]);
   const sim = new LandingSim(view);
   await sim.start();
+  if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
 
   const onKey = (e) => { if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.target.closest?.('button,input,select,textarea')) sim.skip(); };
   window.addEventListener('keydown', onKey);
@@ -138,6 +143,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   return () => {
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
     sim.stop(true); sim.active = false; sim.distant = false;
+    if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     view.voz.dispose(); // cola, audio, pedidos, AudioContext y voz del navegador
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };

@@ -7,6 +7,8 @@
 //      queda en un hoyo o sobre un bulto;
 //    - rocas bajo la nave, si la escena las tiene (la etapa de descenso deja poco hueco con el suelo).
 // 3. Contacto: el motor se apaga con la luz de contacto (sondas de 1,7 m); a oscuras el corte es menos preciso.
+// 4. Fallo del cálculo de altura (4 % con luz, 12 % a oscuras): el guiado cree que ya tocó el suelo y apaga el motor a
+//    8–30 m; la caída a 1/6 g llega a 5–10 m/s y la nave se estrella (como Hakuto-R M1, 2023).
 //
 // Límites (de referencia histórica, redondeados): el LM toleraba unos 12° de pendiente y su tren de aterrizaje se
 // diseñó para unos 3 m/s de velocidad vertical. Los umbrales de rocas son una simplificación del simulador.
@@ -15,6 +17,7 @@ export const LEG = 4.6 // distancia de cada pata al centro (m)
 export const TIP_DEG = 12 // a partir de aquí vuelca
 export const TILT_DEG = 6 // a partir de aquí queda inclinada: paneles y antena desalineados
 export const HARD_MS = 3.0 // límite del tren de aterrizaje
+export const CRASH_MS = 5.0 // velocidad de contacto a la que la nave se destruye
 export const ROCK_SMALL = 0.3 // radio de roca (m) que inclina
 export const ROCK_BIG = 0.55 // radio de roca (m) que vuelca
 const NAV_SIGMA_M = 25
@@ -23,6 +26,8 @@ export type Terreno = { groundY: (x: number, z: number) => number }
 export type Roca = { x: number; z: number; r: number }
 export type Peligro = { tilt: number; rock: number; y: number; gx: number; gz: number }
 export type Punto = { x: number; z: number }
+/** Fallo del cálculo de altura: el motor se apaga `cutM` metros por encima del suelo. */
+export type FalloAltura = { cutM: number }
 export type PlanContacto = {
   planned: Punto
   arrive: Punto
@@ -30,8 +35,9 @@ export type PlanContacto = {
   lit: boolean
   /** Metros de caída libre de más: la luz de contacto llega antes o después de lo debido. */
   cutoffExtra: number
+  fault: FalloAltura | null
 }
-export type Resultado = { kind: "ok" | "tilt" | "hard" | "tip"; title: string; why: string; real: string }
+export type Resultado = { kind: "ok" | "tilt" | "hard" | "tip" | "crash"; title: string; why: string; real: string }
 /** 0 buen sitio · 1 quedaría inclinada · 2 volcaría. */
 export type Gravedad = 0 | 1 | 2
 
@@ -73,14 +79,27 @@ export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit }: { lit
   const planned = { x: 0, z: 0 }
   const arrive = { x: planned.x + gauss() * NAV_SIGMA_M, z: planned.z + gauss() * NAV_SIGMA_M }
   // Con luz, el corte del motor es nominal; a oscuras llega tarde o temprano
-  const cutoffExtra = lit ? Math.random() * 0.4 : Math.random() * 1.6
-  return { planned, arrive, final: { ...arrive, hz: hazardAt(v, arrive.x, arrive.z, rocks) }, lit, cutoffExtra }
+  let cutoffExtra = lit ? Math.random() * 0.4 : Math.random() * 1.6
+  // Fallo del cálculo de altura: el guiado cree que ya está en el suelo (o el radar pierde el eco en la sombra o en el
+  // borde de un cráter) y apaga el motor demasiado alto. Pasó de verdad: Hakuto-R M1 (2023), al cruzar el borde de un cráter.
+  const fault = Math.random() < (lit ? 0.04 : 0.12) ? { cutM: 8 + Math.random() * 22 } : null
+  if (fault) cutoffExtra = fault.cutM
+  return { planned, arrive, final: { ...arrive, hz: hazardAt(v, arrive.x, arrive.z, rocks) }, lit, cutoffExtra, fault }
 }
 
 const n1 = (x: number) => x.toFixed(1)
 
 /** Qué le pasó a la nave, con el caso real que se le parece. */
-export function outcome(hz: Peligro, touchV: number, touchH = 0): Resultado {
+export function outcome(hz: Peligro, touchV: number, touchH = 0, fault: FalloAltura | null = null): Resultado {
+  // Por encima de ~5 m/s el tren ya no absorbe el golpe: se rompen los tanques de la etapa de descenso y sus propelentes
+  // hipergólicos (Aerozine 50 y tetróxido de nitrógeno) se encienden solos al mezclarse.
+  if (touchV >= CRASH_MS)
+    return {
+      kind: "crash",
+      title: "The lander crashed",
+      why: `${fault ? `The altitude calculation failed: the guidance thought it was on the ground and shut down the engine at ${Math.round(fault.cutM)} m. ` : ""}The lander fell at ${n1(touchV)} m/s, far beyond the ~3 m/s the landing gear can take: the tanks ruptured and the propellants ignited as they mixed.`,
+      real: "Hakuto-R M1 (ispace, 2023) misjudged its altitude while crossing a crater rim, ran out of fuel believing it was already down, and fell. Beresheet (2019) crashed when its main engine shut off.",
+    }
   const hard = touchV > HARD_MS
   // Tocar el suelo moviéndose de lado: el tren del LM admitía ~1,2 m/s horizontales; más, una pata se clava
   if (touchH > 2)

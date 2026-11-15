@@ -352,6 +352,7 @@ export class LandingSim {
     if (this.pathG) { v.scene.remove(this.pathG); this.pathG = null; }
     if (this.lfp) this.lfp.hidden = true;
     v.voz?.stop();
+    this._clearBoom();
     if (this.fp && v.eva) v.eva.root.style.visibility = '';
     this.fp = false; this.distant = false;
     this.active = false; this.locks = false; this.state = null; this.tipped = false;
@@ -377,6 +378,7 @@ export class LandingSim {
     else if (this.state === 'settle') this._settle(dt);
     else if (this.state === 'egress') this._egress(dt);
 
+    if (this.boom) this._boomTick(dt); // la explosión sigue aunque la misión ya esté perdida
     this._dust(dt);
     if (this.fill) {
       const want = this.cine && (this.state === 'egress' || this.state === 'eva' || (this.state === 'settle' && this.settleT > 2.5)) ? 0.5 : 0;
@@ -467,7 +469,7 @@ export class LandingSim {
       if (hzEl._h !== html) { hzEl._h = html; hzEl.className = 'lfp-haz ' + c; hzEl.innerHTML = html; }
     }
     this._map();
-    q('phase').textContent = this.state === 'descent' ? this.phases[this.phase].name : this.state === 'fall' ? 'Contact light · engine stop' : this.state === 'settle' ? (this.result?.kind === 'tip' ? 'Tipping over' : 'On the surface') : this.state === 'lost' ? 'Lander tipped over' : 'Egress';
+    q('phase').textContent = this.state === 'descent' ? this.phases[this.phase].name : this.state === 'fall' ? (this.plan?.fault ? 'Altitude error · falling' : 'Contact light · engine stop') : this.state === 'settle' ? (this.result?.kind === 'tip' ? 'Tipping over' : this.result?.kind === 'crash' ? 'Impact' : 'On the surface') : this.state === 'lost' ? (this.result?.kind === 'crash' ? 'Lander destroyed' : 'Lander tipped over') : 'Egress';
     q('alt').textContent = `${fmt(alt, alt < 20 ? 1 : 0)} m`; q('altbar').style.transform = `scaleY(${Math.min(1, alt / 500).toFixed(3)})`;
     q('vs').textContent = `${fmt(this.vel.y, 1)} m/s`; q('hs').textContent = `${fmt(this._hspeed(), 1)} m/s`;
     q('thr').textContent = this.state === 'descent' ? `${fmt(this.throttle * 100)} %` : 'off';
@@ -619,8 +621,9 @@ export class LandingSim {
     const v = this.view, card = document.createElement('div'), R = this.result, P = this.plan;
     const miss = Math.hypot(P.final.x - P.planned.x, P.final.z - P.planned.z);
     card.className = 'lfp-end ' + R.kind;
-    card.innerHTML = `<small>${R.kind === 'tip' ? 'MISSION LOST' : 'TOUCHDOWN'} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? 'The Eagle has landed' : R.title}</b>
+    card.innerHTML = `<small>${R.kind === 'tip' || R.kind === 'crash' ? 'MISSION LOST' : 'TOUCHDOWN'} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? 'The Eagle has landed' : R.title}</b>
       ${R.kind === 'ok' ? '' : `<p>${R.why}</p>`}${R.real ? `<p class="real">${R.real}</p>` : ''}
+      ${R.kind === 'crash' ? '<p class="why2">The site was not to blame: the altitude calculation failed, and no landing gear survives that speed.</p>' : ''}
       ${R.kind === 'tip' ? `<p class="why2">${P.lit ? 'The lander followed the trajectory down to where the guidance took it, and the ground there would not hold it.' : 'The site was in shadow: without light there was no way to see the ground below.'}</p>` : ''}
       <dl><div><dt>Contact speed</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>Footpad tilt</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
       <div><dt>Off target</dt><dd>${fmt(miss)} m</dd></div><div><dt>Fuel left</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
@@ -658,9 +661,17 @@ export class LandingSim {
       this.lm.position.copy(this.pos);
       this.state = 'fall';
       this._engine(0);
-      this.flash('CONTACT LIGHT · ENGINE STOP');
-      this.say('Aldrin', 'Contact light.');
-      this.say('Armstrong', 'Shutdown.');
+      const F = this.plan?.fault;
+      if (F) { // el guiado cree que ya tocó el suelo y apaga el motor alto
+        this.flash(`ALTITUDE ERROR · ENGINE CUT OFF AT ${Math.round(F.cutM)} m`, 4000);
+        this.say('Aldrin', 'The engine shut down! We\'re still in the air!');
+        this.view.eva?.sfx?.programAlarm?.();
+        this.view.voz?.say(`Danger. Altitude error. The guidance shut down the engine at ${Math.round(F.cutM)} meters. We are falling.`, { prio: 2, key: 'fault', cooldownS: 5 });
+      } else {
+        this.flash('CONTACT LIGHT · ENGINE STOP');
+        this.say('Aldrin', 'Contact light.');
+        this.say('Armstrong', 'Shutdown.');
+      }
       this.vel.set(0, -0.6, 0);
       this.pos.y += this.plan?.cutoffExtra ?? 0; // la luz de contacto llegó antes o después de lo debido
       this._orient(UP);
@@ -726,16 +737,25 @@ export class LandingSim {
     this.settleT += dt;
     const v = this.view, hz = this.plan.final.hz;
     if (!this.result) { // el resultado lo deciden el terreno bajo las patas y la velocidad de contacto
-      const R = (this.result = outcome(hz, this.touchV, this.touchH));
+      const R = (this.result = outcome(hz, this.touchV, this.touchH, this.plan.fault));
+      if (R.kind === 'crash') { this._explode(); this.flash('IMPACT · SIGNAL LOST', 5000); }
       this.q0 = this.lm.quaternion.clone();
       const down = new THREE.Vector3(-hz.gx, 0, -hz.gz); if (down.lengthSq() < 1e-6) down.set(Math.random() - 0.5, 0, Math.random() - 0.5);
       this.tipAxis = new THREE.Vector3().crossVectors(UP, down.normalize()).normalize();
       this.tiltDeg = Math.min(hz.tilt, 25);
       if (R.kind === 'tip') { this.say('Aldrin', 'We\'re going over!'); this.flash('THE LANDER IS TIPPING OVER', 4000); }
-      const msg = { ok: 'Nominal landing. Welcome to the lunar south pole.', tilt: `We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, hard: `Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, tip: 'The lander is tipping over. Mission lost.' }[R.kind];
+      const msg = { ok: 'Nominal landing. Welcome to the lunar south pole.', tilt: `We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, hard: `Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, tip: 'The lander is tipping over. Mission lost.', crash: 'Impact. The descent stage ruptured and the propellant ignited. Mission lost.' }[R.kind];
       v.voz?.say(msg, { prio: R.kind === 'ok' ? 1 : 2, key: 'res', cooldownS: 5 });
     }
     const R = this.result;
+    if (R.kind === 'crash') {
+      if (this.settleT > 6 && !this.tipped) {
+        this.tipped = true; this.state = 'lost';
+        this.say('Telemetry', 'No signal from the lander. Mission lost.');
+        this.ended = true; this._end();
+      }
+      return;
+    }
     if (R.kind === 'tip') {
       const k = Math.min(1, this.settleT / 4);
       this.lm.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(this.tipAxis, k * k * 1.3).multiply(this.q0));
@@ -761,6 +781,91 @@ export class LandingSim {
     ev('reply', 4, () => this.say('Houston', R.kind === 'ok' ? 'Roger. You got a bunch of guys about to turn blue. We\'re breathing again.' : `Roger. ${R.why}`, true));
     ev('summary', 5.5, () => this.say('Telemetry', `Contact at ${fmt(this.touchV, 1)} m/s, footpads at ${fmt(this.tiltDeg, 1)}°, with ${fmt(Math.max(0, this.fuelKg), 0)} kg of fuel (${fmt(Math.max(0, this.fuel), 0)} s of hover).`));
     if (this.settleT > 7 && !this.ended) { this.ended = true; this.lmPos = this.lm.position.clone(); this._end(); }
+  }
+
+  /**
+   * La nave se estrella: destello y bola de fuego de los propelentes (en el vacío dura un instante y no hace humo),
+   * escombros que vuelan en trayectorias balísticas a 1/6 g y una nube de regolito que se abre en anillo.
+   */
+  _explode() {
+    const v = this.view, c = this.lm.position.clone(), g = new THREE.Group(); g.name = 'explosion';
+    const add = { transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending };
+    const light = new THREE.PointLight(0xffb060, 0, 600, 2); light.position.copy(c).add(new THREE.Vector3(0, 4, 0));
+    // Bola de fuego: resplandor suave (degradado radial en sprites), no una esfera de borde duro
+    const glow = (stops) => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+      for (const [o, col] of stops) gr.addColorStop(o, col); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; return tx; };
+    const fire = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: glow([[0, 'rgba(255,214,150,1)'], [0.35, 'rgba(255,140,50,.75)'], [0.7, 'rgba(160,50,10,.25)'], [1, 'rgba(0,0,0,0)']]) }));
+    const core = new THREE.Sprite(new THREE.SpriteMaterial({ ...add, map: glow([[0, 'rgba(255,255,245,1)'], [0.5, 'rgba(255,230,180,.6)'], [1, 'rgba(0,0,0,0)']]) }));
+    fire.position.copy(light.position); core.position.copy(light.position);
+    // Escombros: lámina dorada, estructura gris y piezas quemadas
+    const N = 160, deb = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.35, 0.7), new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.6 }), N);
+    const cols = [new THREE.Color(0xc9a24a), new THREE.Color(0x8d8f93), new THREE.Color(0x2a2724)], ds = [];
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * Math.PI * 2, up = 0.15 + Math.random() * 0.85, sp = 4 + Math.random() ** 1.6 * 24, h = Math.sqrt(1 - up * up);
+      ds.push({ p: c.clone().add(new THREE.Vector3(0, 1 + Math.random() * 3, 0)), v: new THREE.Vector3(Math.cos(a) * h * sp, up * sp, Math.sin(a) * h * sp),
+        q: new THREE.Quaternion().random(), w: new THREE.Vector3().randomDirection().multiplyScalar(2 + Math.random() * 8), s: 0.15 + Math.random() ** 2 * 1.4, rest: false });
+      deb.setColorAt(i, cols[i % 7 === 0 ? 2 : i % 3 === 0 ? 1 : 0]);
+    }
+    deb.frustumCulled = false; // las instancias salen volando lejos de la caja del cubo original
+    // Regolito levantado: se abre en anillo y vuelve a caer (sin aire que lo sostenga)
+    const M = 900, pos = new Float32Array(M * 3), dv = [];
+    for (let i = 0; i < M; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 16;
+      pos.set([c.x, c.y + 0.5, c.z], i * 3); dv.push(new THREE.Vector3(Math.cos(a) * sp, 0.5 + Math.random() * 5, Math.sin(a) * sp));
+    }
+    const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const dot = glow([[0, 'rgba(255,255,255,1)'], [0.5, 'rgba(255,255,255,.5)'], [1, 'rgba(255,255,255,0)']]);
+    const dust = new THREE.Points(dg, new THREE.PointsMaterial({ color: 0xa49d92, size: 1.4, map: dot, transparent: true, opacity: 0.8, depthWrite: false }));
+    dust.frustumCulled = false;
+    // Mancha quemada donde estaba la nave
+    const scorch = new THREE.Mesh(new THREE.CircleGeometry(9, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x0b0a09, transparent: true, opacity: 0, depthWrite: false }));
+    scorch.position.set(c.x, v.groundY(c.x, c.z) + 0.12, c.z);
+    g.add(light, fire, core, deb, dust, scorch); v.scene.add(g);
+    this.boom = { g, light, fire, core, deb, ds, dust, dv, scorch, t: 0 };
+    this.lm.visible = false; if (this.dust) this.dust.visible = false;
+    this.shake = 2.2;
+    const sfx = v.eva?.sfx; sfx?.boom?.(); this.boomT = setTimeout(() => sfx?.static?.(1.4), 700);
+  }
+
+  _boomTick(dt) {
+    const b = this.boom, v = this.view, t = (b.t += dt), m = new THREE.Matrix4(), sc = new THREE.Vector3();
+    b.light.intensity = 2.2e5 * Math.exp(-t * 3);
+    const r = 2 * (4 + 26 * (1 - Math.exp(-t * 5)));   // los sprites miden el diámetro
+    b.fire.scale.setScalar(r); b.fire.material.opacity = Math.max(0, 0.95 * (1 - t / 1.3));
+    b.core.scale.setScalar(r * 0.5); b.core.material.opacity = Math.max(0, 1 - t / 0.45);
+    b.fire.visible = t < 1.3; b.core.visible = t < 0.45;
+    b.scorch.material.opacity = Math.min(0.7, t * 2);
+    for (let i = 0; i < b.ds.length; i++) {
+      const d = b.ds[i];
+      if (!d.rest) {
+        d.v.y -= G * dt; d.p.addScaledVector(d.v, dt);
+        d.q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(d.w.x * dt, d.w.y * dt, d.w.z * dt)));
+        const gy = v.groundY(d.p.x, d.p.z) + d.s * 0.15;
+        if (d.p.y < gy) { d.p.y = gy; d.v.multiplyScalar(0.35); d.v.y = Math.abs(d.v.y) * 0.4; d.w.multiplyScalar(0.4); if (d.v.length() < 0.6) d.rest = true; }
+      }
+      b.deb.setMatrixAt(i, m.compose(d.p, d.q, sc.setScalar(d.s)));
+    }
+    b.deb.instanceMatrix.needsUpdate = true;
+    const P = b.dust.geometry.attributes.position;
+    for (let i = 0; i < b.dv.length; i++) {
+      const dv = b.dv[i]; dv.y -= G * dt;
+      const x = P.getX(i) + dv.x * dt, z = P.getZ(i) + dv.z * dt, gy = v.groundY(x, z) + 0.1; let y = P.getY(i) + dv.y * dt;
+      if (y < gy) { y = gy; dv.set(0, 0, 0); }
+      P.setXYZ(i, x, y, z);
+    }
+    P.needsUpdate = true; b.dust.material.opacity = Math.max(0, 0.8 * (1 - t / 8));
+  }
+
+  /** Quita la explosión y libera geometrías, materiales y texturas (al salir y al volver a volar). */
+  _clearBoom() {
+    clearTimeout(this.boomT);
+    if (!this.boom) return;
+    this.boom.g.removeFromParent();
+    this.boom.g.traverse((o) => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose(); } });
+    this.boom.deb.dispose?.();
+    this.boom = null;
+    if (this.lm) this.lm.visible = true;
+    if (this.dust) this.dust.visible = true;
   }
 
   _dust(dt) {
@@ -812,8 +917,8 @@ export class LandingSim {
   _hud() {
     const q = (k) => this.hud.querySelector(`[data-k="${k}"]`);
     const n = this.view.now;
-    const phase = { descent: this.phases[this.phase].name, fall: 'Luz de contacto · caída libre', settle: 'On the surface',
-      egress: 'Salida (EVA)', eva: 'Actividad extravehicular', lost: 'Nave volcada · misión perdida' }[this.state];
+    const phase = { descent: this.phases[this.phase].name, fall: this.plan?.fault ? 'Altitude error · falling' : 'Contact light · free fall', settle: 'On the surface',
+      egress: 'Egress (EVA)', eva: 'Extravehicular activity', lost: this.result?.kind === 'crash' ? 'Lander destroyed · mission lost' : 'Lander tipped over · mission lost' }[this.state];
     q('phase').textContent = phase;
     q('alt').textContent = `${fmt(Math.max(0, this.altitude()), this.altitude() < 20 ? 1 : 0)} m`;
     q('vs').textContent = `${fmt(this.vel.y, 1)} m/s`;
