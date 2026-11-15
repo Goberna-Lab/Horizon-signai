@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { tr } from "@/shared/i18n"
 import "./alunizaje/alunizaje.css"
 
 /**
@@ -23,8 +24,8 @@ export function LandingSimulator() {
     }
   }, [])
   return (
-    <section className="screen alz-screen">
-      <div ref={host} className="alz" aria-label="Apollo landing simulation at the lunar south pole" />
+    <section className="screen sim-alz-screen">
+      <div ref={host} className="sim-alz" aria-label={tr("Apollo landing simulation at the lunar south pole", "Simulación del alunizaje del Apollo en el polo sur lunar")} />
     </section>
   )
 }

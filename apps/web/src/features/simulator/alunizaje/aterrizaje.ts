@@ -13,6 +13,8 @@
 // Límites (de referencia histórica, redondeados): el LM toleraba unos 12° de pendiente y su tren de aterrizaje se
 // diseñó para unos 3 m/s de velocidad vertical. Los umbrales de rocas son una simplificación del simulador.
 
+import { tr } from "@/shared/i18n"
+
 export const LEG = 4.6 // distancia de cada pata al centro (m)
 export const TIP_DEG = 12 // a partir de aquí vuelca
 export const TILT_DEG = 6 // a partir de aquí queda inclinada: paneles y antena desalineados
@@ -87,7 +89,7 @@ export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit }: { lit
   return { planned, arrive, final: { ...arrive, hz: hazardAt(v, arrive.x, arrive.z, rocks) }, lit, cutoffExtra, fault }
 }
 
-const n1 = (x: number) => x.toFixed(1)
+const n1 = (x: number) => tr(x.toFixed(1), x.toFixed(1).replace(".", ","))
 
 /** Qué le pasó a la nave, con el caso real que se le parece. */
 export function outcome(hz: Peligro, touchV: number, touchH = 0, fault: FalloAltura | null = null): Resultado {
@@ -96,43 +98,81 @@ export function outcome(hz: Peligro, touchV: number, touchH = 0, fault: FalloAlt
   if (touchV >= CRASH_MS)
     return {
       kind: "crash",
-      title: "The lander crashed",
-      why: `${fault ? `The altitude calculation failed: the guidance thought it was on the ground and shut down the engine at ${Math.round(fault.cutM)} m. ` : ""}The lander fell at ${n1(touchV)} m/s, far beyond the ~3 m/s the landing gear can take: the tanks ruptured and the propellants ignited as they mixed.`,
-      real: "Hakuto-R M1 (ispace, 2023) misjudged its altitude while crossing a crater rim, ran out of fuel believing it was already down, and fell. Beresheet (2019) crashed when its main engine shut off.",
+      title: tr("The lander crashed", "La nave se estrelló"),
+      why: tr(
+        `${fault ? `The altitude calculation failed: the guidance thought it was on the ground and shut down the engine at ${Math.round(fault.cutM)} m. ` : ""}The lander fell at ${n1(touchV)} m/s, far beyond the ~3 m/s the landing gear can take: the tanks ruptured and the propellants ignited as they mixed.`,
+        `${fault ? `El cálculo de altura falló: el guiado creyó estar en el suelo y apagó el motor a ${Math.round(fault.cutM)} m. ` : ""}La nave cayó a ${n1(touchV)} m/s, mucho más de los ~3 m/s que soporta el tren: los tanques se rompieron y los propelentes se encendieron al mezclarse.`,
+      ),
+      real: tr(
+        "Hakuto-R M1 (ispace, 2023) misjudged its altitude while crossing a crater rim, ran out of fuel believing it was already down, and fell. Beresheet (2019) crashed when its main engine shut off.",
+        "Hakuto-R M1 (ispace, 2023) estimó mal su altura al pasar el borde de un cráter, se quedó sin combustible creyendo que ya estaba abajo y cayó. Beresheet (2019) se estrelló al apagarse su motor principal.",
+      ),
     }
   const hard = touchV > HARD_MS
   // Tocar el suelo moviéndose de lado: el tren del LM admitía ~1,2 m/s horizontales; más, una pata se clava
   if (touchH > 2)
     return {
       kind: "tip",
-      title: "The lander tipped over",
-      why: `It touched down moving sideways at ${n1(touchH)} m/s: a footpad dug into the regolith and the lander rolled over.`,
-      real: "The Apollo lunar module's landing gear tolerated about 1.2 m/s of horizontal speed at touchdown.",
+      title: tr("The lander tipped over", "La nave volcó"),
+      why: tr(
+        `It touched down moving sideways at ${n1(touchH)} m/s: a footpad dug into the regolith and the lander rolled over.`,
+        `Tocó el suelo moviéndose de lado a ${n1(touchH)} m/s: una pata se clavó en el regolito y la nave se fue de lado.`,
+      ),
+      real: tr(
+        "The Apollo lunar module's landing gear tolerated about 1.2 m/s of horizontal speed at touchdown.",
+        "El tren del módulo lunar Apollo admitía unos 1,2 m/s de velocidad horizontal al posarse.",
+      ),
     }
   if (touchH > 1.2) hz = { ...hz, tilt: hz.tilt + (touchH - 1.2) * 8 }
   if (hz.tilt >= TIP_DEG || (hard && hz.tilt >= TILT_DEG))
     return {
       kind: "tip",
-      title: "The lander tipped over",
+      title: tr("The lander tipped over", "La nave volcó"),
       why:
         hz.rock > ROCK_BIG
-          ? `A ${Math.round(hz.rock * 200)} cm boulder ended up under a footpad and the lander leaned ${Math.round(hz.tilt)}°: more than it can take.`
-          : `The ground under the footpads sloped ${n1(hz.tilt)}°: more than the ~12° the lander could tolerate.`,
-      real: "IM-1 Odysseus (2024) and IM-2 Athena (2025) both ended up on their side near the south pole.",
+          ? tr(
+              `A ${Math.round(hz.rock * 200)} cm boulder ended up under a footpad and the lander leaned ${Math.round(hz.tilt)}°: more than it can take.`,
+              `Una roca de ${Math.round(hz.rock * 200)} cm quedó bajo una pata y la nave se inclinó ${Math.round(hz.tilt)}°: más de lo que soporta.`,
+            )
+          : tr(
+              `The ground under the footpads sloped ${n1(hz.tilt)}°: more than the ~12° the lander could tolerate.`,
+              `El terreno bajo las patas tenía ${n1(hz.tilt)}° de inclinación: más de los ~12° que toleraba el módulo.`,
+            ),
+      real: tr(
+        "IM-1 Odysseus (2024) and IM-2 Athena (2025) both ended up on their side near the south pole.",
+        "IM-1 Odysseus (2024) e IM-2 Athena (2025) quedaron de lado cerca del polo sur.",
+      ),
     }
   if (hard)
     return {
       kind: "hard",
-      title: "Hard landing",
-      why: `The lander touched down at ${n1(touchV)} m/s, above the ~3 m/s the landing gear was built for: damaged legs.`,
-      real: "Without light, the altimeter and the contact light are the only reference to the ground.",
+      title: tr("Hard landing", "Aterrizaje duro"),
+      why: tr(
+        `The lander touched down at ${n1(touchV)} m/s, above the ~3 m/s the landing gear was built for: damaged legs.`,
+        `La nave tocó a ${n1(touchV)} m/s, por encima de los ~3 m/s del tren de aterrizaje: patas dañadas.`,
+      ),
+      real: tr(
+        "Without light, the altimeter and the contact light are the only reference to the ground.",
+        "Sin luz, el altímetro y la luz de contacto son la única referencia del suelo.",
+      ),
     }
   if (hz.tilt >= TILT_DEG || hz.rock > ROCK_SMALL)
     return {
       kind: "tilt",
-      title: "Down, but tilted",
-      why: `It came to rest tilted ${n1(hz.tilt)}°${hz.rock > ROCK_SMALL ? " on a rock" : ""}: panels and antenna are off-pointed and it will generate less power.`,
-      real: "SLIM (Japan, 2024) landed upside down and only produced power once the light changed.",
+      title: tr("Down, but tilted", "Posada, pero inclinada"),
+      why: tr(
+        `It came to rest tilted ${n1(hz.tilt)}°${hz.rock > ROCK_SMALL ? " on a rock" : ""}: panels and antenna are off-pointed and it will generate less power.`,
+        `Quedó inclinada ${n1(hz.tilt)}°${hz.rock > ROCK_SMALL ? " sobre una roca" : ""}: los paneles y la antena no apuntan bien y generará menos energía.`,
+      ),
+      real: tr(
+        "SLIM (Japan, 2024) landed upside down and only produced power once the light changed.",
+        "SLIM (Japón, 2024) quedó boca abajo y solo generó energía cuando cambió la luz.",
+      ),
     }
-  return { kind: "ok", title: "Nominal landing", why: `Footpads at ${n1(hz.tilt)}° and contact at ${n1(touchV)} m/s.`, real: "" }
+  return {
+    kind: "ok",
+    title: tr("Nominal landing", "Aterrizaje nominal"),
+    why: tr(`Footpads at ${n1(hz.tilt)}° and contact at ${n1(touchV)} m/s.`, `Patas a ${n1(hz.tilt)}° y contacto a ${n1(touchV)} m/s.`),
+    real: "",
+  }
 }

@@ -7,19 +7,7 @@ import fineUrl from './data/fine.i16?url';
 import wideUrl from './data/wide.i16?url';
 import siteUrl from './data/site.json?url';
 import { LandingSim } from './landing';
-import { Voz } from './voz';
-import { Personalidad, LINEAS_FIJAS } from './evaPersonalidad';
-
-// Lo que EVA dice siempre igual en el descenso: se pide a la voz del equipo al entrar, para que después suene sin espera
-// (frase por frase: las partes fijas de los avisos con cifras también se reutilizan).
-const FRASES_FIJAS = [
-  'The guidance will fly us down the planned trajectory. I will warn you of any hazard.',
-  'Landing zone is clear below.', 'Clear ground below.', 'We are in shadow. I cannot see the ground, only the laser altimeter.',
-  'Danger.', 'Caution.', 'We could tip over.', 'We would tip over.',
-  ...LINEAS_FIJAS, 'Panels and antenna are misaligned.', 'The landing gear may be damaged.',
-  'The lander is tipping over. Mission lost.',
-  'Altitude error.', 'We are falling.', 'Impact.', 'The descent stage ruptured and the propellant ignited.', 'Mission lost.',
-];
+import { Sonido } from './sonido';
 
 const D2R = Math.PI / 180;
 const SKY_D = 60000;
@@ -111,9 +99,9 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0x9aa6c0, 0.05), new THREE.HemisphereLight(0x0a0c12, 0xbdb7aa, 0.35 * site.sun.frac + 0.04));
 
   // La simulación espera una "vista" con estas piezas (en nuestro navegador las da la escena 3D completa)
-  const voz = new Voz(host); // EVA: avisa en voz alta del arranque, del terreno en P66 y del resultado
-  // Efectos del descenso sobre el AudioContext de la voz (no hay audio del traje: la radio del registro no suena)
-  const sfx = { radio() {}, static: (d) => voz.staticNoise(d), boom: () => voz.boom(), programAlarm: () => voz.programAlarm() };
+  // Efectos del descenso (alarma, impacto, estática). La voz es la de EVA, la de toda la aplicación (avisarEva).
+  const sonido = new Sonido();
+  const sfx = { radio() {}, static: (d) => sonido.staticNoise(d), boom: () => sonido.boom(), programAlarm: () => sonido.programAlarm() };
   const view = {
     host, renderer, scene, camera, groundY, baseY: groundY, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
@@ -121,9 +109,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
     astro: { object: new THREE.Object3D(), dust: new THREE.Object3D(), update() {}, pose: null },
     pos: new THREE.Vector3(), heading: 0, quality: 0,
-    voz, pers: new Personalidad(voz), // EVA: juguetona si todo va bien, seria con peligro
   };
-  view.voz.precargar([`Powered descent initiated toward ${site.site ?? 'the landing site'}.`, ...FRASES_FIJAS]);
   const sim = new LandingSim(view);
   await sim.start();
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
@@ -145,7 +131,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
-    view.voz.dispose(); // cola, audio, pedidos, AudioContext y voz del navegador
+    sonido.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
 }
