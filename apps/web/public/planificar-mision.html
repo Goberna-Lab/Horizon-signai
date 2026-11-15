@@ -90,8 +90,30 @@ button, input, select { font: inherit; color: inherit }
 .btn.primary { background: var(--signal); color: #f4efe6; border-color: var(--signal) }
 .btn.primary:hover { filter: brightness(1.08) }
 .btn:disabled { opacity: .55; cursor: default; background: none }
-/* «Mis misiones»: las guardadas, para abrir otra */
-.mis { max-width: 260px; border: 1px solid var(--ink); background: none; padding: 7px 10px; font: 500 13px var(--f-display); color: var(--ink); cursor: pointer }
+/* «Mis misiones»: las guardadas, en una lista de la lámina (botón de contorno y panel con regla y sombra de tinta) */
+.mis { position: relative; display: inline-flex; vertical-align: middle }
+.mis-btn { display: inline-flex; align-items: center; gap: 10px; max-width: 280px }
+.mis-btn .mis-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.mis-btn .mis-n { font: 500 11px var(--f-mono); padding: 1px 6px; background: var(--ink); color: var(--paper) }
+.mis-car { width: 8px; height: 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .15s }
+.mis-btn[aria-expanded="true"] { background: var(--ink); color: var(--paper) }
+.mis-btn[aria-expanded="true"] .mis-n { background: var(--paper); color: var(--ink) }
+.mis-btn[aria-expanded="true"] .mis-car { transform: translateY(2px) rotate(225deg) }
+.mis-lista { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: max(100%, 300px); max-height: min(360px, 70vh); overflow: auto; margin: 0; padding: 0; list-style: none;
+  background: var(--paper); border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--ink) }
+.mis-cab { padding: 8px 12px 7px; border-bottom: 1px solid var(--ink) }
+.mis-op { display: grid; gap: 3px; padding: 10px 12px; border-top: 1px solid var(--shade); cursor: pointer }
+.mis-cab + .mis-op { border-top: 0 }
+.mis-op b { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; font-weight: 700; letter-spacing: var(--track) }
+.mis-op span { font: 400 10.5px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
+.mis-v { flex: none; font: 500 10px var(--f-mono); font-style: normal; letter-spacing: .06em; padding: 2px 6px; border: 1px solid var(--ink) }
+.mis-v.go { background: var(--ink); color: var(--paper) }
+.mis-v.nogo { background: var(--signal); border-color: var(--signal); color: #f4efe6 }
+.mis-op:hover, .mis-op.foco { background: var(--tint) }
+.mis-op[aria-selected="true"] { background: var(--ink); color: var(--paper); border-top-color: var(--ink) }
+.mis-op[aria-selected="true"] span { color: inherit; opacity: .7 }
+.mis-op[aria-selected="true"] .mis-v.go { background: var(--paper); color: var(--ink); border-color: var(--paper) }
+@media (prefers-reduced-motion: reduce) { .mis-car { transition: none } }
 a.btn { text-decoration: none; display: inline-block; color: inherit }
 a.btn.primary { color: #f4efe6 }
 
@@ -274,7 +296,10 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
     </div>
     <div class="tools">
       <a class="btn" href="/planner" target="_top" style="color:inherit;text-decoration:none" data-en="← Missions">← Misiones</a>
-      <select class="mis" id="misiones" hidden></select>
+      <div class="mis" id="misiones" hidden>
+        <button type="button" class="btn mis-btn" id="mis-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="mis-lista"><span class="mis-txt" id="mis-txt"></span><span class="mis-n" id="mis-n"></span><span class="mis-car" aria-hidden="true"></span></button>
+        <ul class="mis-lista" id="mis-lista" role="listbox" hidden></ul>
+      </div>
       <button type="button" class="btn" id="nueva" hidden data-en="+ New mission">+ Nueva misión</button>
       <div class="seg" role="group" aria-label="Idioma">
         <button id="lang-es" type="button" aria-pressed="true">ES</button><button id="lang-en" type="button" aria-pressed="false">EN</button>
@@ -496,12 +521,27 @@ function pintarGuardar() {
   b.disabled = listo;
 }
 function pintarMisiones() {
-  const sel = $('misiones'), a = ordenadas();
-  sel.hidden = !a.length; if (!a.length) return;
-  sel.setAttribute('aria-label', L('Mis misiones', 'My missions'));
-  sel.innerHTML = '<option value="">' + L('Mis misiones', 'My missions') + ' (' + a.length + ')</option>' +
-    a.map((m) => '<option value="' + m.id + '"' + (m.id === planId ? ' selected' : '') + '>' + esc(m.plan.nombre || L('Sin nombre', 'Untitled')) + ' · ' + m.plan.zona + ' · ' + new Date(m.plan.t).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) + '</option>').join('');
+  const caja = $('misiones'), a = ordenadas();
+  caja.hidden = !a.length; if (!a.length) return;
+  const titulo = L('Mis misiones', 'My missions'), dia = (t) => new Date(t).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  $('mis-txt').textContent = titulo; $('mis-n').textContent = a.length;
+  $('mis-lista').setAttribute('aria-label', titulo);
+  $('mis-lista').innerHTML = '<li class="mis-cab lbl" role="presentation">' + titulo + ' · ' + a.length + '</li>' + a.map((m) => {
+    const p = m.plan, ok = m.resumen ? m.resumen.ok : null, tipo = TIPOS[p.tipo] ? L(TIPOS[p.tipo].es, TIPOS[p.tipo].en) : '';
+    return '<li class="mis-op" role="option" id="mis-' + m.id + '" data-id="' + m.id + '" aria-selected="' + (m.id === planId) + '"><b>' + esc(p.nombre || L('Sin nombre', 'Untitled')) +
+      (ok == null ? '' : '<i class="mis-v ' + (ok ? 'go' : 'nogo') + '">' + (ok ? 'GO' : 'NO-GO') + '</i>') + '</b><span>' + L('Zona', 'Zone') + ' ' + p.zona + ' · ' + dia(p.t) + (tipo ? ' · ' + tipo : '') + '</span></li>';
+  }).join('');
 }
+/* La lista se abre con el botón (o las flechas), se recorre con las flechas, Enter elige, Esc o un clic fuera la cierran. */
+function abrirLista(abrir) {
+  const b = $('mis-btn'), l = $('mis-lista'); l.hidden = !abrir; b.setAttribute('aria-expanded', String(abrir));
+  if (abrir) marcarFoco(l.querySelector('.mis-op[aria-selected="true"]') || l.querySelector('.mis-op')); else b.removeAttribute('aria-activedescendant');
+}
+function marcarFoco(el) {
+  $('mis-lista').querySelectorAll('.mis-op').forEach((o) => o.classList.toggle('foco', o === el));
+  if (el) { el.scrollIntoView({ block: 'nearest' }); $('mis-btn').setAttribute('aria-activedescendant', el.id); }
+}
+function elegirMision(id) { abrirLista(false); const m = leerMisiones().find((x) => x.id === id); if (m && m.id !== planId) abrirMision(m); $('mis-btn').focus(); }
 function abrirMision(m) {
   plan = Object.assign({}, PLAN_EJEMPLO, m.plan); planId = m.id;
   antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
@@ -1146,7 +1186,15 @@ function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('l
 
 /* ---------- idioma y arranque ---------- */
 const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); pintarMisiones(); };
-$('misiones').addEventListener('change', (e) => { const m = leerMisiones().find((x) => x.id === e.target.value); if (m) abrirMision(m); });
+$('mis-btn').addEventListener('click', () => abrirLista($('mis-lista').hidden));
+$('mis-btn').addEventListener('keydown', (e) => {
+  const l = $('mis-lista'), ops = [...l.querySelectorAll('.mis-op')], i = ops.findIndex((o) => o.classList.contains('foco'));
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (l.hidden) abrirLista(true); else marcarFoco(ops[(i + (e.key === 'ArrowDown' ? 1 : -1) + ops.length) % ops.length]); }
+  else if ((e.key === 'Enter' || e.key === ' ') && !l.hidden && i >= 0) { e.preventDefault(); elegirMision(ops[i].dataset.id); }
+  else if (e.key === 'Escape' && !l.hidden) { e.preventDefault(); abrirLista(false); }
+});
+$('mis-lista').addEventListener('click', (e) => { const o = e.target.closest('.mis-op'); if (o) elegirMision(o.dataset.id); });
+document.addEventListener('click', (e) => { if (!$('mis-lista').hidden && !e.target.closest('#misiones')) abrirLista(false); });
 $('lang-es').onclick = () => setLang('es'); $('lang-en').onclick = () => setLang('en');
 try { const l = localStorage.getItem('horizon.lang'); if (l === 'en' || l === 'es') lang = l; } catch (e) {}
 { const q = new URLSearchParams(location.search).get('lang'); if (q === 'en' || q === 'es') lang = q; }
