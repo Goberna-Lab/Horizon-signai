@@ -3,16 +3,19 @@ import { useLocation, useNavigate } from "react-router"
 import { routes } from "@/app/routes"
 import { EVENTO_EVA, type AvisoEva, type EstadoEva } from "@/shared/eva"
 import { lang, setLang } from "@/shared/i18n"
-import { decir, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type AccionIA, type Mensaje } from "@/prueba-ia/cliente"
+import { PREGUNTAS, PUENTES, SEGUIMOS } from "@horizon-signai/shared"
+import { decir, entender as entenderVoz, turnoDeVoz, usarAcciones, usarAsistente, usarEstado, usarIdioma, usarPantalla, type AccionIA, type Mensaje } from "@/prueba-ia/cliente"
 import { crearColaDeVoz, type FraseDeVoz } from "@/prueba-ia/colaDeVoz"
 import { olvidar, recordar, recordarNombre, recuerdos } from "@/prueba-ia/memoria"
 import { useVoz } from "@/prueba-ia/useVoz"
 import { ejecutarAccion, estadoDePantalla } from "./acciones"
 import { dondePonerse } from "./colocarse"
-import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, TEXTOS, type Comentario } from "./guion"
+import { entender as entenderFrase, esEco, type QueEspera } from "./escucha"
+import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, PISTAS, TEXTOS, type Comentario } from "./guion"
 import { detectarIdioma, nombreDe, type Idioma } from "./idioma"
 import { intencionDe } from "./intencion"
 import { ETAPAS, FINAL, INICIO, MISIONES, NO_ESA, PERFILES, VUELTA, YA_LISTA, type Mision, type Paso, type Recorrido } from "./recorridos"
+import { useOido } from "./oido"
 import { sugerenciasDe, type Sugerencia } from "./sugerencias"
 import { enOraciones, estaGrabada, precargarVoz, sinVocativo, vozGrabada, type VozDeOracion } from "./vozGrabada"
 import "./eva.css"
@@ -35,6 +38,7 @@ const DICHAS = "horizon-signai.eva.dichas.v1"
 const SILENCIO = "horizon-signai.eva.silencio.v1"
 const IDIOMA = "horizon-signai.eva.idioma.v1"
 const SALUDO = "horizon-signai.eva.saludo.v1" // en sessionStorage: saluda una vez por visita
+const MANOS = "horizon-signai.eva.manos-libres.v1" // en sessionStorage: ya se encendió el micrófono en esta visita
 const MISIONES_LISTAS = "horizon-signai.eva.misiones.v1" // en sessionStorage: las misiones del flujo ya preparadas en esta visita
 const leerListas = (): string[] => {
   try {
@@ -307,6 +311,13 @@ export default function EvaCompanera() {
   const recorrido = useRef<{ r: Recorrido; i: number } | null>(null)
   const [avance, setAvance] = useState("")
   const [nombre, setNombre] = useState("")
+  // Manos libres (./oido.ts y ./escucha.ts): el micrófono queda abierto y EVA escucha cuando espera algo.
+  const [manos, setManos] = useState(false)
+  const [oido, setOido] = useState("") // lo último que entendió, para mostrarlo en su globo
+  const fraseActual = useRef({ frase: "", hasta: 0 }) // lo que dice EVA y hasta cuándo su eco puede colarse
+  const oidoEva = useOido((wav) => void alOirFraseRef.current(wav))
+  const alOirFraseRef = useRef<(wav: Blob) => Promise<void>>(async () => {})
+  const encenderManosRef = useRef<() => Promise<void>>(async () => {})
   const [duda, setDuda] = useState("") // lo que le escriben en un paso del recorrido
   const [apuntando, setApuntando] = useState(false)
   const abiertaRef = useRef(abierta)
@@ -371,6 +382,14 @@ export default function EvaCompanera() {
     const habilitar = () => {
       if (!audioCtx.current || audioCtx.current.state === "closed") audioCtx.current = new AudioContext()
       void audioCtx.current.resume()
+      // Ya eligió manos libres en esta visita (la página se recargó al cambiar de idioma): el primer toque lo reabre.
+      let quiso = false
+      try {
+        quiso = sessionStorage.getItem(MANOS) === "1"
+      } catch {
+        /* sin almacenamiento */
+      }
+      if (quiso) void encenderManosRef.current()
     }
     window.addEventListener("pointerdown", habilitar, { once: true })
     return () => window.removeEventListener("pointerdown", habilitar)
@@ -551,6 +570,7 @@ export default function EvaCompanera() {
   const hablar = useCallback(async (frase: string, remate: "bromeando" | "alegre" | null, grave = false) => {
     const { mio, corte } = tomarTurno()
     ocupada.current = true
+    fraseActual.current = { frase, hasta: Infinity }
     usarAsistente("educational")
     setEstado(grave ? "alerta" : "hablando")
     const lectura = Math.min(9000, 1800 + frase.length * 55) // sin voz: el tiempo de leerla
@@ -580,6 +600,7 @@ export default function EvaCompanera() {
         if (!conVoz) await esperar(lectura, corte.signal) // la voz no llegó: queda el texto, con tiempo para leerlo
       }
     }
+    if (turno.current === mio) fraseActual.current = { frase, hasta: Date.now() + 2500 } // su eco aún puede llegar
     if (turno.current !== mio) return false
     if (remate && !corte.signal.aborted) {
       setEstado(remate)
@@ -901,6 +922,7 @@ export default function EvaCompanera() {
     // «Next» (o las misiones, o las respuestas) y el campo salen mientras lo dice: quien ya entendió sigue sin esperar.
     setAvance(`${t.i + 1} / ${t.r.pasos.length}`)
     setRiel({ etapa: p.etapa, mision: misionActual.current })
+    setOido("")
     const dicho = hablar(frase, null)
     setPregunta(tipoDe(p))
     if (!(await dicho) || recorrido.current !== t) return
@@ -1028,6 +1050,7 @@ export default function EvaCompanera() {
    */
   const alIdioma = async (elegido: Idioma) => {
     cerrarPregunta()
+    void encenderManos() // este toque es el que el navegador pide para el micrófono
     anotarEnVisita(IDIOMA_ELEGIDO)
     if (elegido !== lang) {
       tomarTurno()
@@ -1042,10 +1065,106 @@ export default function EvaCompanera() {
     if (elegido !== idiomaRef.current) fijarIdioma(elegido)
     await saludar()
   }
+  // ---------- Manos libres ----------
+  /** Abre el micrófono (con el toque que eligió el idioma) y deja anotado que esta visita se maneja hablando. */
+  const encenderManos = async () => {
+    try {
+      sessionStorage.setItem(MANOS, "1")
+    } catch {
+      /* sin almacenamiento: vale para esta página */
+    }
+    for (const frase of [...PUENTES[idiomaRef.current], SEGUIMOS[idiomaRef.current]]) precargarVoz(idiomaRef.current, frase)
+    setManos(await oidoEva.encender(audioCtx.current))
+  }
+  // EVA escucha solo cuando espera algo (el nombre, quién llega, una misión, el repaso o un paso del flujo).
+  useEffect(() => {
+    oidoEva.escuchar(manos && !!pregunta && pregunta !== "idioma")
+  }, [manos, pregunta, oidoEva])
+
+  /** Las opciones de lo que está esperando, con sus palabras en los dos idiomas (para reconocerlas por voz). */
+  const opcionesDe = (espera: string | null): string[][] => {
+    if (espera === "mision") return MISIONES.map((m) => [m.id, m.nombre.en, m.nombre.es, m.tema.en, m.tema.es])
+    const t = recorrido.current
+    const r = espera === "repaso" && t ? t.r.pasos[t.i].repaso : undefined
+    return r ? r.opciones.map((o) => [o.en, o.es]) : []
+  }
+  /** Calla y se queda esperando en el paso («para»). */
+  const callarEnPaso = () => {
+    const t = recorrido.current
+    tomarTurno()
+    quitarFoco()
+    if (t) esperarEnPaso(t.r.pasos[t.i].texto[idiomaRef.current])
+    else {
+      setEstado("reposo")
+      ocupada.current = false
+    }
+  }
+  /** Contesta con la respuesta grabada de una pregunta frecuente y vuelve a lo que estaba esperando. */
+  const contestarGrabada = async (id: string, q: string, espera: string | null) => {
+    const p = PREGUNTAS.find((x) => x.id === id)
+    if (!p) return
+    const enPausa = recorrido.current
+    cerrarPregunta()
+    quitarFoco()
+    const idioma = idiomaRef.current
+    recordar(q)
+    hilo.current = [...hilo.current, { role: "user", content: q }, { role: "assistant", content: p.respuesta[idioma] }]
+    const frase = enPausa ? `${p.respuesta[idioma]} ${SEGUIMOS[idioma]}` : p.respuesta[idioma]
+    if (!(await hablar(frase, null))) return
+    if (enPausa && recorrido.current === enPausa) esperarEnPaso(enPausa.r.pasos[enPausa.i].texto[idiomaRef.current])
+    else if (espera === "oferta") void preguntar(TEXTOS[idiomaRef.current].quien, "oferta")
+  }
+  /**
+   * Una frase dicha: el API la transcribe y busca la pregunta frecuente parecida (dos líneas, en ese orden). Con el
+   * texto se prueba primero lo que EVA espera (./escucha.ts: «siguiente», una misión, la respuesta…), sin esperar a
+   * la segunda línea; si no es eso, contesta la pregunta frecuente grabada o, si no hay ninguna, la IA con un puente.
+   */
+  const alOirFrase = async (wav: Blob) => {
+    const espera = preguntaRef.current
+    if (!espera || espera === "idioma") return
+    const idioma = idiomaRef.current
+    let texto = ""
+    let resuelto = false
+    try {
+      await entenderVoz(wav, idioma, (e) => {
+        if (e.t === "oido") {
+          texto = e.texto.trim()
+          // Su propia voz colándose por los parlantes: se ignora.
+          if (!texto || (Date.now() < fraseActual.current.hasta && esEco(texto, fraseActual.current.frase))) {
+            texto = ""
+            return
+          }
+          setOido(texto)
+          const r = entenderFrase(texto, espera as QueEspera, opcionesDe(espera))
+          if (r.tipo === "nada") return
+          resuelto = true
+          if (r.tipo === "nombre") void alNombre(undefined, r.nombre)
+          else if (r.tipo === "opcion") {
+            if (espera === "oferta") void alQuien(PERFILES[r.k]?.id ?? null)
+            else if (espera === "mision") void alMision(MISIONES[r.k]!.id)
+            else if (espera === "repaso") void alRepaso(r.k)
+          } else if (r.orden === "siguiente") void alPaso(true)
+          else if (r.orden === "repetir") void repetirPaso()
+          else if (espera === "oferta") void alQuien(null)
+          else callarEnPaso()
+        } else if (e.t === "parecida" && texto && !resuelto) {
+          resuelto = true
+          if (e.id) void contestarGrabada(e.id, texto, espera)
+          else if (texto.split(/\s+/).length >= 3) void responder(texto, true)
+          else setOido(`${texto} · ${TEXTOS[idioma].noEntendi}`)
+        }
+      })
+    } catch {
+      /* sin red o sin voz: quedan los botones */
+    }
+  }
+  alOirFraseRef.current = alOirFrase
+  encenderManosRef.current = encenderManos
+
   /** Contestaron el nombre (o lo saltaron). Si se presentaron en español, primero se reconfigura. */
-  const alNombre = async (ev?: FormEvent) => {
+  const alNombre = async (ev?: FormEvent, dicho?: string) => {
     ev?.preventDefault()
-    const crudo = nombre.trim()
+    const crudo = (dicho ?? nombre).trim()
     setNombre("")
     cerrarPregunta()
     const n = nombreDe(crudo)
@@ -1079,7 +1198,8 @@ export default function EvaCompanera() {
    * y atiende. Si estaba en un recorrido, el recorrido queda en pausa y, al terminar de contestar, EVA vuelve a
    * esperar en el mismo paso: el guion sigue donde iba.
    */
-  const responder = async (q: string) => {
+  // `puente`: dice una frase grabada («Buena pregunta…») mientras la IA prepara la respuesta (lo usa la voz).
+  const responder = async (q: string, puente = false) => {
     const enPausa = recorrido.current
     cerrarPregunta()
     if (!enPausa) quitarFoco()
@@ -1103,6 +1223,13 @@ export default function EvaCompanera() {
     const callar = () => void cola?.detener()
     corte.signal.addEventListener("abort", callar)
     let escrito = ""
+    // El puente suena primero; las frases de la IA se encolan detrás, en orden.
+    let antes: Promise<unknown> = Promise.resolve()
+    if (puente && cola) {
+      const lista = PUENTES[idiomaRef.current]
+      setEstado("hablando")
+      antes = decirGuion(lista[Math.floor(Math.random() * lista.length)]!, idiomaRef.current, cola, corte.signal).catch(() => 0)
+    }
     try {
       await turnoDeVoz(
         hilo.current,
@@ -1113,13 +1240,17 @@ export default function EvaCompanera() {
               setEstado("hablando")
               mostrar(escrito)
             }
-          } else if (e.t === "frase") cola?.agregar(e)
-          else if (e.t === "fin") escrito = e.respuesta
+          } else if (e.t === "frase") {
+            fraseActual.current = { frase: escrito, hasta: Infinity }
+            antes = antes.then(() => cola?.agregar(e))
+          } else if (e.t === "fin") escrito = e.respuesta
           else if (e.t === "error") throw new Error(e.msg)
         },
         corte.signal,
       )
+      await antes
       await cola?.terminada()
+      fraseActual.current = { frase: escrito, hasta: Date.now() + 2500 }
       if (!corte.signal.aborted) mostrar(escrito)
     } catch {
       if (!corte.signal.aborted) {
@@ -1272,6 +1403,15 @@ export default function EvaCompanera() {
               </div>
             )}
             <p aria-live="polite">{globo}</p>
+            {manos && pregunta !== "idioma" && (
+              <p className="eva-escucha" data-estado={oidoEva.estado}>
+                <i aria-hidden="true" />
+                <span>
+                  {oidoEva.estado === "oyendo" ? T.teOigo : T.escuchando} · {PISTAS[idioma][pregunta]}
+                </span>
+                {oido && <span className="eva-escucha__oido">«{oido}»</span>}
+              </p>
+            )}
             {pregunta === "idioma" ? (
               <div className="eva-pregunta eva-pregunta--idioma">
                 <button type="button" lang="en" onClick={() => void alIdioma("en")}>

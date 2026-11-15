@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
 import { atenuarWav, clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
+import { parecida, precalentarParecidas } from "./assistant/parecidas.js"
 import { contextoRag } from "./assistant/rag.js"
 import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
 
@@ -41,7 +42,7 @@ const MAX_TTS = 600
 // y el timbre robóticos se le ponen en el navegador (apps/web/src/prueba-ia/personajes.ts).
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/decir", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
+const PUBLICAS = new Set(["/voz/entender", "/chat", "/chat/stream", "/transcribir", "/hablar", "/decir", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
 // Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
 const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
@@ -631,6 +632,7 @@ export const z6 = new Hono()
   // En inglés le pregunta a horizon-voz qué motor y voz tiene cargados (cambian con HVOZ_MOTOR).
   .get("/voz", async (c) => {
     void precalentarClasificador() // la página abrió el modo voz: que el 8B esté listo para cuando hables encima
+    precalentarParecidas()
     void fetch(`${z6Url()}/api/version`, { signal: AbortSignal.timeout(5000) }).catch(() => {}) // abre ya la conexión a la Z6
     const v = servicioVoz()
     if (v.idioma === "es") return c.json({ idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" })
@@ -677,6 +679,47 @@ export const z6 = new Hono()
   //   + los eventos de /voz/turno                       si la IA estaba callada y fue habla real
   // contexto: { iaHabla, dicho (lo que la IA pronunció en esos segundos), hablado (todo lo que lleva
   //   dicho la respuesta), pregunta (la última del usuario), messages (historial, si iaHabla es false), formato }
+  // EVA con manos libres (eva/oido.ts en la web): lo que el micrófono cerró, en UN viaje. Multipart: `audio` (wav) y
+  // `contexto` ({ idioma }). Responde NDJSON, cada línea apenas está lista:
+  //   {t:"oido", texto, ms}             lo que entendió (la web reconoce aquí sus órdenes: «siguiente», una misión…)
+  //   {t:"parecida", id, puntaje} | {t:"parecida", id: null}
+  //                                     la pregunta frecuente más parecida (PREGUNTAS), si se parece bastante: la web
+  //                                     contesta con su respuesta grabada; si no, se la pasa a la IA.
+  // No llama al modelo de lenguaje: lo de la IA va por /voz/turno solo si hace falta.
+  .post("/voz/entender", async (c) => {
+    if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    const form = await c.req.raw.formData().catch(() => null)
+    const audio = form?.get("audio")
+    if (!(audio instanceof Blob) || !audio.size || audio.size > MAX_AUDIO)
+      return c.json({ ok: false, error: "Audio vacío o mayor a 5 MB" }, 413)
+    let ctx: Record<string, unknown> = {}
+    try {
+      ctx = JSON.parse(String(form?.get("contexto") ?? "{}")) as Record<string, unknown>
+    } catch {
+      return c.json({ ok: false, error: "contexto no es JSON" }, 400)
+    }
+    const idioma: Idioma = ctx.idioma === "es" ? "es" : "en"
+    const datos = await audio.arrayBuffer()
+    const enc = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      async start(ctl) {
+        const emitir = (o: unknown) => ctl.enqueue(enc.encode(`${JSON.stringify(o)}\n`))
+        try {
+          const oido = await transcribirAudio(datos, audio.type || "audio/wav", idioma)
+          emitir({ t: "oido", texto: oido.texto, ms: oido.ms })
+          const p = oido.texto ? await parecida(oido.texto) : null
+          emitir(p ? { t: "parecida", id: p.id, puntaje: Math.round(p.puntaje * 1000) / 1000 } : { t: "parecida", id: null })
+        } catch (e) {
+          emitir({ t: "error", msg: `No se pudo entender: ${String(e)}` })
+        } finally {
+          ctl.close()
+        }
+      },
+    })
+    return new Response(stream, {
+      headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" },
+    })
+  })
   .post("/voz/escuchar", async (c) => {
     if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const form = await c.req.raw.formData().catch(() => null)

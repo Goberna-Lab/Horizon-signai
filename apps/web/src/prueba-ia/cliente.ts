@@ -169,6 +169,28 @@ export const turnoDeVoz = async (
   await leerEventos(r, alEvento)
 }
 
+/** Lo que el API entendió de una frase dicha a EVA con manos libres (ver /voz/entender en apps/api/src/z6.ts). */
+export type EventoEntender = { t: "oido"; texto: string; ms: number } | { t: "parecida"; id: string | null; puntaje?: number } | { t: "error"; msg: string }
+
+/** Manda una frase dicha (WAV) y avisa con lo que entendió: primero el texto, después la pregunta frecuente parecida. */
+export const entender = async (audio: Blob, idioma: "en" | "es", alEvento: (e: EventoEntender) => void, signal?: AbortSignal) => {
+  const form = new FormData()
+  form.append("audio", audio, "voz.wav")
+  form.append("contexto", JSON.stringify({ idioma }))
+  const r = await pedir("/voz/entender", { method: "POST", body: form, signal })
+  const lector = r.body!.getReader()
+  const dec = new TextDecoder()
+  let resto = ""
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) break
+    resto += dec.decode(value, { stream: true })
+    const lineas = resto.split("\n")
+    resto = lineas.pop() ?? ""
+    for (const l of lineas) if (l.trim()) alEvento(JSON.parse(l) as EventoEntender)
+  }
+}
+
 /** Una frase hecha (la guía de EVA) dicha con la voz de la asistente: eventos {t:"frase"} como el turno. */
 export const decir = async (texto: string, alEvento: (e: EventoTurno) => void, signal?: AbortSignal) => {
   const r = await pedir("/decir", {

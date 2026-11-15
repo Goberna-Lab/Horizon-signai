@@ -424,6 +424,9 @@ export const TEXTOS = {
     /** El recorrido guiado: la pregunta desde el panel y los botones de cada paso. */
     quien: "We have three missions to get ready, step by step. First, who is visiting today?",
     etapas: "Steps of the mission flow",
+    escuchando: "Listening",
+    teOigo: "I hear you…",
+    noEntendi: "I did not catch that",
     lista: "ready",
     listas: "missions ready",
     /** Lo primero que pregunta, antes de saludar: en qué idioma seguir. Se contesta con dos botones. */
@@ -475,6 +478,9 @@ export const TEXTOS = {
     oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?` : "Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?"),
     quien: "Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?",
     etapas: "Pasos del flujo de misión",
+    escuchando: "Escuchando",
+    teOigo: "Te escucho…",
+    noEntendi: "no te entendí",
     lista: "lista",
     listas: "misiones listas",
     cualIdioma: "¿Inglés o español?",
@@ -516,3 +522,21 @@ export const TEXTOS = {
     nota: "Voz sintética. EVA puede equivocarse; las cifras salen del planificador.",
   },
 } satisfies Record<Idioma, Record<string, string | ((nombre: string) => string)>>
+
+/** Manos libres: qué puede decir la persona según lo que EVA espera (sale en su globo, junto a «Escuchando»). */
+export const PISTAS: Record<"en" | "es", Record<string, string>> = {
+  en: {
+      nombre: "Say your name",
+      oferta: "Say “I plan missions”, “I teach” or “I am curious”",
+      mision: "Say the mission name or number",
+      repaso: "Say your answer",
+      paso: "Say “next”, “again” or ask me anything",
+    },
+  es: {
+      nombre: "Di tu nombre",
+      oferta: "Di «planifico misiones», «enseño» o «tengo curiosidad»",
+      mision: "Di el nombre o el número de la misión",
+      repaso: "Di tu respuesta",
+      paso: "Di «siguiente», «otra vez» o pregúntame",
+    },
+}

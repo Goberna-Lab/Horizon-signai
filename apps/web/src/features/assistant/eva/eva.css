@@ -280,3 +280,12 @@
 .eva-pregunta--lista button:hover:not(:disabled) { background: var(--eva-tinta); color: var(--eva-papel); }
 .eva-pregunta--lista button:disabled { opacity: 0.55; cursor: default; border-style: dashed; }
 .eva-pregunta--lista small { opacity: 0.75; font-size: 0.9em; }
+
+/* Manos libres: un punto que late mientras escucha (rojo mientras oye a la persona), la pista y lo que entendió. */
+.eva-escucha { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; font-size: 0.7rem; color: #6b655c; }
+.eva-escucha i { width: 8px; height: 8px; border-radius: 50%; background: var(--eva-gris); flex: none; }
+.eva-escucha[data-estado="escuchando"] i { background: var(--eva-tinta); animation: eva-escucha 1.6s ease-in-out infinite; }
+.eva-escucha[data-estado="oyendo"] i { background: var(--eva-rojo); transform: scale(1.3); }
+.eva-escucha__oido { flex-basis: 100%; color: var(--eva-tinta); font-style: italic; }
+@keyframes eva-escucha { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .eva-escucha[data-estado="escuchando"] i { animation: none; } }

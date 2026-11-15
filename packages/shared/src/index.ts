@@ -5,3 +5,4 @@ export type Z6Respuesta = { ok: true; modelo: string; respuesta: string; ms: num
 export * from "./oido.ts"
 export * from "./assistant.ts"
 export * from "./wav.ts"
+export * from "./preguntas.ts"

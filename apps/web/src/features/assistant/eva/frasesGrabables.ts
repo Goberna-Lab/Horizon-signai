@@ -5,6 +5,7 @@
 import { EVENTOS, fraseDe, guionDe, TEXTOS } from "./guion.ts"
 import type { Idioma } from "./idioma"
 import { frasesSueltas, RECORRIDOS } from "./recorridos.ts"
+import { PREGUNTAS, PUENTES, SEGUIMOS } from "../../../../../../packages/shared/src/preguntas.ts"
 import { sugerenciasDe } from "./sugerencias.ts"
 import { claveDe, enOraciones, sinVocativo } from "./vozGrabada.ts"
 
@@ -97,6 +98,9 @@ export function frasesDelGuion(): FraseDelGuion[] {
     }
     // Lo demás del flujo de misiones: el saludo según quién llega, las respuestas del repaso y el cierre.
     for (const frase of frasesSueltas(idioma)) agregar(idioma, frase, "flujo de misiones")
+    // Manos libres: las respuestas de las preguntas frecuentes, los puentes mientras piensa la IA y el «sigamos».
+    for (const p of PREGUNTAS) agregar(idioma, p.respuesta[idioma], `pregunta frecuente ${p.id}`)
+    for (const frase of [...PUENTES[idioma], SEGUIMOS[idioma]]) agregar(idioma, frase, "manos libres")
   }
   return frases
 }
