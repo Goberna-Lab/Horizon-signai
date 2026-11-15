@@ -11,7 +11,7 @@ import type { Frame } from "./engine/story"
 import { at, horizonAt, sky, span, stamp, stateOf } from "../sections/product/sky"
 import poster from "./data/poster.webp"
 import { ScenePanel } from "./ScenePanel"
-import { STOPS } from "./stops"
+import { HERO_DAY, STOPS, SUNRISE_FROM } from "./stops"
 import "./flight.css"
 
 gsap.registerPlugin(ScrollTrigger)
@@ -46,8 +46,10 @@ const SUNSET_AZ = 176
  */
 const LOAD_AT_MS = 6000
 const WALK_AT_MS = 8300
-/** La lámina 3D (pesada) se carga cuando el inicio ha terminado, o antes si se empieza a bajar. */
-const FLIGHT_AT_MS = 11000
+/** El relieve 3D es el propio inicio: se carga enseguida (el dibujo 2D lo cubre mientras tanto). */
+const FLIGHT_AT_MS = 200
+/** El amanecer en 3D: el día avanza entre estos instantes de la entrada (ms), de `SUNRISE_FROM` a `HERO_DAY`. */
+const DAWN = { from: 3400, to: 7400 }
 /** Alto del astronauta (px) según el radio del Sol. */
 const walkerSize = (r: number) => Math.min(Math.max(r * 0.6, 56), 150)
 /** Hora del día lunar (desde el 1 de diciembre de 2026) que enseñan las lecturas del inicio: el Sol y la Tierra a la vista. */
@@ -80,6 +82,25 @@ const palette = () => {
 
 const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1)
 
+/** Números al azar repetibles (mulberry32): el cielo sale igual en cada visita y al cambiar el tamaño. */
+function seeded(seed: number) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/**
+ * El HUD del módulo se reinicia con la entrada: de noche está sin energía y sin enlace; al salir el Sol los paneles
+ * cargan (la potencia sube con la luz) y el enlace con la Tierra se recupera. Tiempos desde que arranca la entrada (ms).
+ */
+const HUD = { chargeFrom: 4300, chargeTo: 7000, seek: 4800, sunData: 5600, link: 6600, end: 7600 }
+const smooth = (t: number) => t * t * (3 - 2 * t)
+
 /**
  * Las tres composiciones del escenario. Las mismas consultas están en `flight.css`: el texto y la escena cambian
  * a la vez.
@@ -102,12 +123,20 @@ export function FlightStage() {
   const titleEl = useRef<HTMLHeadingElement>(null)
   const panelEl = useRef<HTMLParagraphElement>(null)
   const lenisRef = useRef<Lenis | null>(null)
+  /** Cuándo arrancó la entrada (performance.now()): el reloj del amanecer y del HUD. */
+  const introAt = useRef<number | null>(null)
   const limbEl = useRef<HTMLDivElement>(null)
   const statusEl = useRef<HTMLDivElement>(null)
+  const cellEls = useRef<Record<string, HTMLElement | null>>({})
+  const meterEl = useRef<HTMLElement>(null)
+  const liveEl = useRef<HTMLParagraphElement>(null)
+  const countEl = useRef<HTMLSpanElement>(null)
   const walkerEl = useRef<HTMLCanvasElement>(null)
   /** La geometría de la cresta del inicio, para que el astronauta pise sobre ella. */
   const ridgeGeo = useRef<{ width: number; top: number; floor: number; y: (x: number) => number; r: number; from: number; to: number } | null>(null)
   const signalEl = useRef<SVGSVGElement>(null)
+  /** El suelo del relieve 3D en pantalla, cuando ya está cargado: el astronauta camina sobre él en vez del dibujo. */
+  const ground3d = useRef<((x: number) => number) | null>(null)
 
   // La ilustración del inicio (la del emblema del equipo: el Sol rojo tras la cresta, con la señal que se corta) se
   // dibuja a medida de la pantalla: ocupa el hueco entre el texto y el tablero. La cresta negra es el horizonte real
@@ -141,7 +170,8 @@ export function FlightStage() {
       if (hero) hero.dataset.status = flank ? "flank" : "row"
       // Dónde termina el texto del inicio, sumando los desplazamientos hasta el escenario.
       const last = !flank && statusEl.current && statusEl.current.offsetHeight > 0 ? statusEl.current : panel
-      let textEnd = last.offsetHeight
+      // La frase puede ir desplazada hacia el centro del cielo (`top`, más abajo): se mide donde estaría sin moverla.
+      let textEnd = last.offsetHeight - (last === panel ? parseFloat(panel.style.top) || 0 : 0)
       for (let el: HTMLElement | null = last; el && el !== stageEl; el = el.offsetParent as HTMLElement | null) textEnd += el.offsetTop
       const floor = height
       const space = Math.max(floor - textEnd - 16, 80)
@@ -179,12 +209,11 @@ export function FlightStage() {
       set("near-box", { x: 0, y: nearTop - 4, width, height: floor - nearTop + 6 })
       set("far-shade", { y1: crestTop, y2: floor })
       set("near-shade", { y1: nearTop, y2: floor })
-      set("rim", { x1: 0, x2: width })
 
       // `r` es el tamaño de la composición (las lecturas se colocan con él); el Sol de verdad es más pequeño.
       const cx = width / 2
       const crest = ridgeY(cx)
-      ridgeGeo.current = { width, top: textEnd, floor, y: ridgeY, r: 0, from: 0, to: 0 }
+      ridgeGeo.current = { width, top: textEnd, floor, y: ground3d.current ?? ridgeY, r: 0, from: 0, to: 0 }
       const r = Math.max(Math.min((crest - textEnd - 14) / 1.5, width * (height > width ? 0.36 : 0.155), 270), 26)
       const cy = crest - r * 0.5
       ridgeGeo.current.r = r
@@ -192,56 +221,84 @@ export function FlightStage() {
       const sunR = Math.min(Math.max(r * 0.2, 16), 52)
       const sunY = crest - sunR * 0.55
       set("sun", { cx, cy: sunY, r: sunR })
+      set("bloom", { cx, cy: sunY, r: sunR * 2.6 })
       set("glow", { cx, cy: sunY, r: sunR * 11 })
+      set("rays", { transform: `translate(${cx.toFixed(1)} ${sunY.toFixed(1)}) scale(${sunR.toFixed(2)})` })
       // Sale desde abajo: empieza escondido tras la cresta.
       box.style.setProperty("--sun-rise", `${(sunR * 2.6).toFixed(1)}px`)
       // Desde ahí se abre su luz sobre el terreno; por debajo del suelo no se ve.
       box.style.setProperty("--sun-cx", `${cx.toFixed(1)}px`)
       box.style.setProperty("--sun-cy", `${sunY.toFixed(1)}px`)
       box.style.setProperty("--floor", `${floor.toFixed(1)}px`)
-      // La Tierra, baja sobre el horizonte, a un lado del Sol.
-      set("earth", { cx: cx + r * 1.15, cy: crest - r * 0.95, r: Math.max(r * 0.05, 5) })
+
+      // El cielo: estrellas fijas (siempre las mismas, con semilla), más densas en una franja como la Vía Láctea,
+      // y solo por encima del horizonte. Tres tamaños; las más brillantes titilan.
+      const random = seeded(7)
+      const count = Math.round(Math.min(Math.max((width * height) / 4200, 140), 700))
+      const stars = ["", "", ""]
+      for (let i = 0; i < count; i++) {
+        let x: number
+        let y: number
+        if (i % 3 === 0) {
+          // En la franja: a lo largo de la diagonal, con dispersión.
+          const t = random()
+          const spread = (random() + random() + random() - 1.5) * height * 0.12
+          x = t * width
+          y = height * 0.78 - t * height * 0.7 + spread
+        } else {
+          x = random() * width
+          y = random() * height
+        }
+        if (y < 2 || y > ridgeY(x) - 4) continue
+        const kind = random() < 0.72 ? 0 : random() < 0.8 ? 1 : 2
+        stars[kind] += `M${x.toFixed(1)} ${y.toFixed(1)}h0`
+      }
+      set("stars-dim", { d: stars[0] })
+      set("stars-mid", { d: stars[1] })
+      set("stars-bright", { d: stars[2] })
+      set("milky", { cx: width / 2, cy: height * 0.43, rx: Math.hypot(width, height * 0.7) / 2, ry: height * 0.13, transform: `rotate(${((-Math.atan2(height * 0.7, width) * 180) / Math.PI).toFixed(1)} ${width / 2} ${height * 0.43})` })
+      // La nave cruza el cielo de lado a lado, alta, por detrás de todo.
+      set("ship-track", { transform: `translate(0 ${(height * 0.2).toFixed(1)})` })
+      box.style.setProperty("--ship-dx", `${(width + 160).toFixed(0)}px`)
 
       if (hero) {
         hero.style.setProperty("--sun-x", `${(cx - hero.offsetLeft).toFixed(1)}px`)
         hero.style.setProperty("--sun-y", `${(cy - hero.offsetTop).toFixed(1)}px`)
         hero.style.setProperty("--sun-r", `${r.toFixed(1)}px`)
-        // Cada columna de lecturas se apoya sobre la cresta que tiene debajo, para no quedar tapada por ella.
-        // Debajo de cada columna queda una franja libre: por ahí camina el astronauta.
-        const walker = walkerSize(r)
-        const rest = (x: number) => Math.min(ridgeY(x) - 18 - walker * 1.1, cy + r * 0.86) - hero.offsetTop
-        hero.style.setProperty("--status-left", `${rest(Math.max(cx - r * 3.2, width * 0.12)).toFixed(1)}px`)
-        hero.style.setProperty("--status-right", `${rest(cx + r * 2.9).toFixed(1)}px`)
+        // El HUD va a las esquinas de un marco centrado (el mismo al que se alinea la barra de arriba); la frase, en el
+        // centro de la pantalla.
+        const frame = Math.min(1320, width - 2 * Math.max(32, width * 0.09))
+        const edge = (width - frame) / 2
+        const colW = Math.min(Math.max(width * 0.17, 200), 280)
+        hero.style.setProperty("--frame-edge", `${(edge - hero.offsetLeft).toFixed(1)}px`)
+        hero.style.setProperty("--col-w", `${colW.toFixed(1)}px`)
+        // La fila de abajo del HUD, sobre el terreno, cerca del borde inferior.
+        hero.style.setProperty("--bottom-y", `${(height - 26 - hero.offsetTop).toFixed(1)}px`)
+        const natural = textEnd - panel.offsetHeight / 2
+        const shift = flank ? Math.max(height / 2 - natural, 0) : 0
+        panel.style.top = `${shift.toFixed(1)}px`
       }
-      // La barra de arriba se alinea con las dos columnas de lecturas: la marca encima de la izquierda y la acción
-      // encima de la derecha (landing.css). Sin columnas a los lados, la barra va como siempre.
+      // La barra de arriba se alinea con el marco del HUD: la marca y la acción, en sus bordes y con el mismo ancho.
+      // Sin HUD a los lados (pantallas estrechas), la barra va como siempre.
       const root = document.documentElement
-      const cols = statusEl.current?.querySelectorAll<HTMLElement>(".fl-status__col")
-      if (flank && cols && cols.length === 2) {
-        const left = cols[0].getBoundingClientRect()
-        const right = cols[1].getBoundingClientRect()
-        const page = root.clientWidth
-        root.style.setProperty("--bar-left", `${left.left.toFixed(1)}px`)
-        root.style.setProperty("--bar-left-w", `${left.width.toFixed(1)}px`)
-        root.style.setProperty("--bar-right", `${(page - right.right).toFixed(1)}px`)
-        root.style.setProperty("--bar-right-w", `${right.width.toFixed(1)}px`)
+      if (flank) {
+        const frame = Math.min(1320, width - 2 * Math.max(32, width * 0.09))
+        const edge = (width - frame) / 2
+        const side = Math.min(Math.max(width * 0.17, 200), 280)
+        root.style.setProperty("--bar-left", `${edge.toFixed(1)}px`)
+        root.style.setProperty("--bar-left-w", `${side.toFixed(1)}px`)
+        root.style.setProperty("--bar-right", `${edge.toFixed(1)}px`)
+        root.style.setProperty("--bar-right-w", `${side.toFixed(1)}px`)
         root.dataset.barAligned = ""
       } else {
         delete root.dataset.barAligned
       }
 
-      // La ruta del astronauta, marcada sobre la cresta: cruza desde el borde izquierdo y se para a contraluz, cerca
-      // del Sol. La dibuja la entrada (CSS) y el astronauta la recorre (astronaut.ts).
+      // La ruta del astronauta: cruza toda la cresta, del borde izquierdo al derecho, pasando por delante del Sol.
       const size = walkerSize(r)
-      const to = Math.max(cx - r * 0.75, size * 0.7)
+      const to = width - size * 0.6
       // Sale por el borde de la pantalla, sin esperar fuera de ella.
       const from = -size * 0.45
-      // La línea dorada cruza la cresta de borde a borde; el punto marca dónde se para el astronauta.
-      let route = ""
-      for (let x = 0; x <= width; x += 4) route += `${route ? " L" : "M"} ${x.toFixed(1)} ${(ridgeY(x) + 1.5).toFixed(1)}`
-      route += ` L ${width.toFixed(1)} ${(ridgeY(width) + 1.5).toFixed(1)}`
-      set("route", { d: route })
-      set("route-end", { cx: to, cy: ridgeY(to) + 1.5 })
       ridgeGeo.current.from = from
       ridgeGeo.current.to = to
       window.dispatchEvent(new Event("flight:ridge"))
@@ -267,6 +324,7 @@ export function FlightStage() {
     const run = () => {
       if (done) return
       done = true
+      introAt.current = performance.now()
       root.dataset.intro = "run"
       document.documentElement.dataset.intro = "run"
       window.dispatchEvent(new Event("flight:intro"))
@@ -275,6 +333,66 @@ export function FlightStage() {
     if (document.fonts?.load) document.fonts.load(`500 120px ${getComputedStyle(root).getPropertyValue("--font-serif") || "serif"}`).then(run, run)
     else run()
     return () => window.clearTimeout(timer)
+  }, [])
+
+  // El HUD se reinicia con el Sol (ver `HUD`): sin energía y sin enlace de noche, la potencia sube con la luz y el
+  // enlace vuelve. El texto final está ya en la página (sin JS o con "reducir movimiento" se queda así).
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const root = container.current
+    const hero = sceneEls.current[0]
+    if (!root || !hero) return
+    const cell = (key: string) => cellEls.current[key]
+    const value = (key: string) => cell(key)?.querySelector<HTMLElement>(".fl-status__value") ?? null
+    const final = (key: string) => value(key)?.dataset.final ?? ""
+    const shown: Record<string, string> = {}
+    const write = (key: string, text: string, state: string) => {
+      const el = value(key)
+      if (!el || shown[key] === text + state) return
+      shown[key] = text + state
+      el.textContent = text
+      cell(key)!.dataset.state = state
+    }
+    const sunNow = stateOf(sky.ground.windows.sun, STATUS_HOUR)
+    const sunset = `${opening.status.sunsetIn} ${sunNow.hours === null ? "-" : span(sunNow.hours)}`
+    const power = parseFloat(final("power")) || 0
+    const earth = parseFloat(final("earth")) || 0
+    let frame = 0
+    let startedAt = 0
+    const show = (t: number) => {
+      const charge = smooth(clamp01((t - HUD.chargeFrom) / (HUD.chargeTo - HUD.chargeFrom)))
+      hero.dataset.power = t < HUD.chargeFrom ? "off" : t < HUD.chargeTo ? "charging" : "online"
+      hero.dataset.link = t < HUD.seek ? "off" : t < HUD.link ? "seek" : "on"
+      hero.dataset.sun = t < HUD.chargeFrom ? "down" : "up"
+      if (liveEl.current) liveEl.current.dataset.state = hero.dataset.link
+      // Bajo la fecha: la cuenta atrás hasta que asoma el Sol y, ya fuera, cuánto falta para que se ponga.
+      const left = Math.ceil((HUD.chargeFrom - t) / 1000)
+      const count = t >= HUD.chargeFrom ? sunset : left > 3 ? opening.status.sunriseIn : `${opening.status.sunriseIn} ${left}…`
+      if (countEl.current && countEl.current.textContent !== count) countEl.current.textContent = count
+      write("power", `${Math.round(power * charge)} W/m²`, charge >= 1 ? "on" : charge > 0 ? "seek" : "off")
+      meterEl.current?.style.setProperty("--charge", charge.toFixed(3))
+      write("link", t < HUD.seek ? opening.status.noSignal : t < HUD.link ? opening.status.seeking : final("link"), t < HUD.seek ? "off" : t < HUD.link ? "seek" : "on")
+      const earthIn = clamp01((t - HUD.link) / 500)
+      write("earth", t < HUD.link ? "--.-°" : `${(earth * earthIn).toFixed(1)}°`, t < HUD.link ? "off" : "on")
+      write("earthLeft", t < HUD.link ? "--" : final("earthLeft"), t < HUD.link ? "off" : "on")
+    }
+    const tick = () => {
+      const t = performance.now() - startedAt
+      show(t)
+      if (t < HUD.end) frame = requestAnimationFrame(tick)
+    }
+    // Desde el primer momento: sin energía y sin enlace.
+    show(0)
+    const start = () => {
+      startedAt = performance.now()
+      tick()
+    }
+    if (root.dataset.intro === "run") start()
+    else window.addEventListener("flight:intro", start, { once: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("flight:intro", start)
+    }
   }, [])
 
   // El astronauta: camina sobre la cresta del inicio y deja huellas. Se carga aparte, cuando el inicio ya se ve.
@@ -304,8 +422,8 @@ export function FlightStage() {
       timers.push(
         window.setTimeout(() => {
           import("./astronaut")
-            // Las huellas son marcas oscuras en el regolito iluminado.
-            .then((module) => module.createAstronaut(canvas, { paper: "#26231f", still }))
+            // Las huellas: el regolito removido, más claro que el suelo iluminado.
+            .then((module) => module.createAstronaut(canvas, { paper: "#e2dacb", still }))
             .then((created) => {
               if (cancelled) return created.dispose()
               walker = created
@@ -387,7 +505,8 @@ export function FlightStage() {
     /** Después de cada cuadro: el tablero y los rótulos siguen a la cámara. */
     const onFrame = (flight: Flight) => {
       if (!handle) return
-      const oblique = clamp01((flight.pose.tilt - 35) / 20)
+      // Los rótulos son de la lámina: en la vista realista del inicio no van.
+      const oblique = clamp01((flight.pose.tilt - 35) / 20) * (1 - flight.pose.real)
       placeMark("sun", flight.bodyOnScreen("sun", point), oblique)
       placeMark("earth", flight.bodyOnScreen("earth", point), oblique)
       placeMark("site", flight.project(handle.points["connecting-ridge"], point), clamp01(flight.pose.ring * 1.5 - 0.25), "right")
@@ -477,6 +596,25 @@ export function FlightStage() {
       const height = stageEl.clientHeight
       const small = Math.min(width, height) < 700
       handle.flight.resize(width, height, Math.min(window.devicePixelRatio || 1, small ? 2 : 1.5), frames(width, height))
+      groundFromFlight()
+    }
+
+    /** El astronauta camina sobre el suelo 3D: un perfil del terreno cerca del borde de abajo de la vista. */
+    const groundFromFlight = () => {
+      const geo = ridgeGeo.current
+      if (!handle || !geo || state.p > 0.05) return
+      const profile = handle.flight.groundProfile(0.8)
+      if (profile.length < 2) return
+      const y = (x: number) => {
+        let i = 1
+        while (i < profile.length - 1 && profile[i][0] < x) i++
+        const [x0, y0] = profile[i - 1]
+        const [x1, y1] = profile[i]
+        return y0 + ((y1 - y0) * (x - x0)) / Math.max(x1 - x0, 1e-6)
+      }
+      ground3d.current = y
+      ridgeGeo.current = { ...geo, y, floor: stageEl.clientHeight }
+      window.dispatchEvent(new Event("flight:ridge"))
     }
 
     // Scroll suavizado: la rueda deja de avanzar a saltos y la cámara se desliza. El scroll sigue siendo el del
@@ -487,9 +625,21 @@ export function FlightStage() {
     lenisRef.current = lenis
     lenis.on("scroll", ScrollTrigger.update)
     // Un solo reloj para todo: primero avanza el scroll y después se dibuja la escena, una vez por cuadro.
+    let dawnDone = false
     const tick = (time: number) => {
       lenis.raf(time * 1000)
-      handle?.flight.frame(performance.now())
+      const now = performance.now()
+      if (handle && !dawnDone) {
+        // El amanecer de la entrada: el día avanza y el Sol sale de verdad por detrás del horizonte.
+        const t = introAt.current === null ? 0 : now - introAt.current
+        const k = clamp01((t - DAWN.from) / (DAWN.to - DAWN.from))
+        handle.flight.setIntroDay(SUNRISE_FROM + (HERO_DAY - SUNRISE_FROM) * smooth(k))
+        if (k >= 1) {
+          handle.flight.setIntroDay(null)
+          dawnDone = true
+        }
+      }
+      handle?.flight.frame(now)
     }
     gsap.ticker.add(tick)
     gsap.ticker.lagSmoothing(0)
@@ -566,14 +716,37 @@ export function FlightStage() {
   const sunNow = stateOf(sky.ground.windows.sun, STATUS_HOUR)
   const earthNow = stateOf(sky.ground.windows.earth, STATUS_HOUR)
   const [, earthEl] = at(sky.earth, STATUS_HOUR)
-  const readouts = [
-    { label: opening.status.link, value: earthNow.visible ? opening.status.linked : opening.status.unlinked, live: earthNow.visible },
-    { label: opening.status.earth, value: `${earthEl.toFixed(1)}°` },
-    { label: opening.status.power, value: `${sky.ground.panelWm2[STATUS_HOUR]} W/m²` },
-    { label: sunNow.visible ? opening.status.sunLeft : opening.status.sunIn, value: sunNow.hours === null ? "-" : span(sunNow.hours) },
-    { label: earthNow.visible ? opening.status.earthLeft : opening.status.earthIn, value: earthNow.hours === null ? "-" : span(earthNow.hours) },
-    { label: opening.status.when, value: stamp(STATUS_HOUR) },
-  ]
+  const readouts: Record<string, { key: string; label: string; value: string; meter?: boolean }> = {
+    link: { key: "link", label: opening.status.link, value: earthNow.visible ? opening.status.linked : opening.status.unlinked },
+    earth: { key: "earth", label: opening.status.earth, value: `${earthEl.toFixed(1)}°` },
+    power: { key: "power", label: opening.status.power, value: `${sky.ground.panelWm2[STATUS_HOUR]} W/m²`, meter: true },
+    site: { key: "site", label: opening.status.site, value: hud.site.split(", ")[0] },
+    earthLeft: { key: "earthLeft", label: earthNow.visible ? opening.status.earthLeft : opening.status.earthIn, value: earthNow.hours === null ? "-" : span(earthNow.hours) },
+  }
+  /** Una lectura del HUD: rótulo y valor; el enlace lleva el icono del wifi y la potencia su medidor. */
+  const item = (r: (typeof readouts)[string], wifi = false) => (
+    <div className="fl-hud__item" key={r.key}>
+      <dt>{r.label}</dt>
+      <dd data-state="on" ref={(el) => void (cellEls.current[r.key] = el)}>
+        {wifi && (
+          <svg className="fl-wifi" viewBox="0 0 24 18" aria-hidden="true">
+            <circle cx="12" cy="15.2" r="1.7" />
+            <path d="M8.1 11.4a5.6 5.6 0 0 1 7.8 0" />
+            <path d="M4.9 8.2a10.1 10.1 0 0 1 14.2 0" />
+            <path d="M1.7 5a14.6 14.6 0 0 1 20.6 0" />
+          </svg>
+        )}
+        <span className="fl-status__value" data-final={r.value}>
+          {r.value}
+        </span>
+      </dd>
+      {r.meter && (
+        <span className="fl-meter" aria-hidden="true">
+          <i ref={meterEl} />
+        </span>
+      )}
+    </div>
+  )
 
   return (
     <section
@@ -589,6 +762,31 @@ export function FlightStage() {
         <canvas ref={canvas} className="fl__canvas" aria-hidden="true" />
 
         <div className="fl__limb" ref={limbEl} aria-hidden="true">
+          {/* El cielo: estrellas, la franja de la Vía Láctea y una nave que lo cruza. */}
+          <svg className="fl-limb__sky">
+            <defs>
+              <radialGradient id="fl-milky">
+                <stop offset="0" stopColor="#c9c3d8" stopOpacity="0.09" />
+                <stop offset="0.6" stopColor="#8f88a8" stopOpacity="0.03" />
+                <stop offset="1" stopColor="#8f88a8" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <ellipse data-part="milky" fill="url(#fl-milky)" />
+            <path data-part="stars-dim" stroke="#d8d4cc" strokeOpacity="0.45" strokeWidth="1" strokeLinecap="round" />
+            <path data-part="stars-mid" stroke="#eeeae2" strokeOpacity="0.75" strokeWidth="1.5" strokeLinecap="round" />
+            <path className="fl-stars--twinkle" data-part="stars-bright" stroke="#fffaf0" strokeWidth="2.2" strokeLinecap="round" />
+            {/* Una nave en órbita: cuerpo, dos paneles solares y su luz de posición. */}
+            <g data-part="ship-track">
+              <g className="fl-ship">
+                <rect x="-11" y="-2.5" width="9" height="5" fill="#2c3b57" stroke="#5d7092" strokeWidth="0.5" />
+                <rect x="2" y="-2.5" width="9" height="5" fill="#2c3b57" stroke="#5d7092" strokeWidth="0.5" />
+                <path d="M-6.5 -2.5V2.5M6.5 -2.5V2.5" stroke="#5d7092" strokeWidth="0.4" />
+                <rect x="-2.2" y="-3.6" width="4.4" height="7.2" rx="1" fill="#d9d3c6" />
+                <circle className="fl-ship__light" cx="0" cy="-4.6" r="0.9" fill="#ff5a5a" />
+              </g>
+            </g>
+          </svg>
+
           {/* El Sol va en su propia capa: la entrada mueve la capa entera (transform), sin repintar el dibujo. */}
           <div className="fl-limb__across">
             <svg className="fl-limb__sun">
@@ -600,9 +798,35 @@ export function FlightStage() {
                   <stop offset="0.55" stopColor="#d9b98a" stopOpacity="0.04" />
                   <stop offset="1" stopColor="#d9b98a" stopOpacity="0" />
                 </radialGradient>
+                <radialGradient id="fl-bloom">
+                  <stop offset="0.35" stopColor="#ffffff" stopOpacity="0.95" />
+                  <stop offset="0.6" stopColor="#fff6e0" stopOpacity="0.4" />
+                  <stop offset="1" stopColor="#ffeac2" stopOpacity="0" />
+                </radialGradient>
+                {/* El disco: blanco puro en el centro y algo más cálido hacia el borde (oscurecimiento del limbo). */}
+                <radialGradient id="fl-disc">
+                  <stop offset="0" stopColor="#ffffff" />
+                  <stop offset="0.7" stopColor="#fffcf3" />
+                  <stop offset="1" stopColor="#ffeccc" />
+                </radialGradient>
+                <radialGradient id="fl-ray" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="9">
+                  <stop offset="0" stopColor="#ffffff" stopOpacity="0.85" />
+                  <stop offset="0.35" stopColor="#fff4dc" stopOpacity="0.25" />
+                  <stop offset="1" stopColor="#fff4dc" stopOpacity="0" />
+                </radialGradient>
               </defs>
               <circle data-part="glow" fill="url(#fl-glow)" />
-              <circle data-part="sun" fill="#fffdf7" />
+              {/* Los destellos de la cámara: rayos finos que salen del Sol. */}
+              <g data-part="rays">
+                <g className="fl-sun__rays" fill="url(#fl-ray)">
+                  {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+                    <path key={angle} d={angle % 90 === 0 ? "M-0.07 0L0 -9L0.07 0Z" : "M-0.05 0L0 -5.5L0.05 0Z"} transform={`rotate(${angle})`} />
+                  ))}
+                  <path d="M0 -0.05L-13 0L0 0.05L13 0Z" opacity="0.6" />
+                </g>
+              </g>
+              <circle data-part="bloom" fill="url(#fl-bloom)" />
+              <circle data-part="sun" fill="url(#fl-disc)" />
             </svg>
           </div>
 
@@ -648,17 +872,6 @@ export function FlightStage() {
                   <stop offset="0" stopColor="#000" stopOpacity="0.15" />
                   <stop offset="1" stopColor="#000" stopOpacity="0.9" />
                 </linearGradient>
-                <linearGradient id="fl-rim" data-part="rim" gradientUnits="userSpaceOnUse" y1="0" y2="0">
-                  <stop offset="0" stopColor="#fff6e6" stopOpacity="0.3" />
-                  <stop offset="0.5" stopColor="#fffaf0" stopOpacity="1" />
-                  <stop offset="1" stopColor="#fff6e6" stopOpacity="0.3" />
-                </linearGradient>
-                <radialGradient id="fl-earth" cx="0.32" cy="0.38" r="0.75">
-                  <stop offset="0" stopColor="#e9f1f8" />
-                  <stop offset="0.45" stopColor="#7fa3c8" />
-                  <stop offset="0.8" stopColor="#2c4766" />
-                  <stop offset="1" stopColor="#0d1622" />
-                </radialGradient>
                 <clipPath id="fl-clip-far">
                   <path data-part="ridge" />
                 </clipPath>
@@ -670,18 +883,14 @@ export function FlightStage() {
                 <rect data-part="far-box" filter="url(#fl-regolith-far)" />
                 <rect data-part="far-box" fill="url(#fl-shade-far)" />
               </g>
-              <path data-part="crest" fill="none" stroke="url(#fl-rim)" strokeWidth="1.5" strokeLinejoin="round" />
               <g clipPath="url(#fl-clip-near)">
                 <rect data-part="near-box" filter="url(#fl-regolith-near)" />
                 <rect data-part="near-box" fill="url(#fl-shade-near)" />
               </g>
-              <circle data-part="earth" fill="url(#fl-earth)" />
             </svg>
           </div>
 
           <svg className="fl-limb__art" ref={signalEl}>
-            <path className="fl-limb__route" data-part="route" pathLength={1} fill="none" stroke="var(--route)" strokeWidth="2.5" strokeLinecap="round" />
-            <circle className="fl-limb__route-end" data-part="route-end" r="5" fill="var(--paper)" stroke="var(--route)" strokeWidth="2" />
           </svg>
           <canvas className="fl-limb__walker" ref={walkerEl} />
         </div>
@@ -733,28 +942,30 @@ export function FlightStage() {
             <p className="fl-hero__title" ref={panelEl}>
               {opening.title.map((part) => (part.mark ? <em key={part.text}>{part.text}</em> : part.text))}
             </p>
+            {/*
+              El HUD del módulo, flotando sobre el paisaje sin tarjetas. Arriba: el enlace con la Tierra (wifi), la luz
+              "Live" y la fecha con la cuenta atrás hasta el amanecer. Abajo, sobre el terreno: energía y datos del sitio.
+              Al principio solo se ven el enlace, "Live" (apagados) y la fecha; lo demás llega con el Sol.
+            */}
             <div className="fl-hero__status" ref={statusEl} role="group" aria-label={`${hud.site}: ${opening.status.title}`}>
-              {[readouts.slice(0, 3), readouts.slice(3)].map((column, side) => (
-                <dl key={side} className="fl-status__col" data-side={side === 0 ? "left" : "right"}>
-                  {column.map((item, n) => (
-                    <div key={item.label} className="fl-status__cell" style={{ "--n": side * 3 + n } as CSSProperties}>
-                      <dt>{item.label}</dt>
-                      <dd data-live={item.live || undefined}>
-                        {item.live && (
-                          <svg className="fl-wifi" viewBox="0 0 24 18" aria-hidden="true">
-                            <circle cx="12" cy="15.2" r="1.7" />
-                            <path d="M8.1 11.4a5.6 5.6 0 0 1 7.8 0" />
-                            <path d="M4.9 8.2a10.1 10.1 0 0 1 14.2 0" />
-                            <path d="M1.7 5a14.6 14.6 0 0 1 20.6 0" />
-                          </svg>
-                        )}
-                        {item.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              ))}
-              </div>
+              <dl className="fl-hud fl-hud--tl">{item(readouts.link, true)}</dl>
+              <p className="fl-live" ref={liveEl} data-state="on" aria-hidden="true">
+                <i />
+                Live
+              </p>
+              <p className="fl-hud fl-hud--tr fl-clock" aria-hidden="true">
+                <span className="fl-clock__time">{stamp(STATUS_HOUR)}</span>
+                <span className="fl-clock__count" ref={countEl} />
+              </p>
+              <dl className="fl-hud fl-hud--bl">
+                {item(readouts.power)}
+                {item(readouts.earth)}
+              </dl>
+              <dl className="fl-hud fl-hud--br">
+                {item(readouts.site)}
+                {item(readouts.earthLeft)}
+              </dl>
+            </div>
           </article>
 
           {rest.map((scene, i) => (

@@ -43,7 +43,7 @@ export const opening = {
   status: {
     title: tr("lander status", "estado del módulo"),
     link: tr("Earth link", "Enlace con la Tierra"),
-    linked: tr("Connection established", "Conexión establecida"),
+    linked: tr("Connection restored", "Conexión establecida"),
     unlinked: tr("No connection", "Sin conexión"),
     earth: tr("Earth above level", "Elevación de la Tierra"),
     power: tr("Solar power", "Potencia solar"),
@@ -52,6 +52,12 @@ export const opening = {
     earthLeft: tr("Earth contact left", "Contacto restante"),
     earthIn: tr("Earthrise in", "La Tierra sale en"),
     when: tr("Mission time, UT", "Hora de la misión, UT"),
+    /** Lo que dice el HUD mientras se reinicia con el Sol. */
+    noSignal: tr("No signal", "Sin señal"),
+    seeking: tr("Reconnecting…", "Reconectando…"),
+    sunriseIn: tr("Sunrise in", "El Sol sale en"),
+    sunsetIn: tr("Sunset in", "El Sol se pone en"),
+    site: tr("Site", "Sitio"),
   },
 }
 
@@ -102,6 +108,12 @@ export const scenes: Scene[] = [
       "Compare lunar south pole landing sites and dates, with the Sun and Earth measured against the real horizon.",
       "Compara sitios y fechas de aterrizaje en el polo sur lunar, con el Sol y la Tierra medidos contra el horizonte real.",
     ),
+  },
+  {
+    id: "horizon",
+    rail: "Horizon",
+    title: "The horizon decides.",
+    body: "At the pole the Sun and Earth never climb: they skim the horizon. A ridge in the way means no sunlight for the panels and no line of sight to Earth. Horizon AI measures both against the real terrain, hour by hour.",
   },
   {
     id: "sun",

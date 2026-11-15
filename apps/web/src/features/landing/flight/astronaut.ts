@@ -56,10 +56,10 @@ export type Astronaut = {
 }
 
 /** Segundos que tarda en borrarse una huella y cuántas puede haber a la vez. */
-const PRINT_LIFE = 6
-const PRINTS = 36
+const PRINT_LIFE = 16
+const PRINTS = 60
 /** Lo que tarda en recorrer la ruta (segundos): el paso se acelera o se frena para llegar a tiempo. */
-const WALK_S = 8
+const WALK_S = 18
 /** Giro hacia la cámara, para que no vaya de perfil puro (radianes). */
 const TOWARDS_CAMERA = 0.42
 
@@ -148,7 +148,7 @@ export async function createAstronaut(canvas: HTMLCanvasElement, options: { pape
   walking.reset().play()
   planted = -1
 
-  // Huellas: elipses de color papel sobre la cresta negra. Se reutilizan.
+  // Huellas: elipses claras (el regolito removido) sobre la cresta iluminada. Se reutilizan.
   const printShape = new CircleGeometry(1, 20)
   const prints = Array.from({ length: PRINTS }, () => {
     const mesh = new Mesh(printShape, new MeshBasicMaterial({ color: new Color(options.paper), transparent: true, opacity: 0, depthTest: false }))
@@ -216,7 +216,7 @@ export async function createAstronaut(canvas: HTMLCanvasElement, options: { pape
           nextPrint = (nextPrint + 1) % PRINTS
           print.born = clock
           print.mesh.position.set(at.x, up(layout.ground(at.x)) - layout.size * 0.055, 0)
-          print.mesh.scale.set(layout.size * 0.075, layout.size * 0.024, 1)
+          print.mesh.scale.set(layout.size * 0.09, layout.size * 0.03, 1)
         }
       }
       if (progress >= 1) stand()

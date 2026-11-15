@@ -34,6 +34,8 @@ export type Stop = {
   ring: number
   /** Cuánto sube la cámara a mitad del tramo que sale de esta parada (0: recto). */
   arc?: number
+  /** Peso del dibujo realista (regolito iluminado, cielo negro con estrellas) frente a la lámina impresa. */
+  real?: number
 }
 
 /**
@@ -47,7 +49,7 @@ export type Frame = {
   fitPx: number
 }
 
-export type Pose = Omit<Stop, "arc" | "frameKm">
+export type Pose = Omit<Stop, "arc" | "frameKm" | "real"> & { real: number }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1)
@@ -92,7 +94,9 @@ export function poseAt(stops: Stop[], p: number, out: Pose): Pose {
   out.day = lerp(a.day, b.day, t)
   out.earth = lerp(a.earth, b.earth, t)
   out.ring = lerp(a.ring, b.ring, t)
+  // Lo realista se va pronto: al alejarse de la primera parada ya manda la lámina.
+  out.real = lerp(a.real ?? 0, b.real ?? 0, within(linear, 0, 0.55))
   return out
 }
 
-export const emptyPose = (): Pose => ({ at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 1, fov: 30, shift: [0, 0], day: 0, earth: 0, ring: 0 })
+export const emptyPose = (): Pose => ({ at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 1, fov: 30, shift: [0, 0], day: 0, earth: 0, ring: 0, real: 0 })

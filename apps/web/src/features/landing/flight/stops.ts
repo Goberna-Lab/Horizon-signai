@@ -11,9 +11,21 @@ import type { Stop } from "./engine/story"
 /** Sitio destacado en la proyección (km): centro del mosaico de Connecting Ridge. */
 export const FEATURED_SITE: [number, number] = [-11, -12]
 
+/**
+ * El inicio: a ras de suelo en Connecting Ridge, mirando por donde sale el Sol. La entrada avanza el día desde
+ * `SUNRISE_FROM` hasta `HERO_DAY` (FlightStage.tsx), así que el Sol sale de verdad por detrás del horizonte real.
+ */
+export const HERO_DAY = 3.62
+export const SUNRISE_FROM = 3.3
+/** Cuántos grados se gira la vista del inicio respecto al Sol: luz de lado sobre el relieve. */
+export const HERO_TURN = 32
+
 export const STOPS: Stop[] = [
-  // La lámina completa, vista desde arriba: 0° E (la Tierra) hacia arriba.
-  { at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 2600, frameKm: 392, fov: 9.6, shift: [0.2, 0], day: 3, earth: 0, ring: 0 },
+  // A ras de suelo, mirando un poco hacia arriba: el horizonte en el tercio de abajo. El rumbo lo pone createFlight
+  // (hacia el Sol en HERO_DAY). Todo realista: regolito, cielo negro y estrellas.
+  { at: FEATURED_SITE, lift: 0.3, bearing: 0, tilt: 96, distance: 2.5, fov: 42, shift: [0, 0], day: HERO_DAY, earth: 0, ring: 0, real: 1 },
+  // Nos alejamos hasta ver la lámina completa, desde arriba: 0° E (la Tierra) hacia arriba.
+  { at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 2600, frameKm: 392, fov: 9.6, shift: [0.2, 0], day: 3.8, earth: 0, ring: 0 },
   // Sol rasante: la cámara baja al polo y mira hacia el Sol.
   { at: [-6, -16], lift: 0, bearing: 207, tilt: 85, distance: 34, fov: 44, shift: [0.1, 0.1], day: 6, earth: 0, ring: 0, arc: 0.22 },
   // Connecting Ridge con el Sol alto en su horizonte.

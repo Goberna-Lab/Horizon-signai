@@ -163,6 +163,9 @@
   --ink-soft: rgb(244 239 230 / 0.62);
   --hairline: 1px solid rgb(244 239 230 / 0.22);
   --signal: var(--signal-night);
+  /* El color del HUD: un azul frío de visor, con su brillo. */
+  --hud-c: #9fd6ff;
+  --hud-glow: rgb(159 214 255 / 0.35);
   color: var(--ink);
   top: calc(var(--bar) + clamp(14px, 5.5svh, 64px));
   right: var(--gutter);
@@ -263,14 +266,11 @@
   animation-play-state: paused !important;
 }
 
-/*
- * La marca empieza centrada en la pantalla (FlightStage.tsx mide cuánto: `--intro-dy`), sube a su sitio y, cuando
- * sale el Sol, se desvanece por completo: el inicio se queda con el paisaje.
- */
+/* La marca se escribe en el centro de la pantalla (FlightStage.tsx mide cuánto: `--intro-dy`), se queda ahí y, cuando
+ * sale el Sol, se desvanece sin moverse: el inicio se queda con el paisaje. */
 .fl-hero__brand {
-  animation:
-    fl-brand-settle 1000ms cubic-bezier(0.65, 0, 0.25, 1) 3500ms both,
-    fl-brand-gone 1200ms var(--ease) 4600ms forwards;
+  transform: translate3d(0, var(--intro-dy, 0px), 0);
+  animation: fl-brand-gone 1200ms var(--ease) 4400ms forwards;
 }
 
 @keyframes fl-brand-gone {
@@ -280,14 +280,10 @@
   }
 }
 
-@keyframes fl-brand-settle {
-  from {
-    transform: translate3d(0, var(--intro-dy, 0px), 0);
-  }
-}
-
 /* Lo que dice qué es el producto, bajo la marca. */
 .fl-hero__title {
+  /* FlightStage.tsx la baja (`top`) al centro del cielo que deja libre el HUD. */
+  position: relative;
   max-width: 30ch;
   margin-top: clamp(8px, 1.6svh, 18px);
   font-family: var(--font-serif);
@@ -342,6 +338,7 @@
   will-change: opacity;
 }
 
+.fl-limb__sky,
 .fl-limb__night,
 .fl-limb__lit,
 .fl-limb__lit svg,
@@ -375,6 +372,80 @@
   will-change: transform;
 }
 
+/* Las estrellas más brillantes titilan, cada una a su ritmo no: todas juntas, muy suave. */
+.fl-stars--twinkle {
+  animation: fl-twinkle 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes fl-twinkle {
+  to {
+    stroke-opacity: 0.55;
+  }
+}
+
+/* La nave cruza el cielo despacio, de izquierda a derecha, una vez que ya es de día; su luz parpadea. */
+.fl-ship {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translateX(-80px) scale(1.4);
+  animation: fl-ship 48s linear 7600ms infinite;
+}
+
+@keyframes fl-ship {
+  from {
+    transform: translate(-80px, 0) scale(1.4) rotate(-4deg);
+  }
+  to {
+    transform: translate(var(--ship-dx, 2000px), -60px) scale(1.4) rotate(-4deg);
+  }
+}
+
+.fl-ship__light {
+  animation: fl-blink 1.6s steps(1) infinite;
+}
+
+@keyframes fl-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Los destellos del Sol giran muy despacio, como al mover la cámara. */
+.fl-sun__rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fl-rays 90s linear infinite;
+}
+
+@keyframes fl-rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Con el relieve 3D ya cargado, el dibujo 2D del inicio (que lo cubría mientras tanto) se retira: queda el 3D real
+ * debajo y, encima, el astronauta y el HUD.
+ */
+.fl-limb__sky,
+.fl-limb__across,
+.fl-limb__night,
+.fl-limb__lit {
+  transition: opacity 1400ms var(--ease);
+}
+
+.fl[data-ready="true"] .fl__limb {
+  background: transparent;
+  transition: background-color 1400ms var(--ease);
+}
+
+.fl[data-ready="true"] .fl-limb__sky,
+.fl[data-ready="true"] .fl-limb__across,
+.fl[data-ready="true"] .fl-limb__night,
+.fl[data-ready="true"] .fl-limb__lit {
+  opacity: 0;
+}
+
 /* Por debajo del suelo (el tablero) el Sol no se ve: solo asoma por detrás de la cresta. */
 .fl-limb__across {
   clip-path: inset(0 0 calc(100% - var(--floor, 100%)) 0);
@@ -384,7 +455,17 @@
 .fl-limb__line {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: fl-route 1600ms cubic-bezier(0.6, 0, 0.3, 1) 3700ms forwards;
+  animation:
+    fl-route 1600ms cubic-bezier(0.6, 0, 0.3, 1) 3700ms forwards,
+    fl-line-out 1400ms var(--ease) 5200ms forwards;
+}
+
+/* Cuando sale el Sol la línea ya no hace falta: se difumina y desaparece; el horizonte lo dibuja la luz. */
+@keyframes fl-line-out {
+  to {
+    opacity: 0;
+    filter: blur(3px);
+  }
 }
 
 /* El Sol sale desde abajo, por detrás de la cresta (FlightStage.tsx mide cuánto: `--sun-rise`); su resplandor llega antes que él. */
@@ -421,146 +502,339 @@
   }
 }
 
-/* La ruta del astronauta: se traza de izquierda a derecha sobre la cresta y se marca su final. */
-.fl-limb__route {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: fl-route 2000ms cubic-bezier(0.45, 0, 0.2, 1) 6900ms forwards;
-}
-
-.fl-limb__route-end {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: fl-route-end 500ms var(--ease) 8100ms both;
-}
-
+/* La línea del horizonte se traza como un trazo de lápiz. */
 @keyframes fl-route {
   to {
     stroke-dashoffset: 0;
   }
 }
 
-@keyframes fl-route-end {
-  from {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-}
 
 /*
- * Las lecturas del módulo: llegan una a una cuando el Sol se ha posado. En pantallas anchas van en dos columnas a
- * los lados del Sol (FlightStage.tsx da su posición con `--sun-*`); en las demás, en una rejilla bajo las acciones.
+ * El HUD del módulo, flotando sobre el paisaje (sin tarjetas): el texto con una sombra suave para leerse sobre el
+ * cielo y el terreno. En pantallas anchas va a las cuatro esquinas de un marco centrado (FlightStage.tsx:
+ * `--frame-edge`, `--bottom-y`) y "Live" arriba en el centro; en las demás, en una rejilla bajo la frase.
  */
 .fl-hero__status {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 clamp(14px, 4vw, 28px);
+  gap: 14px clamp(14px, 4vw, 28px);
   width: min(100%, 520px);
   margin-top: clamp(12px, 2.2svh, 22px);
   text-align: left;
-  pointer-events: auto;
+  pointer-events: none;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.85);
 }
 
-.fl-status__col {
+.fl-hud {
+  display: flex;
+  gap: clamp(24px, 3vw, 48px);
+  margin: 0;
+  animation: fl-hud-in 600ms steps(4) 500ms both;
+}
+
+.fl-hud__item {
+  position: relative;
   display: flex;
   flex-direction: column;
+  gap: 5px;
 }
 
-.fl-status__cell {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 7px 0 6px;
-  border-top: var(--hairline);
-  animation: fl-hero-in 700ms var(--ease) calc(9700ms + var(--n) * 170ms) both;
-}
-
-.fl-status__cell dt {
+.fl-hud__item dt {
   font: 500 10.5px/1.2 var(--font-mono);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: rgb(159 214 255 / 0.72);
 }
 
-.fl-status__cell dd {
-  font: 700 clamp(0.875rem, 1.25vw, 1.0625rem) / 1.15 var(--font-display);
+.fl-hud__item dd {
+  font: 700 clamp(1rem, 1.2vw, 1.1875rem) / 1.15 var(--font-display);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  transition: color 400ms var(--ease), opacity 400ms var(--ease);
 }
 
-/* Enlace establecido: el icono de la señal se llena de dentro afuera y después late despacio. */
+/* El enlace, arriba a la izquierda: el wifi en grande. */
+.fl-hud--tl dd {
+  display: flex;
+  align-items: center;
+  font-size: clamp(1.125rem, 1.45vw, 1.4375rem);
+}
+
+.fl-hud--tl .fl-wifi {
+  width: 1.7em;
+  height: 1.3em;
+  margin-right: 0.45em;
+}
+
+/* La fecha, arriba a la derecha: grande con la cuenta atrás; al salir el Sol se achica y cuenta hasta la puesta. */
+.fl-clock {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  text-align: right;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.fl-clock__time {
+  font-size: clamp(1.125rem, 1.5vw, 1.5rem);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  transition: font-size 900ms var(--ease), color 900ms var(--ease);
+}
+
+.fl-clock__count {
+  font-size: clamp(0.875rem, 1.05vw, 1.0625rem);
+  letter-spacing: 0.2em;
+  color: #ffd27a;
+  transition: font-size 900ms var(--ease), color 900ms var(--ease);
+}
+
+.fl-scene--hero[data-sun="up"] .fl-clock__time {
+  font-size: 12px;
+  color: rgb(244 239 230 / 0.75);
+}
+
+.fl-scene--hero[data-sun="up"] .fl-clock__count {
+  font-size: 11px;
+  color: var(--hud-c);
+}
+
+/* "Live", aparte del enlace: gris y apagado, parpadea al buscar y se enciende en verde al conectar. */
+.fl-live {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgb(244 239 230 / 0.35);
+  transition: color 500ms var(--ease), text-shadow 500ms var(--ease);
+  animation: fl-hud-in 600ms steps(4) 500ms both;
+}
+
+.fl-live i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(244 239 230 / 0.25);
+  transition: background-color 500ms var(--ease), box-shadow 500ms var(--ease);
+}
+
+.fl-live[data-state="seek"] i {
+  animation: fl-blink 900ms steps(1) infinite;
+}
+
+.fl-live[data-state="on"] {
+  color: #6ee7a0;
+  text-shadow: 0 0 10px rgb(110 231 160 / 0.5);
+}
+
+.fl-live[data-state="on"] i {
+  background: #6ee7a0;
+  box-shadow: 0 0 10px #6ee7a0;
+}
+
+/* Lo de abajo (energía y datos del sitio) llega con el Sol. */
+.fl-hud--bl,
+.fl-hud--br {
+  transition:
+    opacity 700ms var(--ease),
+    transform 700ms var(--ease),
+    visibility 0s;
+}
+
+.fl-scene--hero[data-sun="down"] .fl-hud--bl,
+.fl-scene--hero[data-sun="down"] .fl-hud--br {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 10px, 0);
+  transition-delay: 0s, 0s, 700ms;
+}
+
+/* Pantallas anchas: a las esquinas del marco. */
+.fl-scene--hero[data-status="flank"] .fl-hero__status {
+  display: contents;
+}
+
+.fl-scene--hero[data-status="flank"] .fl-hud,
+.fl-scene--hero[data-status="flank"] .fl-live {
+  position: absolute;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 0.85);
+}
+
+.fl-scene--hero[data-status="flank"] .fl-hud--tl {
+  top: 18px;
+  left: var(--frame-edge);
+}
+
+.fl-scene--hero[data-status="flank"] .fl-hud--tr {
+  top: 18px;
+  right: var(--frame-edge);
+}
+
+.fl-scene--hero[data-status="flank"] .fl-live {
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.fl-scene--hero[data-status="flank"] .fl-hud--bl,
+.fl-scene--hero[data-status="flank"] .fl-hud--br {
+  top: var(--bottom-y);
+  translate: 0 -100%;
+}
+
+.fl-scene--hero[data-status="flank"] .fl-hud--bl {
+  left: var(--frame-edge);
+}
+
+.fl-scene--hero[data-status="flank"] .fl-hud--br {
+  right: var(--frame-edge);
+  text-align: right;
+}
+
+/*
+ * El HUD se reinicia con el Sol (FlightStage.tsx cambia `data-state` de cada lectura): "off" sin energía o sin datos,
+ * "seek" buscando (el wifi barre sus arcos, la potencia sube) y "on" en marcha.
+ */
+.fl-hud__item dd[data-state="off"] {
+  color: rgb(244 239 230 / 0.45);
+}
+
+.fl-hud__item dd[data-state="seek"] .fl-status__value {
+  animation: fl-seek-text 900ms ease-in-out infinite alternate;
+}
+
+@keyframes fl-seek-text {
+  to {
+    opacity: 0.5;
+  }
+}
+
+/* La batería de los paneles, bajo la potencia: se llena por segmentos con la carga. */
+.fl-meter {
+  /* Bajo el valor, sin sumar alto: las dos filas de abajo quedan a la misma altura. */
+  position: absolute;
+  left: 0;
+  bottom: -16px;
+  width: 112px;
+  height: 9px;
+  padding: 1px;
+  border: 1px solid rgb(244 239 230 / 0.45);
+  border-radius: 2px;
+}
+
+/* El borne de la batería. */
+.fl-meter::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: -4px;
+  width: 2px;
+  height: 3px;
+  background: rgb(244 239 230 / 0.45);
+}
+
+.fl-meter i {
+  display: block;
+  height: 100%;
+  background: #6ee7a0;
+  /* Segmentos: la carga se ve por celdas. */
+  mask-image: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+  transform-origin: left;
+  transform: scaleX(var(--charge, 1));
+}
+
+.fl-scene--hero[data-power="off"] .fl-meter {
+  border-color: rgb(234 59 82 / 0.7);
+}
+
+.fl-scene--hero[data-power="charging"] .fl-meter i {
+  background: #ffd27a;
+  filter: drop-shadow(0 0 4px #ffd27a);
+}
+
+/* El wifi del enlace: apagado, barriendo arcos mientras busca y lleno (con un latido lento) al conectar. */
 .fl-wifi {
   display: inline-block;
-  width: 1.15em;
-  height: 0.86em;
-  margin-right: 0.4em;
-  vertical-align: -0.06em;
   overflow: visible;
 }
 
 .fl-wifi circle {
-  fill: var(--signal);
-  animation: fl-wifi-in 300ms var(--ease) 9700ms both;
+  fill: rgb(244 239 230 / 0.5);
+  transition: fill 400ms var(--ease);
 }
 
 .fl-wifi path {
   fill: none;
-  stroke: var(--signal);
+  stroke: rgb(244 239 230 / 0.5);
   stroke-width: 2.2;
   stroke-linecap: round;
-  animation:
-    fl-wifi-in 300ms var(--ease) both,
-    fl-wifi-pulse 2400ms ease-in-out infinite;
+  transition: opacity 300ms var(--ease), stroke 400ms var(--ease);
 }
 
-.fl-wifi path:nth-of-type(1) {
-  animation-delay: 9700ms, 10700ms;
+[data-state="off"] .fl-wifi path {
+  opacity: 0.15;
 }
 
-.fl-wifi path:nth-of-type(2) {
-  animation-delay: 9850ms, 10850ms;
+[data-state="off"] .fl-wifi circle {
+  fill: var(--signal);
+  animation: fl-blink 1.2s steps(1) infinite;
 }
 
-.fl-wifi path:nth-of-type(3) {
-  animation-delay: 10000ms, 11000ms;
+[data-state="seek"] .fl-wifi path {
+  stroke: var(--hud-c);
+  animation: fl-wifi-seek 1200ms ease-in-out infinite;
 }
 
-@keyframes fl-wifi-in {
-  from {
-    opacity: 0;
+[data-state="seek"] .fl-wifi path:nth-of-type(2) {
+  animation-delay: 200ms;
+}
+
+[data-state="seek"] .fl-wifi path:nth-of-type(3) {
+  animation-delay: 400ms;
+}
+
+[data-state="on"] .fl-wifi circle {
+  fill: var(--hud-c);
+}
+
+[data-state="on"] .fl-wifi path {
+  stroke: var(--hud-c);
+  filter: drop-shadow(0 0 4px var(--hud-glow));
+  animation: fl-wifi-pulse 2400ms ease-in-out 600ms infinite;
+}
+
+@keyframes fl-wifi-seek {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 1;
   }
 }
 
 @keyframes fl-wifi-pulse {
   50% {
-    opacity: 0.35;
+    opacity: 0.4;
   }
 }
 
-.fl-scene--hero[data-status="flank"] .fl-hero__status {
-  display: contents;
-}
-
-.fl-scene--hero[data-status="flank"] .fl-status__col {
-  --col-w: clamp(180px, 17vw, 270px);
-  position: absolute;
-  width: var(--col-w);
-  transform: translateY(-100%);
-  pointer-events: none;
-}
-
-.fl-scene--hero[data-status="flank"] .fl-status__col[data-side="left"] {
-  top: var(--status-left);
-  /* A la izquierda de la onda, sin salirse del escenario. */
-  right: min(calc(100% - var(--sun-x) + var(--sun-r) * 2.2), calc(100% - var(--col-w)));
-  text-align: right;
-}
-
-.fl-scene--hero[data-status="flank"] .fl-status__col[data-side="right"] {
-  top: var(--status-right);
-  /* A la derecha de las líneas, sin meterse bajo el riel de las escenas. */
-  left: min(calc(var(--sun-x) + var(--sun-r) * 1.7), calc(100% - var(--col-w) - 120px));
-  text-align: left;
+/* El HUD se enciende como una pantalla: parpadea un instante y se queda. */
+@keyframes fl-hud-in {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  75% {
+    opacity: 0.2;
+  }
 }
 
 /* Sin sitio (un teléfono girado): las lecturas no se muestran. */
@@ -580,11 +854,13 @@
   .fl-limb__sun,
   .fl-limb__line,
   .fl-limb__lit,
-  .fl-status__cell,
-  .fl-limb__route,
-  .fl-limb__route-end,
+  .fl-hud,
   .fl-wifi circle,
-  .fl-wifi path {
+  .fl-wifi path,
+  .fl-live,
+  .fl-ship,
+  .fl-sun__rays,
+  .fl-stars--twinkle {
     animation: none;
   }
 
@@ -593,12 +869,16 @@
     display: none;
   }
 
+  /* Sin secuencia la marca no se retira: va en su sitio, arriba, y la frase en el centro. */
+  .fl-hero__brand {
+    transform: none;
+  }
+
   .fl-limb__lit {
     mask-image: none;
   }
 
-  .fl-limb__line,
-  .fl-limb__route {
+  .fl-limb__line {
     stroke-dashoffset: 0;
   }
 }
