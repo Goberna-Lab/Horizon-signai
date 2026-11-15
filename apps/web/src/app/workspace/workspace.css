@@ -1,7 +1,7 @@
 /* Escritorio de misiones: barra, aviso, tres zonas (lista, mapa, detalle) y la transición entre Dashboard y Planificador. */
 .ws { display: flex; flex-direction: column; gap: 14px; padding: 0 var(--gutter) 24px; background: var(--paper); color: var(--ink); }
 .ws-bar { display: flex; align-items: center; justify-content: space-between; height: var(--bar); border-bottom: var(--rule); }
-.ws-bar__brand { font: 700 1.5rem/1 var(--font-serif); text-decoration: none; }
+.ws-bar__brand { font: 700 1.5rem/1 var(--font-serif); letter-spacing: var(--font-serif-tracking); text-decoration: none; }
 .ws-bar__nav { display: flex; gap: 20px; margin-left: auto; font: 500 12px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
 .ws-bar__nav a { text-decoration: none; }
 .ws-bar__nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 6px; }

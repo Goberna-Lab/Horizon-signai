@@ -2,7 +2,7 @@
 .pl-detail__in { display: flex; flex-direction: column; gap: 16px; padding: 4px 4px 4px 0; }
 .pl-detail__back { align-self: flex-start; }
 .pl-detail__head { display: flex; align-items: center; gap: 12px; }
-.pl-detail__title { font: 900 2.6rem/1 var(--font-serif); letter-spacing: -0.02em; }
+.pl-detail__title { font: 900 2.6rem/1 var(--font-serif); letter-spacing: var(--font-serif-tracking); }
 .pl-detail__where, .pl-detail__when { font: 400 12.5px/1.4 var(--font-mono); color: var(--ink-soft); }
 .pl-detail__when em { display: block; font-style: normal; color: var(--signal); }
 .pl-block { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: var(--rule); }
@@ -28,7 +28,7 @@
 .pl-cal__days button[data-now="true"] { outline: 2px solid var(--signal); outline-offset: 1px; position: relative; z-index: 1; }
 .pl-figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .pl-figures dt { font: 500 10.5px/1.2 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
-.pl-figures dd { font: 700 1.5rem/1.1 var(--font-serif); white-space: nowrap; }
+.pl-figures dd { font: 700 1.5rem/1.1 var(--font-serif); letter-spacing: var(--font-serif-tracking); white-space: nowrap; }
 .pl-figures [data-body="sun"] dd { color: var(--signal); }
 .pl-figures [data-body="earth"] dd { color: var(--earth); }
 .pl-figures small { font: 400 11px/1 var(--font-mono); color: var(--ink-soft); }

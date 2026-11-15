@@ -13,6 +13,6 @@ La Luna en 3D con relieve real y todos los sitios de alunizaje. Responde: "¿dó
 - **No tocar:** las demás features. Lo común con el núcleo (`shared/map`) se pide a Estephano.
 
 ## Siguiente
-1. Reusar las tipografías autoalojadas del equipo (hoy el mapa carga Cormorant Garamond y Jost de Google Fonts, con respaldo local).
+1. Reusar las tipografías autoalojadas del equipo también para el texto (los títulos y nombres ya van en Archivo de `/ui/display-caps.css`; el texto sigue en Jost de Google Fonts).
 2. Enlazar desde la ficha de un sitio polar al Planificador con ese sitio elegido.
 3. Fichas individuales de NSSDCA para las naves cuyo registro hoy da error en el catálogo de la NASA (volver a correr `--enlaces`).

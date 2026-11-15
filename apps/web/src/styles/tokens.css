@@ -35,8 +35,10 @@
   /* Tipografía */
   --font-display: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  /* Tipografía del software (títulos y cifras de sus pantallas). */
-  --font-serif: "Playfair Display Variable", "Playfair Display", Georgia, "Times New Roman", serif;
+  /* Tipografía del software (títulos y cifras de sus pantallas): Archivo, como la landing (antes Playfair Display).
+     Quien la usa pone letter-spacing: var(--font-serif-tracking). */
+  --font-serif: var(--font-display);
+  --font-serif-tracking: -0.03em;
 
   /* Medidas */
   --gutter: clamp(16px, 2.4vw, 36px);
