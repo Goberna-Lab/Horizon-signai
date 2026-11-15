@@ -142,10 +142,9 @@
 /* ---------- sitios de misión ---------- */
 .sites .screen { padding: 8px; border-radius: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 0 var(--borde), 0 16px 30px rgba(17,17,17,0.18); }
 .sites .glass-inner { height: 190px; border-radius: 12px; }
-.sites canvas, .sites svg.smap { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sites canvas { object-fit: cover; }
-.sites .tag { position: absolute; left: 8px; top: 8px; height: 26px; font-size: 11px; }
-.sites .caption { right: 8px; bottom: 6px; font-size: 9px; }
+.sites canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.sites .tag { position: absolute; left: 8px; bottom: 8px; height: 24px; font-size: 11px; }
+.sites .caption { right: 8px; top: 7px; bottom: auto; font-size: 9px; }
 
 /* ---------- decisiones aprobadas ---------- */
 .alist li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 2px; border-bottom: 1px solid rgba(17,17,17,0.07); }
@@ -291,14 +290,13 @@
     <!-- derecha: mapa y misiones -->
     <div class="col right">
       <section class="paper panel sites" aria-labelledby="sites-t">
-        <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
+        <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">radar · 200 km</span></div>
         <div class="screen">
           <div class="glass-inner">
-            <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
-            <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the south pole with the mission sites" id="smap"></svg>
-            <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
+            <canvas id="radar" role="img" aria-label="Radar of the lunar south pole, 200 km: the 13 candidate zones at their real distance and the campaign mission sites"></canvas>
+            <div class="fx" aria-hidden="true"><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
             <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
-            <p class="caption">Sun at 8° · generated terrain · PGDA sites</p>
+            <p class="caption">real distances · LOLA 240 m</p>
           </div>
           <span class="led" aria-hidden="true"></span>
         </div>
@@ -310,7 +308,7 @@
       </section>
     </div>
   </div>
-  <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate</span><button type="button" id="resetDemo">Reset demo</button></p>
+  <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · radar: real distances over LOLA 240 m relief</span><button type="button" id="resetDemo">Reset demo</button></p>
 </div>
 
 <script src="i18n.js"></script>
@@ -318,6 +316,7 @@
 <script src="terrain.js"></script>
 <script src="mission.js"></script>
 <script src="campaign.js"></script>
+<script src="data/candidatas.js"></script>
 <script>
 (function () {
   'use strict';
@@ -387,22 +386,99 @@
     }).join('');
     $('apCount').textContent = list.length;
   }
+  /* ---------- Mission sites: radar de 200 km a distancia real ----------
+   * Centro: el polo sur. Distancia = arco sobre la Luna (R = 1737,4 km); rumbo = longitud este (0° arriba, 90° E a la
+   * derecha, como el mapa del planificador). Fondo: relieve real de LOLA 240 m (data/radar-polo-sur.jpg, tools/mapa-polo.py).
+   * Las 13 candidatas salen de data/candidatas.js; las misiones de la campaña se marcan en la suya (sitio A, B, C o D).
+   * Los sitios de la campaña están a menos de 40 km del polo: a esta escala caen juntos en el centro, así que sus etiquetas
+   * se abren en abanico con una línea guía. El barrido es solo visual. */
+  var RKM = 200, KMDEG = Math.PI / 180 * 1737.4, PHOS = '155,255,228';
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var CAND = (window.LunarData && window.LunarData.candidatas || []).map(function (c) { return { z: c.z, nombre: c.nombre, km: (90 + c.lat) * KMDEG, a: c.lon * Math.PI / 180 }; });
+  var radar = $('radar'), rctx = radar.getContext('2d'), rbg = new Image(), rW = 0, rH = 0, rHits = [];
+  rbg.src = 'data/radar-polo-sur.jpg';
+  rbg.onload = function () { if (reduceMotion) drawRadar(0); };
+  function fitRadar() {
+    var b = radar.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    rW = b.width; rH = b.height; radar.width = Math.round(rW * dpr); radar.height = Math.round(rH * dpr);
+    rctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function candOf(site) { for (var i = 0; i < CAND.length; i++) if (CAND[i].z === site) return CAND[i]; return null; }
+  function drawRadar(theta) {
+    if (!rW || !rH || !missions) return;
+    var ctx = rctx, cx = rW / 2, cy = rH / 2 + 4, R = Math.min(rW, rH) / 2 - 14, sel = current();
+    var at = function (km, a) { var r = km / RKM * R; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+    ctx.clearRect(0, 0, rW, rH);
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = '#04110D'; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    if (rbg.complete && rbg.naturalWidth) { ctx.globalAlpha = 0.85; ctx.drawImage(rbg, cx - R, cy - R, 2 * R, 2 * R); ctx.globalAlpha = 1; }
+    if (!reduceMotion) for (var k = 0; k < 24; k++) {
+      var a1 = theta - k * 0.05, a0 = a1 - 0.05;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0 - Math.PI / 2, a1 - Math.PI / 2); ctx.closePath();
+      ctx.fillStyle = 'rgba(' + PHOS + ',' + (0.2 * (1 - k / 24)).toFixed(3) + ')'; ctx.fill();
+    }
+    ctx.restore();
+    /* anillos cada 50 km y rumbos cada 90° */
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(' + PHOS + ',0.3)';
+    [50, 100, 150, 200].forEach(function (km) { ctx.beginPath(); ctx.arc(cx, cy, km / RKM * R, 0, Math.PI * 2); ctx.stroke(); });
+    ctx.strokeStyle = 'rgba(' + PHOS + ',0.18)';
+    for (var d = 0; d < 360; d += 90) { var ar = d * Math.PI / 180; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(ar), cy - R * Math.cos(ar)); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(' + PHOS + ',0.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.font = '500 8px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(' + PHOS + ',0.85)'; ctx.textAlign = 'left';
+    ctx.fillText('100 km', cx + 3, cy + R / 2 + 9); ctx.fillText('200 km', cx + 3, cy + R - 3);
+    ctx.textAlign = 'right'; ctx.fillText('90° E', rW - 4, cy - 3); ctx.textAlign = 'left'; ctx.fillText('270° E', 4, cy - 3);
+    if (!reduceMotion) { ctx.strokeStyle = 'rgba(' + PHOS + ',0.9)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(theta), cy - R * Math.cos(theta)); ctx.stroke(); }
+
+    /* las 13 candidatas: brillan al pasar el barrido */
+    var bySite = {}; missions.forEach(function (m) { (bySite[m.site] = bySite[m.site] || []).push(m.id); });
+    rHits = [];
+    CAND.forEach(function (c) {
+      var p = at(c.km, c.a), since = ((theta - c.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), glow = reduceMotion ? 0.5 : Math.exp(-since / 1.2);
+      ctx.fillStyle = 'rgba(' + PHOS + ',' + (0.12 + 0.35 * glow).toFixed(3) + ')'; ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = bySite[c.z] ? '#F5F5F6' : 'rgb(' + PHOS + ')'; ctx.beginPath(); ctx.arc(p[0], p[1], bySite[c.z] ? 2.2 : 1.8, 0, Math.PI * 2); ctx.fill();
+      if (!bySite[c.z]) {
+        ctx.font = '600 8px "Archivo", sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(244,239,230,' + (0.55 + 0.4 * glow).toFixed(2) + ')';
+        ctx.fillText(c.z, p[0] + 3.5, p[1] - 2.5);
+      }
+    });
+    /* misiones de la campaña: etiquetas en abanico (al menos 30° entre sí) con línea guía */
+    var labs = Object.keys(bySite).map(function (k) { var c = candOf(k); return c ? { site: k, c: c, ang: c.a, ids: bySite[k] } : null; }).filter(Boolean)
+      .sort(function (x, y) { return x.ang - y.ang; });
+    var MIN = Math.PI / 6;
+    for (var it = 0; it < 6; it++) for (var q = 1; q < labs.length; q++) if (labs[q].ang - labs[q - 1].ang < MIN) { var m = (labs[q].ang + labs[q - 1].ang) / 2; labs[q - 1].ang = m - MIN / 2; labs[q].ang = m + MIN / 2; }
+    labs.forEach(function (L) {
+      var on = sel && sel.site === L.site, p = at(L.c.km, L.c.a), rl = R * 0.66, lx = cx + rl * Math.sin(L.ang), ly = cy - rl * Math.cos(L.ang);
+      var text = L.ids.join(' · ');
+      ctx.font = '600 9px "IBM Plex Mono", monospace';
+      var w = ctx.measureText(text).width + 10, h = 14, bx = Math.max(2, Math.min(rW - w - 2, lx - w / 2)), by = ly - h / 2;
+      ctx.strokeStyle = on ? 'rgba(155,255,228,0.95)' : 'rgba(244,239,230,0.55)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(lx, ly); ctx.stroke();
+      ctx.fillStyle = on ? 'rgba(155,255,228,0.96)' : 'rgba(7,8,11,0.85)';
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, w, h, 7); else ctx.rect(bx, by, w, h); ctx.fill();
+      ctx.fillStyle = on ? '#05060A' : '#F5F5F6'; ctx.textAlign = 'center'; ctx.fillText(text, bx + w / 2, by + 10);
+      if (on) { ctx.strokeStyle = 'rgba(155,255,228,0.95)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p[0], p[1], 5.5, 0, Math.PI * 2); ctx.stroke(); }
+      rHits.push({ x: bx, y: by, w: w, h: h, ids: L.ids });
+    });
+    /* polo */
+    ctx.strokeStyle = '#F5F5F6'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(cx - 4, cy); ctx.lineTo(cx + 4, cy); ctx.moveTo(cx, cy - 4); ctx.lineTo(cx, cy + 4); ctx.stroke();
+  }
+  /* tocar la etiqueta de un sitio elige su misión (si hay varias, la siguiente cada vez) */
+  radar.addEventListener('click', function (e) {
+    var b = radar.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    for (var i = 0; i < rHits.length; i++) {
+      var h = rHits[i];
+      if (x >= h.x - 3 && x <= h.x + h.w + 3 && y >= h.y - 3 && y <= h.y + h.h + 3) { var k = h.ids.indexOf(state.sel); select(h.ids[(k + 1) % h.ids.length], true); return; }
+    }
+  });
   function renderSites() {
     var sel = current();
-    var byKey = {}; missions.forEach(function (m) { (byKey[m.site] = byKey[m.site] || []).push(m.id); });
-    var html = '<g fill="none" stroke="rgba(255,255,255,0.10)"><circle cx="444" cy="239" r="211"></circle><line x1="444" y1="0" x2="444" y2="700"></line><line x1="0" y1="239" x2="1000" y2="239"></line></g>' +
-      '<g><line x1="430" y1="239" x2="458" y2="239" stroke="#F5F5F6" stroke-width="3"></line><line x1="444" y1="225" x2="444" y2="253" stroke="#F5F5F6" stroke-width="3"></line></g>' +
-      '<g><rect x="470" y="300" width="170" height="40" rx="20" fill="rgba(7,8,11,0.78)"></rect><text x="555" y="327" text-anchor="middle" font-size="22" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Shackleton</text></g>';
-    Object.keys(byKey).forEach(function (k) {
-      var s = C.SITES[k], on = sel && sel.site === k, label = byKey[k].join(' · ');
-      var w = label.length * 15.5 + 30, lx = Math.min(910 - w / 2 - 10, Math.max(170 + w / 2 + 10, s.x));
-      html += (on ? '<circle cx="' + s.x + '" cy="' + s.y + '" r="22" fill="none" stroke="#9BFFE4" stroke-width="4" class="pulse"></circle>' : '') +
-        '<circle cx="' + s.x + '" cy="' + s.y + '" r="' + (on ? 12 : 9) + '" fill="' + (on ? '#9BFFE4' : '#F5F5F6') + '" stroke="#05060A" stroke-width="4"></circle>' +
-        '<g><rect x="' + (lx - w / 2) + '" y="' + (s.y - 66) + '" width="' + w + '" height="40" rx="20" fill="' + (on ? 'rgba(155,255,228,0.95)' : 'rgba(7,8,11,0.82)') + '"></rect><text x="' + lx + '" y="' + (s.y - 39) + '" text-anchor="middle" font-size="24" font-weight="700" fill="' + (on ? '#05060A' : '#F5F5F6') + '" font-family="IBM Plex Mono, monospace">' + label + '</text></g>';
-    });
-    $('smap').innerHTML = html;
     if (sel) { $('siteTag').textContent = sel.id + ' · ' + C.SITES[sel.site].name; }
+    if (reduceMotion) drawRadar(0);
   }
+  fitRadar();
+  if (window.ResizeObserver) new ResizeObserver(function () { fitRadar(); if (reduceMotion) drawRadar(0); }).observe(radar);
+  if (reduceMotion) drawRadar(0);
+  else { var rT0 = performance.now(); (function loop(now) { drawRadar(((now - rT0) / 6000 * Math.PI * 2) % (Math.PI * 2)); requestAnimationFrame(loop); })(rT0); }
   function renderPending() {
     var p = $('pending');
     if (state.approved) {
@@ -555,7 +631,7 @@
   $('resetDemo').addEventListener('click', function () { C.resetApproval(); location.reload(); });
 
   /* terreno: se calcula después de pintar */
-  var polarT = null, localT = null;
+  var localT = null;
   function local() { if (!localT) localT = L.localScene(); return localT; }
 
   /* interacción de paneles */
@@ -566,8 +642,6 @@
   renderAll();
 
   setTimeout(function () {
-    polarT = L.polarScene();
-    var cv = $('polar'); M.drawCrop(L.renderRelief(polarT, { grain: 6 }), polarT, cv, { x: 170, y: 150, w: 740, h: 484 }); cv.classList.add('boot');
     var st = M.routeStats(local(), 'science');
     /* con la ruta ya aprobada, la tarjeta de firma no tiene estas cifras */
     if ($('pDist')) { $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°'; }

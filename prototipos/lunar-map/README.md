@@ -114,6 +114,6 @@ Copias en base64 de `luna-recursos/datos`, sin cambios, para que la página func
 ### Supuestos y límites
 
 - Son los mismos que declara el equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno, y el panel es vertical y sigue al Sol.
-- El mapa de Alunizaje es el **relieve real** de LOLA a 240 m (sombreado con luz de cartografía, no la del Sol en una fecha) y marca las 13 candidatas; la capa de pendiente sale de ese relieve. El relieve local de Caminata y el mapa de sitios de Missions son **relieve generado** para ilustrar.
+- El mapa de Alunizaje es el **relieve real** de LOLA a 240 m (sombreado con luz de cartografía, no la del Sol en una fecha) y marca las 13 candidatas; la capa de pendiente sale de ese relieve. El panel «Mission sites» de Missions es un radar de 200 km a distancia real sobre ese mismo relieve de LOLA (`data/radar-polo-sur.jpg`, posiciones de `data/candidatas.js`); el barrido es solo visual. El relieve local de Caminata es **relieve generado** para ilustrar.
 - Las rutas de la caminata y sus cifras salen de ese relieve generado, no del DTM real.
 - El perfil de descenso y el combustible son los del Apollo 11 (R-695 y TN D-6846), no los de una misión real.

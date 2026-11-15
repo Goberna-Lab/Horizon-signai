@@ -194,9 +194,9 @@
 
     /* ---------- sitios de misión ---------- */
     'Mission sites': 'Sitios de misión',
-    'polar stereographic': 'estereográfica polar',
-    'Map of the south pole with the mission sites': 'Mapa del polo sur con los sitios de las misiones',
-    'Sun at 8° · generated terrain · PGDA sites': 'Sol a 8° · relieve generado · sitios PGDA',
+    'radar · 200 km': 'radar · 200 km',
+    'Radar of the lunar south pole, 200 km: the 13 candidate zones at their real distance and the campaign mission sites': 'Radar del polo sur lunar, 200 km: las 13 zonas candidatas a su distancia real y los sitios de las misiones de la campaña',
+    'real distances · LOLA 240 m': 'distancias reales · LOLA 240 m',
     'Peak near Shackleton · RoI 2': 'Pico cerca de Shackleton · RoI 2',
     'Shackleton rim · RoI 4': 'Borde de Shackleton · RoI 4',
     'de Gerlache rim': 'Borde de de Gerlache',
@@ -218,7 +218,7 @@
     'APPROVED': 'APROBADA',
 
     /* ---------- pie ---------- */
-    'Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate': 'Campaña de ejemplo: las misiones, las firmas y la bitácora son datos de muestra · sitios, Sol y Tierra reales (JPL Horizons DE441, horizontes LOLA/PGDA) · relieve del mapa generado para ilustrar',
+    'Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · radar: real distances over LOLA 240 m relief': 'Campaña de ejemplo: las misiones, las firmas y la bitácora son datos de muestra · sitios, Sol y Tierra reales (JPL Horizons DE441, horizontes LOLA/PGDA) · radar: distancias reales sobre el relieve LOLA de 240 m',
     'Reset demo': 'Restablecer demo',
 
     /* ---------- tarjeta de firma ---------- */
