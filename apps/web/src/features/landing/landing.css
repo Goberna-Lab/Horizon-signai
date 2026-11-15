@@ -6,6 +6,12 @@
 .ln {
   position: relative;
   scroll-padding-top: var(--bar);
+  /*
+   * Toda la landing en Archivo: también los titulares (antes Playfair Display) y los rótulos y cifras (antes IBM Plex
+   * Mono). Solo aquí: el resto de la aplicación sigue con sus fuentes.
+   */
+  --font-serif: var(--font-display);
+  --font-mono: var(--font-display);
 
   /*
    * Día y noche. Toda la página sigue al Sol de la ventana del software mientras esa ventana está en pantalla:
