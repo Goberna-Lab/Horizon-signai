@@ -20,6 +20,9 @@
 !luna-recursos/datos/horizonte-catalogo-shoemaker.json
 !luna-recursos/datos/validacion-catalogo.json
 !prototipos/lunar-map/data/zonas.js
+!prototipos/lunar-map/data/efemerides-luna.js
+!prototipos/lunar-map/engine.js
+!prototipos/lunar-map/tools/zone-stats.js
 !apps/web/scripts/mapa-3d/sitios.json
 !apps/web/scripts/mapa-3d/iau-nombres.json
 !apps/web/scripts/mapa-3d/gradiente16.webp

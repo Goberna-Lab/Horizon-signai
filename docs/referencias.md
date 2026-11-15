@@ -79,5 +79,7 @@ Otros conjuntos del motor 3D (Apollo 17: SLDEM2015, NAC DTM, ortoimagen, Hapke W
 | Qué | Dónde |
 |---|---|
 | Zonas candidatas con horizonte, Mazarico y paneles | Base: `moon.candidate_zone`, `moon.horizon_envelope`, `ref.illumination_reference`, `ref.power_system`; función `moon.horizon_at(zona, azimut, altura)`; vista `moon.v_candidate_zone` (migración `db/migrations/0009_candidate_zones.sql`, carga `db/etl/load_zones.py`). En el planificador: `prototipos/lunar-map/data/zonas.js` (lo genera `tools/zonas-candidatas.js`) |
+| Cifras 2026–2030 por zona y altura del equipo, calculadas con el motor del planificador | Base: `moon.zone_stats` (migración `0010_zone_stats.sql`, carga `db/etl/load_zone_stats.py`, cálculo `prototipos/lunar-map/tools/zone-stats.js`) |
+| Evaluar un escenario desde fuera del navegador | API: `/api/planner/zones`, `/api/planner/power-systems`, `/api/planner/evaluate` (`apps/api/src/planner/`: el mismo `engine.js`, con efemérides y horizontes leídos de la base) |
 | Sitios, efemérides, relieve e iluminación del mapa 3D | Base: `moon.site`, `eph.*`, `terrain.*`, `moon.site_illumination` (`db/README.md`) |
 | Datos originales del motor | `luna-recursos/datos/` |

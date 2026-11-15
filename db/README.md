@@ -8,6 +8,7 @@ pip install -r db/requirements.txt                     # psycopg 3, numpy (Pillo
 python db/migrate.py                                   # applies db/migrations/*.sql, tracked in public.schema_migration
 python db/etl/load_map3d.py                            # idempotent load from luna-recursos/datos + apps/web/scripts/mapa-3d
 python db/etl/load_zones.py                            # the planner's 13 candidate zones (needs load_map3d first)
+python db/etl/load_zone_stats.py                       # 2026-2030 figures per zone with the planner engine (needs node, ~40 s)
 python -c "..."  # or psql: CALL moon.refresh_site_illumination();   (~1 min, set-based, 62 sites x 14609 times)
 python db/etl/verify.py                                # counts, asset equality, elevation_at and sun_at spot checks
 ```
@@ -19,7 +20,7 @@ HTML that still embedded the data (`git show HEAD:apps/web/public/mapa-3d.html`,
 `ref` (country, agency, site_category, feature_type, data_source, dataset, provenance_note), `moon` (iau_feature,
 site, site_link, site_terrain, horizon_profile, v_horizon_sample, site_illumination), `eph` (body, series, sample),
 `terrain` (raster_tile, asset). Planner (0009): `moon.candidate_zone`, `moon.horizon_envelope`, `moon.v_candidate_zone`,
-`ref.illumination_reference`, `ref.power_system`. English content only. Category codes: `crewed, robotic, sample_return, rover,
+`ref.illumination_reference`, `ref.power_system`, `moon.zone_stats` (0010). English content only. Category codes: `crewed, robotic, sample_return, rover,
 candidate, impact` (the old viewer used Spanish codes). Role `map_api_ro` (NOLOGIN): SELECT + EXECUTE only.
 
 ## SRIDs (registered in `spatial_ref_sys`)
@@ -60,6 +61,17 @@ A-J have the detailed PGDA 5 m + LOLA horizon, K-M an approximate one on LOLA 24
 the Mazarico et al. (2011) mean visibility per zone (validation, not a verdict input); `ref.power_system` the panel
 presets (lander 2 m, NASA VSAT 5 m and 10 m, vertical, single-axis tracking). Sources: `docs/referencias.md`.
 
+`moon.zone_stats` (migration 0010, `db/etl/load_zone_stats.py`): per zone and gear height (the `ref.power_system`
+heights, antenna = panel), the planner's figures over the whole ephemeris period (sun, earth, both %, longest night and
+silence, mean panel W/m2), at step 10800 s (the means of the planner cards) and 600 s (the engine's sweep). They are
+computed by the planner's own `prototipos/lunar-map/engine.js` (run with Node by `prototipos/lunar-map/tools/zone-stats.js`;
+`engine_sha256` records which engine). The loader image installs `nodejs` for this.
+
+API (`apps/api/src/planner/`, same engine, inputs from this database: `eph.sample`, `moon.horizon_envelope`):
+`GET /api/planner/zones?height=2`, `GET /api/planner/power-systems`,
+`GET /api/planner/evaluate?zone=C&landing=2026-12-18T09:00Z&stay=3&panel=2&antenna=2&battery=24&earth=40&sun=1&el=1`
+(verdict, landing margins, stay figures and checks; the planner's rule).
+
 ## Production
 `docker-compose.prod.yml` runs three services: `db` (PostGIS, volume `horizon_pgdata`, no published port), `db-loader`
 (built from `db/Dockerfile`, build context = repo root, whitelist in `db/Dockerfile.dockerignore`) and the API in two
@@ -71,7 +83,8 @@ Server `/srv/horizon-signai/.env` must define (use URL-safe passwords: letters, 
 
 On every deploy (`.github/workflows/deploy.yml`): `db` starts -> `db-loader` runs (while the previous app version keeps serving), runs `migrate.py`, computes a
 sha256 fingerprint of the ETL code, migrations and source data files, and compares it with `public.etl_run`. If it
-changed (or the table is empty) it runs `load_map3d.py` + `load_zones.py` + `CALL moon.refresh_site_illumination()` and records the new
+changed (or the table is empty) it runs `load_map3d.py` + `load_zones.py` + `load_zone_stats.py` + `CALL moon.refresh_site_illumination()` (about
+100 s) and records the new
 fingerprint; otherwise it skips both. It then creates/updates the login role `map_api` (member of `map_api_ro`, SELECT +
 EXECUTE only; password from `MAP_API_PASSWORD`, set idempotently, never stored in SQL files). The app copies are replaced
 only after the loader exits 0 and connect as `map_api`. A loader failure stops the deploy before the app is touched.
