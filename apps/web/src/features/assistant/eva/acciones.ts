@@ -22,7 +22,8 @@ const planificador = (): Planificador | null => {
 /** Lo que la pantalla muestra ahora, en texto, con las cifras del motor: va a la IA como contexto de cada pregunta. */
 export const estadoDePantalla = (): string => {
   try {
-    return planificador()?.text() ?? ""
+    // En /simulador, lo que muestra el simulador (casco, rover, informe): features/simulator/alunizaje/paraEva.ts
+    return planificador()?.text() ?? (window as Window & { HorizonSimulador?: { text(): string } }).HorizonSimulador?.text() ?? ""
   } catch {
     return ""
   }

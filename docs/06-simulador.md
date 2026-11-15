@@ -360,6 +360,8 @@ Con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz
 
 El modelo 3D del LM viene de NASA 3D Resources (clave NASA3D-LM). El registro completo, con enlaces y archivos, está en `investigacion/fuentes.md`.
 
+- **Hablarle:** la tecla **H** (o el botón «EVA» en el celular) suelta el ratón y abre su panel para escribirle o hablarle. Con cada pregunta, EVA recibe lo que muestra el simulador (`window.HorizonSimulador.text()`, `paraEva.ts`): fase y altura del descenso, resultado del alunizaje, consumibles del traje y lo que dura cada uno, límite de regreso, distancia al módulo, Sol y Tierra del momento, pulso, tarea, muestras, rover y el informe final. Responde con esas cifras; no las calcula.
+
 ### 9.6 El plan completo por la URL
 - `&ruta=segura|corta|cientifica`: la caminata sigue esa ruta del Planificador (sin ruta, la científica de CR-02). La segura tiene una parada, la corta ninguna; las dos terminan al final de la ruta y vuelven al módulo.
 - `&eva=<h>`: la EVA sale esas horas después del alunizaje; al abrir la escotilla la escena pasa al Sol y la Tierra de ese momento (motor del Planificador). Un descenso nuevo vuelve a la luz del alunizaje.

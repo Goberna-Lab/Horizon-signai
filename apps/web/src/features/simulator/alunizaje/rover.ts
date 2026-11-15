@@ -139,7 +139,7 @@ export class Rover {
       <div class="fila ${sol ? '' : 'mal'}"><span>${tr('SUN', 'SOL')}</span><b>${sol ? tr('ON PANEL', 'EN EL PANEL') : tr('SHADOW', 'SOMBRA')}</b></div>
       <div class="fila ${pend > PENDIENTE_AVISO ? 'mal' : ''}"><span>${tr('SLOPE', 'PENDIENTE')}</span><b>${fmt(pend, 1)}°</b></div>
       <p class="tarea">${tarea}</p>${this.notice ? `<p class="aviso">${this.notice}</p>` : ''}
-      <p class="teclas">W/S · A/D · E ${tr('measure', 'medir')} · L ${tr('lights', 'luces')} · T ${tr('time', 'tiempo')} · I ${tr('report', 'informe')} · Q ${tr('fly again', 'volver a volar')}</p>`;
+      <p class="teclas">W/S · A/D · E ${tr('measure', 'medir')} · L ${tr('lights', 'luces')} · T ${tr('time', 'tiempo')} · I ${tr('report', 'informe')} · Q ${tr('fly again', 'volver a volar')} · H EVA</p>`;
   }
 
   dispose() {

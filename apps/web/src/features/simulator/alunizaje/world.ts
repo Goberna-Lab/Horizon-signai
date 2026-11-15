@@ -12,6 +12,7 @@ import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
 import { Rover } from './rover';
 import { Tactil, esTactil } from './tactil';
+import { abrirEva, estadoSimulador } from './paraEva';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -202,7 +203,13 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   await sim.start();
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
 
-  const onKey = (e) => { if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.target.closest?.('button,input,select,textarea')) sim.skip(); };
+  const onKey = (e) => {
+    if (e.target.closest?.('button,input,select,textarea,[contenteditable="true"]')) return;
+    if (e.code === 'Enter' || e.code === 'NumpadEnter') sim.skip();
+    if (e.code === 'KeyH' && !e.repeat) { e.preventDefault(); abrirEva(); } // hablar con EVA: suelta el ratón y abre su panel (sin que la «h» caiga en su campo)
+  };
+  // Lo que EVA ve de esta pantalla (features/assistant/eva/acciones.ts lo lee como contexto de cada pregunta)
+  window.HorizonSimulador = { text: () => estadoSimulador(view, sim, caminata, rover) };
   window.addEventListener('keydown', onKey);
   // AFK: si nadie toca teclado ni ratón, EVA se burla de la ausencia (tres frases por turnos; ella además se limita
   // a un comentario cada 90 s y no lo dice si está hablando de otra cosa)
@@ -232,6 +239,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
 
   return () => {
     document.querySelector('.sim-informe')?.remove(); // el informe vive en el body
+    delete window.HorizonSimulador;
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
     window.clearInterval(afk); for (const ev of ['keydown', 'pointerdown', 'pointermove', 'wheel']) window.removeEventListener(ev, marcar);
     sim.stop(true); sim.active = false; sim.distant = false;

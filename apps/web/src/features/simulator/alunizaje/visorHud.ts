@@ -11,7 +11,7 @@ const lvl = (f) => (f > 0.5 ? '#6dffc0' : f > 0.25 ? '#ffc04d' : '#ff5c70');
 const KEYS = [
   ['e', 'E', tr('Collect', 'Recoger')], ['sp', '␣', tr('Jump', 'Saltar')],
   ['g', 'G', tr('Sun visor', 'Visor solar')], ['l', 'L', tr('Lamps', 'Luces')], ['r', 'R', tr('Recharge', 'Recarga')], ['t', 'T', tr('Time', 'Tiempo')],
-  ['q', 'Q', tr('Fly again', 'Volver a volar')],
+  ['q', 'Q', tr('Fly again', 'Volver a volar')], ['h', 'H', tr('Talk to EVA', 'Hablar con EVA')],
 ];
 const LEFT = [['o2', 'O₂'], ['co2', 'CO₂'], ['h2o', 'H₂O'], ['bat', tr('BAT', 'BAT')]];
 const RIGHT = [['lmr', tr('LM STORES', 'RESERVAS LM')], ['sun', tr('SUN', 'SOL')], ['earth', tr('EARTH', 'TIERRA')], ['ret', tr('RETURN', 'REGRESO')]];
