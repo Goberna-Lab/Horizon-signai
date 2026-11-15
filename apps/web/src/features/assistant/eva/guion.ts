@@ -463,6 +463,21 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     texto: "Sample bagged. Regolith is as sharp as broken glass, by the way. Do not lick it.",
     es: { texto: "Muestra guardada. El regolito corta como vidrio roto, por cierto. No lo pruebes." },
   },
+  // Cráter grande delante y la persona intenta cruzarlo: aviso crítico con el lado por el que rodearlo
+  "crater-izquierda": {
+    texto: "Crater. Do not cross it, the walls are loose regolith. Go around it on the left.",
+    serio: "Crater. Do not cross it, the walls are loose regolith. Go around it on the left.",
+    es: { texto: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la izquierda.", serio: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la izquierda." },
+    critico: true,
+    repetible: true,
+  },
+  "crater-derecha": {
+    texto: "Crater. Do not cross it, the walls are loose regolith. Go around it on the right.",
+    serio: "Crater. Do not cross it, the walls are loose regolith. Go around it on the right.",
+    es: { texto: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la derecha.", serio: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la derecha." },
+    critico: true,
+    repetible: true,
+  },
   "eva-completa": {
     texto: "All tasks done and you are back at the lander. I will pretend I never doubted you.",
     es: { texto: "Todas las tareas hechas y de vuelta en el módulo. Haré como que nunca dudé de ti." },

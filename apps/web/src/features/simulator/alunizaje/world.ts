@@ -8,6 +8,7 @@ import wideUrl from './data/wide.i16?url';
 import siteUrl from './data/site.json?url';
 import { LandingSim } from './landing';
 import { Sonido } from './sonido';
+import { makeDetail, buildDetail, disposeDetail, DETAIL_HALF } from './detalle';
 import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
 
@@ -54,7 +55,11 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   const [site, fineBuf, wideBuf] = await Promise.all([fetch(siteUrl).then((r) => r.json()), fetch(fineUrl).then((r) => r.arrayBuffer()), fetch(wideUrl).then((r) => r.arrayBuffer())]);
   const fine = sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half), wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const FH = site.fine.half - 40;
-  const groundY = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? fine(x, z) : wide(x, z));
+  const baseY = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? fine(x, z) : wide(x, z));
+  // Cerca del sitio, el suelo de detalle (cráteres pequeños y rocas, detalle.ts) sobre el relieve LOLA
+  const detail = makeDetail(site.site);
+  const enDetalle = (x, z) => Math.abs(x) < DETAIL_HALF && Math.abs(z) < DETAIL_HALF;
+  const groundY = (x, z) => (enDetalle(x, z) ? baseY(x, z) + detail.height(x, z) : baseY(x, z));
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
@@ -72,7 +77,10 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   reg.repeat.set(750, 750);
   const regW = reg.clone(); regW.repeat.set(250, 250); regW.needsUpdate = true;
   const matWide = new THREE.MeshStandardMaterial({ color: 0xa9a7a2, roughness: 1, metalness: 0, map: regW });
-  scene.add(terrainMesh(fine, site.fine.half, site.fine.n, matFine));
+  // La malla LOLA se hunde bajo el parche de detalle (los cuencos de los cráteres bajan hasta ~4,5 m) para no asomar
+  scene.add(terrainMesh(fine, site.fine.half, site.fine.n, matFine, (x, z) => (Math.abs(x) < DETAIL_HALF - 12 && Math.abs(z) < DETAIL_HALF - 12 ? 6 : 0)));
+  const detailMesh = buildDetail(detail, baseY, matFine); // también deja detail.rocks: las usa el contacto del aterrizaje
+  scene.add(detailMesh);
   scene.add(terrainMesh(wide, site.wide.half, site.wide.n, matWide, (x, z) => (Math.abs(x) < FH - 60 && Math.abs(z) < FH - 60 ? 4 : 0)));
   const ringDeg = site.ringDeg, bins = ringDeg.length - 1, rp = new Float32Array((bins + 1) * 6), col = new Float32Array((bins + 1) * 6), idx = [];
   for (let i = 0; i <= bins; i++) {
@@ -92,7 +100,27 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   const sd = dir(site.sun.az, site.sun.el);
   const sun = new THREE.Mesh(new THREE.SphereGeometry(Math.tan(site.sun.radius * D2R) * SKY_D, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xfff8e6).multiplyScalar(9), toneMapped: false }));
   sun.position.copy(sd).multiplyScalar(SKY_D); scene.add(sun);
-  if (site.earth.visible) { const e = new THREE.Mesh(new THREE.SphereGeometry(Math.tan(site.earth.radius * D2R) * SKY_D, 32, 16), new THREE.MeshStandardMaterial({ color: 0x6f9be0, roughness: 0.6 })); e.position.copy(dir(site.earth.az, site.earth.el)).multiplyScalar(SKY_D); scene.add(e); }
+  // Resplandor del Sol (el vacío no lo difunde: es el de la óptica, como en las fotos del Apollo)
+  const glow = document.createElement('canvas'); glow.width = glow.height = 128;
+  { const g = glow.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,240,200,1)'); gr.addColorStop(0.15, 'rgba(255,220,150,.5)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+  const glowTex = new THREE.CanvasTexture(glow); glowTex.colorSpace = THREE.SRGBColorSpace;
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  sunGlow.position.copy(sun.position); sunGlow.scale.setScalar(Math.tan(site.sun.radius * D2R) * SKY_D * 14); scene.add(sunGlow);
+  // La Tierra, si está sobre el horizonte: continentes, nubes y su fase según dónde está el Sol
+  if (site.earth.visible) {
+    const ec = document.createElement('canvas'); ec.width = 512; ec.height = 256; const g = ec.getContext('2d');
+    g.fillStyle = '#1f4e8c'; g.fillRect(0, 0, 512, 256);
+    const blob = (color, n, rmin, rmax) => { for (let k = 0; k < n; k++) { const x = Math.random() * 512, y = 256 * (0.15 + Math.random() * 0.7), r = rmin + Math.random() * (rmax - rmin); g.fillStyle = color; g.beginPath(); g.ellipse(x, y, r * 1.6, r, Math.random() * 3, 0, Math.PI * 2); g.fill(); } };
+    blob('#4f7a3a', 26, 8, 30); blob('#a68a5b', 10, 6, 18); g.globalAlpha = 0.75; blob('#ffffff', 60, 4, 20); g.fillRect(0, 0, 512, 18); g.fillRect(0, 238, 512, 18);
+    const map = new THREE.CanvasTexture(ec); map.colorSpace = THREE.SRGBColorSpace;
+    const earthMat = new THREE.ShaderMaterial({
+      uniforms: { map: { value: map }, sunDir: { value: sd.clone() } },
+      vertexShader: 'varying vec2 vUv; varying vec3 vN; void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: 'uniform sampler2D map; uniform vec3 sunDir; varying vec2 vUv; varying vec3 vN; void main(){ vec3 c = texture2D(map, vUv).rgb; float l = max(dot(normalize(vN), sunDir), 0.0); gl_FragColor = vec4(c * (0.1 + 1.25 * l), 1.0); }',
+    });
+    const e = new THREE.Mesh(new THREE.SphereGeometry(Math.tan(site.earth.radius * D2R) * SKY_D, 48, 32), earthMat);
+    e.position.copy(dir(site.earth.az, site.earth.el)).multiplyScalar(SKY_D); scene.add(e);
+  }
 
   // Luz: Sol rasante con sombras que siguen a la nave, luz rebotada por el regolito y un mínimo de ambiente
   const sunLight = new THREE.DirectionalLight(0xfff6e8, 3.2 * site.sun.frac);
@@ -105,7 +133,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   const sonido = new Sonido();
   const sfx = { radio() {}, static: (d) => sonido.staticNoise(d), boom: () => sonido.boom(), programAlarm: () => sonido.programAlarm() };
   const view = {
-    host, renderer, scene, camera, groundY, baseY: groundY, siteName: site.site, time: Date.parse(site.time),
+    host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
     eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 },
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
@@ -142,6 +170,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
     caminata.dispose(); view.astro.dispose();
+    disposeDetail(detailMesh); glowTex.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
 }

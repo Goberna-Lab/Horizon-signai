@@ -28,6 +28,8 @@ const O2_PER_J = 1.43e-3 / 20100;   // kg de O₂ por julio metabólico
 const SUBLIM_J_PER_KG = 2.83e6;     // calor que se lleva cada kg de agua al sublimarse
 const RESERVE_S = 30 * 60;          // reserva de O₂ que no se cuenta para el regreso
 const LM_O2_KG = 21.8, LM_WATER_KG = 151;
+const CRATER_MIN_R = 2.5;  // cráteres que se avisan (radio, m): los más chicos se cruzan sin problema
+const CRATER_BORDE = 1.2;  // el borde levantado llega a ~1,2 radios del centro (detalle.ts)
 /** Límite de regreso (m) con el traje lleno, caminando a ~1 m/s: la mitad de lo que dura el consumible más escaso. */
 const WALKBACK_LLENO = Math.min((O2_KG - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J), WATER_KG / ((300 + 105) / SUBLIM_J_PER_KG), (BATT_WH * 3600) / 35, (LIOH_KJ * 1000) / 300) * 0.5;
 const D2R = Math.PI / 180;
@@ -193,10 +195,33 @@ export class Caminata {
     cam.rotation.set(this.pitch, this.yaw, 0, 'YXZ'); cam.updateMatrixWorld();
     this.lampGroup.position.copy(cam.position); this.lampGroup.quaternion.copy(cam.quaternion); this.lampGroup.updateMatrixWorld(true);
     this._mv = speed > 0.15;
+    this._crater(speed);
     this._suit(dt0, speed, this._mv);
     this.tasks.update();
     this._eva(dt0);
     this._hud(dt0);
+  }
+
+  /**
+   * Cráteres del suelo de detalle (detalle.ts): si caminas hacia uno grande y llegas al borde, precaución; si intentas
+   * cruzarlo (ya dentro del borde y yendo hacia el centro), alarma y EVA te dice por qué lado rodearlo.
+   */
+  _crater(speed) {
+    const craters = this.view.detail?.craters ?? [], v = this.vel;
+    let best = null;
+    if (speed > 0.25) for (const c of craters) {
+      if (c.rad < CRATER_MIN_R) continue;
+      const dx = c.x - this.pos.x, dz = c.z - this.pos.z, d = Math.hypot(dx, dz);
+      const borde = c.rad * CRATER_BORDE, hacia = (v.x * dx + v.z * dz) / (d || 1); // velocidad hacia el centro (m/s)
+      if (d > borde + 4 || hacia < 0.25) continue;
+      const k = d / borde;
+      if (!best || k < best.k) best = { c, d, k, nivel: d < borde ? 'crit' : 'warn', izq: v.z * dx - v.x * dz < 0 };
+    }
+    this.crater = best;
+    if (best?.nivel === 'crit') {
+      const t = performance.now();
+      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha'); }
+    }
   }
 
   /** Consumibles del traje, cansancio, pulso y los fallos que se viven (túnel de hipoxia y misión perdida). */
@@ -292,6 +317,7 @@ export class Caminata {
       sun: now ? [cam.position.clone().addScaledVector(dir(now.sun.az, now.sun.el), 1000), `${tr('SUN', 'SOL')} · ${fmt(now.sun.frac * 100)} %`] : null,
       earth: now ? [cam.position.clone().addScaledVector(dir(now.earth.az, now.earth.el), 1000), now.earth.visible ? tr('EARTH · LINK', 'TIERRA · ENLACE') : tr('EARTH · HIDDEN', 'TIERRA · OCULTA')] : null,
       obj: tg ? [tg.clone().add(new THREE.Vector3(0, 1.1, 0)), `${tr('TARGET', 'OBJETIVO')} · ${fmt(this.pos.distanceTo(tg))} m`] : null,
+      crater: this.crater ? [new THREE.Vector3(this.crater.c.x, v.groundY(this.crater.c.x, this.crater.c.z) + 0.5, this.crater.c.z), tr(`CRATER · Ø ${fmt(this.crater.c.rad * 2)} m`, `CRÁTER · Ø ${fmt(this.crater.c.rad * 2)} m`)] : null,
     };
     // Con el ojo de pez del casco, una dirección del mundo cae en pantalla según `direccionAPantalla`
     const sp = { x: 0, y: 0 }, marks = {};
@@ -352,6 +378,12 @@ export class Caminata {
         : ['warn', tr('In shadow', 'En sombra'), tr('The relief blocks the Sun: cold, and the lamps help (L)', 'El relieve tapa el Sol: frío, y las lámparas ayudan (L)')]);
       alerts.push(now.earth.visible ? ['ok', tr('Earth link', 'Enlace con la Tierra'), tr('radio delay 1.3 s', 'retardo de radio 1,3 s')] : ['warn', tr('No Earth', 'Sin Tierra'), tr('The relief hides the Earth: no link with Houston', 'El relieve tapa la Tierra: sin enlace con Houston')]);
     }
+    const cr = this.crater;
+    if (cr) {
+      const lado = cr.izq ? tr('go around it on the left', 'rodéalo por la izquierda') : tr('go around it on the right', 'rodéalo por la derecha');
+      alerts.push(cr.nivel === 'crit' ? ['crit', tr('Crater: do not cross it', 'Cráter: no lo cruces'), tr(`Ø ${fmt(cr.c.rad * 2)} m, ${fmt(cr.c.depth * 1.6, 1)} m deep · ${lado}`, `Ø ${fmt(cr.c.rad * 2)} m y ${fmt(cr.c.depth * 1.6, 1)} m de hondo · ${lado}`), 'crater']
+        : ['warn', tr('Crater ahead', 'Cráter delante'), tr(`Ø ${fmt(cr.c.rad * 2)} m · ${lado}`, `Ø ${fmt(cr.c.rad * 2)} m · ${lado}`)]);
+    }
     if (this.visor.thetaSol < 0.5 && this.visor.visor === 2 && d.inSun) alerts.push(['warn', tr('Glare', 'Deslumbramiento'), tr('Lower the sun visor (G)', 'Baja el visor solar (G)')]);
     const suit0 = alerts.length;
     if (F.o2 < 0.25) alerts.push(['crit', tr('Low O₂ · back to the LM', 'O₂ bajo · vuelve al LM'), tr(`${hm(d.left.o2)} of oxygen left`, `Queda ${hm(d.left.o2)} de oxígeno`)]);
@@ -367,7 +399,7 @@ export class Caminata {
     const crit = alerts.find((a) => a[0] === 'crit'), warn = alerts.some((a) => a[0] === 'warn');
     if (!!crit !== this._crit) { this._crit = !!crit; this.sonido?.alarma(!!crit && !this.lost); }
     // Lo crítico, a EVA (la de toda la app), como aviso crítico; cada uno como mucho una vez cada 40 s
-    if (crit && !this.lost) {
+    if (crit && !this.lost && crit[3] !== 'crater') { // el cráter lo dice EVA con su voz grabada (en _crater)
       const k = 'crit:' + crit[1], t = performance.now(); this._critT ??= {};
       if (!this._critT[k] || t - this._critT[k] > 40000) { this._critT[k] = t; avisarEva('aviso-critico', `${crit[1]}. ${crit[2]}.`); }
     }
