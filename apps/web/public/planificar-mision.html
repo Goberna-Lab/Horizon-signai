@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Horizon Signai · Planificador de misiones</title>
+<meta name="description" content="Planifica una misión al polo sur lunar desde cero y verifícala con datos reales: Sol y Tierra del motor del Planificador (DE441), relieve LOLA y los KPIs del equipo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F4EFE6'/%3E%3Cpath d='M6 17a10 10 0 0 1 20 0z' fill='%23C8102E'/%3E%3Cpath d='M3 20h26M7 24h18M11 28h10' stroke='%23111' stroke-width='1.6'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Página autónoma, como mapa-3d.html. La lógica y los textos son los del artifact del planificador; los datos los genera
+   apps/web/scripts/build-planificador-mision.ts (public/planificar-mision/datos.js). */
+body { margin: 0 }
+
+/* Layout: la lámina del Planificador de Horizon. Plan a la izquierda, resultado a la derecha; esquinas rectas, reglas de tinta, tramas.
+   Paleta del equipo (apps/web/src/styles/tokens.css): papel, sombra, tinta, rojo de señal; la Tierra en azul y el Sol en rojo. */
+:root {
+  --paper: #f4efe6; --shade: #c9c1b6; --ink: #111111; --ink-soft: rgb(17 17 17 / .68); --signal: #c8102e; --earth: #1f5fa8;
+  --tint: rgb(17 17 17 / .05); --hatch: rgb(17 17 17 / .28); --night: rgb(17 17 17 / .09);
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --track: -0.03em;
+  --lit: #e3c23d; --umbra: #3a2a63; /* luz y sombra en el mapa, como Temporal Illumination de LROC */
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #141312; --shade: #3b3835; --ink: #f4efe6; --ink-soft: rgb(244 239 230 / .66); --signal: #ea3b52; --earth: #6f9ef1;
+  --tint: rgb(244 239 230 / .05); --hatch: rgb(244 239 230 / .3); --night: rgb(0 0 0 / .4); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #141312; --shade: #3b3835; --ink: #f4efe6; --ink-soft: rgb(244 239 230 / .66); --signal: #ea3b52; --earth: #6f9ef1;
+  --tint: rgb(244 239 230 / .05); --hatch: rgb(244 239 230 / .3); --night: rgb(0 0 0 / .4); color-scheme: dark }
+
+* { box-sizing: border-box; border-radius: 0 }
+[hidden] { display: none !important }
+body { background: var(--paper); color: var(--ink); font: 400 15px/1.45 var(--f-display); -webkit-font-smoothing: antialiased }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 18px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: var(--track) }
+.lbl { font: 500 10.5px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft) }
+button, input, select { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px }
+.hatch { background: repeating-linear-gradient(135deg, var(--hatch) 0 1.5px, transparent 1.5px 5px) }
+
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; padding-bottom: 12px; border-bottom: 1px solid var(--ink); margin-bottom: 14px }
+.top h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 900; line-height: 1 }
+.top h1 small { display: block; font: 500 11px var(--f-mono); color: var(--ink-soft); letter-spacing: .08em; text-transform: uppercase; margin-top: 6px }
+.seg { display: inline-flex; border: 1px solid var(--ink) }
+.seg button { border: 0; background: none; padding: 5px 10px; cursor: pointer; font: 500 12px var(--f-mono) }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center }
+.preset { border: 1px solid var(--ink); background: none; padding: 6px 10px; cursor: pointer; font: 500 13px var(--f-mono) }
+.preset:hover { background: var(--tint) }
+.preset[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+
+.grid { display: grid; grid-template-columns: minmax(280px, 330px) minmax(0, 1fr); gap: 24px; align-items: start }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+
+.plan { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px) }
+@media (max-width: 900px) { .plan { position: static } }
+.step { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--ink) }
+.step h2 { font-size: 17px; font-weight: 800; display: flex; gap: 8px; align-items: baseline }
+.step h2 i { font: 500 11px var(--f-mono); color: var(--signal); font-style: normal }
+.zones { display: grid; gap: 0; border: 1px solid var(--ink) }
+.zone { border: 0; border-top: 1px solid var(--shade); background: none; padding: 8px 10px; cursor: pointer; text-align: left; display: flex; gap: 10px; align-items: center }
+.zone:first-child { border-top: 0 }
+.zone .k { font: 900 18px/1 var(--f-display); width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--ink); flex: none }
+.zone b { font-weight: 600; font-size: 14px; flex: 1 }
+.zone span.s { font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.zone:hover { background: var(--tint) }
+.zone[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+.zone[aria-pressed="true"] .k { background: var(--signal); border-color: var(--signal); color: #f4efe6 }
+.zone[aria-pressed="true"] span.s { color: inherit; opacity: .7 }
+.field { display: grid; gap: 4px; min-width: 0 }
+.field input { width: 100%; height: 34px; border: 1px solid var(--ink); background: var(--paper); padding: 0 8px; font: 400 13px var(--f-mono) }
+.range { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center }
+.range input { width: 100%; accent-color: var(--signal); grid-column: 1 / -1 }
+.range output { font: 500 13px var(--f-mono) }
+.chips { display: flex; gap: 0; flex-wrap: wrap; border: 1px solid var(--ink); width: fit-content; max-width: 100% }
+.chip { border: 0; border-left: 1px solid var(--ink); background: none; padding: 6px 10px; cursor: pointer; font-size: 13px }
+.chip:first-child { border-left: 0 }
+.chip:hover { background: var(--tint) }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+.toggle { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer }
+.toggle input { accent-color: var(--signal); width: 16px; height: 16px }
+.btn { border: 1px solid var(--ink); background: none; padding: 7px 12px; cursor: pointer; font: 500 13px var(--f-display) }
+.btn:hover { background: var(--tint) }
+.btn.primary { background: var(--signal); color: #f4efe6; border-color: var(--signal) }
+.btn.primary:hover { filter: brightness(1.08) }
+a.btn { text-decoration: none; display: inline-block; color: inherit }
+a.btn.primary { color: #f4efe6 }
+
+.out { display: grid; gap: 20px; min-width: 0 }
+.card { border-top: 1px solid var(--ink); padding-top: 12px; display: grid; gap: 12px; min-width: 0 }
+.card h3 { font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline }
+.card h3 .lbl { letter-spacing: .08em }
+
+.verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; border: 1px solid var(--ink); padding: 14px }
+.verdict .badge { font: 900 40px/1 var(--f-display); letter-spacing: var(--track); padding: 14px 18px; text-align: center; min-width: 140px; border: 2px solid var(--s) }
+.verdict .badge small { display: block; font: 500 10.5px var(--f-mono); letter-spacing: .08em; margin-top: 6px; text-transform: uppercase }
+.st-go { --s: var(--ink) } .st-warn { --s: var(--signal) } .st-nogo { --s: var(--signal) }
+.verdict.st-go .badge { background: var(--ink); color: var(--paper) }
+.verdict.st-warn .badge { color: var(--signal) }
+.verdict.st-nogo .badge { background: var(--signal); color: #f4efe6 }
+.verdict h2 { font-size: 24px; font-weight: 900 }
+.verdict p { margin: 4px 0 0; font: 400 12.5px/1.4 var(--f-mono); color: var(--ink-soft) }
+.verdict .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px }
+@media (max-width: 560px) { .verdict { grid-template-columns: minmax(0, 1fr) } }
+
+.checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 20px }
+.check { display: grid; grid-template-columns: 12px 1fr auto; gap: 2px 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--shade); min-width: 0 }
+.check i { width: 12px; height: 12px; align-self: center; background: var(--ink) }
+.check.st-warn i { background: none; border: 2px solid var(--signal) }
+.check.st-nogo i { background: var(--signal) }
+.check b { font-size: 14px; font-weight: 600 }
+.check .v { font: 500 13px var(--f-mono); white-space: nowrap }
+.check.st-nogo b, .check.st-nogo .v { color: var(--signal) }
+.check.st-info i { background: none; border: 1.5px solid var(--ink-soft) }
+.check.st-info b { font-weight: 500 }
+.check span { grid-column: 2 / -1; font: 400 11.5px/1.35 var(--f-mono); color: var(--ink-soft) }
+
+.two.solo { grid-template-columns: minmax(0, 1fr) }
+.two.solo canvas { max-width: 760px }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px }
+@media (max-width: 760px) { .two { grid-template-columns: minmax(0, 1fr) } }
+
+.stack { display: flex; height: 22px; border: 1px solid var(--ink) }
+.stack div { height: 100% }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 400 12px var(--f-mono) }
+.legend div { display: flex; gap: 6px; align-items: center }
+.legend i { width: 10px; height: 10px; display: inline-block; flex: none }
+canvas { display: block; width: 100%; max-width: 100%; border: 1px solid var(--ink) }
+.run { font: 400 12.5px/1.45 var(--f-mono); padding: 8px 10px; border-left: 3px solid var(--signal); min-height: 38px }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px }
+.kv div { display: grid; gap: 2px }
+.kv b { font: 700 22px/1.1 var(--f-display); letter-spacing: var(--track); font-variant-numeric: tabular-nums; white-space: nowrap }
+.gauges { display: grid; gap: 7px }
+.gauge { display: grid; grid-template-columns: 76px minmax(0, 1fr) 46px; gap: 10px; align-items: center; font: 400 12px var(--f-mono) }
+.gauge .bar { height: 12px; border: 1px solid var(--ink); position: relative; overflow: hidden }
+.gauge .bar i { position: absolute; inset: 0 auto 0 0; background: var(--s) }
+.gauge .bar u { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--signal); left: 50% }
+.gauge .num { text-align: right }
+.gauge.st-go .bar i { background: var(--ink) }
+.tl { display: flex; height: 22px; border: 1px solid var(--ink); font: 500 10px var(--f-mono) }
+.tl div { display: grid; place-items: center; overflow: hidden; white-space: nowrap; border-left: 1px solid var(--paper) }
+.tl div:first-child { border-left: 0 }
+
+.svgbox { overflow-x: auto }
+svg text { font-family: var(--f-mono) }
+/* portada y formulario por pasos */
+.inicio { display: grid; place-items: center; min-height: 60vh; padding-block: 24px }
+.cta.grande { font-size: clamp(22px, 4vw, 34px); font-weight: 900; padding: clamp(18px, 3vw, 28px) clamp(24px, 5vw, 48px) }
+.inicio h2 { font-size: clamp(36px, 6vw, 64px); font-weight: 900; line-height: .95 }
+.inicio h2 em { font-style: normal; color: var(--signal) }
+.inicio p { margin: 14px 0 22px; max-width: 46ch; color: var(--ink-soft); font-size: 16px }
+.cta { font: 800 18px var(--f-display); letter-spacing: var(--track); padding: 16px 22px; background: var(--signal); color: #f4efe6; border: 0; cursor: pointer; display: inline-flex; gap: 14px; align-items: center }
+.cta:hover { filter: brightness(1.08) }
+.cta span { font: 500 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; opacity: .85 }
+.wz { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; padding-block: 12px }
+.wz-prog { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px }
+.wz-prog button { border: 0; border-top: 4px solid var(--shade); background: none; padding: 6px 0 0; text-align: left; font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); cursor: pointer }
+.wz-prog button[data-st="hecho"] { border-color: var(--ink); color: var(--ink) }
+.wz-prog button[data-st="actual"] { border-color: var(--signal); color: var(--signal) }
+.wz-prog button:disabled { cursor: default }
+.wz h2 { font-size: clamp(26px, 4vw, 38px); font-weight: 900; line-height: 1 }
+.wz-q { color: var(--ink-soft); margin: -8px 0 0 }
+.wz-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px }
+.wz-opt { border: 1px solid var(--ink); background: none; padding: 14px; text-align: left; cursor: pointer; display: grid; gap: 4px; align-content: start }
+.wz-opt:hover { background: var(--tint) }
+.wz-opt[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+.wz-opt big { font: 900 30px/1 var(--f-display); letter-spacing: var(--track) }
+.wz-opt[aria-pressed="true"] big { color: var(--signal) }
+.wz-opt b { font-size: 15px; font-weight: 700 }
+.wz-opt small { font: 400 11.5px/1.4 var(--f-mono); opacity: .75 }
+.wz-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px }
+.wz-campos input[type="text"], .wz-campos input[type="datetime-local"] { width: 100%; height: 44px; border: 1px solid var(--ink); background: var(--paper); padding: 0 10px; font: 500 16px var(--f-mono) }
+.wz-vivo { display: flex; gap: 24px; flex-wrap: wrap; padding: 10px 12px; border-left: 3px solid var(--signal); font: 400 12.5px var(--f-mono) }
+.wz-vivo b { font: 700 22px var(--f-display); letter-spacing: var(--track); display: block }
+.wz-nav { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--ink) }
+.wz-nav .cta:disabled { background: var(--shade); color: var(--ink-soft); cursor: not-allowed; filter: none }
+.wz-rec { display: grid; gap: 4px; padding: 12px 14px; border: 2px solid var(--ink); justify-items: start }
+.wz-rec b { font: 800 22px var(--f-display); letter-spacing: var(--track) }
+.wz-rec p { margin: 0 0 6px; color: var(--ink-soft); max-width: 70ch }
+.wz-opt { position: relative }
+.wz-tag { position: absolute; top: -1px; right: -1px; background: var(--signal); color: #f4efe6; font: 500 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px }
+.wz-nota { margin-top: 6px; opacity: 1 !important }
+.wz-nota[data-ok="false"] { color: var(--signal) }
+.wz-falta { font: 400 12px var(--f-mono); color: var(--ink-soft); align-self: center }
+.mision-nombre { font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--signal) }
+@media (prefers-reduced-motion: no-preference) { .vista { animation: sube .45s cubic-bezier(.16, 1, .3, 1) } }
+.luzq { display: grid; grid-template-columns: minmax(0, 378px) minmax(0, 1fr); gap: 20px; align-items: start }
+@media (max-width: 720px) { .luzq { grid-template-columns: minmax(0, 1fr) } }
+.luzq-mapa canvas { width: 100%; aspect-ratio: 1; background: var(--umbra) }
+.luzq-ley { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.luzq-ley span { display: flex; gap: 6px; align-items: center }
+.luzq-ley i { width: 12px; height: 12px; display: inline-block }
+.luzq-lado { display: grid; gap: 14px; align-content: start }
+.luzq-hora b { display: block; font: 700 22px var(--f-display); letter-spacing: var(--track) }
+.luzq-cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 0; border-block: 1px solid var(--shade) }
+.luzq-cifras b { display: block; font: 800 20px var(--f-display); letter-spacing: var(--track) }
+.luzq-cifras small { font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.luzq-tl { display: grid; gap: 8px }
+.luzq-tl canvas { border: 0; width: 100%; cursor: ew-resize; touch-action: none }
+.luzq-ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
+.luzq-ctl .btn { padding: 5px 10px; font-family: var(--f-mono) }
+details.foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--ink); font: 400 12px/1.5 var(--f-mono); color: var(--ink-soft); max-width: 100ch }
+details.foot summary { cursor: pointer; color: var(--ink); text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 8px 14px; font: 400 13px var(--f-mono) }
+@media (prefers-reduced-motion: no-preference) {
+  .stack div, .gauge .bar i { transition: width .6s cubic-bezier(.16, 1, .3, 1), background-color .3s }
+  .verdict.pop .badge { animation: pop .55s cubic-bezier(.16, 1, .3, 1) }
+  .verdict.pop h2 { animation: sube .5s cubic-bezier(.16, 1, .3, 1) }
+  .check.cambio { animation: destello 1.1s ease-out }
+  .check.cambio i { animation: pop .5s cubic-bezier(.16, 1, .3, 1) }
+  .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: trazo 1.1s cubic-bezier(.65, 0, .35, 1) forwards }
+  .draw.lento { animation-duration: 1.6s }
+  .aparece { animation: sube .45s cubic-bezier(.16, 1, .3, 1) both }
+  .astro-pulso { transform-box: fill-box; transform-origin: center; animation: pulso 1.6s ease-out infinite }
+  .preset, .zone, .chip, .btn { transition: background-color .2s, color .2s, transform .12s }
+  .preset:active, .zone:active, .chip:active, .btn:active { transform: scale(.97) }
+  .tl div { transition: flex-grow .6s cubic-bezier(.16, 1, .3, 1) }
+}
+@keyframes pop { 0% { transform: scale(.82); opacity: .3 } 60% { transform: scale(1.06) } 100% { transform: scale(1); opacity: 1 } }
+@keyframes sube { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes destello { 0% { background: var(--hatch) } 100% { background: transparent } }
+@keyframes trazo { to { stroke-dashoffset: 0 } }
+@keyframes pulso { 0% { transform: scale(1); opacity: .7 } 100% { transform: scale(3); opacity: 0 } }
+
+.nota { margin: 0; font: 400 11.5px/1.45 var(--f-mono); color: var(--ink-soft) }
+details.foot dl { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 8px 18px; margin: 12px 0 0 }
+details.foot dt { color: var(--ink); font-weight: 500 }
+details.foot dd { margin: 0 }
+@media (max-width: 560px) { details.foot dl { grid-template-columns: minmax(0, 1fr) } }
+#terreno { max-width: 760px }
+.kpis { display: grid; gap: 16px }
+.kpi-g { display: grid; gap: 6px }
+.kpi-fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px }
+.kpi { border: 1px solid var(--ink); border-top-width: 4px; padding: 10px 12px; display: grid; gap: 3px; align-content: start; min-width: 0 }
+.kpi[data-st="no"] { border-top-color: var(--signal) }
+.kpi[data-st="sin"] { border-style: dashed; border-top-style: solid; border-top-color: var(--shade) }
+.kpi-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.kpi-top b { font: 900 22px/1 var(--f-display); letter-spacing: var(--track) }
+.kpi-top i { font: 500 10px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; font-style: normal; padding: 2px 6px; background: var(--ink); color: var(--paper); white-space: nowrap }
+.kpi[data-st="no"] .kpi-top i { background: var(--signal); color: #f4efe6 }
+.kpi[data-st="sin"] .kpi-top i { background: none; color: var(--ink-soft); border: 1px solid var(--shade) }
+.kpi-n { font-size: 13px; font-weight: 600 }
+.kpi strong { font: 800 26px/1.1 var(--f-display); letter-spacing: var(--track); font-variant-numeric: tabular-nums }
+.kpi[data-st="no"] strong { color: var(--signal) }
+.kpi-m { font: 500 12px var(--f-mono) }
+.kpi small { font: 400 11px/1.4 var(--f-mono); color: var(--ink-soft) }
+table.comp { width: 100%; border-collapse: collapse; font: 400 12.5px var(--f-mono); font-variant-numeric: tabular-nums; min-width: 620px }
+table.comp th, table.comp td { padding: 7px 8px; border-bottom: 1px solid var(--shade); text-align: left; white-space: nowrap }
+table.comp thead th { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 1px solid var(--ink) }
+table.comp tbody th { font-family: var(--f-display); font-weight: 500 }
+table.comp td.mal { color: var(--signal); font-weight: 500 }
+table.comp tr[data-actual="true"] { background: var(--tint) }
+
+.seg button { color: var(--ink) }
+.seg button[aria-pressed="true"] { color: var(--paper) }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><a href="/" style="color:inherit;text-decoration:none">Planificador</a> <small data-en="South pole · plan and simulate">Polo sur · planifica y simula</small></h1>
+    </div>
+    <div class="tools">
+      <button type="button" class="btn" id="nueva" hidden data-en="+ New mission">+ Nueva misión</button>
+      <div class="seg" role="group" aria-label="Idioma">
+        <button id="lang-es" type="button" aria-pressed="true">ES</button><button id="lang-en" type="button" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="vista inicio" id="inicio">
+    <button type="button" class="cta grande" id="empezar" data-en="Plan a mission →">Planificar una misión →</button>
+  </section>
+
+  <form class="vista wz" id="wz" hidden autocomplete="off"></form>
+
+  <div id="consola" hidden>
+  <div class="grid">
+    <form class="plan" id="plan" autocomplete="off">
+      <section class="step">
+        <h2><i>1</i><span data-en="Mission">Misión</span></h2>
+        <div class="chips" id="tipos" role="group"></div>
+      </section>
+      <section class="step">
+        <h2><i>2</i><span data-en="Landing zone">Zona de alunizaje</span></h2>
+        <div class="zones" id="zones"></div>
+      </section>
+      <section class="step">
+        <h2><i>3</i><span data-en="Date and stay">Fecha y estadía</span></h2>
+        <label class="field"><span class="lbl" data-en="Landing (UTC)">Alunizaje (UTC)</span>
+          <input id="fecha" type="datetime-local" min="2026-01-01T00:00" max="2030-12-31T23:00" step="3600"></label>
+        <div class="range"><label class="lbl" for="estadia" data-en="Stay">Estadía</label><output id="estadia-o" class="num"></output>
+          <input id="estadia" type="range" min="24" max="336" step="12"></div>
+        <div><button type="button" class="btn" id="mejor" data-en="First date that passes ↻">Primera fecha que cumple ↻</button></div>
+      </section>
+      <section class="step">
+        <h2><i>4</i><span data-en="Equipment">Equipo</span></h2>
+        <div class="chips" id="energias" role="group"></div>
+        <div class="range" id="bat-box"><label class="lbl" for="bateria" data-en="Batteries without Sun">Baterías sin Sol</label><output id="bateria-o" class="num"></output>
+          <input id="bateria" type="range" min="0" max="168" step="1"></div>
+        <div class="range"><label class="lbl" for="mintierra" data-en="Minimum Earth link">Enlace mínimo con la Tierra</label><output id="mintierra-o" class="num"></output>
+          <input id="mintierra" type="range" min="0" max="100" step="5"></div>
+        <div class="field"><span class="lbl" data-en="Panel and antenna height">Altura del panel y la antena</span><div class="chips" id="alturas" role="group"></div></div>
+      </section>
+      <section class="step" id="sec-caminata">
+        <h2><i>5</i><span id="caminata-tit"></span></h2>
+        <div class="chips" id="rutas" role="group"></div>
+        <div class="range"><label class="lbl" for="eva" data-en="Starts after landing">Empieza tras alunizar</label><output id="eva-o" class="num"></output>
+          <input id="eva" type="range" min="1" max="96" step="1"></div>
+        <div id="rover-box" class="wz-campos">
+          <div class="range"><label class="lbl" for="rvel" data-en="Rover speed">Velocidad del rover</label><output id="rvel-o" class="num"></output><input id="rvel" type="range" min="0.1" max="2" step="0.1"></div>
+          <div class="range"><label class="lbl" for="rpar" data-en="Hours per stop">Horas en cada parada</label><output id="rpar-o" class="num"></output><input id="rpar" type="range" min="0" max="12" step="0.5"></div>
+        </div>
+      </section>
+    </form>
+
+    <main class="out" aria-live="polite">
+      <section class="verdict" id="verdict"></section>
+
+
+      <section class="card">
+        <h3><span data-en="KPIs · lunar mission planning">KPIs · planificación de misiones lunares</span><span class="lbl" id="kpis-n"></span></h3>
+        <div id="kpis" class="kpis"></div>
+        <h3 style="font-size:16px"><span data-en="Comparison · same plan in each zone">Comparativo · el mismo plan en cada zona</span></h3>
+        <div class="svgbox"><table class="comp" id="comparativo"></table></div>
+        <p class="nota" id="nlp-lista"></p>
+      </section>
+
+      <section class="card">
+        <h3><span data-en="Checks">Comprobaciones</span><span class="lbl" id="checks-n"></span></h3>
+        <ul class="checks" id="checks"></ul>
+      </section>
+
+      <div class="two" id="dos">
+        <section class="card">
+          <h3><span data-en="Landing terrain">Terreno de alunizaje</span><span class="lbl" data-en="LOLA slope · 80 m">pendiente LOLA · 80 m</span></h3>
+          <canvas id="terreno" aria-label="Pendientes alrededor del punto de alunizaje"></canvas>
+          <div class="legend" id="terreno-ley"></div>
+          <div class="kv" id="terreno-kv"></div>
+          <p class="nota" id="terreno-nota"></p>
+        </section>
+
+        <section class="card" id="card-caminata">
+          <h3><span id="card-caminata-tit"></span><span class="lbl" id="ruta-lbl"></span></h3>
+          <div class="svgbox"><svg id="mapa" viewBox="390 250 660 440" width="100%" role="img" aria-label="Mapa de la ruta"></svg></div>
+          <div class="tl" id="tl"></div>
+          <div class="kv" id="walk-kv"></div>
+          <div class="gauges" id="gauges"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h3><span data-en="Sun and Earth">Sol y Tierra</span><span class="lbl" data-en="above the real horizon · stay days">sobre el horizonte real · días de estadía</span></h3>
+        <div class="svgbox"><svg id="luz" viewBox="0 0 860 220" width="100%" role="img" aria-label="Sol y Tierra durante la estadía"></svg></div>
+        <div class="kv" id="luz-kv"></div>
+      </section>
+    </main>
+  </div>
+  </div>
+
+  <details class="foot" id="fuentes"><summary data-en="Where each number comes from">De dónde sale cada número</summary><div id="fuentes-txt"></div></details>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="/planificar-mision/datos.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+let lang = 'es';
+const L = (es, en) => (lang === 'en' ? en : es);
+const H = 3600e3, D = 24 * H, rad = Math.PI / 180, RLUNA = 1737400;
+
+/* ====================================================================================================================
+   Cifras y su origen. Nada de aquí es inventado: o sale de un dato (JPL, LOLA), o del código del equipo (Planificador,
+   simulador), o de una misión real (Apollo, VIPER). Lo que no tiene fuente lo decide quien planifica, en el formulario.
+   ==================================================================================================================== */
+const PLANIF = { bateriaH: 50, minTierra: 40, alturas: [2, 10] };               // shared/planning/model/missions.ts
+const CAMINAR = { kmh: 2.2, paradaMin: 20, pendMax: 15 };                       // prototipos/lunar-map/mission.js
+const TRAJE = { o2: 0.82, agua: 3.86, lioh: 8870, bat: 279, o2PorJ: 1.43e-3 / 20100, sublim: 2.83e6, reservaS: 1800, reposo: 120, andar: 300, calorExtra: 105, consumoW: 35 }; // simulador: alunizaje/caminata.ts
+const ALUNIZAJE = { inclinado: 6, vuelco: 12, sigma: 25 };                     // simulador: alunizaje/aterrizaje.ts
+const BAT_LM = 75;                                                               // Apollo 17: 75 h en superficie con el LM
+const VIPER_KMH = 0.8;                                                           // NASA, rover VIPER: hasta 0,8 km/h
+const M_POR_PX = 4.7, LM_PX = [430, 640];                                        // escena del Planificador (terrain.js) y tareas.ts
+
+/* ---------- zonas (shared/planning/data/sites.json) ---------- */
+const ZONAS = {
+  A: { id: 'connecting-ridge-roi-6', nombre: 'Connecting Ridge · RoI 6', lat: -89.47392, es: 'Lomo amplio, cerca de Shackleton', en: 'Broad ridge, close to Shackleton' },
+  B: { id: 'peak-near-shackleton-roi-2', nombre: 'Peak near Shackleton · RoI 2', lat: -88.80738, es: 'Cima alta, horizonte despejado', en: 'High summit, clear horizon' },
+  C: { id: 'shackleton-rim-roi-4', nombre: 'Shackleton rim · RoI 4', lat: -89.78497, es: 'Borde del cráter, el más polar', en: 'Crater rim, closest to the pole' }
+};
+
+/* ---------- datos embebidos ---------- */
+const bin = (b64) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; };
+const CIELO = {}, RELIEVE = {};
+for (const z of Object.values(ZONAS)) {
+  const d = DATOS[z.id];
+  CIELO[z.id] = { n: d.n, 2: new Int8Array(bin(d.cielo[2])), 10: new Int8Array(bin(d.cielo[10])) };
+  const r = new Int16Array(bin(d.relieve)), N = d.N, h = new Float32Array(N * N), paso = (2 * d.half) / (N - 1);
+  for (let k = 0; k < N * N; k++) h[k] = r[k] / 10;
+  const pend = new Float32Array(N * N);
+  const g = (i, j) => h[Math.min(N - 1, Math.max(0, j)) * N + Math.min(N - 1, Math.max(0, i))];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const dx = (g(i + 1, j) - g(i - 1, j)) / (2 * paso), dz = (g(i, j + 1) - g(i, j - 1)) / (2 * paso);
+    pend[j * N + i] = Math.atan(Math.hypot(dx, dz)) / rad;
+  }
+  RELIEVE[z.id] = { N, half: d.half, paso, h, pend };
+}
+const T_MIN = DATOS.t0, T_MAX = DATOS.t0 + (CIELO[ZONAS.A.id].n - 1) * DATOS.paso;
+const ALT = { v: 2 };
+function muestra(z, t, k) {
+  const c = CIELO[z.id], v = c[ALT.v], f = Math.min(c.n - 1.0001, Math.max(0, (t - T_MIN) / DATOS.paso)), i = Math.floor(f), u = f - i;
+  const a = v[i * 4 + k], b = v[(i + 1) * 4 + k];
+  if (k === 2) { let d = b - a; if (d > 128) d -= 256; if (d < -128) d += 256; return a + d * u; }
+  return a + (b - a) * u;
+}
+const solEl = (z, t) => muestra(z, t, 0) / 20;     // margen del borde superior del Sol sobre el horizonte (°)
+const tierraEl = (z, t) => muestra(z, t, 1) / 10;  // margen del centro de la Tierra (°)
+const solAz = (z, t) => (((muestra(z, t, 2) + 128) / 256) * 360 + 360) % 360;
+const solGeo = (z, t) => muestra(z, t, 3) / 20;
+function enRelieve(id, campo, x, zz) { // bilineal; x este, z sur (m)
+  const R = RELIEVE[id], f = (v) => Math.min(R.N - 1.001, Math.max(0, (v + R.half) / R.paso));
+  const fx = f(x), fz = f(zz), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, w = fz - j, a = R[campo], N = R.N;
+  return (a[j * N + i] * (1 - u) + a[j * N + i + 1] * u) * (1 - w) + (a[(j + 1) * N + i] * (1 - u) + a[(j + 1) * N + i + 1] * u) * w;
+}
+
+/* ---------- rutas del Planificador (terrain.js), colocadas sobre el relieve real de cada zona ---------- */
+const RUTAS = {
+  segura: { d: 'M430 640 C 520 660, 640 660, 760 620 S 860 560, 890 500 S 905 400, 1000 300', paradas: [[760, 620]], es: 'Segura', en: 'Safe' },
+  corta: { d: 'M430 640 C 520 590, 620 510, 700 450 L 830 330 C 880 300, 950 296, 1000 300', paradas: [], es: 'Corta', en: 'Short' },
+  cientifica: { d: 'M430 640 C 470 590, 510 540, 560 520 S 760 570, 860 600 S 885 520, 893 470 S 905 390, 1000 300', paradas: [[560, 520], [860, 600]], corte: [860, 600], es: 'Científica (CR-02)', en: 'Science (CR-02)' }
+};
+const SVGNS = 'http://www.w3.org/2000/svg';
+const pxAm = (x, y) => [(x - LM_PX[0]) * M_POR_PX, (y - LM_PX[1]) * M_POR_PX];
+const medidor = document.createElementNS(SVGNS, 'svg'); medidor.setAttribute('width', '0'); medidor.setAttribute('height', '0'); medidor.style.position = 'absolute';
+document.body.appendChild(medidor);
+for (const k in RUTAS) {
+  const ru = RUTAS[k], p = document.createElementNS(SVGNS, 'path'); p.setAttribute('d', ru.d); medidor.appendChild(p);
+  const tot = p.getTotalLength(); let len = tot;
+  if (ru.corte) { let best = 1e9; for (let s = 0; s <= tot; s += 2) { const q = p.getPointAtLength(s), dd = Math.hypot(q.x - ru.corte[0], q.y - ru.corte[1]); if (dd < best) { best = dd; len = s; } } }
+  ru.px = len; ru.m = len * M_POR_PX; ru.path = p;
+  ru.paradasPx = ru.paradas.map((q) => { let best = 1e9, s0 = 0; for (let s = 0; s <= len; s += 2) { const pt = p.getPointAtLength(s), dd = Math.hypot(pt.x - q[0], pt.y - q[1]); if (dd < best) { best = dd; s0 = s; } } return s0; });
+  ru.pend = {};
+  for (const z of Object.values(ZONAS)) { let mx = 0; for (let s = 0; s <= len; s += 4) { const pt = p.getPointAtLength(s), [x, zz] = pxAm(pt.x, pt.y); mx = Math.max(mx, enRelieve(z.id, 'pend', x, zz)); } ru.pend[z.id] = mx; }
+}
+
+const TIPOS = {
+  tripulada: { es: 'Tripulada', en: 'Crewed', big: '2', des: ['Dos astronautas en un módulo tipo Apollo y una caminata con traje.', 'Two astronauts in an Apollo-type lander and a suited walk.'] },
+  rover: { es: 'Rover robótico', en: 'Robotic rover', big: 'R', des: ['Un módulo baja un rover que recorre la ruta, guiado desde la Tierra.', 'A lander drops a rover that drives the route, driven from Earth.'] },
+  fija: { es: 'Módulo fijo', en: 'Static lander', big: 'F', des: ['Un robot que trabaja donde aluniza: taladro, sismógrafo o antena.', 'A robot that works where it lands: drill, seismometer or antenna.'] }
+};
+const ENERGIAS = {
+  solar: { es: 'Solar + baterías', en: 'Solar + batteries', big: '☀', des: ['Paneles; las baterías cubren las horas sin Sol. Tú dices cuántas horas aguantan.', 'Panels; batteries cover the hours without Sun. You set how long they last.'] },
+  rtg: { es: 'Nuclear (RTG)', en: 'Nuclear (RTG)', big: 'RTG', des: ['Calor y electricidad del plutonio: no depende del Sol.', 'Heat and power from plutonium: does not depend on the Sun.'] },
+  baterias: { es: 'Solo baterías', en: 'Batteries only', big: '75 h', des: ['Como el LM de Apollo 17: 75 h en superficie sin recargar.', 'Like the Apollo 17 LM: 75 h on the surface without recharging.'] }
+};
+
+/* ---------- estado ---------- */
+const PLAN_EJEMPLO = { nombre: '', tipo: 'tripulada', energia: 'solar', bateriaH: PLANIF.bateriaH, minTierra: PLANIF.minTierra, altura: 2, zona: 'A', t: Date.UTC(2026, 11, 18, 9), estadia: 168, ruta: 'cientifica', eva: 25, roverKmh: VIPER_KMH, roverParadaH: 2 };
+let plan = Object.assign({}, PLAN_EJEMPLO);
+
+/* ---------- utilidades ---------- */
+const fmt = (n, d = 0) => n.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fechaTxt = (t) => new Date(t).toLocaleString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
+const isoLocal = (t) => new Date(t).toISOString().slice(0, 16);
+const horas = (h) => h >= 48 ? fmt(h / 24, 1) + ' d' : fmt(h, h < 10 && h % 1 ? 1 : 0) + ' h';
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = (s) => String(s).replace(/[<>&"]/g, '');
+function el(tag, attrs, txt) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; }
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => (t.hidden = true), 2600); }
+const QUIETO = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+const tweens = {};
+function tween(key, ms, fn, done) {
+  cancelAnimationFrame(tweens[key]);
+  if (QUIETO) { fn(1); if (done) done(); return; }
+  const t0 = performance.now();
+  const paso = (now) => { const k = Math.min(1, (now - t0) / ms); fn(k); if (k < 1) tweens[key] = requestAnimationFrame(paso); else if (done) done(); };
+  tweens[key] = requestAnimationFrame(paso);
+}
+
+/* ---------- cálculos ---------- */
+function luzEstadia(z, t, h) {
+  const sol = [], tierra = []; let solH = 0, tierraH = 0, noche = 0, nocheMax = 0, sinT = 0, sinTMax = 0;
+  for (let i = 0; i <= h; i++) {
+    const s = solEl(z, t + i * H), e = tierraEl(z, t + i * H); sol.push(s); tierra.push(e);
+    if (s > 0) { solH++; noche = 0; } else { noche++; nocheMax = Math.max(nocheMax, noche); }
+    if (e > 0) { tierraH++; sinT = 0; } else { sinT++; sinTMax = Math.max(sinTMax, sinT); }
+  }
+  return { sol, tierra, solFrac: solH / (h + 1), tierraFrac: tierraH / (h + 1), nocheMax, sinTierraMax: sinTMax };
+}
+function fraccion(z, t0, h, f) { let n = 0, s = 0; for (let x = 0; x <= h; x += 0.25) { n++; if (f(z, t0 + x * H) > 0) s++; } return s / n; }
+
+/* Caminata: tiempos del Planificador (mission.js) y gasto del traje del simulador (caminata.ts). */
+function caminata(rk, z, t0) {
+  const ru = RUTAS[rk], km = ru.m / 1000, ida = km / CAMINAR.kmh, paradas = ru.paradas.length, tPar = paradas * CAMINAR.paradaMin / 60;
+  const total = 2 * ida + tPar, sAnd = 2 * ida * 3600, sPar = tPar * 3600;
+  const cons = {
+    o2: (TRAJE.andar * sAnd + TRAJE.reposo * sPar) * TRAJE.o2PorJ,
+    agua: ((TRAJE.andar + TRAJE.calorExtra) * sAnd + (TRAJE.reposo + TRAJE.calorExtra) * sPar) / TRAJE.sublim,
+    lioh: (TRAJE.andar * sAnd + TRAJE.reposo * sPar) / 1000,
+    bat: TRAJE.consumoW * total
+  };
+  const regreso = 0.5 * Math.min((TRAJE.o2 - TRAJE.reposo * TRAJE.o2PorJ * TRAJE.reservaS) / (TRAJE.andar * TRAJE.o2PorJ), TRAJE.agua / ((TRAJE.andar + TRAJE.calorExtra) / TRAJE.sublim), (TRAJE.bat * 3600) / TRAJE.consumoW, (TRAJE.lioh * 1000) / TRAJE.andar) / 3600;
+  return { ru, km, ida, total, tPar, paradas, cons, regreso, vuelta: ida + tPar, pend: ru.pend[z.id], tramos: [[ida, 'ida'], [tPar, 'paradas'], [ida, 'vuelta']], solFrac: fraccion(z, t0, total, solEl), tierraFrac: fraccion(z, t0, total, tierraEl) };
+}
+function recorrido(rk, z, t0) {
+  const ru = RUTAS[rk], km = ru.m / 1000, ida = km / plan.roverKmh, tPar = ru.paradas.length * plan.roverParadaH, total = ida + tPar;
+  return { ru, km, ida, total, tPar, paradas: ru.paradas.length, pend: ru.pend[z.id], tramos: [[ida, 'ida'], [tPar, 'paradas']], solFrac: fraccion(z, t0, total, solEl), tierraFrac: fraccion(z, t0, total, tierraEl) };
+}
+function terreno(z) {
+  let max100 = 0, n500 = 0, sobreInc = 0, sobreVuelco = 0;
+  const R = RELIEVE[z.id];
+  for (let x = -500; x <= 500; x += 20) for (let zz = -500; zz <= 500; zz += 20) {
+    const d = Math.hypot(x, zz); if (d > 500) continue;
+    const p = enRelieve(z.id, 'pend', x, zz); n500++; if (p > ALUNIZAJE.inclinado) sobreInc++; if (p > ALUNIZAJE.vuelco) sobreVuelco++;
+    if (d <= 100) max100 = Math.max(max100, p);
+  }
+  return { punto: enRelieve(z.id, 'pend', 0, 0), max100, inc: sobreInc / n500, vuelco: sobreVuelco / n500, paso: R.paso };
+}
+
+/* Energía: qué opciones cumplen con tu plan y cuál es la más simple que cumple (solar → solo baterías → RTG). */
+function energiaViable(k, p, luz) { return k === 'rtg' ? true : k === 'baterias' ? p.estadia <= BAT_LM : luz.nocheMax <= p.bateriaH; }
+function recomendarEnergia(p, luz) {
+  const sol = fmt(luz.solFrac * 100) + '%', noche = horas(luz.nocheMax);
+  if (luz.nocheMax <= p.bateriaH) return { k: 'solar', por: luz.nocheMax === 0 ? L('Hay Sol el ' + sol + ' de tu estadía, sin noches: con paneles basta.', 'Sun ' + sol + ' of your stay, no nights: panels are enough.') : L('La noche más larga dura ' + noche + ' y tus baterías aguantan ' + horas(p.bateriaH) + ': alcanza con paneles.', 'The longest night lasts ' + noche + ' and your batteries last ' + horas(p.bateriaH) + ': panels are enough.') };
+  if (p.estadia <= BAT_LM) return { k: 'baterias', por: L('La noche más larga (' + noche + ') pasa de tus baterías (' + horas(p.bateriaH) + '), pero la estadía de ' + horas(p.estadia) + ' cabe en 75 h.', 'The longest night (' + noche + ') outlasts your batteries (' + horas(p.bateriaH) + '), but the ' + horas(p.estadia) + ' stay fits in 75 h.') };
+  return { k: 'rtg', por: L('La noche más larga (' + noche + ') pasa de tus baterías (' + horas(p.bateriaH) + ') y la estadía de ' + horas(p.estadia) + ' pasa de 75 h: solo un RTG cumple.', 'The longest night (' + noche + ') outlasts your batteries (' + horas(p.bateriaH) + ') and the ' + horas(p.estadia) + ' stay exceeds 75 h: only an RTG works.') };
+}
+
+/* Comprobaciones: las del Planificador (Sol y Tierra al alunizar, batería, enlace) y las del simulador y del prototipo. */
+function evaluar(p) {
+  ALT.v = p.altura;
+  const z = ZONAS[p.zona], tipo = p.tipo;
+  const solL = solEl(z, p.t), tierraL = tierraEl(z, p.t), luz = luzEstadia(z, p.t, p.estadia), ter = terreno(z);
+  const tEva = p.t + p.eva * H;
+  const w = tipo === 'rover' ? recorrido(p.ruta, z, tEva) : caminata(p.ruta, z, tEva);
+  const fuera = tipo !== 'fija' && p.eva + w.total > p.estadia;
+  const C = (ok, es, en, v, d, info) => ({ s: info ? 'info' : ok ? 'go' : 'nogo', es, en, v, d });
+  const checks = [
+    C(solL > 0, 'Sol al alunizar', 'Sun at landing', fmt(solL, 1) + '°', solL > 0 ? L('Se ve el Sol sobre el horizonte real.', 'The Sun clears the real horizon.') : L('El Sol está tapado por el horizonte.', 'The Sun is behind the horizon.')),
+    C(tierraL > 0, 'Tierra al alunizar', 'Earth at landing', fmt(tierraL, 1) + '°', tierraL > 0 ? L('Enlace directo durante el descenso.', 'Direct link during the descent.') : L('La Tierra está tapada: descenso sin enlace directo.', 'Earth is hidden: descent without a direct link.'))
+  ];
+  if (p.energia === 'solar') checks.push(C(luz.nocheMax <= p.bateriaH, 'Batería', 'Battery', horas(luz.nocheMax) + ' / ' + horas(p.bateriaH), luz.nocheMax <= p.bateriaH ? L('Las baterías cubren la noche más larga.', 'Batteries cover the longest night.') : L('La noche más larga pasa de lo que aguantan las baterías.', 'The longest night outlasts the batteries.')));
+  else if (p.energia === 'baterias') checks.push(C(p.estadia <= BAT_LM, 'Batería', 'Battery', horas(p.estadia) + ' / 75 h', p.estadia <= BAT_LM ? L('La estadía cabe en 75 h.', 'The stay fits in 75 h.') : L('La estadía pasa de 75 h.', 'The stay exceeds 75 h.')));
+  else checks.push(C(true, 'Energía', 'Power', 'RTG', L('No depende del Sol.', 'Does not depend on the Sun.')));
+  checks.push(C(luz.tierraFrac * 100 >= p.minTierra, 'Enlace con la Tierra', 'Link with Earth', fmt(luz.tierraFrac * 100) + '% / ' + p.minTierra + '%', L('Corte más largo: ', 'Longest gap: ') + horas(luz.sinTierraMax) + '.'));
+  checks.push(C(ter.punto < ALUNIZAJE.vuelco, 'Pendiente en el punto', 'Slope at the spot', fmt(ter.punto, 1) + '°', ter.punto < ALUNIZAJE.inclinado ? L('Por debajo de 6°: la nave queda nivelada.', 'Below 6°: the lander sits level.') : ter.punto < ALUNIZAJE.vuelco ? L('Entre 6° y 12°: queda inclinada.', 'Between 6° and 12°: it sits tilted.') : L('12° o más: vuelca.', '12° or more: it tips over.')));
+  if (tipo === 'tripulada') checks.push(
+    C(w.pend <= CAMINAR.pendMax, 'Pendiente de la ruta', 'Route slope', fmt(w.pend, 1) + '°', L('Máxima sobre el relieve LOLA; límite del traje 15°.', 'Maximum on the LOLA relief; suit limit 15°.')),
+    C(w.vuelta <= w.regreso, 'Regreso al módulo', 'Back to the lander', horas(w.vuelta) + ' / ' + horas(w.regreso), w.vuelta <= w.regreso ? L('Das la vuelta antes de gastar la mitad del consumible más escaso.', 'You turn back before using half of the scarcest consumable.') : L('Das la vuelta después del límite de regreso.', 'You turn back after the return limit.')),
+    C(!fuera, 'Caminata en la estadía', 'Walk within the stay', '+' + horas(p.eva + w.total), fuera ? L('Termina después del fin de la estadía.', 'It ends after the stay.') : L('Termina dentro de la estadía.', 'It ends within the stay.')),
+    C(true, 'Sol en la caminata', 'Sun on the walk', fmt(w.solFrac * 100) + '%', L('Sin Sol hacen falta las luces del casco.', 'Without Sun you need the helmet lights.'), true));
+  if (tipo === 'rover') checks.push(
+    C(!fuera, 'Recorrido en la estadía', 'Traverse within the stay', '+' + horas(p.eva + w.total), fuera ? L('El rover no termina antes del fin de la estadía.', 'The rover does not finish before the stay ends.') : L('Llega a la última parada dentro de la estadía.', 'It reaches the last stop within the stay.')),
+    C(true, 'Pendiente del recorrido', 'Traverse slope', fmt(w.pend, 1) + '°', L('Máxima sobre el relieve LOLA. Compárala con la de tu rover.', 'Maximum on the LOLA relief. Compare it with your rover.'), true),
+    C(true, 'Tierra en el recorrido', 'Earth on the traverse', fmt(w.tierraFrac * 100) + '%', L('Sin enlace no se puede conducir desde la Tierra.', 'Without a link it cannot be driven from Earth.'), true),
+    C(true, 'Sol en el recorrido', 'Sun on the traverse', fmt(w.solFrac * 100) + '%', L('Con paneles, el rover carga con Sol.', 'With panels, the rover charges in sunlight.'), true));
+  const ok = checks.every((c) => c.s !== 'nogo');
+  return { z, solL, tierraL, luz, ter, w, checks, ok, tEva };
+}
+
+/* Primera fecha que cumple los requisitos, hora a hora, en los 90 días siguientes (como scanDates del Planificador). */
+function primeraFecha(p, desde) {
+  for (let h = 0; h < 90 * 24; h++) {
+    const t = Math.floor(desde / H) * H + h * H; if (t + p.estadia * H > T_MAX) break;
+    const z = ZONAS[p.zona]; ALT.v = p.altura;
+    if (solEl(z, t) <= 0 || tierraEl(z, t) <= 0) continue;
+    const luz = luzEstadia(z, t, p.estadia);
+    if (luz.tierraFrac * 100 < p.minTierra) continue;
+    if (p.energia === 'solar' && luz.nocheMax > p.bateriaH) continue;
+    if (p.energia === 'baterias' && p.estadia > BAT_LM) continue;
+    return t;
+  }
+  return null;
+}
+
+/* ====================================================================================================================
+   Pantalla de resultado
+   ==================================================================================================================== */
+let R = null, antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
+function pintar() {
+  R = evaluar(plan);
+  const { z, checks, ok, w, luz, ter } = R, tipo = plan.tipo;
+  const marcar = (sel, v) => document.querySelectorAll(sel).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === String(v))));
+  marcar('#tipos .chip', plan.tipo); marcar('#energias .chip', plan.energia); marcar('#alturas .chip', plan.altura); marcar('.zone', plan.zona); marcar('#rutas .chip', plan.ruta);
+  $('fecha').value = isoLocal(plan.t); $('estadia').value = plan.estadia; $('estadia-o').textContent = horas(plan.estadia);
+  $('bat-box').hidden = plan.energia !== 'solar'; $('bateria').value = plan.bateriaH; $('bateria-o').textContent = horas(plan.bateriaH);
+  $('mintierra').value = plan.minTierra; $('mintierra-o').textContent = plan.minTierra + '%';
+  $('eva').value = plan.eva; $('eva-o').textContent = '+' + plan.eva + ' h';
+  $('rvel').value = plan.roverKmh; $('rvel-o').textContent = fmt(plan.roverKmh, 1) + ' km/h'; $('rpar').value = plan.roverParadaH; $('rpar-o').textContent = horas(plan.roverParadaH);
+  $('sec-caminata').hidden = tipo === 'fija'; $('rover-box').hidden = tipo !== 'rover';
+  $('caminata-tit').textContent = tipo === 'rover' ? L('Recorrido del rover', 'Rover traverse') : L('Caminata (EVA)', 'Walk (EVA)');
+
+  // veredicto
+  const sim = '/simulador?sitio=' + z.id + '&fecha=' + new Date(plan.t).toISOString().slice(0, 19) + 'Z' + (tipo === 'tripulada' ? '&ruta=' + plan.ruta + '&eva=' + plan.eva : '');
+  if (antes.ok !== ok) { $('verdict').className = 'verdict st-' + (ok ? 'go' : 'nogo'); void $('verdict').offsetWidth; $('verdict').classList.add('pop'); antes.ok = ok; }
+  const fallan = checks.filter((c) => c.s === 'nogo').length;
+  $('verdict').innerHTML =
+    '<div class="badge">' + (ok ? 'GO' : 'NO-GO') + '<small>' + (ok ? L('cumple todo', 'meets all') : fallan + ' ' + L(fallan === 1 ? 'no cumple' : 'no cumplen', fallan === 1 ? 'fails' : 'fail')) + '</small></div>' +
+    '<div style="min-width:0">' + (plan.nombre ? '<div class="mision-nombre">' + esc(plan.nombre) + '</div>' : '') + '<h2>' + (ok ? L('Listo para volar', 'Ready to fly') : L('Replanifica', 'Replan')) + '</h2>' +
+    '<p>' + z.nombre + ' · ' + fechaTxt(plan.t) + ' · ' + horas(plan.estadia) + ' · ' + L(TIPOS[tipo].es, TIPOS[tipo].en) + ' · ' + L(ENERGIAS[plan.energia].es, ENERGIAS[plan.energia].en) + (tipo === 'fija' ? '' : ' · ' + L(w.ru.es, w.ru.en)) + '</p>' +
+    '<div class="acts"><a class="btn primary" href="' + sim + '">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
+  $('copiar').onclick = copiar;
+
+  // comprobaciones
+  const cuenta = checks.filter((c) => c.s !== 'info');
+  $('checks-n').textContent = cuenta.filter((c) => c.s === 'go').length + '/' + cuenta.length + ' ' + L('cumplen', 'pass');
+  const prev = antes.checks; antes.checks = {}; checks.forEach((c) => (antes.checks[c.es] = c.s));
+  $('checks').innerHTML = checks.map((c) => '<li class="check st-' + c.s + (prev[c.es] && prev[c.es] !== c.s ? ' cambio' : '') + '"><i></i><b>' + L(c.es, c.en) + '</b><span class="v">' + c.v + '</span><span>' + c.d + '</span></li>').join('');
+
+  // terreno
+  const kT = z.id;
+  if (antes.terreno !== kT) { antes.terreno = kT; tween('ter', 900, (k) => dibujarTerreno(easeOut(k))); } else dibujarTerreno(1);
+  $('terreno-ley').innerHTML = [['--paper', '< 6°'], ['--shade', '6–12°'], ['--signal', '≥ 12°']].map(([c, t]) => '<div><i style="background:var(' + c + ');outline:1px solid var(--ink)"></i>' + t + '</div>').join('') + '<div><i style="border:1px dashed var(--ink);background:none"></i>' + L('error de navegación 1σ y 2σ', 'navigation error 1σ and 2σ') + '</div>';
+  $('terreno-kv').innerHTML = [[L('En el punto', 'At the spot'), fmt(ter.punto, 1) + '°'], [L('Máx. a 100 m', 'Max within 100 m'), fmt(ter.max100, 1) + '°'], [L('> 12° a 500 m', '> 12° within 500 m'), fmt(ter.vuelco * 100) + '%']].map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
+  $('terreno-nota').textContent = L('LOLA mide el relieve cada 80 m: no ve rocas ni cráteres pequeños. Para eso hace falta un mosaico LROC NAC (0,5 m). La velocidad de contacto la da el vuelo en el simulador 3D.', 'LOLA measures the relief every 80 m: it does not see rocks or small craters. That needs an LROC NAC mosaic (0.5 m). Touchdown speed comes from flying it in the 3D simulator.');
+
+  // caminata o recorrido
+  $('card-caminata').hidden = tipo === 'fija'; $('dos').classList.toggle('solo', tipo === 'fija');
+  if (tipo !== 'fija') {
+    const rover = tipo === 'rover';
+    $('card-caminata-tit').textContent = rover ? L('Recorrido', 'Traverse') : L('Caminata', 'Walk');
+    $('ruta-lbl').textContent = rover ? fmt(w.km, 1) + ' km ' + L('de ida', 'one way') : fmt(w.km * 2, 1) + ' km ' + L('ida y vuelta', 'round trip');
+    dibujarMapa();
+    const cols = { ida: '--ink', paradas: '--signal', vuelta: '--earth' };
+    const nom = { ida: rover ? L('marcha', 'driving') : L('ida', 'out'), paradas: L('paradas', 'stops'), vuelta: L('vuelta', 'back') };
+    $('tl').innerHTML = w.tramos.filter((s) => s[0] > 0).map((s) => '<div style="flex:' + s[0] + ';background:var(' + cols[s[1]] + ');color:#f4efe6" title="' + nom[s[1]] + ' ' + horas(s[0]) + '">' + (s[0] / w.total > 0.14 ? nom[s[1]] + ' ' + horas(s[0]) : '') + '</div>').join('');
+    $('walk-kv').innerHTML = (rover ? [[L('Duración', 'Length'), horas(w.total)], [L('Velocidad', 'Speed'), fmt(plan.roverKmh, 1) + ' km/h'], [L('Paradas', 'Stops'), w.paradas + ' × ' + horas(plan.roverParadaH)]]
+      : [[L('Duración', 'Length'), horas(w.total)], [L('Límite de regreso', 'Return limit'), horas(w.regreso)], [L('Paradas', 'Stops'), w.paradas + ' × 20 min']]).map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
+    $('gauges').hidden = rover;
+    if (!rover) {
+      const g = [['O₂', w.cons.o2, TRAJE.o2, 'kg', 2], [L('Agua', 'Water'), w.cons.agua, TRAJE.agua, 'kg', 2], ['LiOH (CO₂)', w.cons.lioh, TRAJE.lioh, 'kJ', 0], [L('Batería', 'Battery'), w.cons.bat, TRAJE.bat, 'Wh', 0]];
+      if ($('gauges').children.length !== g.length) $('gauges').innerHTML = g.map(() => '<div class="gauge"><span></span><div class="bar"><i style="width:0"></i><u></u></div><span class="num"></span></div>').join('');
+      requestAnimationFrame(() => g.forEach(([n, u, c, un, d], i) => { const f = u / c, row = $('gauges').children[i];
+        row.className = 'gauge st-' + (f <= 0.5 ? 'go' : 'nogo'); row.children[0].textContent = n; row.children[1].title = fmt(u, d) + ' / ' + fmt(c, d) + ' ' + un;
+        row.children[1].firstChild.style.width = Math.min(100, f * 100) + '%'; row.children[2].textContent = fmt(f * 100) + '%'; }));
+    }
+  }
+
+  pintarKpis();
+
+  // Sol y Tierra
+  dibujarLuz();
+  $('luz-kv').innerHTML = [[L('Con Sol', 'Sunlit'), fmt(luz.solFrac * 100) + '%'], [L('Con Tierra', 'Earth in view'), fmt(luz.tierraFrac * 100) + '%'], [L('Noche más larga', 'Longest night'), horas(luz.nocheMax)], [L('Corte de enlace más largo', 'Longest link gap'), horas(luz.sinTierraMax)]].map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
+}
+
+/* Pendientes LOLA alrededor del punto (1,2 × 1,2 km) con el error de navegación del simulador. */
+function dibujarTerreno(k = 1) {
+  const c = $('terreno'); if (!c || !R || $('consola').hidden) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.min(c.clientWidth || 500, 760), Hh = Math.round(W * 0.7);
+  c.width = W * dpr; c.height = Hh * dpr; c.style.height = Hh + 'px';
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const z = R.z, mx = 600 / (W / 2), cols = [css('--paper'), css('--shade'), css('--signal')], ink = css('--ink');
+  x.fillStyle = cols[0]; x.fillRect(0, 0, W, Hh);
+  const radio = Math.hypot(W, Hh) / 2 * k, celda = RELIEVE[z.id].paso / mx;
+  for (let py = 0; py < Hh; py += 3) for (let px = 0; px < W; px += 3) {
+    if (Math.hypot(px - W / 2, py - Hh / 2) > radio) continue;
+    const p = enRelieve(z.id, 'pend', (px - W / 2) * mx, (py - Hh / 2) * mx);
+    x.fillStyle = p >= ALUNIZAJE.vuelco ? cols[2] : p >= ALUNIZAJE.inclinado ? cols[1] : cols[0]; x.fillRect(px, py, 3, 3);
+  }
+  // curvas de nivel cada 10 m
+  x.strokeStyle = ink; x.globalAlpha = 0.25; x.lineWidth = 1;
+  for (let py = 0; py < Hh; py += 2) for (let px = 0; px < W; px += 2) {
+    if (Math.hypot(px - W / 2, py - Hh / 2) > radio) continue;
+    const a = Math.floor(enRelieve(z.id, 'h', (px - W / 2) * mx, (py - Hh / 2) * mx) / 10), b = Math.floor(enRelieve(z.id, 'h', (px + 2 - W / 2) * mx, (py - Hh / 2) * mx) / 10), d = Math.floor(enRelieve(z.id, 'h', (px - W / 2) * mx, (py + 2 - Hh / 2) * mx) / 10);
+    if (a !== b || a !== d) { x.fillStyle = ink; x.fillRect(px, py, 1, 1); }
+  }
+  x.globalAlpha = 1;
+  x.setLineDash([4, 4]); x.strokeStyle = ink; x.lineWidth = 1.2;
+  for (const s of [1, 2]) { x.beginPath(); x.arc(W / 2, Hh / 2, ALUNIZAJE.sigma * s / mx, 0, 7); x.stroke(); }
+  x.setLineDash([]); x.fillStyle = ink; x.beginPath(); x.arc(W / 2, Hh / 2, 4, 0, 7); x.fill();
+  x.font = '11px ' + css('--f-mono'); x.fillText('N ↑', 8, 16);
+  const b200 = 200 / mx; x.fillRect(W - 10 - b200, Hh - 14, b200, 3); x.fillText('200 m', W - 10 - b200, Hh - 20);
+  x.fillText(L('celda LOLA ', 'LOLA cell ') + fmt(RELIEVE[z.id].paso) + ' m', 8, Hh - 10);
+}
+
+/* Mapa de la ruta: pendiente LOLA de fondo (≥ 15° en rojo), ruta, paradas y el astronauta o el rover andando. */
+const fondoRuta = {};
+function imagenRuta(id) {
+  if (fondoRuta[id]) return fondoRuta[id];
+  const W = 330, Hh = 220, cv = document.createElement('canvas'); cv.width = W; cv.height = Hh;
+  const x = cv.getContext('2d'), img = x.createImageData(W, Hh), P = [css('--paper'), css('--shade'), css('--signal')].map((c) => { const h = c.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; });
+  for (let j = 0; j < Hh; j++) for (let i = 0; i < W; i++) {
+    const [mx, mz] = pxAm(390 + (i + 0.5) * 2, 250 + (j + 0.5) * 2), p = enRelieve(id, 'pend', mx, mz);
+    const c = p >= CAMINAR.pendMax ? P[2] : p >= 8 ? P[1] : P[0], o = (j * W + i) * 4;
+    img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  return (fondoRuta[id] = cv.toDataURL());
+}
+function dibujarMapa() {
+  const s = $('mapa'); s.textContent = '';
+  const z = R.z;
+  s.appendChild(el('image', { href: imagenRuta(z.id), x: 390, y: 250, width: 660, height: 440, preserveAspectRatio: 'none', style: 'image-rendering:pixelated' }));
+  s.appendChild(el('text', { x: 1040, y: 272, 'text-anchor': 'end', 'font-size': 13, fill: 'var(--ink)' }, 'N ↑'));
+  for (const k in RUTAS) {
+    const sel = k === plan.ruta, at = { d: RUTAS[k].d, fill: 'none', stroke: sel ? 'var(--ink)' : 'var(--ink-soft)', 'stroke-width': sel ? 5 : 2, 'stroke-opacity': sel ? 1 : 0.45, 'stroke-linecap': 'round' };
+    if (sel) { at.pathLength = 1; if (antes.ruta !== plan.ruta + z.id) at.class = 'draw'; } else at['stroke-dasharray'] = '6 6';
+    s.appendChild(el('path', at));
+  }
+  const ru = RUTAS[plan.ruta];
+  ru.paradas.forEach((p, i) => { s.appendChild(el('circle', { cx: p[0], cy: p[1], r: 11, fill: 'var(--paper)', stroke: 'var(--ink)', 'stroke-width': 3 })); s.appendChild(el('text', { x: p[0], y: p[1] + 4, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: 'var(--ink)' }, String(i + 1))); });
+  s.appendChild(el('rect', { x: 420, y: 630, width: 20, height: 20, fill: 'var(--ink)' }));
+  s.appendChild(el('text', { x: 448, y: 668, 'font-size': 12, fill: 'var(--ink)' }, plan.tipo === 'rover' ? L('módulo', 'lander') : 'LM'));
+  s.appendChild(el('rect', { x: 410, y: 676, width: 500 / M_POR_PX, height: 3, fill: 'var(--ink)' }));
+  s.appendChild(el('text', { x: 410, y: 670, 'font-size': 11, fill: 'var(--ink)' }, '500 m'));
+  s.appendChild(el('text', { x: 1040, y: 682, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink)' }, L('rojo: pendiente ≥ 15° (LOLA)', 'red: slope ≥ 15° (LOLA)')));
+  const a = el('g', { id: 'astro', transform: 'translate(430 640)' });
+  a.appendChild(el('circle', { r: 7, fill: 'var(--signal)', class: 'astro-pulso' }));
+  a.appendChild(el('circle', { r: 7, fill: 'var(--ink)', stroke: 'var(--paper)', 'stroke-width': 2.5 }));
+  s.appendChild(a);
+  antes.ruta = plan.ruta + z.id;
+}
+(function andar() {
+  if (QUIETO) return;
+  const VEL = 260; let t0 = performance.now(), clave = null;
+  const bucle = (now) => {
+    const a = document.getElementById('astro'), ru = RUTAS[plan.ruta];
+    if (a && ru && !$('consola').hidden) {
+      if (clave !== plan.ruta + plan.tipo) { clave = plan.ruta + plan.tipo; t0 = now; }
+      const vuelve = plan.tipo !== 'rover', pausa = 0.9, ciclo = ru.px / VEL * (vuelve ? 2 : 1) + pausa * (ru.paradasPx.length + 1) + 1.2;
+      let resto = ((now - t0) / 1000) % ciclo, pos = 0, s2 = null;
+      for (const sp of ru.paradasPx.concat([ru.px])) {
+        const tramo = (sp - pos) / VEL;
+        if (resto < tramo) { s2 = pos + resto * VEL; break; }
+        resto -= tramo; pos = sp;
+        if (resto < pausa) { s2 = sp; break; }
+        resto -= pausa;
+      }
+      if (s2 == null) s2 = vuelve ? Math.max(0, ru.px - resto * VEL) : ru.px;
+      const pt = ru.path.getPointAtLength(Math.min(ru.px, s2));
+      a.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')');
+    }
+    requestAnimationFrame(bucle);
+  };
+  requestAnimationFrame(bucle);
+})();
+
+function dibujarLuz() {
+  const s = $('luz'); s.textContent = '';
+  const { sol, tierra } = R.luz, n = sol.length - 1, x0 = 40, x1 = 850, y0 = 16, y1 = 190;
+  const vals = sol.concat(tierra), lo = Math.min(-2, Math.floor(Math.min(...vals))), hi = Math.max(2, Math.ceil(Math.max(...vals)));
+  const X = (i) => x0 + (x1 - x0) * i / n, Y = (v) => y1 - (y1 - y0) * (v - lo) / (hi - lo);
+  let ini = -1;
+  for (let i = 0; i <= n + 1; i++) { const osc = i <= n && sol[i] <= 0; if (osc && ini < 0) ini = i; if (!osc && ini >= 0) { s.appendChild(el('rect', { x: X(ini), y: y0, width: Math.max(1, X(i - 1) - X(ini)), height: y1 - y0, fill: 'var(--hatch)', 'fill-opacity': 0.5 })); ini = -1; } }
+  const paso = hi - lo > 10 ? 4 : hi - lo > 5 ? 2 : 1;
+  for (let v = Math.ceil(lo / paso) * paso; v <= hi; v += paso) {
+    s.appendChild(el('line', { x1: x0, x2: x1, y1: Y(v), y2: Y(v), stroke: v === 0 ? 'var(--ink)' : 'var(--shade)', 'stroke-width': v === 0 ? 1.2 : 1 }));
+    s.appendChild(el('text', { x: x0 - 6, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink-soft)' }, v + '°'));
+  }
+  const dP = n > 200 ? 2 : 1;
+  for (let d = 0; d * 24 <= n; d += dP) s.appendChild(el('text', { x: X(d * 24), y: 208, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink-soft)' }, 'D' + d));
+  const linea = (arr) => arr.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
+  const nueva = antes.luz !== plan.zona + plan.t + plan.altura; antes.luz = plan.zona + plan.t + plan.altura;
+  s.appendChild(el('path', { d: linea(tierra), fill: 'none', stroke: 'var(--earth)', 'stroke-width': 2, pathLength: 1, class: nueva ? 'draw lento' : '' }));
+  s.appendChild(el('path', { d: linea(sol), fill: 'none', stroke: 'var(--signal)', 'stroke-width': 2.5, pathLength: 1, class: nueva ? 'draw lento' : '' }));
+  if (plan.tipo !== 'fija') { const e0 = plan.eva, e1 = Math.min(n, plan.eva + R.w.total);
+    if (e0 <= n) { s.appendChild(el('rect', { x: X(e0), y: y0, width: Math.max(3, X(e1) - X(e0)), height: y1 - y0, fill: 'var(--ink)', 'fill-opacity': 0.12 })); s.appendChild(el('text', { x: X(e0) + 4, y: y0 + 12, 'font-size': 11, fill: 'var(--ink)' }, plan.tipo === 'rover' ? 'ROVER' : 'EVA')); } }
+  s.appendChild(el('text', { x: x1, y: y0 + 12, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--signal)' }, L('Sol', 'Sun')));
+  s.appendChild(el('text', { x: x1, y: y0 + 26, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--earth)' }, L('Tierra', 'Earth')));
+}
+
+function copiar() {
+  const { z, checks, ok, w } = R;
+  const txt = [
+    (plan.nombre || 'Horizon') + ' · ' + (ok ? 'GO' : 'NO-GO'),
+    L(TIPOS[plan.tipo].es, TIPOS[plan.tipo].en) + ' · ' + L(ENERGIAS[plan.energia].es, ENERGIAS[plan.energia].en) + (plan.energia === 'solar' ? ' (' + horas(plan.bateriaH) + ')' : '') + ' · ' + L('altura ', 'height ') + plan.altura + ' m',
+    z.nombre + ' (' + z.id + ')', fechaTxt(plan.t) + ' · ' + L('estadía ', 'stay ') + horas(plan.estadia),
+    plan.tipo === 'fija' ? '' : L(w.ru.es, w.ru.en) + ' · ' + fmt(w.km, 1) + ' km · +' + plan.eva + ' h',
+    ...checks.map((c) => (c.s === 'go' ? '✓ ' : c.s === 'nogo' ? '✗ ' : '· ') + L(c.es, c.en) + ': ' + c.v)
+  ].filter(Boolean).join('\n');
+  try { navigator.clipboard.writeText(txt).then(() => toast(L('Plan copiado', 'Plan copied')), () => toast(L('No se pudo copiar', 'Copy failed'))); } catch (e) { toast(L('No se pudo copiar', 'Copy failed')); }
+}
+
+/* ====================================================================================================================
+   KPIs de la pizarra del equipo (Planificación de misiones lunares). Metas copiadas tal cual de la pizarra; los valores
+   salen del motor del Planificador y de los datos de esta página. Lo que el plan no mide se marca "sin medición".
+   ==================================================================================================================== */
+const ALTURAS_PLANIF = [2, 5, 10, 15, 20, 30]; // RAISE_TO_M de shared/planning/model/evaluate.ts
+const ALTS3 = {}, SITIOS28 = [];
+for (const z of Object.values(ZONAS)) { ALTS3[z.id] = {}; for (const a of [5, 15, 20, 30]) ALTS3[z.id][a] = new Int8Array(bin(DATOS2.alturas[z.id][a])); }
+for (const s of DATOS2.sitios) SITIOS28.push({ id: s.id, nombre: s.nombre, 2: new Int8Array(bin(s.c2)), 10: new Int8Array(bin(s.c10)) });
+function lector(arr, ancho, n, pasoMs) { // devuelve (t, k) → valor interpolado
+  return (t, k) => { const f = Math.min(n - 1.0001, Math.max(0, (t - T_MIN) / pasoMs)), i = Math.floor(f), u = f - i; return arr[i * ancho + k] + (arr[(i + 1) * ancho + k] - arr[i * ancho + k]) * u; };
+}
+function lectorZona(z, alt) {
+  if (alt === 2 || alt === 10) return lector(CIELO[z.id][alt], 4, CIELO[z.id].n, DATOS.paso);
+  return lector(ALTS3[z.id][alt], 2, DATOS2.n1, H);
+}
+/* Requisitos del Planificador con un lector cualquiera (paso en horas). */
+function cumple(lee, p, pasoH) {
+  const t = p.t, sol0 = lee(t, 0) / 20, tie0 = lee(t, 1) / 10;
+  let n = 0, conT = 0, conS = 0, noche = 0, nocheMax = 0;
+  for (let h = 0; h <= p.estadia; h += pasoH) { n++; const s = lee(t + h * H, 0) > 0, e = lee(t + h * H, 1) > 0; if (s) { conS++; noche = 0; } else { noche += pasoH; nocheMax = Math.max(nocheMax, noche); } if (e) conT++; }
+  const tierraPct = conT / n * 100, solPct = conS / n * 100;
+  const energiaOk = p.energia === 'rtg' ? true : p.energia === 'baterias' ? p.estadia <= BAT_LM : nocheMax <= p.bateriaH;
+  return { ok: sol0 > 0 && tie0 > 0 && energiaOk && tierraPct >= p.minTierra, tierraPct, solPct, nocheMax, sol0, tie0 };
+}
+/* Irradiancia sobre el panel (motor, ENV-007): 1361 W/m² × fracción del disco × cos(elevación). Media con Sol. */
+function irradiancia(z, p) {
+  ALT.v = p.altura === 10 ? 10 : 2;
+  let s = 0, n = 0;
+  for (let h = 0; h <= p.estadia; h++) {
+    const t = p.t + h * H, sobre = solEl(z, t) - 0.266, tt = sobre / 0.266;
+    const fr = tt <= -1 ? 0 : tt >= 1 ? 1 : 0.5 + (Math.asin(tt) + tt * Math.sqrt(1 - tt * tt)) / Math.PI;
+    if (fr > 0) { s += 1361 * fr * Math.cos(solGeo(z, t) * rad); n++; }
+  }
+  return n ? s / n : 0;
+}
+function alturaNecesaria(z, p) { for (const a of ALTURAS_PLANIF) if (cumple(lectorZona(z, a), p, 1).ok) return a; return null; }
+function kpisDe(z, p) {
+  const lee = lectorZona(z, p.altura), c = cumple(lee, p, 1);
+  return { c, ws: irradiancia(z, p), nh: alturaNecesaria(z, p), pend: terreno(z).punto };
+}
+const META = { NLP: 10, NH: 16, NRC: 5, AMR: 1500, EC: 50, EW: 90, WS: 1325, CD: '1200k', OD: 5 }; // pizarra del equipo
+function pintarKpis() {
+  const p = plan, z = ZONAS[p.zona], k = kpisDe(z, p);
+  ALT.v = p.altura;
+  let nlp = 0; const pasan = [];
+  for (const s of SITIOS28) { const r = cumple(lector(s[p.altura], 2, DATOS2.n2, 2 * H), p, 2); if (r.ok) { nlp++; pasan.push(s.nombre); } }
+  const rutasOk = Object.values(RUTAS).filter((r) => r.pend[z.id] <= CAMINAR.pendMax).length;
+  const largo = Math.max(...Object.values(RUTAS).map((r) => r.m)) / 1000;
+  const T = (sigla, nombre, valor, meta, ok, nota) => ({ sigla, nombre, valor, meta, ok, nota });
+  const grupos = [
+    [L('Selección de lugares estratégicos', 'Strategic site selection'), [
+      T('NLP', L('Lugares que cumplen', 'Sites that pass'), nlp + ' / 28', '≥ ' + META.NLP, nlp >= META.NLP, L('De los 28 lugares del Planificador, cuántos cumplen tus requisitos en tu fecha y estadía.', 'Of the 28 Planner sites, how many meet your requirements on your date and stay.'))]],
+    [L('Horizonte disponible', 'Available horizon'), [
+      T('NH', L('Mástil necesario', 'Mast needed'), k.nh == null ? '> 30 m' : k.nh + ' m', '≤ ' + META.NH + ' m', k.nh != null && k.nh <= META.NH, L('Altura mínima de panel y antena (2, 5, 10, 15, 20 o 30 m, las del Planificador) con la que tu plan cumple en ' + z.nombre + '.', 'Lowest panel and antenna height (2, 5, 10, 15, 20 or 30 m, the Planner ones) that makes your plan pass at ' + z.nombre + '.'))]],
+    [L('Mapeo de ruta', 'Route mapping'), [
+      T('NRC', L('Rutas candidatas', 'Candidate routes'), Object.keys(RUTAS).length + ' (' + rutasOk + ' ≤ 15°)', META.NRC + L(' por misión', ' per mission'), Object.keys(RUTAS).length >= META.NRC, L('Trazados del Planificador; entre paréntesis, los que no pasan de 15° en el relieve LOLA.', 'Planner routes; in brackets, those that stay within 15° on the LOLA relief.')),
+      T('AMR', L('Ruta más larga', 'Longest route'), fmt(largo, 1) + ' km', '≤ ' + fmt(META.AMR) + ' km', largo <= META.AMR, L('Largo de ida de la ruta más larga.', 'One-way length of the longest route.'))]],
+    [L('Panel solar + antena', 'Solar panel + antenna'), [
+      T('EC', L('Enlace con la Tierra', 'Earth link'), fmt(k.c.tierraPct) + '%', '≥ ' + META.EC + '%', k.c.tierraPct >= META.EC, L('Parte de la estadía con la Tierra sobre el horizonte, vista desde ' + p.altura + ' m.', 'Share of the stay with Earth above the horizon, seen from ' + p.altura + ' m.')),
+      T('EW', L('Energía: tiempo con Sol', 'Power: time in Sun'), fmt(k.c.solPct) + '%', '≥ ' + META.EW + '%', k.c.solPct >= META.EW, L('Parte de la estadía con el Sol sobre el horizonte del panel.', 'Share of the stay with the Sun above the panel horizon.')),
+      T('WS', L('Irradiancia en el panel', 'Panel irradiance'), fmt(k.ws) + ' W/m²', '≥ ' + fmt(META.WS) + ' W/m²', k.ws >= META.WS, L('Media con Sol, con la fórmula del motor: 1361 W/m² × disco visible × cos(elevación).', 'Mean while sunlit, engine formula: 1361 W/m² × visible disc × cos(elevation).'))]],
+    [L('Sostenibilidad', 'Sustainability'), [
+      T('AS', L('Autonomía sin Sol', 'Autonomy without Sun'), p.energia === 'rtg' ? 'RTG' : p.energia === 'baterias' ? '75 h' : horas(p.bateriaH), null, p.energia === 'rtg' ? true : p.energia === 'baterias' ? p.estadia <= BAT_LM : k.c.nocheMax <= p.bateriaH, L('Lo que aguanta la energía frente a la noche más larga de tu estadía: ', 'How long the power lasts against the longest night of your stay: ') + horas(k.c.nocheMax) + '.'),
+      T('CD', 'CD', '—', META.CD, null, L('Sin medición: el plan no tiene este dato todavía.', 'Not measured: the plan does not have this figure yet.')),
+      T('OD', 'OD', '—', String(META.OD), null, L('Sin medición: el plan no tiene este dato todavía.', 'Not measured: the plan does not have this figure yet.'))]]
+  ];
+  const medidos = grupos.flatMap((g) => g[1]).filter((t) => t.ok != null);
+  $('kpis-n').textContent = medidos.filter((t) => t.ok).length + '/' + medidos.length + ' ' + L('en meta', 'on target');
+  $('kpis').innerHTML = grupos.map(([g, ts]) => '<div class="kpi-g"><span class="lbl">' + g + '</span><div class="kpi-fila">' + ts.map((t) =>
+    '<div class="kpi" data-st="' + (t.ok == null ? 'sin' : t.ok ? 'si' : 'no') + '" title="' + esc(t.nota) + '"><div class="kpi-top"><b>' + t.sigla + '</b><i>' + (t.ok == null ? L('sin medición', 'not measured') : t.ok ? L('en meta', 'on target') : L('fuera de meta', 'off target')) + '</i></div><span class="kpi-n">' + t.nombre + '</span><strong>' + t.valor + '</strong><span class="kpi-m">' + (t.meta == null ? L('sin meta en la pizarra', 'no target on the board') : L('meta ', 'target ') + t.meta) + '</span><small>' + t.nota + '</small></div>').join('') + '</div></div>').join('');
+  // comparativo de las tres zonas con el mismo plan
+  const filas = Object.entries(ZONAS).map(([kz, zz]) => { const q = kpisDe(zz, p); return { kz, zz, q, ok: q.c.ok && q.pend < ALUNIZAJE.vuelco }; });
+  ALT.v = p.altura;
+  const celda = (txt, ok) => '<td' + (ok === false ? ' class="mal"' : '') + '>' + txt + '</td>';
+  $('comparativo').innerHTML = '<thead><tr><th>' + L('Zona', 'Zone') + '</th><th>' + L('Veredicto', 'Verdict') + '</th><th>EC</th><th>EW</th><th>WS</th><th>NH</th><th>' + L('Noche máx.', 'Max night') + '</th><th>' + L('Pendiente', 'Slope') + '</th></tr></thead><tbody>' +
+    filas.map(({ kz, zz, q, ok }) => '<tr' + (kz === p.zona ? ' data-actual="true"' : '') + '><th><b>' + kz + '</b> ' + zz.nombre + '</th>' + celda(ok ? 'GO' : 'NO-GO', ok) +
+      celda(fmt(q.c.tierraPct) + '%', q.c.tierraPct >= META.EC) + celda(fmt(q.c.solPct) + '%', q.c.solPct >= META.EW) + celda(fmt(q.ws), q.ws >= META.WS) + celda(q.nh == null ? '> 30 m' : q.nh + ' m', q.nh != null && q.nh <= META.NH) +
+      celda(horas(q.c.nocheMax)) + celda(fmt(q.pend, 1) + '°', q.pend < ALUNIZAJE.vuelco) + '</tr>').join('') + '</tbody>';
+  $('nlp-lista').textContent = pasan.length ? L('Cumplen: ', 'Passing: ') + pasan.join(' · ') : L('Ningún lugar del Planificador cumple con estos requisitos en esta fecha.', 'No Planner site passes with these requirements on this date.');
+}
+
+/* ---------- controles de la pantalla de resultado ---------- */
+function construir() {
+  const chips = (id, obj, txt) => ($(id).innerHTML = Object.entries(obj).map(([k, r]) => '<button type="button" class="chip" data-k="' + k + '">' + txt(r, k) + '</button>').join(''));
+  chips('tipos', TIPOS, (r) => L(r.es, r.en)); chips('energias', ENERGIAS, (r) => L(r.es, r.en)); chips('rutas', RUTAS, (r) => L(r.es, r.en).replace(/ \(CR-02\)/, ''));
+  $('alturas').innerHTML = PLANIF.alturas.map((a) => '<button type="button" class="chip" data-k="' + a + '">' + a + ' m</button>').join('');
+  $('zones').innerHTML = Object.entries(ZONAS).map(([k, z]) => '<button type="button" class="zone" data-k="' + k + '" title="' + L(z.es, z.en) + '"><span class="k">' + k + '</span><b>' + z.nombre + '</b><span class="s">' + fmt(Math.abs(z.lat), 1) + '°S</span></button>').join('');
+  document.querySelectorAll('[data-en]').forEach((e) => { if (!e.dataset.es) e.dataset.es = e.textContent; e.textContent = lang === 'en' ? e.dataset.en : e.dataset.es; });
+  document.documentElement.lang = lang;
+  $('lang-es').setAttribute('aria-pressed', String(lang === 'es')); $('lang-en').setAttribute('aria-pressed', String(lang === 'en'));
+  pintarFuentes();
+}
+const cambiar = (f) => { f(); pintar(); };
+$('plan').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const p = b.parentElement.id, k = b.dataset.k;
+  if (b.classList.contains('zone')) cambiar(() => (plan.zona = k));
+  else if (p === 'tipos') cambiar(() => (plan.tipo = k));
+  else if (p === 'energias') cambiar(() => (plan.energia = k));
+  else if (p === 'alturas') cambiar(() => (plan.altura = +k));
+  else if (p === 'rutas') cambiar(() => (plan.ruta = k));
+  else if (b.id === 'mejor') { const t = primeraFecha(plan, plan.t + H); if (t) { plan.t = t; pintar(); toast(L('Cumple: ', 'Passes: ') + fechaTxt(t)); } else toast(L('Ninguna fecha cumple en los próximos 90 días.', 'No date passes in the next 90 days.')); }
+});
+const num = (id, campo) => $(id).addEventListener('input', (e) => cambiar(() => (plan[campo] = +e.target.value)));
+num('estadia', 'estadia'); num('bateria', 'bateriaH'); num('mintierra', 'minTierra'); num('eva', 'eva'); num('rvel', 'roverKmh'); num('rpar', 'roverParadaH');
+$('fecha').addEventListener('change', (e) => { const t = Date.parse(e.target.value + ':00Z'); if (Number.isFinite(t)) cambiar(() => (plan.t = Math.min(T_MAX - plan.estadia * H, Math.max(T_MIN, t)))); });
+$('plan').addEventListener('submit', (e) => e.preventDefault());
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (R && !$('consola').hidden) dibujarTerreno(1); if (!$('wz').hidden && $('lq-tl')) refrescarLuz(); }, 120); });
+new MutationObserver(() => { for (const k in fondoRuta) delete fondoRuta[k]; if (R && !$('consola').hidden) pintar(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- de dónde sale cada número ---------- */
+function pintarFuentes() {
+  const f = [
+    [L('Sol y Tierra', 'Sun and Earth'), L('Motor del Planificador del equipo: efemérides DE441 de JPL Horizons (cada 3 h, 2026–2030) y el horizonte real de cada zona, visto a 2 m o 10 m (las alturas del Planificador). Aquí se muestrean cada hora; el Planificador usa 10 min. Sol visible: asoma algo del disco. Tierra: su centro.', 'Team Planner engine: JPL Horizons DE441 ephemeris (every 3 h, 2026–2030) and each zone\'s real horizon, seen from 2 m or 10 m (the Planner heights). Sampled hourly here; the Planner uses 10 min. Sun visible: part of the disc clears. Earth: its centre.')],
+    [L('Requisitos', 'Requirements'), L('Los del Planificador: Sol y Tierra a la vista al alunizar, noche más larga ≤ horas de batería y enlace ≥ mínimo. Valores por defecto del Planificador: 50 h y 40 %. Los cambias tú.', 'The Planner ones: Sun and Earth in view at landing, longest night ≤ battery hours, link ≥ minimum. Planner defaults: 50 h and 40%. You change them.')],
+    [L('Relieve y pendientes', 'Relief and slopes'), L('LOLA (LRO), 80 m por celda, 20 × 20 km alrededor de cada zona (paquetes del simulador, comprobados: 8,7 m RMS). Pendiente con diferencias centrales (base 160 m). No resuelve rocas.', 'LOLA (LRO), 80 m per cell, 20 × 20 km around each zone (simulator packs, checked: 8.7 m RMS). Slope by central differences (160 m baseline). Does not resolve rocks.')],
+    [L('Alunizaje', 'Landing'), L('Umbrales del simulador de Horizon: inclinada desde 6°, vuelca desde 12°. Error de navegación σ 25 m (supuesto declarado del simulador).', 'Horizon simulator thresholds: tilted from 6°, tips over from 12°. Navigation error σ 25 m (declared simulator assumption).')],
+    [L('Caminata', 'Walk'), L('Prototipo del Planificador: 2,2 km/h, paradas de 20 min, pendiente máxima 15°, ida y vuelta por la misma ruta. Traje del simulador (cifras de la PLSS de Apollo / xEMU): O₂ 0,82 kg, agua 3,86 kg, LiOH 8870 kJ, batería 279 Wh; 300 W andando y 120 W parado. Regreso: dar la vuelta antes de gastar la mitad del consumible más escaso.', 'Planner prototype: 2.2 km/h, 20-min stops, max slope 15°, out and back on the same route. Simulator suit (Apollo PLSS / xEMU figures): O₂ 0.82 kg, water 3.86 kg, LiOH 8870 kJ, battery 279 Wh; 300 W walking, 120 W resting. Return: turn back before using half of the scarcest consumable.')],
+    [L('Rutas', 'Routes'), L('Trazados del Planificador (escena de CR-02, 4,7 m por píxel) colocados desde el punto de alunizaje sobre el relieve LOLA de cada zona.', 'Planner routes (CR-02 scene, 4.7 m per pixel) placed from the landing point on each zone\'s LOLA relief.')],
+    [L('Energía', 'Power'), L('Solo baterías: 75 h, la estadía del LM de Apollo 17. Solar: cumple si la noche más larga cabe en tus horas de batería. RTG: no depende del Sol. Se recomienda la opción más simple que cumple, en ese orden.', 'Batteries only: 75 h, the Apollo 17 LM stay. Solar: passes if the longest night fits your battery hours. RTG: does not depend on the Sun. The simplest option that passes is recommended, in that order.')],
+    [L('KPIs', 'KPIs'), L('Metas copiadas de la pizarra del equipo. Lectura de las siglas: NLP lugares que cumplen (de los 28 del Planificador, con Sol y Tierra cada 2 h), NH altura de mástil necesaria (alturas del Planificador), NRC rutas candidatas, AMR largo de ruta, EC % con Tierra, EW % con Sol, WS irradiancia en el panel (fórmula del motor), AS autonomía. CD y OD quedan sin medición hasta tener el dato. Si alguna sigla significa otra cosa, se corrige.', 'Targets copied from the team whiteboard. Reading of the acronyms: NLP sites that pass (of the 28 Planner sites, Sun and Earth every 2 h), NH mast height needed (Planner heights), NRC candidate routes, AMR route length, EC % with Earth, EW % with Sun, WS panel irradiance (engine formula), AS autonomy. CD and OD stay unmeasured until there is data. If an acronym means something else, it gets fixed.')],
+    [L('Rover', 'Rover'), L('Velocidad y horas por parada las pones tú. Referencia: VIPER (NASA), hasta 0,8 km/h.', 'You set speed and hours per stop. Reference: VIPER (NASA), up to 0.8 km/h.')]
+  ];
+  $('fuentes-txt').innerHTML = '<dl>' + f.map(([a, b]) => '<dt>' + a + '</dt><dd>' + b + '</dd>').join('') + '</dl>';
+}
+
+/* ====================================================================================================================
+   Formulario por pasos
+   ==================================================================================================================== */
+const PASO_TXT = { mision: ['Misión', 'Mission'], zona: ['Zona', 'Zone'], fecha: ['Fecha', 'Date'], equipo: ['Equipo', 'Equipment'], caminata: ['Caminata', 'Walk'], recorrido: ['Recorrido', 'Traverse'] };
+let wz = null;
+const pasos = () => ['mision', 'zona', 'fecha', 'equipo'].concat(wz.tipo === 'fija' ? [] : [wz.tipo === 'rover' ? 'recorrido' : 'caminata']).map((k) => ({ k, es: PASO_TXT[k][0], en: PASO_TXT[k][1] }));
+const nuevoWz = () => ({ paso: 0, nombre: '', tipo: null, zona: null, t: null, estadia: 168, energia: null, bateriaH: PLANIF.bateriaH, minTierra: PLANIF.minTierra, altura: 2, ruta: null, eva: 24, roverKmh: VIPER_KMH, roverParadaH: 2 });
+const LISTO = { mision: () => wz.nombre.trim().length > 0 && !!wz.tipo, zona: () => !!wz.zona, fecha: () => wz.t != null, equipo: () => !!wz.energia, caminata: () => !!wz.ruta, recorrido: () => !!wz.ruta };
+const FALTA = { mision: () => (!wz.nombre.trim() ? L('Ponle un nombre', 'Give it a name') : L('Elige el tipo', 'Pick the type')), zona: () => L('Elige una zona', 'Pick a zone'), fecha: () => L('Elige la fecha', 'Pick the date'), equipo: () => L('Elige la energía', 'Pick the power'), caminata: () => L('Elige una ruta', 'Pick a route'), recorrido: () => L('Elige una ruta', 'Pick a route') };
+function ver(id) { for (const v of ['inicio', 'wz', 'consola']) $(v).hidden = v !== id; $('nueva').hidden = id === 'inicio'; window.scrollTo(0, 0); }
+function opt(campo, valor, sel, cuerpo) { return '<button type="button" class="wz-opt" data-campo="' + campo + '" data-valor="' + valor + '" aria-pressed="' + sel + '">' + cuerpo + '</button>'; }
+const rango = (id, etq, val, txt, min, max, step) => '<div class="range"><label class="lbl" for="' + id + '">' + etq + '</label><output class="num">' + txt + '</output><input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"></div>';
+
+function pintarWz() {
+  ALT.v = wz.altura;
+  const PS = pasos(); if (wz.paso >= PS.length) wz.paso = PS.length - 1;
+  const i = wz.paso, P = PS[i];
+  let h = '<div class="wz-prog" style="grid-template-columns:repeat(' + PS.length + ',1fr)">' + PS.map((q, j) => '<button type="button" data-ir="' + j + '" data-st="' + (j === i ? 'actual' : j < i || LISTO[q.k]() ? 'hecho' : '') + '"' + (j > i && !PS.slice(0, j).every((m) => LISTO[m.k]()) ? ' disabled' : '') + '>' + (j + 1) + ' · ' + L(q.es, q.en) + '</button>').join('') + '</div>';
+  if (P.k === 'mision') {
+    h += '<h2>' + L('¿Cómo se llama tu misión?', "What's your mission called?") + '</h2>' +
+      '<div class="wz-campos"><label class="field"><span class="lbl">' + L('Nombre', 'Name') + '</span><input type="text" id="wz-nombre" maxlength="24" placeholder="CR-06" value="' + esc(wz.nombre) + '"></label></div>' +
+      '<span class="lbl">' + L('Tipo de misión', 'Mission type') + '</span><div class="wz-opts">' + Object.entries(TIPOS).map(([k, t]) => opt('tipo', k, wz.tipo === k, '<big>' + t.big + '</big><b>' + L(t.es, t.en) + '</b><small>' + L(t.des[0], t.des[1]) + '</small>')).join('') + '</div>';
+  } else if (P.k === 'zona') {
+    h += '<h2>' + L('¿Dónde alunizas?', 'Where do you land?') + '</h2><p class="wz-q">' + L('Las tres zonas del Planificador en el polo sur.', 'The three Planner zones at the south pole.') + '</p><div class="wz-opts">' +
+      Object.entries(ZONAS).map(([k, z]) => { const t = terreno(z); return opt('zona', k, wz.zona === k, '<big>' + k + '</big><b>' + z.nombre + '</b><small>' + L(z.es, z.en) + ' · ' + fmt(Math.abs(z.lat), 2) + '° S</small><small>' + L('Pendiente en el punto (LOLA): ', 'Slope at the spot (LOLA): ') + fmt(t.punto, 1) + '°</small>'); }).join('') + '</div>';
+  } else if (P.k === 'fecha') {
+    h += '<h2>' + L('¿Cuándo bajas y cuánto te quedas?', 'When do you land and how long do you stay?') + '</h2>' +
+      '<p class="wz-q">' + L('Mueve la línea de tiempo para ver la luz sobre el relieve. Suelta para alunizar en ese momento.', 'Scrub the timeline to see light on the terrain. Release to land at that moment.') + '</p>' +
+      '<div class="luzq"><div class="luzq-mapa"><canvas id="lq-mapa" width="378" height="378" aria-label="' + L('Luz y sombra sobre el relieve', 'Light and shadow on the terrain') + '"></canvas>' +
+      '<div class="luzq-ley"><span><i style="background:var(--lit)"></i>' + L('al Sol', 'sunlit') + '</span><span><i style="background:var(--umbra)"></i>' + L('en sombra', 'in shadow') + '</span><span>20 × 20 km · LOLA</span></div></div>' +
+      '<div class="luzq-lado"><div class="luzq-hora"><span class="lbl">' + L('Momento', 'Moment') + '</span><b id="lq-hora"></b></div><div class="luzq-cifras"><div id="lq-sol"></div><div id="lq-tierra"></div></div>' +
+      rango('wz-estadia', L('Estadía', 'Stay'), wz.estadia, horas(wz.estadia), 24, 336, 12) +
+      '<label class="field"><span class="lbl">' + L('Alunizaje (UTC)', 'Landing (UTC)') + '</span><input type="datetime-local" id="wz-fecha" min="2026-01-01T00:00" max="2030-12-31T23:00" step="3600" value="' + (wz.t ? isoLocal(wz.t) : '') + '"></label></div></div>' +
+      '<div class="luzq-tl"><div class="luzq-ctl"><button type="button" class="btn" id="lq-atras" title="' + L('15 días antes', '15 days earlier') + '">◀ 15 d</button><button type="button" class="btn" id="lq-play" title="' + L('Ver pasar las horas', 'Watch the hours go by') + '">▶</button><button type="button" class="btn" id="lq-adel" title="' + L('15 días después', '15 days later') + '">15 d ▶</button><span class="lbl" id="lq-rango"></span></div>' +
+      '<canvas id="lq-tl" height="104" aria-label="' + L('Línea de tiempo del Sol y la Tierra', 'Sun and Earth timeline') + '"></canvas></div>';
+    if (wz.t != null) { const luz = luzEstadia(ZONAS[wz.zona], wz.t, wz.estadia);
+      h += '<div class="wz-vivo"><span>' + L('Tu alunizaje', 'Your landing') + '<b>' + fechaTxt(wz.t).replace(' UTC', '') + '</b></span><span>' + L('Con Sol', 'Sunlit') + '<b>' + fmt(luz.solFrac * 100) + '%</b></span><span>' + L('Noche más larga', 'Longest night') + '<b>' + horas(luz.nocheMax) + '</b></span><span>' + L('Con Tierra', 'Earth in view') + '<b>' + fmt(luz.tierraFrac * 100) + '%</b></span></div>'; }
+  } else if (P.k === 'equipo') {
+    const z = ZONAS[wz.zona], luz = luzEstadia(z, wz.t, wz.estadia), rec = recomendarEnergia(wz, luz);
+    const nota = (k) => energiaViable(k, wz, luz) ? '✓ ' + (k === 'rtg' ? L('Cumple con o sin Sol', 'Works with or without Sun') : k === 'baterias' ? L('Tu estadía cabe en 75 h', 'Your stay fits in 75 h') : L('Tus baterías cubren la noche más larga', 'Your batteries cover the longest night')) : '✗ ' + (k === 'baterias' ? L('Tu estadía de ', 'Your stay of ') + horas(wz.estadia) + L(' pasa de 75 h', ' exceeds 75 h') : L('La noche de ', 'The night of ') + horas(luz.nocheMax) + L(' pasa de tus ', ' outlasts your ') + horas(wz.bateriaH));
+    h += '<h2>' + L('¿Con qué equipo vas?', 'What equipment do you take?') + '</h2>' +
+      '<p class="wz-q">' + L('Tu estadía: ', 'Your stay: ') + horas(wz.estadia) + ' · ' + L('noche más larga ', 'longest night ') + horas(luz.nocheMax) + ' · ' + L('Tierra a la vista ', 'Earth in view ') + fmt(luz.tierraFrac * 100) + '%</p>' +
+      '<div class="wz-campos">' + rango('wz-bateria', L('Tus baterías aguantan sin Sol', 'Your batteries last without Sun'), wz.bateriaH, horas(wz.bateriaH), 0, 168, 1) +
+      rango('wz-mintierra', L('Enlace mínimo con la Tierra', 'Minimum Earth link'), wz.minTierra, wz.minTierra + '%', 0, 100, 5) +
+      '<div class="field"><span class="lbl">' + L('Altura del panel y la antena', 'Panel and antenna height') + '</span><div class="chips">' + PLANIF.alturas.map((a) => '<button type="button" class="chip" data-campo="altura" data-valor="' + a + '" aria-pressed="' + (wz.altura === a) + '">' + a + ' m</button>').join('') + '</div></div></div>' +
+      '<div class="wz-rec"><span class="lbl">' + L('Recomendada para tu plan', 'Recommended for your plan') + '</span><b>' + L(ENERGIAS[rec.k].es, ENERGIAS[rec.k].en) + '</b><p>' + rec.por + '</p>' +
+      (wz.energia === rec.k ? '' : '<button type="button" class="btn primary" id="wz-usar-rec">' + L('Usar la recomendada', 'Use the recommendation') + '</button>') + '</div>' +
+      '<div class="wz-opts">' + Object.entries(ENERGIAS).map(([k, e]) => opt('energia', k, wz.energia === k, (k === rec.k ? '<span class="wz-tag">' + L('Recomendada', 'Recommended') + '</span>' : '') + '<big>' + e.big + '</big><b>' + L(e.es, e.en) + '</b><small>' + L(e.des[0], e.des[1]) + '</small><small class="wz-nota" data-ok="' + energiaViable(k, wz, luz) + '">' + nota(k) + '</small>')).join('') + '</div>';
+  } else {
+    const rover = P.k === 'recorrido', z = ZONAS[wz.zona];
+    h += '<h2>' + (rover ? L('¿Por dónde va el rover?', 'Which way does the rover drive?') : L('¿Por dónde caminas?', 'Which way do you walk?')) + '</h2><p class="wz-q">' + L('Trazados del Planificador sobre el relieve real de tu zona.', 'Planner routes on the real relief of your zone.') + '</p><div class="wz-opts">' +
+      Object.entries(RUTAS).map(([k, r]) => { const pm = r.pend[z.id], mal = !rover && pm > CAMINAR.pendMax, dur = rover ? r.m / 1000 / wz.roverKmh + r.paradas.length * wz.roverParadaH : 2 * r.m / 1000 / CAMINAR.kmh + r.paradas.length * CAMINAR.paradaMin / 60;
+        return opt('ruta', k, wz.ruta === k, '<big>' + fmt((rover ? 1 : 2) * r.m / 1000, 1) + '<span style="font-size:14px"> km</span></big><b>' + L(r.es, r.en).replace(/ \(CR-02\)/, '') + '</b><small>' + r.paradas.length + ' ' + L('paradas', 'stops') + ' · ' + horas(dur) + '</small><small class="wz-nota" data-ok="' + !mal + '">' + (mal ? '✗ ' : '') + L('pendiente máx. (LOLA) ', 'max slope (LOLA) ') + fmt(pm, 1) + '°' + (rover ? '' : ' / 15°') + '</small>'); }).join('') + '</div>' +
+      '<div class="wz-campos">' + rango('wz-eva', rover ? L('El rover sale', 'The rover leaves') : L('Sales a caminar', 'You head out'), wz.eva, '+' + wz.eva + ' h', 1, 96, 1) +
+      (rover ? rango('wz-rvel', L('Velocidad (VIPER: 0,8 km/h)', 'Speed (VIPER: 0.8 km/h)'), wz.roverKmh, fmt(wz.roverKmh, 1) + ' km/h', 0.1, 2, 0.1) + rango('wz-rpar', L('Horas en cada parada', 'Hours per stop'), wz.roverParadaH, horas(wz.roverParadaH), 0, 12, 0.5) : '') + '</div>';
+  }
+  const ok = LISTO[P.k](), ultimo = i === PS.length - 1;
+  h += '<div class="wz-nav"><button type="button" class="btn" id="wz-atras">' + (i === 0 ? L('← Inicio', '← Home') : L('← Atrás', '← Back')) + '</button>' +
+    '<div class="row">' + (ok ? '' : '<span class="wz-falta">' + FALTA[P.k]() + '</span>') + '<button type="submit" class="cta" id="wz-sig"' + (ok ? '' : ' disabled') + '>' + (ultimo ? L('Ver resultado →', 'See result →') : L('Siguiente →', 'Next →')) + '</button></div></div>';
+  $('wz').innerHTML = h;
+  if (P.k === 'fecha') iniciarLuz();
+  const nom = $('wz-nombre'); if (nom) { nom.focus(); nom.setSelectionRange(nom.value.length, nom.value.length); }
+}
+function siguiente() {
+  const PS = pasos(); if (!LISTO[PS[wz.paso].k]()) return;
+  parar();
+  if (wz.paso < PS.length - 1) { wz.paso++; pintarWz(); return; }
+  plan = { nombre: wz.nombre.trim(), tipo: wz.tipo, energia: wz.energia, bateriaH: wz.bateriaH, minTierra: wz.minTierra, altura: wz.altura, zona: wz.zona, t: wz.t, estadia: wz.estadia, ruta: wz.ruta || 'segura', eva: wz.eva, roverKmh: wz.roverKmh, roverParadaH: wz.roverParadaH };
+  antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
+  ver('consola'); pintar();
+}
+$('wz').addEventListener('submit', (e) => { e.preventDefault(); siguiente(); });
+$('wz').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.campo) { const c = b.dataset.campo, v = b.dataset.valor; wz[c] = c === 'altura' ? +v : v; pintarWz(); }
+  else if (b.dataset.ir != null && !b.disabled) { parar(); wz.paso = +b.dataset.ir; pintarWz(); }
+  else if (b.id === 'wz-atras') { parar(); if (wz.paso === 0) ver('inicio'); else { wz.paso--; pintarWz(); } }
+  else if (b.id === 'wz-usar-rec') { wz.energia = recomendarEnergia(wz, luzEstadia(ZONAS[wz.zona], wz.t, wz.estadia)).k; pintarWz(); }
+});
+$('wz').addEventListener('input', (e) => {
+  const t = e.target, re = (campo, id) => { wz[campo] = +t.value; pintarWz(); $(id).focus(); };
+  if (t.id === 'wz-nombre') { wz.nombre = t.value; const ok = LISTO.mision(); $('wz-sig').disabled = !ok; const f = $('wz').querySelector('.wz-falta'); if (f) f.textContent = ok ? '' : FALTA.mision(); }
+  else if (t.id === 'wz-estadia') re('estadia', 'wz-estadia');
+  else if (t.id === 'wz-bateria') re('bateriaH', 'wz-bateria');
+  else if (t.id === 'wz-mintierra') re('minTierra', 'wz-mintierra');
+  else if (t.id === 'wz-eva') re('eva', 'wz-eva');
+  else if (t.id === 'wz-rvel') re('roverKmh', 'wz-rvel');
+  else if (t.id === 'wz-rpar') re('roverParadaH', 'wz-rpar');
+});
+$('wz').addEventListener('change', (e) => { if (e.target.id === 'wz-fecha') { const t = Date.parse(e.target.value + ':00Z'); if (Number.isFinite(t)) { wz.t = Math.min(T_MAX - wz.estadia * H, Math.max(T_MIN, t)); lq.cursor = wz.t; pintarWz(); } } });
+const empezar = () => { wz = nuevoWz(); ver('wz'); pintarWz(); };
+$('empezar').addEventListener('click', empezar); $('nueva').addEventListener('click', empezar);
+
+/* ---------- estudio de luz (paso 3): sombras sobre el relieve + línea de tiempo, como Temporal Illumination ---------- */
+const VENTANA = 45 * D;
+const lq = { ini: null, cursor: null, play: false, raf: 0, arrastre: false };
+const sombreado = {};
+function normales(id) {
+  if (sombreado[id]) return sombreado[id];
+  const R2 = RELIEVE[id], M = 126, paso = (2 * R2.half) / (M - 1), h = new Float32Array(M * M);
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) h[j * M + i] = R2.h[(j * 2) * R2.N + i * 2];
+  const nx = new Float32Array(M * M), nz = new Float32Array(M * M), g = (a, b) => h[Math.min(M - 1, Math.max(0, b)) * M + Math.min(M - 1, Math.max(0, a))];
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { nx[j * M + i] = (g(i + 1, j) - g(i - 1, j)) / (2 * paso); nz[j * M + i] = (g(i, j + 1) - g(i, j - 1)) / (2 * paso); }
+  return (sombreado[id] = { M, paso, h, nx, nz, half: R2.half });
+}
+const hex = (v) => { const c = css(v).replace('#', ''); return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)]; };
+function dibujarLuzMapa(t) {
+  const cv = $('lq-mapa'); if (!cv) return;
+  const z = ZONAS[wz.zona], S = normales(z.id), M = S.M, h = S.h;
+  const az = solAz(z, t) * rad, el0 = solGeo(z, t), sx = Math.sin(az), sz = -Math.cos(az);
+  const LIT = hex('--lit'), UMB = hex('--umbra'), img = new ImageData(M, M);
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
+    const k = j * M + i, x = -S.half + i * S.paso, zz = -S.half + j * S.paso;
+    const e = el0 + ((x * sx + zz * sz) / RLUNA) / rad, tanEl = Math.tan(e * rad), h0 = h[k] + 2;
+    let luz = e > -0.3;
+    if (luz) for (let d = 1, st = 1; d < M * 1.5; d += st, st = Math.min(4, st * 1.15)) {
+      const pi = i + sx * d, pj = j + sz * d; if (pi < 0 || pj < 0 || pi > M - 1 || pj > M - 1) break;
+      const dm = d * S.paso, hh = h[Math.round(pj) * M + Math.round(pi)] - (dm * dm) / (2 * RLUNA);
+      if (hh > h0 + dm * tanEl) { luz = false; break; }
+    }
+    const rel = Math.max(0, Math.min(1, 0.55 - (S.nx[k] * -0.7 + S.nz[k] * -0.7) * 1.6));
+    let r, g, b;
+    if (luz) { const lam = Math.max(0.15, Math.min(1, 0.55 + (-S.nx[k] * sx - S.nz[k] * sz) * 6 + Math.sin(e * rad) * 4)), base = 70 + 150 * lam * (0.6 + 0.4 * rel);
+      r = base * 0.45 + LIT[0] * 0.55 * lam; g = base * 0.45 + LIT[1] * 0.55 * lam; b = base * 0.45 + LIT[2] * 0.55 * lam; }
+    else { const base = 25 + 70 * rel; r = base * 0.5 + UMB[0] * 0.5; g = base * 0.5 + UMB[1] * 0.5; b = base * 0.5 + UMB[2] * 0.5; }
+    img.data[k * 4] = r; img.data[k * 4 + 1] = g; img.data[k * 4 + 2] = b; img.data[k * 4 + 3] = 255;
+  }
+  const W = cv.clientWidth || 378, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = W * dpr; cv.style.height = W + 'px';
+  const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const off = document.createElement('canvas'); off.width = off.height = M; off.getContext('2d').putImageData(img, 0, 0);
+  x.imageSmoothingEnabled = true; x.drawImage(off, 0, 0, W, W);
+  const c = W / 2, vis = solEl(z, t) > 0;
+  x.strokeStyle = '#f4efe6'; x.lineWidth = 2; x.beginPath(); x.arc(c, c, 7, 0, 7); x.stroke();
+  x.fillStyle = vis ? '#f4c430' : '#7a6aa8'; x.beginPath(); x.arc(c, c, 3.5, 0, 7); x.fill();
+  const rx = c + sx * (c - 16), ry = c + sz * (c - 16);
+  x.fillStyle = '#f4c430'; x.beginPath(); x.arc(rx, ry, 8, 0, 7); x.fill();
+  x.strokeStyle = '#f4c430'; x.lineWidth = 2; x.setLineDash([4, 4]); x.beginPath(); x.moveTo(c + sx * 14, c + sz * 14); x.lineTo(rx - sx * 12, ry - sz * 12); x.stroke(); x.setLineDash([]);
+  x.fillStyle = '#f4efe6'; x.font = '11px ' + css('--f-mono'); x.fillText('N ↑', 8, 16);
+  const km5 = (5000 / (2 * S.half)) * W; x.fillRect(W - 10 - km5, W - 14, km5, 3); x.fillText('5 km', W - 10 - km5, W - 20);
+}
+function dibujarLuzTl() {
+  const cv = $('lq-tl'); if (!cv) return;
+  const z = ZONAS[wz.zona], W = cv.clientWidth || 700, Hh = 104, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = Hh * dpr; cv.style.height = Hh + 'px';
+  const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const x0 = 54, x1 = W - 6, X = (t) => x0 + ((t - lq.ini) / VENTANA) * (x1 - x0);
+  x.font = '10.5px ' + css('--f-mono'); x.textBaseline = 'middle';
+  for (const [es, en, y, f, col] of [['Sol', 'Sun', 10, (t) => solEl(z, t) > 0, css('--signal')], ['Tierra', 'Earth', 36, (t) => tierraEl(z, t) > 0, css('--earth')]]) {
+    x.fillStyle = css('--ink'); x.fillText(L(es, en).toUpperCase(), 0, y + 10);
+    x.fillStyle = css('--tint'); x.fillRect(x0, y, x1 - x0, 20); x.fillStyle = col;
+    let ini = null;
+    for (let t = lq.ini; t <= lq.ini + VENTANA + H; t += H) { const v = t <= lq.ini + VENTANA && f(t); if (v && ini == null) ini = t; if (!v && ini != null) { x.fillRect(X(ini), y, Math.max(1, X(t) - X(ini)), 20); ini = null; } }
+    x.strokeStyle = css('--ink'); x.lineWidth = 1; x.strokeRect(x0 + 0.5, y + 0.5, x1 - x0 - 1, 19);
+  }
+  x.fillStyle = css('--ink-soft'); x.strokeStyle = css('--shade');
+  const d0 = Math.ceil(lq.ini / D) * D, cada = W < 520 ? 7 : 3;
+  for (let t = d0, n = 0; t <= lq.ini + VENTANA; t += D, n++) {
+    const px = X(t); x.beginPath(); x.moveTo(px + 0.5, 60); x.lineTo(px + 0.5, n % cada === 0 ? 68 : 64); x.stroke();
+    if (n % cada === 0 && px - x0 > 22 && x1 - px > 22) { x.textAlign = 'center'; x.fillText(new Date(t).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }), px, 80); x.textAlign = 'left'; }
+  }
+  if (wz.t != null) { const a = X(wz.t), b2 = X(wz.t + wz.estadia * H);
+    if (b2 > x0 && a < x1) { const l = Math.max(x0, a), r = Math.min(x1, b2); x.fillStyle = css('--hatch'); x.globalAlpha = 0.5; x.fillRect(l, 6, r - l, 54); x.globalAlpha = 1;
+      x.strokeStyle = css('--ink'); x.lineWidth = 2; x.strokeRect(l, 6, r - l, 54); x.fillStyle = css('--ink'); x.fillText(L('estadía', 'stay'), l + 4, 96); } }
+  const cx = X(lq.cursor); x.strokeStyle = css('--signal'); x.lineWidth = 2; x.beginPath(); x.moveTo(cx, 2); x.lineTo(cx, 70); x.stroke();
+  x.fillStyle = css('--signal'); x.beginPath(); x.moveTo(cx - 6, 0); x.lineTo(cx + 6, 0); x.lineTo(cx, 7); x.fill();
+  $('lq-rango').textContent = fechaTxt(lq.ini).replace(/,? \d\d:\d\d UTC/, '') + ' – ' + fechaTxt(lq.ini + VENTANA).replace(/,? \d\d:\d\d UTC/, '');
+}
+function leerLuz() {
+  const z = ZONAS[wz.zona], t = lq.cursor, s = solEl(z, t), e = tierraEl(z, t);
+  $('lq-hora').textContent = fechaTxt(t);
+  $('lq-sol').innerHTML = '<span class="lbl">' + L('Sol', 'Sun') + '</span><b style="color:' + (s > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (s > 0 ? L('visible', 'visible') : L('oculto', 'hidden')) + '</b><small>' + fmt(s, 1) + '° ' + L('sobre el horizonte', 'above horizon') + ' · az ' + fmt(solAz(z, t)) + '°</small>';
+  $('lq-tierra').innerHTML = '<span class="lbl">' + L('Tierra', 'Earth') + '</span><b style="color:' + (e > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (e > 0 ? L('en contacto', 'in contact') : L('sin enlace', 'no link')) + '</b><small>' + fmt(e, 1) + '° ' + L('sobre el horizonte', 'above horizon') + '</small>';
+}
+function refrescarLuz(mapa = true) { if (mapa) dibujarLuzMapa(lq.cursor); dibujarLuzTl(); leerLuz(); }
+function iniciarLuz() {
+  const ref = wz.t ?? lq.cursor ?? Math.max(T_MIN, Math.min(T_MAX - VENTANA, Math.floor(Date.now() / H) * H));
+  if (lq.ini == null || ref < lq.ini || ref > lq.ini + VENTANA) lq.ini = Math.max(T_MIN, Math.min(T_MAX - VENTANA, Math.floor((ref - 7 * D) / D) * D));
+  if (lq.cursor == null || lq.cursor < lq.ini || lq.cursor > lq.ini + VENTANA) lq.cursor = wz.t ?? lq.ini + 7 * D;
+  refrescarLuz();
+  const tl = $('lq-tl');
+  const tAt = (ev) => { const r = tl.getBoundingClientRect(), f = Math.min(1, Math.max(0, (ev.clientX - r.left - 54) / (r.width - 60))); return Math.round((lq.ini + f * VENTANA) / H) * H; };
+  let ultimo = 0;
+  tl.addEventListener('pointerdown', (ev) => { lq.arrastre = true; tl.setPointerCapture(ev.pointerId); parar(); lq.cursor = tAt(ev); refrescarLuz(); });
+  tl.addEventListener('pointermove', (ev) => { if (!lq.arrastre) return; lq.cursor = tAt(ev); const now = performance.now(), m = now - ultimo > 40; refrescarLuz(m); if (m) ultimo = now; });
+  tl.addEventListener('pointerup', () => { if (!lq.arrastre) return; lq.arrastre = false; wz.t = Math.min(T_MAX - wz.estadia * H, lq.cursor); pintarWz(); });
+  const mover = (d) => { parar(); lq.ini = Math.max(T_MIN, Math.min(T_MAX - VENTANA, lq.ini + d)); lq.cursor = Math.max(lq.ini, Math.min(lq.ini + VENTANA, lq.cursor)); refrescarLuz(); };
+  $('lq-atras').onclick = () => mover(-15 * D); $('lq-adel').onclick = () => mover(15 * D);
+  $('lq-play').onclick = () => { if (lq.play) { parar(); return; } lq.play = true; $('lq-play').textContent = '❚❚';
+    let prev = performance.now();
+    const paso = (now) => { if (!lq.play || !$('lq-tl')) return; if (now - prev > 70) { prev = now; lq.cursor += 3 * H; if (lq.cursor > lq.ini + VENTANA) lq.cursor = lq.ini; refrescarLuz(); } lq.raf = requestAnimationFrame(paso); };
+    lq.raf = requestAnimationFrame(paso); };
+}
+function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('lq-play'); if (b) b.textContent = '▶'; }
+
+/* ---------- idioma y arranque ---------- */
+const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); };
+$('lang-es').onclick = () => setLang('es'); $('lang-en').onclick = () => setLang('en');
+try { const l = localStorage.getItem('horizon.lang'); if (l === 'en' || l === 'es') lang = l; } catch (e) {}
+{ const q = new URLSearchParams(location.search).get('lang'); if (q === 'en' || q === 'es') lang = q; }
+construir(); ver('inicio');
+})();
+</script>
+</body>
+</html>
