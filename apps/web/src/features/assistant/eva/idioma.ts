@@ -38,6 +38,30 @@ export function detectarIdioma(texto: string): Idioma | null {
   return null
 }
 
+// Pedir el cambio: un verbo de hablar o cambiar seguido del idioma («speak Spanish», «háblame en inglés», «switch to
+// English»), o el idioma solo, con o sin «please» / «por favor» («En español por favor», «English»). «¿Cómo se dice
+// alunizaje en inglés?» NO pide nada: no hay verbo de hablar.
+const VERBO = String.raw`(?:speak|talk|answer|reply|respond|switch|change|continue|go on|habla|háblame|hablame|hablar|hablemos|hables|responde|respóndeme|respondeme|contesta|contéstame|contestame|cambia|cambiar|cambiemos|pasa|sigue|continúa|continua)`
+const IDIOMAS: Record<Idioma, string> = { es: String.raw`(?:spanish|español|espanol|castellano)`, en: String.raw`(?:english|inglés|ingles)` }
+const pide = (otro: Idioma) =>
+  new RegExp(
+    String.raw`(?:^|[^\p{L}])${VERBO}(?:[^\p{L}]+\p{L}+){0,3}?[^\p{L}]+(?:in|en|to|a|al)?[^\p{L}]*${IDIOMAS[otro]}(?:$|[^\p{L}])` +
+      String.raw`|^[\s¿¡]*(?:in |en |to |a )?${IDIOMAS[otro]}(?:,? (?:please|por favor))?[\s.!?]*$`,
+    "iu",
+  )
+
+/**
+ * El idioma al que la persona PIDE cambiar, o null. Es la única forma de cambiar el idioma elegido durante la visita
+ * (además de los botones): el idioma en que viene escrita una pregunta NO lo cambia (pedido de Manuel, 2026-11-15:
+ * «si quieres que EVA te hable en inglés, que se mantenga así, y en español igual»). Con `detectarIdioma`, un nombre
+ * con tilde («José»), un «Hola» o un «ok» cambiaban a EVA de idioma sin que nadie lo pidiera: ver
+ * apps/api/scripts/banco-idioma.ts.
+ */
+export function pideOtroIdioma(texto: string, actual: Idioma): Idioma | null {
+  const otro: Idioma = actual === "en" ? "es" : "en"
+  return pide(otro).test(texto.trim()) ? otro : null
+}
+
 /** El nombre que alguien escribió al presentarse: sin el «me llamo» o el «my name is», limpio y con mayúscula. */
 export function nombreDe(texto: string): string {
   let t = texto.replace(/[^\p{L}\s'-]/gu, " ").replace(/\s+/g, " ").trim()

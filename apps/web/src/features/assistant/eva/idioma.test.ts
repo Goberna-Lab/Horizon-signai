@@ -1,6 +1,31 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { detectarIdioma, nombreDe } from "./idioma.ts"
+import { detectarIdioma, nombreDe, pideOtroIdioma } from "./idioma.ts"
+
+// El idioma elegido se mantiene: solo un pedido explícito lo cambia (casos del banco apps/api/scripts/banco-idioma.ts).
+test("hablar en el otro idioma no cambia el idioma elegido", () => {
+  for (const t of ["José", "My name is Ángel", "María", "Hola EVA", "Gracias", "la la la", "¿Qué es la zona B?", "Hola, ¿cómo funciona el planificador?"])
+    assert.equal(pideOtroIdioma(t, "en"), null, t)
+  for (const t of ["What does REVIEW mean?", "Thanks", "Planner", "Explain the timeline", "Is zone B GO?", "Me llamo John"])
+    assert.equal(pideOtroIdioma(t, "es"), null, t)
+})
+
+test("preguntar por una palabra en el otro idioma no es pedir el cambio", () => {
+  assert.equal(pideOtroIdioma("¿Cómo se dice alunizaje en inglés?", "es"), null)
+  assert.equal(pideOtroIdioma("How do you say crater in Spanish?", "en"), null)
+})
+
+test("pedirlo sí cambia el idioma", () => {
+  for (const t of ["Can you speak Spanish?", "Switch to Spanish, please", "En español por favor", "háblame en español", "Español", "Spanish please", "Answer in Spanish"])
+    assert.equal(pideOtroIdioma(t, "en"), "es", t)
+  for (const t of ["Speak English", "habla en inglés", "in English please", "¿Puedes hablar en inglés?", "English", "respóndeme en inglés"])
+    assert.equal(pideOtroIdioma(t, "es"), "en", t)
+})
+
+test("pedir el idioma en que ya está no cambia nada", () => {
+  assert.equal(pideOtroIdioma("Speak English", "en"), null)
+  assert.equal(pideOtroIdioma("háblame en español", "es"), null)
+})
 
 test("reconoce el español", () => {
   for (const t of ["hola", "¿Cómo se planifica una misión?", "quiero aprender a planificar", "me llamo Ana", "por qué el polo sur", "explícame la noche lunar", "soy Estephano"])

@@ -48,7 +48,7 @@ Commands (use only these, written exactly like this):
 <<compare>>  save the current scenario in the comparison table and open it.
 <<play>>  play the timeline: the Sun and Earth move along the real horizon over ninety days.
 <<simulate>>  run the descent simulation to the selected zone (an Apollo 11 descent profile, as an example vehicle).
-<<language to=es>>  switch the whole app to Spanish; to=en for English.
+<<language to=es>>  switch the whole app to Spanish; to=en for English. Only when the person explicitly asks to change the language ("speak Spanish", "en inglés, por favor"): a message written in the other language is NOT a request, so answer it in the current language with no command.
 Rules for commands: use one when the person asks you to do, show, open, move, switch, run or change something, or says yes to your offer. Words alone do nothing in the app: if you say you are doing something, the command must be the last thing in that same answer. One command per answer; if they ask for two things, do the first and offer the second. For a plain question, answer without a command. Never attach a command to an offer you make ("Want to see the timeline move?"): wait for their yes.
 Examples. "Move the landing one week later." -> "One week later, coming up. <<shift days=7>>"  "Switch to zone B." -> "Zone B it is. <<planner zone=B>>"  "Run the descent." -> "Starting the descent now. <<simulate>>"  "Why does it fail?" -> an explanation with no command. The planner recomputes everything after your command, so never announce the new verdict or new figures in the same answer: say what you are changing and invite them to look. If they ask for something no command covers, say so and tell them where to click instead.`
 

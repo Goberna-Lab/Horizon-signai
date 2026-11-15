@@ -12,7 +12,7 @@ import { ejecutarAccion, estadoDePantalla } from "./acciones"
 import { dondePonerse } from "./colocarse"
 import { entender as entenderFrase, esEco, type QueEspera } from "./escucha"
 import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, PISTAS, TEXTOS, type Comentario } from "./guion"
-import { detectarIdioma, nombreDe, type Idioma } from "./idioma"
+import { nombreDe, pideOtroIdioma, type Idioma } from "./idioma"
 import { intencionDe } from "./intencion"
 import { ETAPAS, FINAL, INICIO, MISIONES, NO_ESA, PERFILES, VUELTA, YA_LISTA, type Mision, type Paso, type Recorrido } from "./recorridos"
 import { useOido } from "./oido"
@@ -360,9 +360,10 @@ export default function EvaCompanera() {
       hilo.current = [...hilo.current, m]
       if (m.role !== "user") return
       recordar(m.content)
-      // Por voz cambia de idioma sin ceremonia: el turno ya está en marcha.
-      const i = detectarIdioma(m.content)
-      if (i && i !== idiomaRef.current) fijarIdioma(i)
+      // El idioma elegido se mantiene: solo cambia si la persona lo pide («speak Spanish»), sin ceremonia porque el
+      // turno ya está en marcha. Hablarle en el otro idioma no lo cambia (ver pideOtroIdioma).
+      const i = pideOtroIdioma(m.content, idiomaRef.current)
+      if (i) fijarIdioma(i)
     },
   })
   const conversando = voz.estado !== "reposo"
@@ -1171,7 +1172,7 @@ export default function EvaCompanera() {
   alOirFraseRef.current = alOirFrase
   encenderManosRef.current = encenderManos
 
-  /** Contestaron el nombre (o lo saltaron). Si se presentaron en español, primero se reconfigura. */
+  /** Contestaron el nombre (o lo saltaron). Un nombre con tilde («José») no cambia el idioma elegido; pedirlo, sí. */
   const alNombre = async (ev?: FormEvent, dicho?: string) => {
     ev?.preventDefault()
     const crudo = (dicho ?? nombre).trim()
@@ -1179,8 +1180,8 @@ export default function EvaCompanera() {
     cerrarPregunta()
     const n = nombreDe(crudo)
     if (n) recordarNombre(n)
-    const i = detectarIdioma(crudo)
-    if (i && i !== idiomaRef.current) await reconfigurar(i)
+    const i = pideOtroIdioma(crudo, idiomaRef.current)
+    if (i) await reconfigurar(i)
     await preguntar(TEXTOS[idiomaRef.current].oferta(n), "oferta")
   }
 
@@ -1213,10 +1214,11 @@ export default function EvaCompanera() {
     const enPausa = recorrido.current
     cerrarPregunta()
     if (!enPausa) quitarFoco()
-    tomarTurno() // se calla ya, antes de mirar en qué idioma le hablan
+    tomarTurno() // se calla ya, antes de mirar si pide otro idioma
     ocupada.current = true
-    const i = detectarIdioma(q)
-    if (i && i !== idiomaRef.current) await reconfigurar(i)
+    // El idioma elegido se mantiene aunque le escriban en el otro; solo cambia si lo piden (ver pideOtroIdioma).
+    const i = pideOtroIdioma(q, idiomaRef.current)
+    if (i) await reconfigurar(i)
     const { mio, corte } = tomarTurno()
     ocupada.current = true
     recordar(q)

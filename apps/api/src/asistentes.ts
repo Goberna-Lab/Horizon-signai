@@ -89,13 +89,31 @@ Tone examples (never reuse them word for word): "Picture the Sun as a flashlight
 }
 
 // En español: mismo personaje, otra lengua. Los nombres de las pantallas se dejan en inglés porque así salen en la app.
+// El idioma lo elige la persona (la tarjeta «English or Spanish?» o el botón del panel) y se mantiene toda la visita:
+// pedido de Manuel, 2026-11-15. Medido con apps/api/scripts/banco-idioma.ts: con solo «always answer in English», y
+// las órdenes de la app activas, el 27B contestaba en el idioma de la PREGUNTA en 4 de 15 casos.
 const EN_QUE_IDIOMA: Record<Idioma, string> = {
-  en: "always answer in English",
-  es: "always answer in Spanish (neutral Latin American Spanish, speaking to the person as «tú»), keeping the names of the app's screens in English as they appear on screen (Planner, Missions, Mission control, 3D Map)",
+  en: "always answer in English. The person chose English for this visit: keep answering in English even when they write or speak to you in Spanish, and even when your notes, the reference excerpts or earlier turns are in Spanish. Switch only if they explicitly ask you to speak Spanish",
+  es: "always answer in Spanish (neutral Latin American Spanish, speaking to the person as «tú», never «vos»), keeping the names of the app's screens in English as they appear on screen (Planner, Missions, Mission control, 3D Map). The person chose Spanish for this visit: keep answering in Spanish even when they write or speak to you in English, and even when your notes, the reference excerpts or earlier turns are in English. Switch only if they explicitly ask you to speak English",
+}
+/** El idioma elegido, dicho una vez más al final del sistema (lo último que lee el modelo antes de la conversación). */
+const IDIOMA_AL_FINAL: Record<Idioma, string> = {
+  en: "Language: answer only in English, the language this person chose.",
+  es: "Language: answer only in Spanish (neutral Latin American, «tú»), the language this person chose.",
 }
 const VOZ = (idioma: Idioma) => `You are speaking out loud: ${EN_QUE_IDIOMA[idioma]}, in one to three short sentences, with no lists, no markdown, no emojis and no special symbols.
 Always start with a very short first sentence of at most eight words, then continue. Write numbers as words when they are short.
 If one of your previous answers ends with a note in square brackets starting with 'interrupted', the user cut you off. If they are adding to their request, open with a very short acknowledgement and answer integrating it with what they asked before. If they are correcting something, briefly acknowledge the correction and answer again with it. If they ask something new, answer it and, only if your earlier answer was unfinished, offer in a few words at the end to get back to it. Never repeat what you already said and never write notes in square brackets.`
+
+/**
+ * Recordatorio de idioma que va al final de cada pregunta (ver turnoDeVoz en z6.ts), junto a la pregunta: es lo que
+ * más pesa, porque la pregunta en el otro idioma es justo lo que arrastra al modelo. No cambia el comienzo del prompt,
+ * así que no rompe la caché de Ollama.
+ */
+export const notaDeIdioma = (idioma: Idioma) =>
+  idioma === "en"
+    ? "[Note from the app: answer in English, the language this person chose, even if this message is in Spanish. Do not change the language unless they explicitly ask you to.]"
+    : "[Nota de la app: responde en español, el idioma que esta persona eligió, aunque este mensaje esté en inglés. No cambies de idioma salvo que te lo pida explícitamente.]"
 
 const TEXTO = (idioma: Idioma) =>
   `You are writing in a chat: answer in the user's language${idioma === "es" ? " (they have been speaking Spanish: answer in Spanish unless they switch)" : ""}, clearly and briefly, in short paragraphs. Markdown is allowed. Keep your personality in writing too.`
@@ -108,7 +126,7 @@ const TEXTO = (idioma: Idioma) =>
 // junto a la pregunta (ver turnoDeVoz en z6.ts), para no invalidar todo el historial en cada turno (medido: con el
 // RAG dentro del sistema el turno pasaba de ~1,4 s a ~6 s).
 export const sistemaVoz = (p: Persona) =>
-  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}\n\n${VOZ(p.idioma)}${p.acciones ? `\n\n${INSTRUCCIONES_ACCIONES}` : ""}\n\n${p.recuerdos}`
+  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}\n\n${VOZ(p.idioma)}${p.acciones ? `\n\n${INSTRUCCIONES_ACCIONES}` : ""}\n\n${p.recuerdos}\n\n${IDIOMA_AL_FINAL[p.idioma]}`
 export const sistemaTexto = (p: Persona, extra = "") =>
   `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}${extra ? `\n\n${extra}` : ""}\n\n${p.recuerdos}\n\n${TEXTO(p.idioma)}`
 

@@ -4,7 +4,7 @@ import { atenuarWav, clasificarOido, type Z6Respuesta } from "@horizon-signai/sh
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
 import { parecida, precalentarParecidas } from "./assistant/parecidas.js"
 import { contextoRag } from "./assistant/rag.js"
-import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
+import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, notaDeIdioma, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
 
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
 const z6Url = () => process.env.Z6_URL ?? "http://100.82.117.21:11434"
@@ -317,6 +317,8 @@ const turnoDeVoz = (
     const notas = [
       extra ? `[Note from the app, not from the person. ${extra}]` : "",
       persona.acciones && voz.idioma === "en" ? RECORDATORIO_ACCIONES : "",
+      // Lo último antes de contestar: el idioma elegido, que una pregunta en el otro idioma no cambia (asistentes.ts).
+      voz.idioma === "en" ? notaDeIdioma(persona.idioma) : "",
     ].filter(Boolean)
     if (notas.length) {
       const ultimo = msgs[msgs.length - 1]
