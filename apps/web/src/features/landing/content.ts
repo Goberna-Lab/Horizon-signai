@@ -119,6 +119,31 @@ export type Scene = {
   quiz?: Quiz
 }
 
+/**
+ * La bitácora de misiones del vuelo: la campaña de ejemplo del planificador (`prototipos/lunar-map/campaign.js`) y,
+ * como referencia, una misión real que aterrizó en la región. `site` es el id del sitio en la lámina (plate.json):
+ * ahí se marca la misión sobre el terreno.
+ */
+export type MissionStatus = "go" | "pending" | "review" | "draft" | "done"
+export const missionLog = {
+  label: tr("Example campaign · Planner", "Campaña de ejemplo · Planificador"),
+  status: {
+    go: "GO",
+    pending: tr("Pending sign-off", "Pendiente de firma"),
+    review: tr("Review", "En revisión"),
+    draft: tr("Draft", "Borrador"),
+    done: tr("Real mission", "Misión real"),
+  } as Record<MissionStatus, string>,
+  missions: [
+    { id: "CR-01", name: tr("Landing at Connecting Ridge", "Alunizaje en Connecting Ridge"), when: tr("18 Dec 2026 · 09:00 UTC", "18 dic 2026 · 09:00 UTC"), status: "go", site: "connecting-ridge-roi-6", place: "Connecting Ridge · RoI 6" },
+    { id: "CR-02", name: tr("Science walk to the Shackleton rim", "Caminata científica al borde de Shackleton"), when: tr("19 Dec 2026 · 10:00 UTC", "19 dic 2026 · 10:00 UTC"), status: "pending", site: "connecting-ridge-roi-6", place: "Connecting Ridge → Shackleton rim" },
+    { id: "PS-03", name: tr("Survey of the peak next to Shackleton", "Reconocimiento del pico junto a Shackleton"), when: tr("Jan 2027 · date to be chosen", "ene 2027 · fecha por elegir"), status: "review", site: "peak-near-shackleton-roi-2", place: "Peak near Shackleton · RoI 2" },
+    { id: "SR-05", name: tr("Landing at the Shackleton rim", "Alunizaje en el borde de Shackleton"), when: tr("5 May 2027 · 09:00 UTC", "5 may 2027 · 09:00 UTC"), status: "review", site: "shackleton-rim-roi-4", place: "Shackleton rim · RoI 4" },
+    { id: "DG-04", name: tr("Sampling at the de Gerlache rim", "Muestreo en el borde de de Gerlache"), when: tr("No date · science team draft", "Sin fecha · borrador del equipo científico"), status: "draft", site: "de-gerlache-rim", place: "de Gerlache rim" },
+    { id: "IM-2", name: tr("Athena lander (Intuitive Machines)", "Módulo Athena (Intuitive Machines)"), when: tr("6 Mar 2025 · landed on its side", "6 mar 2025 · quedó de lado"), status: "done", site: "im-2", place: "Mons Mouton" },
+  ] as Array<{ id: string; name: string; when: string; status: MissionStatus; site: string; place: string }>,
+}
+
 /** Las escenas del vuelo, en orden. La primera es el inicio de la página. */
 export const scenes: Scene[] = [
   {
@@ -131,12 +156,12 @@ export const scenes: Scene[] = [
     ),
   },
   {
-    id: "horizon",
-    rail: "Horizon",
-    title: tr("The horizon decides.", "El horizonte decide."),
+    id: "missions",
+    rail: tr("Missions", "Misiones"),
+    title: tr("Mission log", "Bitácora de misiones"),
     body: tr(
-      "At the pole the Sun and Earth never climb: they skim the horizon. A ridge in the way means no sunlight for the panels and no line of sight to Earth. Horizon Signai measures both against the real terrain, hour by hour.",
-      "En el polo el Sol y la Tierra nunca suben: rozan el horizonte. Una cresta en medio significa quedarse sin luz para los paneles y sin línea de vista a la Tierra. Horizon Signai mide los dos frente al relieve real, hora por hora.",
+      "The example campaign in the planner, on the real terrain. Each mission is checked against the horizon of its own site.",
+      "La campaña de ejemplo del planificador, sobre el relieve real. Cada misión se comprueba contra el horizonte de su propio sitio.",
     ),
   },
   {

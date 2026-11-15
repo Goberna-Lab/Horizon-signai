@@ -1069,6 +1069,145 @@
   background: repeating-linear-gradient(135deg, var(--signal) 0 1.5px, transparent 1.5px 6px) left center / 20px 12px no-repeat;
 }
 
+/*
+ * La bitácora de misiones: el panel de la izquierda a toda altura, una fila por misión (código, nombre, fecha y
+ * sitio, y su estado). Al pasar por una fila se resalta su marca en el terreno.
+ */
+.fl-scene--panel[data-scene="missions"] {
+  top: calc(var(--bar) + var(--gutter));
+  bottom: auto;
+  width: min(480px, 100% - 2 * var(--gutter));
+}
+
+.fl-log__intro {
+  margin-top: 10px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.fl-log__list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--rule);
+}
+
+.fl-log__item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 11px 6px;
+  border-bottom: var(--hairline);
+  transition: background-color 140ms;
+}
+
+.fl-log__item:hover {
+  background: var(--shade);
+}
+
+.fl-log__id {
+  font: 700 12px/1.3 var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.fl-log__main strong {
+  display: block;
+  font: 700 0.9375rem/1.2 var(--font-display);
+}
+
+.fl-log__main span {
+  display: block;
+  margin-top: 3px;
+  font: 400 11px/1.35 var(--font-mono);
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.fl-log__status {
+  padding: 3px 6px 2px;
+  border: var(--rule);
+  font: 500 10px/1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fl-log__item[data-status="go"] .fl-log__status {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.fl-log__item[data-status="pending"] .fl-log__status {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.fl-log__item[data-status="draft"] .fl-log__status {
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+
+.fl-log__item[data-status="done"] .fl-log__status {
+  border-color: var(--shade);
+  background: var(--shade);
+}
+
+/* Las misiones sobre el terreno: un punto en el sitio y sus códigos al lado. */
+.fl-mark__pin {
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 1px var(--ink);
+  transition: transform 160ms var(--ease);
+}
+
+.fl-mark--mission[data-status="draft"] .fl-mark__pin {
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--ink), inset 0 0 0 2px var(--ink);
+}
+
+.fl-mark--mission .fl-mark__label {
+  left: 14px;
+  top: -11px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  transition: background-color 160ms, border-color 160ms;
+}
+
+.fl-mark--mission[data-side="left"] .fl-mark__label {
+  left: auto;
+  right: 14px;
+}
+
+.fl-mark--mission[data-side="up"] .fl-mark__label {
+  left: 0;
+  top: -36px;
+  transform: translateX(-50%);
+}
+
+.fl-mark--mission[data-side="left-down"] .fl-mark__label {
+  left: auto;
+  right: 12px;
+  top: 4px;
+}
+
+.fl-mark--mission[data-focus] .fl-mark__pin {
+  transform: scale(1.5);
+}
+
+.fl-mark--mission[data-focus] .fl-mark__label {
+  background: var(--signal);
+  border-color: var(--signal);
+}
+
 /* Adivina primero: la pregunta de la escena, sus tres respuestas y, al responder, el veredicto sobre el dato. */
 .fl-quiz__label,
 .fl-quiz__result {

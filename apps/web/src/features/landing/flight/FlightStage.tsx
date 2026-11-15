@@ -5,12 +5,13 @@ import Lenis from "lenis"
 import "lenis/dist/lenis.css"
 import { tr } from "@/shared/i18n"
 import { lang, setLang, type Lang } from "@/shared/i18n"
-import { brand, chooseLanguage, hud, loading, opening, scenes } from "../content"
+import { brand, chooseLanguage, hud, loading, missionLog, opening, scenes } from "../content"
 import type { FlightHandle, LoadStep } from "./createFlight"
 import type { Flight, ScreenPoint } from "./engine/renderer"
 import type { Frame } from "./engine/story"
 import { at, horizonAt, sky, span, stamp, stateOf } from "../sections/product/sky"
 import poster from "./data/poster.webp"
+import { MissionLog } from "./MissionLog"
 import { ScenePanel } from "./ScenePanel"
 import { HERO_DAY, STOPS, SUNRISE_FROM } from "./stops"
 import "./flight.css"
@@ -25,6 +26,33 @@ const LEG_VH = 150
  * Sitios rotulados en la escena de comparación: id del catálogo, texto y hacia dónde cae el rótulo. Son los nombres
  * del catálogo (nombres propios): no se traducen.
  */
+/** La parada de la bitácora de misiones. */
+const MISSION_STOP = scenes.findIndex((scene) => scene.id === "missions")
+/**
+ * Las misiones de la bitácora, agrupadas por sitio: una marca por sitio, con los códigos de sus misiones. Vistos desde
+ * arriba los sitios del polo quedan a pocos píxeles: cada rótulo tiene su lado fijo para no pisarse con los vecinos.
+ */
+type MissionSide = "left" | "right" | "up" | "left-down"
+const MISSION_SIDE: Record<string, MissionSide> = {
+  "shackleton-rim-roi-4": "up",
+  "connecting-ridge-roi-6": "left-down",
+  "de-gerlache-rim": "left",
+  "im-2": "left",
+}
+const MISSION_SITES = Object.values(
+  missionLog.missions.reduce<Record<string, { site: string; ids: string[]; status: string; side: MissionSide }>>((sites, mission) => {
+    const entry = (sites[mission.site] ??= { site: mission.site, ids: [], status: mission.status, side: MISSION_SIDE[mission.site] ?? "right" })
+    entry.ids.push(mission.id)
+    return sites
+  }, {}),
+)
+/**
+ * El scroll del vuelo va por paradas: cada golpe de rueda viaja a la siguiente (o a la anterior) con este recorrido.
+ * Entre gestos tiene que haber una pausa: la inercia de un trackpad no salta dos paradas.
+ */
+const STEP = { duration: 2.4, quietMs: 220 }
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
 const MARKS: Array<{ id: string; label: string; side: "left" | "right" }> = [
   { id: "connecting-ridge", label: "Connecting Ridge + RoI 6", side: "left" },
   { id: "shackleton-rim", label: "Shackleton rim", side: "right" },
@@ -142,6 +170,8 @@ export function FlightStage() {
   const introTime = () => (introAt.current === null ? 0 : (holdAt.current ?? performance.now()) - introAt.current)
   /** El modal de idioma: en cada visita, entre la marca y la frase. */
   const [askLang, setAskLang] = useState(false)
+  /** La misión de la bitácora bajo el puntero: su marca sobre el terreno se resalta. */
+  const [focusMission, setFocusMission] = useState<string | null>(null)
   const limbEl = useRef<HTMLDivElement>(null)
   const statusEl = useRef<HTMLDivElement>(null)
   const cellEls = useRef<Record<string, HTMLElement | null>>({})
@@ -509,6 +539,9 @@ export function FlightStage() {
       placeMark("site", flight.project(handle.points["connecting-ridge"], point), clamp01(flight.pose.ring * 1.5 - 0.25), "right")
       const compare = clamp01((state.p - (LAST - 0.45)) / 0.3)
       for (const mark of MARKS) placeMark(mark.id, flight.project(handle.points[mark.id], point), compare, mark.side)
+      // Las misiones de la bitácora, en sus sitios, mientras se ve esa parada.
+      const missions = clamp01(1 - Math.abs(state.p - MISSION_STOP) / 0.45)
+      for (const entry of MISSION_SITES) placeMark(`m:${entry.site}`, flight.project(handle.points[entry.site], point), missions)
     }
 
     /** El scroll fija el punto de la ruta; de ahí salen el texto visible, el riel y la cámara. */
@@ -518,8 +551,15 @@ export function FlightStage() {
         if (!el) return
         const w = clamp01(1 - Math.abs(p - i) / 0.42)
         const eased = w * w * (3 - 2 * w)
-        setStyle(el, "opacity", eased.toFixed(3))
-        setStyle(el, "transform", `translate3d(0, ${((1 - eased) * (p < i ? 18 : -18)).toFixed(1)}px, 0)`)
+        if (i === 0) {
+          setStyle(el, "opacity", eased.toFixed(3))
+          setStyle(el, "transform", `translate3d(0, ${((1 - eased) * (p < i ? 18 : -18)).toFixed(1)}px, 0)`)
+        } else {
+          // Los paneles salen por la izquierda y el siguiente entra por el mismo lado: se ve el relevo.
+          const away = el.offsetWidth + el.offsetLeft + 24
+          setStyle(el, "opacity", Math.sqrt(eased).toFixed(3))
+          setStyle(el, "transform", `translate3d(${(-(1 - eased) * away).toFixed(1)}px, 0, 0)`)
+        }
         setStyle(el, "visibility", w > 0.01 ? "visible" : "hidden")
         if (el.inert !== w < 0.5) el.inert = w < 0.5
       })
@@ -603,6 +643,41 @@ export function FlightStage() {
     const lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 0.9, smoothWheel: true, anchors: { offset: -barHeight }, autoRaf: false })
     lenisRef.current = lenis
     lenis.on("scroll", ScrollTrigger.update)
+
+    // Dentro del vuelo la rueda va por paradas: un gesto, una parada, con un recorrido largo y suave. Fuera del vuelo
+    // (y al salir por el final) la rueda vuelve a ser la de siempre. Teclado, barra y táctil no cambian.
+    let stepping = false
+    let lastWheel = 0
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.deltaY === 0) return
+      const top = root.offsetTop
+      const span = root.offsetHeight - window.innerHeight
+      const y = window.scrollY
+      if (span <= 0 || y < top - 4 || y > top + span + 4) return
+      const dir = Math.sign(event.deltaY)
+      const p = ((y - top) / span) * LAST
+      if ((dir > 0 && p >= LAST - 0.02) || (dir < 0 && p <= 0.02)) return
+      event.preventDefault()
+      event.stopPropagation()
+      const now = performance.now()
+      const fresh = now - lastWheel > STEP.quietMs
+      lastWheel = now
+      if (stepping || !fresh) return
+      const target = Math.min(Math.max(dir > 0 ? Math.floor(p + 0.05) + 1 : Math.ceil(p - 0.05) - 1, 0), LAST)
+      stepping = true
+      lenis.scrollTo(top + (target / LAST) * span, {
+        duration: STEP.duration,
+        easing: easeInOut,
+        lock: true,
+        force: true,
+        onComplete: () => {
+          stepping = false
+          lastWheel = performance.now()
+        },
+      })
+    }
+    // En captura, antes que Lenis: así la rueda no se suma al recorrido.
+    document.addEventListener("wheel", onWheel, { passive: false, capture: true })
     // Un solo reloj para todo: primero avanza el scroll y después se dibuja la escena, una vez por cuadro.
     let dawnDone = false
     const tick = (time: number) => {
@@ -700,6 +775,7 @@ export function FlightStage() {
       context.revert()
       gsap.ticker.remove(tick)
       gsap.ticker.lagSmoothing(500, 33)
+      document.removeEventListener("wheel", onWheel, { capture: true })
       lenis.destroy()
       lenisRef.current = null
       handle?.flight.dispose()
@@ -941,6 +1017,19 @@ export function FlightStage() {
             <div className="fl-mark fl-mark--site" ref={(el) => void (markEls.current.site = el)}>
               <span className="fl-mark__label">Connecting Ridge</span>
             </div>
+            {MISSION_SITES.map((entry) => (
+              <div
+                key={entry.site}
+                className="fl-mark fl-mark--mission"
+                data-status={entry.status}
+                data-side={entry.side}
+                data-focus={focusMission !== null && entry.ids.includes(focusMission) ? "" : undefined}
+                ref={(el) => void (markEls.current[`m:${entry.site}`] = el)}
+              >
+                <i className="fl-mark__pin" />
+                <span className="fl-mark__label">{entry.ids.join(" · ")}</span>
+              </div>
+            ))}
             {MARKS.map((mark) => (
               <div key={mark.id} className="fl-mark fl-mark--point" data-side={mark.side} ref={(el) => void (markEls.current[mark.id] = el)}>
                 <i className="fl-mark__cross" />
@@ -1005,7 +1094,7 @@ export function FlightStage() {
 
           {rest.map((scene, i) => (
             <article key={scene.id} className="fl-scene fl-scene--panel" data-scene={scene.id} id={`scene-${scene.id}`} ref={(el) => void (sceneEls.current[i + 1] = el)}>
-              <ScenePanel scene={scene} open={mode === "static"} />
+              {scene.id === "missions" ? <MissionLog scene={scene} onFocus={setFocusMission} /> : <ScenePanel scene={scene} open={mode === "static"} />}
             </article>
           ))}
         </div>

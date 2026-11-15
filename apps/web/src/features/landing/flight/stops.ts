@@ -24,7 +24,8 @@ export const STOPS: Stop[] = [
   // A ras de suelo, mirando un poco hacia arriba: el horizonte en el tercio de abajo. El rumbo lo pone createFlight
   // (hacia el Sol en HERO_DAY). Todo realista: regolito, cielo negro y estrellas.
   { at: FEATURED_SITE, lift: 0.3, bearing: 0, tilt: 96, distance: 2.5, fov: 42, shift: [0, 0], day: HERO_DAY, earth: 0, ring: 0, real: 1 },
-  // Nos alejamos hasta ver la lámina completa, desde arriba: 0° E (la Tierra) hacia arriba.
+  // Nos alejamos hasta ver la lámina completa, desde arriba (0° E, la Tierra, hacia arriba), con la bitácora de
+  // misiones a la izquierda y las misiones marcadas en sus sitios.
   { at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 2600, frameKm: 392, fov: 9.6, shift: [0.2, 0], day: 3.8, earth: 0, ring: 0 },
   // Sol rasante: la cámara baja al polo y mira hacia el Sol.
   { at: [-6, -16], lift: 0, bearing: 207, tilt: 85, distance: 34, fov: 44, shift: [0.1, 0.1], day: 6, earth: 0, ring: 0, arc: 0.22 },
