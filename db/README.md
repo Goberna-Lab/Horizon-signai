@@ -62,18 +62,23 @@ presets (lander 2 m, NASA VSAT 5 m and 10 m, vertical, single-axis tracking). So
 
 ## Production
 `docker-compose.prod.yml` runs three services: `db` (PostGIS, volume `horizon_pgdata`, no published port), `db-loader`
-(built from `db/Dockerfile`, build context = repo root, whitelist in `db/Dockerfile.dockerignore`) and `app`.
+(built from `db/Dockerfile`, build context = repo root, whitelist in `db/Dockerfile.dockerignore`) and the API in two
+copies, `app-a` and `app-b` (zero-downtime deploy, `deploy/README.md`).
 
 Server `/srv/horizon-signai/.env` must define (use URL-safe passwords: letters, digits, `-._~`; they are placed in a URL):
 `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (owner role, used by `db` and `db-loader`) and `MAP_API_PASSWORD`
 (login `map_api`, used by the API). `DATABASE_URL` and `HORIZON_DB_PORT` are only for local dev; compose sets them itself.
 
-On every deploy (`docker compose up -d --build`): `db` starts -> `db-loader` waits for it, runs `migrate.py`, computes a
+On every deploy (`.github/workflows/deploy.yml`): `db` starts -> `db-loader` runs (while the previous app version keeps serving), runs `migrate.py`, computes a
 sha256 fingerprint of the ETL code, migrations and source data files, and compares it with `public.etl_run`. If it
 changed (or the table is empty) it runs `load_map3d.py` + `load_zones.py` + `CALL moon.refresh_site_illumination()` and records the new
 fingerprint; otherwise it skips both. It then creates/updates the login role `map_api` (member of `map_api_ro`, SELECT +
-EXECUTE only; password from `MAP_API_PASSWORD`, set idempotently, never stored in SQL files). `app` starts only after the
-loader exits 0 and connects as `map_api`. A loader failure makes `up -d` fail and the deploy rolls back.
+EXECUTE only; password from `MAP_API_PASSWORD`, set idempotently, never stored in SQL files). The app copies are replaced
+only after the loader exits 0 and connect as `map_api`. A loader failure stops the deploy before the app is touched.
+
+**Migrations must work with the previous app version.** They run while the old version is still serving, and a rollback
+puts the old image back on top of the migrated database. Add first (new table, nullable column); remove or rename in a
+later deploy, once no running version reads the old shape.
 
 Force a reload: `docker compose -f docker-compose.prod.yml run --rm -e FORCE_RELOAD=1 db-loader`
 (or `DELETE FROM public.etl_run;`). Rotate the API password: change `MAP_API_PASSWORD`, then `up -d` (loader updates it).

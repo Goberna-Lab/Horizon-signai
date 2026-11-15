@@ -47,6 +47,21 @@ if (webDist) {
   )
 }
 
-serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, (info) => {
+const server = serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, (info) => {
   console.log(`API en http://localhost:${info.port}`)
 })
+
+// Apagado ordenado (deploy sin cortes, deploy/README.md): al recibir SIGTERM deja de aceptar conexiones
+// —nginx reintenta esas en la otra copia— y termina las que tiene en curso, como una respuesta del asistente
+// que todavía se está transmitiendo. El tope de 125 s cubre el proxy_read_timeout de 120 s de nginx y queda
+// por debajo del stop_grace_period del compose, para que Docker no tenga que matarla.
+let apagando = false
+const apagar = (senal: string) => {
+  if (apagando) return
+  apagando = true
+  console.log(`${senal}: no acepto conexiones nuevas; termino las que están en curso`)
+  server.close(() => process.exit(0))
+  setTimeout(() => process.exit(0), 125_000).unref()
+}
+process.on("SIGTERM", () => apagar("SIGTERM"))
+process.on("SIGINT", () => apagar("SIGINT"))

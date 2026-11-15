@@ -29,10 +29,16 @@ jobs:
       URL: https://signal-horizon.goberna.us
       GIT_TOKEN: ${{ github.token }}
     steps:
+      # Sin cortes (deploy/README.md): la app corre en dos copias detrás del upstream de nginx
+      # (app-a :7083 principal, app-b :7084 backup) y se actualizan de a una, cada una esperando
+      # a estar sana. Mientras app-a se reemplaza, nginx atiende con app-b, que ya tiene la versión nueva.
       - name: Desplegar con verificación y rollback
         run: |
           set -euo pipefail
           cd "$DEPLOY_DIR"
+          dc() { docker compose -f "$COMPOSE" "$@"; }
+          # Sube una copia con la imagen :latest y espera a que esté healthy. Si la imagen no cambió, no la toca.
+          subir() { dc up -d --no-deps --wait --wait-timeout 120 "$1"; }
 
           if [ ! -d .git ]; then
             git init --quiet
@@ -45,25 +51,47 @@ jobs:
           git reset --hard --quiet FETCH_HEAD
           echo "· commit: $(git rev-parse --short HEAD)"
 
+          # La imagen que está en producción queda como :anterior para volver sin reconstruir.
+          HAY_ANTERIOR=0
+          if docker image inspect horizon-signai:latest >/dev/null 2>&1; then
+            docker tag horizon-signai:latest horizon-signai:anterior
+            HAY_ANTERIOR=1
+          fi
+
           volver() {
             echo "✖ $1"
-            if [ -n "$ANTERIOR" ]; then
-              git reset --hard --quiet "$ANTERIOR"
-              docker compose -f "$COMPOSE" up -d --build
-              echo "· vuelto a $ANTERIOR"
+            if [ "$HAY_ANTERIOR" -eq 1 ]; then
+              docker tag horizon-signai:anterior horizon-signai:latest
+              # app-a primero: si quedó con la versión rota, nginx atiende con app-b mientras se reemplaza.
+              # Con el compose de este commit (no el anterior), que es el que conoce app-a y app-b.
+              if subir app-a && subir app-b; then
+                echo "· la app volvió a la imagen anterior"
+              else
+                echo "✖ tampoco levantó la imagen anterior: revisar a mano (docker compose -f $COMPOSE ps)"
+              fi
             fi
+            [ -n "$ANTERIOR" ] && git reset --hard --quiet "$ANTERIOR" && echo "· código vuelto a $ANTERIOR"
             exit 1
           }
 
-          docker compose -f "$COMPOSE" up -d --build || volver "falló build/up"
+          # Se construye con las dos copias viejas atendiendo.
+          dc build app-a db-loader || volver "falló el build"
 
-          SANO=0
-          for i in $(seq 1 30); do
-            estado="$(docker inspect -f '{{.State.Health.Status}}' horizon_signai_app 2>/dev/null || echo desconocido)"
-            [ "$estado" = "healthy" ] && { SANO=1; break; }
-            sleep 3
-          done
-          [ "$SANO" -eq 1 ] || { docker compose -f "$COMPOSE" logs --tail 40 app || true; volver "el contenedor no llegó a healthy"; }
+          # Migraciones y carga del mapa 3D, también con la app vieja atendiendo: por eso cada migración
+          # tiene que servirle a la versión anterior (db/README.md). La carga va en una sola transacción.
+          dc up -d --wait db || volver "la base no quedó healthy"
+          dc up --no-deps --exit-code-from db-loader db-loader || volver "falló db-loader (migración o carga)"
+
+          # app-b es el backup de nginx y en uso normal no recibe tráfico: se actualiza primero.
+          subir app-b || { dc logs --tail 40 app-b || true; volver "app-b no llegó a healthy"; }
+
+          # Paso del compose de una sola copia (servicio `app`) al de dos: libera :7083 con nginx
+          # ya atendiendo con app-b. Solo actúa en el primer deploy; después no hay nada que hacer.
+          if docker inspect horizon_signai_app >/dev/null 2>&1; then
+            docker stop -t 130 horizon_signai_app && docker rm horizon_signai_app
+          fi
+
+          subir app-a || { dc logs --tail 40 app-a || true; volver "app-a no llegó a healthy"; }
 
           # Verificación pública: depende del DNS + certificado de signal-horizon.goberna.us
           OK=0
