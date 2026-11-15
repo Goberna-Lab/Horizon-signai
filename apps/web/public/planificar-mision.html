@@ -270,6 +270,7 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
       <h1><a href="/" style="color:inherit;text-decoration:none">Planificador</a> <small data-en="South pole · plan and simulate">Polo sur · planifica y simula</small></h1>
     </div>
     <div class="tools">
+      <a class="btn" href="/planner" target="_top" style="color:inherit;text-decoration:none" data-en="← Missions">← Misiones</a>
       <button type="button" class="btn" id="nueva" hidden data-en="+ New mission">+ Nueva misión</button>
       <div class="seg" role="group" aria-label="Idioma">
         <button id="lang-es" type="button" aria-pressed="true">ES</button><button id="lang-en" type="button" aria-pressed="false">EN</button>
@@ -1108,6 +1109,8 @@ $('lang-es').onclick = () => setLang('es'); $('lang-en').onclick = () => setLang
 try { const l = localStorage.getItem('horizon.lang'); if (l === 'en' || l === 'es') lang = l; } catch (e) {}
 { const q = new URLSearchParams(location.search).get('lang'); if (q === 'en' || q === 'es') lang = q; }
 construir(); ver('inicio');
+/* ?nueva (lo manda «Add mission» de Missions): abre directamente el formulario de la misión nueva */
+if (new URLSearchParams(location.search).has('nueva')) empezar();
 })();
 </script>
 </body>
