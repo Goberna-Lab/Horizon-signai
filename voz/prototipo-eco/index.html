@@ -1,0 +1,229 @@
+<!doctype html>
+<!--
+  PROTOTIPO DESECHABLE — no es código de producción.
+  Pregunta: con el micrófono abierto mientras la IA habla (Kokoro por Web Audio, como en /prueba-ia),
+  ¿el navegador cancela el eco lo suficiente para que Silero VAD no se dispare solo con la voz de la IA?
+  Correr:  python3 -m http.server 8812 -d voz/prototipo-eco   →   http://127.0.0.1:8812
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de eco</title>
+<style>
+  :root { --fondo:#0d1117; --panel:#161b22; --texto:#e6edf3; --tenue:#8b949e; --ok:#3fb950; --mal:#f85149; --acento:#58a6ff; }
+  body { background:var(--fondo); color:var(--texto); font:15px/1.5 system-ui, sans-serif; margin:0; padding:16px; }
+  main { max-width:900px; margin:auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.tenue, .tenue { color:var(--tenue); }
+  section { background:var(--panel); border-radius:10px; padding:14px 16px; margin:12px 0; }
+  label { margin-right:16px; white-space:nowrap; }
+  select, button { font:inherit; background:#21262d; color:var(--texto); border:1px solid #30363d; border-radius:6px; padding:6px 10px; }
+  button.principal { background:var(--acento); color:#000; border:0; font-weight:600; }
+  button:disabled { opacity:.4; }
+  #barra { height:14px; background:#21262d; border-radius:7px; overflow:hidden; position:relative; }
+  #barra > div { height:100%; width:0; background:var(--acento); transition:width .05s; }
+  #barra > i { position:absolute; top:0; bottom:0; width:2px; background:var(--mal); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:4px 6px; border-bottom:1px solid #30363d; }
+  td.ok { color:var(--ok); } td.mal { color:var(--mal); }
+  #log { font:12px/1.4 ui-monospace, monospace; max-height:220px; overflow:auto; white-space:pre-wrap; color:var(--tenue); }
+  .grande { font-size:28px; font-weight:700; }
+  .fila { display:flex; gap:24px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Prueba de eco · micrófono abierto mientras habla la IA</h1>
+  <p class="tenue">Prototipo desechable. La voz de la IA suena por Web Audio, igual que en /prueba-ia, y Silero VAD escucha el micrófono a la vez.</p>
+
+  <section>
+    <label>Cancelación de eco
+      <select id="aec">
+        <option value="true">true (lo normal hoy)</option>
+        <option value="all">"all" (cancela todo lo que suena)</option>
+        <option value="remote-only">"remote-only"</option>
+        <option value="false">false (sin cancelar: referencia)</option>
+      </select>
+    </label>
+    <label>Salida
+      <select id="salida"><option>altavoces</option><option>auriculares</option></select>
+    </label>
+    <label>Reproducción
+      <select id="via"><option value="webaudio">Web Audio (como hoy)</option><option value="loopback">WebRTC loopback (truco AEC)</option></select>
+    </label>
+    <label>Volumen de la IA
+      <select id="volumen"><option value="1">100 %</option><option value="0.5">50 %</option><option value="0.25">25 % (ducking)</option></select>
+    </label>
+  </section>
+
+  <section>
+    <b>Prueba 1 — la IA habla, tú callas</b> <span class="tenue">(~35 s). Cada detección es una falsa alarma: el micrófono oyó a la IA.</span><br><br>
+    <button class="principal" id="p1">▶ Prueba 1</button>
+    &nbsp;<b>Prueba 2 — habla encima</b> <span class="tenue">(di 2-3 frases cuando quieras mientras habla la IA, y algún «uh-huh»).</span>
+    <button class="principal" id="p2">▶ Prueba 2</button>
+    <button id="parar" disabled>■ Parar</button>
+  </section>
+
+  <section>
+    <div class="fila">
+      <div><div class="tenue">Detecciones de voz</div><div class="grande" id="nDet">0</div></div>
+      <div><div class="tenue">Descartadas (cortas)</div><div class="grande" id="nMis">0</div></div>
+      <div><div class="tenue">Prob. máx. Silero</div><div class="grande" id="pMax">0</div></div>
+      <div><div class="tenue">Frames &gt; umbral</div><div class="grande" id="pFr">0 %</div></div>
+      <div><div class="tenue">Estado</div><div class="grande" id="estado" style="font-size:18px">listo</div></div>
+    </div>
+    <br>
+    <div class="tenue">Probabilidad de voz (línea roja = umbral 0,5)</div>
+    <div id="barra"><div></div><i style="left:50%"></i></div>
+    <p class="tenue" id="ajustes"></p>
+  </section>
+
+  <section>
+    <b>Resultados</b> <span class="tenue">(cada corrida suma una fila; copia la tabla y pásamela)</span>
+    <table><thead><tr><th>Navegador</th><th>Salida</th><th>Prueba</th><th>AEC pedido</th><th>AEC aplicado</th><th>Vía</th><th>Vol.</th><th>Detecciones</th><th>Descartadas</th><th>Prob. máx.</th><th>Frames &gt; 0,5</th></tr></thead><tbody id="filas"></tbody></table>
+    <br><button id="copiar">Copiar tabla</button>
+  </section>
+
+  <section><b>Registro</b><div id="log"></div></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.wasm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.31/dist/bundle.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id)
+const FRASES = [1, 2, 3, 4, 5, 6].map((i) => `frase${i}.ogg`)
+const UMBRAL = 0.5
+let corrida = null
+
+const log = (m) => { $("log").textContent = `${(performance.now() / 1000).toFixed(1)}s  ${m}\n` + $("log").textContent }
+const navegador = () => /Firefox\//.test(navigator.userAgent) ? "Firefox" : /Edg\//.test(navigator.userAgent) ? "Edge" : /Chrome\//.test(navigator.userAgent) ? "Chrome" : "otro"
+
+async function correr(prueba) {
+  const pedido = $("aec").value
+  const aec = pedido === "true" ? true : pedido === "false" ? false : pedido
+  const vol = Number($("volumen").value)
+  const ctx = new AudioContext()
+  await ctx.resume()
+
+  let stream
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: aec, noiseSuppression: true, autoGainControl: true } })
+  } catch (e) {
+    log(`getUserMedia con echoCancellation=${pedido} falló (${e.name}); reintento con true`)
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+  }
+  const pista = stream.getAudioTracks()[0]
+  const aplicado = String(pista.getSettings().echoCancellation)
+  const capaz = JSON.stringify(pista.getCapabilities?.().echoCancellation ?? "—")
+  $("ajustes").textContent = `Micrófono: ${pista.label} · echoCancellation aplicado: ${aplicado} · el navegador admite: ${capaz}`
+  log(`AEC pedido=${pedido} aplicado=${aplicado} admite=${capaz}`)
+
+  const via = $("via").value
+  const c = { prueba, pedido, aplicado, via, vol, det: 0, mis: 0, max: 0, frames: 0, sobre: 0, hablando: false, fuentes: [], ctx, stream, vad: null }
+  corrida = c
+  const pintar = () => {
+    $("nDet").textContent = c.det; $("nMis").textContent = c.mis
+    $("pMax").textContent = c.max.toFixed(2)
+    $("pFr").textContent = c.frames ? `${(100 * c.sobre / c.frames).toFixed(1)} %` : "0 %"
+  }
+
+  c.vad = await vad.MicVAD.new({
+    model: "v5",
+    audioContext: ctx,
+    getStream: async () => stream,
+    pauseStream: async () => {},
+    resumeStream: async () => stream,
+    baseAssetPath: "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.31/dist/",
+    onnxWASMBasePath: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/",
+    positiveSpeechThreshold: UMBRAL,
+    negativeSpeechThreshold: UMBRAL - 0.15,
+    redemptionMs: 700,
+    minSpeechMs: 300,
+    onFrameProcessed: (p) => {
+      $("barra").firstElementChild.style.width = `${Math.round(p.isSpeech * 100)}%`
+      if (!c.hablando) return // solo cuenta mientras suena la IA
+      c.frames++
+      if (p.isSpeech > UMBRAL) c.sobre++
+      if (p.isSpeech > c.max) c.max = p.isSpeech
+      pintar()
+    },
+    onSpeechRealStart: () => { if (c.hablando) { c.det++; pintar() } log("voz detectada") },
+    onVADMisfire: () => { if (c.hablando) { c.mis++; pintar() } log("descartada (muy corta)") },
+    onSpeechEnd: (a) => log(`fin de voz (${(a.length / 16000).toFixed(1)} s)`),
+  })
+  c.vad.start()
+
+  // La IA habla: las frases en fila, sin huecos, por un GainNode (como colaDeVoz.ts).
+  const ganancia = ctx.createGain()
+  ganancia.gain.value = vol
+  if (via === "loopback") {
+    // Truco: la voz sale por una RTCPeerConnection local y suena en un <audio>. Chrome la trata
+    // como audio remoto de WebRTC, que es lo único que su AEC garantiza cancelar.
+    const destino = ctx.createMediaStreamDestination()
+    ganancia.connect(destino)
+    const a = new RTCPeerConnection(), b = new RTCPeerConnection()
+    a.onicecandidate = (e) => e.candidate && b.addIceCandidate(e.candidate)
+    b.onicecandidate = (e) => e.candidate && a.addIceCandidate(e.candidate)
+    const recibido = new Promise((r) => (b.ontrack = (e) => r(e.streams[0] ?? new MediaStream([e.track]))))
+    destino.stream.getTracks().forEach((t) => a.addTrack(t, destino.stream))
+    await a.setLocalDescription(await a.createOffer())
+    await b.setRemoteDescription(a.localDescription)
+    await b.setLocalDescription(await b.createAnswer())
+    await a.setRemoteDescription(b.localDescription)
+    const el = new Audio()
+    el.srcObject = await recibido
+    await el.play()
+    c.pcs = [a, b]; c.el = el
+    log("voz por WebRTC loopback")
+  } else ganancia.connect(ctx.destination)
+  const buffers = await Promise.all(FRASES.map(async (f) => ctx.decodeAudioData(await (await fetch(f)).arrayBuffer())))
+  await new Promise((r) => setTimeout(r, 800)) // que el VAD se asiente antes de empezar
+  let t = ctx.currentTime + 0.1
+  for (const b of buffers) {
+    const s = ctx.createBufferSource()
+    s.buffer = b; s.connect(ganancia); s.start(t)
+    c.fuentes.push(s); t += b.duration + 0.15
+  }
+  c.hablando = true
+  $("estado").textContent = prueba === 1 ? "IA hablando — calla" : "IA hablando — habla encima"
+  log(`la IA empieza a hablar (${(t - ctx.currentTime).toFixed(0)} s)`)
+  c.fin = setTimeout(() => terminar(), (t - ctx.currentTime) * 1000 + 300)
+  botones(true)
+}
+
+function terminar() {
+  const c = corrida
+  if (!c) return
+  corrida = null
+  clearTimeout(c.fin)
+  c.hablando = false
+  c.fuentes.forEach((s) => { try { s.stop() } catch {} })
+  c.vad?.destroy()
+  c.pcs?.forEach((pc) => pc.close())
+  if (c.el) { c.el.pause(); c.el.srcObject = null }
+  c.stream.getTracks().forEach((t) => t.stop())
+  c.ctx.close()
+  const pct = c.frames ? (100 * c.sobre / c.frames).toFixed(1) + " %" : "—"
+  const bien = c.prueba === 1 ? c.det === 0 : c.det > 0
+  $("filas").insertAdjacentHTML("beforeend",
+    `<tr><td>${navegador()}</td><td>${$("salida").value}</td><td>${c.prueba === 1 ? "1 callas" : "2 hablas"}</td><td>${c.pedido}</td><td>${c.aplicado}</td><td>${c.via}</td><td>${Math.round(c.vol * 100)} %</td>` +
+    `<td class="${bien ? "ok" : "mal"}">${c.det}</td><td>${c.mis}</td><td>${c.max.toFixed(2)}</td><td>${pct}</td></tr>`)
+  $("estado").textContent = "listo"
+  $("barra").firstElementChild.style.width = "0"
+  log(`fin: ${c.det} detecciones, ${c.mis} descartadas, prob. máx. ${c.max.toFixed(2)}`)
+  botones(false)
+}
+
+function botones(corriendo) { $("p1").disabled = $("p2").disabled = corriendo; $("parar").disabled = !corriendo }
+
+$("p1").onclick = () => correr(1).catch((e) => { log("error: " + e); botones(false) })
+$("p2").onclick = () => correr(2).catch((e) => { log("error: " + e); botones(false) })
+$("parar").onclick = terminar
+$("copiar").onclick = () => {
+  const filas = [...document.querySelectorAll("table tr")].map((tr) => [...tr.children].map((td) => td.textContent).join(" | "))
+  navigator.clipboard.writeText(filas.join("\n")).then(() => log("tabla copiada"))
+}
+</script>
+</body>
+</html>
