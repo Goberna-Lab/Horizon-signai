@@ -107,6 +107,7 @@ Copias en base64 de `luna-recursos/datos`, sin cambios, para que la página func
 | Archivo | Contenido | Tamaño |
 |---|---|---|
 | `efemerides-luna.js` | Tabla global de JPL Horizons DE441, 2026–2030 | 624 KB |
+| *(origen)* | El planificador (`index.html`) arranca con los datos de la base por la API (`/api/planner/data`: las mismas efemérides y zonas que estos archivos). Si la API no responde, o la página se abre suelta, carga estos archivos. `LunarData.source` dice cuál usó (`database` o `files`) | — |
 | `zonas.js` | Las 13 zonas candidatas del polo sur (las de la Bitácora de misión): A–C, RoI de Barker; D–J, sitios del catálogo con horizonte detallado; K–M, sitios de LROC con horizonte aproximado sobre LOLA 240 m. Con sus valores de Mazarico. Lo genera `tools/zonas-candidatas.js` | 1,6 MB (630 KB comprimido) |
 | `polo-sur-lola.jpg`, `polo-sur-pendiente.png` | Mapa de Alunizaje: relieve real de LOLA (LDEM_75S_240M) sombreado en la proyección del mapa, y su pendiente > 15°. Lo genera `tools/mapa-polo.py` | 655 KB y 188 KB |
 | `dem-polo.js` | Relieve polar de LOLA (240 m y 960 m), solo para el punto propio | 8,4 MB |

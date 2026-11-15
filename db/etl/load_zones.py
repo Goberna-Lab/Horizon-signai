@@ -98,7 +98,7 @@ def main() -> None:
                 cur.execute("INSERT INTO ref.illumination_reference (zone_id,source_id,sun_product,earth_product,pixel_row,pixel_col,sun_pct,earth_pct)"
                             " VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
                             (zid, src["mazarico2011"], ms["producto"], me["producto"], ms.get("fila"), ms.get("columna"),
-                             round(ms["valor"] * 100, 2), round(me["valor"] * 100, 2)))
+                             ms["valor"] * 100, me["valor"] * 100))   # sin redondear: el planificador redondea al mostrar
 
         # the database horizon must be the planner's: a few azimuths and heights per zone
         worst = 0.0

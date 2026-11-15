@@ -402,11 +402,37 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
 <script src="i18n.js"></script>
 <script src="i18n-es.js"></script>
-<script src="data/efemerides-luna.js"></script>
-<script src="data/zonas.js"></script>
+<!-- respaldo: los archivos de datos (la API les pone ?v=<hash> al servir esta página); no se descargan si responde la API -->
+<link rel="lunar-data" id="srcEfemerides" href="data/efemerides-luna.js">
+<link rel="lunar-data" id="srcZonas" href="data/zonas.js">
 <script src="engine.js"></script>
 <script>
-(function () {
+/* Datos del planificador: de la base, por la API (/api/planner/data: efemérides de eph.sample y zonas con sus
+ * horizontes de moon.horizon_envelope, con la misma forma que los archivos de data/). Si la API no responde (o la página
+ * se abre suelta, sin servidor), se cargan los archivos de data/. LunarData.source dice de dónde salieron. */
+window.LunarDataReady = (function () {
+  window.LunarData = window.LunarData || {};
+  function script(id) {
+    return new Promise(function (ok, ko) {
+      var l = document.getElementById(id), e = document.createElement('script');
+      e.src = l.getAttribute('href'); e.onload = ok; e.onerror = ko; document.head.appendChild(e);
+    });
+  }
+  function archivos() {
+    return script('srcEfemerides').then(function () { return script('srcZonas'); }).then(function () { window.LunarData.source = 'files'; });
+  }
+  if (location.protocol === 'file:' || !window.fetch) return archivos();
+  return fetch('/api/planner/data', { credentials: 'same-origin' })
+    .then(function (r) { if (!r.ok) throw new Error('planner API ' + r.status); return r.json(); })
+    .then(function (d) {
+      if (!d || !d.efemerides || !d.zonas || !d.zonas.A) throw new Error('planner API: incomplete data');
+      window.LunarData.efemerides = d.efemerides; window.LunarData.zonas = d.zonas; window.LunarData.source = 'database';
+    })
+    .catch(function (e) { if (window.console) console.warn('Planner data from files:', e && e.message); return archivos(); });
+})();
+</script>
+<script>
+window.LunarDataReady.then(function () {
   'use strict';
   var L = window.Lunar, E = L.Engine, Z = window.LunarData.zonas, TABLA = E.tabla(window.LunarData.efemerides);
   var $ = function (id) { return document.getElementById(id); };
@@ -1147,7 +1173,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   }
   /* un punto propio guardado se recupera en segundo plano, sin cambiar la zona elegida */
   try { var savedPt = link && link.pt ? null : JSON.parse(localStorage.getItem(PKEY)); if (savedPt && isFinite(savedPt.lat) && E.dentroDelDominio(savedPt.lat, savedPt.lon)) loadDem(function () { setPoint(savedPt.lat, savedPt.lon, false); evaluateAll(); renderCards(); render(); }); } catch (e) { /* sin almacenamiento */ }
-})();
+});
 </script>
 </body>
 </html>

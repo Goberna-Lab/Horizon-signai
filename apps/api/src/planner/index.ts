@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { compress } from "hono/compress"
 import { db, enMemoria, esFalloDeConexion } from "../map3d/db.js"
-import { cargarMotor, datos } from "./motor.js"
+import { cargarMotor, datos, paquete } from "./motor.js"
 
 /**
  * El planificador por la API (`/api/planner/...`): las zonas candidatas con sus cifras 2026–2030 guardadas en la base
@@ -9,6 +9,7 @@ import { cargarMotor, datos } from "./motor.js"
  *
  * GET /zones?height=2            zonas, referencia de Mazarico y cifras 2026–2030 a esa altura (2, 5 o 10 m)
  * GET /power-systems             montajes de panel (módulo, NASA VSAT)
+ * GET /data                      efemérides y zonas (con sus horizontes) para el planificador web, desde la base
  * GET /evaluate?zone=C&landing=2026-12-18T09:00Z&stay=3&panel=2&antenna=2&battery=24&earth=40&sun=1&el=1
  *                                veredicto, cifras de la estadía y comprobaciones (la regla del planificador)
  */
@@ -130,6 +131,13 @@ export const planner = new Hono()
     const h = numero(c.req.query("height"), "height", 0, 30, 2)
     c.header("Cache-Control", "public, max-age=300")
     return c.json(await enMemoria(`planner-zones-${h}`, TTL, () => zonas(h)))
+  })
+  /* los datos del planificador web: gzip ya hecho (compress() no lo vuelve a comprimir), ETag para revalidar */
+  .get("/data", async (c) => {
+    const p = await paquete()
+    const h = { ETag: p.etag, "Cache-Control": "no-cache", Vary: "Accept-Encoding" }
+    if (c.req.header("if-none-match")?.split(",").some((x) => x.trim().replace(/^W\//, "") === p.etag)) return new Response(null, { status: 304, headers: h })
+    return new Response(new Uint8Array(p.gz), { headers: { ...h, "Content-Type": "application/json; charset=utf-8", "Content-Encoding": "gzip" } })
   })
   .get("/power-systems", async (c) => {
     c.header("Cache-Control", "public, max-age=300")
