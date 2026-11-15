@@ -1,0 +1,169 @@
+/* Lunar Map · estilos compartidos
+ * Paleta crema original: fondo #F4EFE6, borde #C9C1B6, tinta #111111, acento #C8102E.
+ * Materiales: papel con grano, consola de aluminio pintado, pantallas de vidrio con fósforo.
+ * Sistema (taste-skill, adaptado a consola): escala de espacios 4-128, radios 8/12/20, texto legible
+ * desde 13 px, gris secundario a 4.5:1, un solo botón primario rojo por vista, foco rojo de 2 px,
+ * movimiento solo en hover, pulsación y estados reales (nada parpadea por adorno, nada se inclina).
+ */
+:root {
+  --crema: #F4EFE6; --crema-2: #FBF8F2; --crema-3: #E7E0D4; --crema-4: #DCD4C8;
+  --borde: #C9C1B6; --borde-2: #B5AC9F;
+  --tinta: #111111; --tinta-2: #2B2B2B;
+  --gris: #5C564E; --gris-2: #6E665B; --gris-3: #A39A8E;
+  --rojo: #C8102E; --rojo-2: #8E0B21; --rojo-3: #DE2142;
+  --cian: #22CCEE; --menta: #7CF0D5; --menta-2: #9BFFE4; --celeste: #7DD3FC; --celeste-2: #BAE6FD;
+  --alerta: #FF4D3D; --alerta-2: #FF8A7A; --amarillo: #FDE68A;
+  --pantalla: #0A0A0D; --pantalla-2: #15151A;
+  --f-ui: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-disp: "Space Grotesk", Inter, system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --f-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --grano: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='5' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.12 0 0 0 0 0.11 0 0 0 0 0.09 0 0 0 0.06 0'/></filter><rect width='160' height='160' filter='url(%23g)'/></svg>");
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px; --s-10: 128px;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 20px; --r-btn: 999px;
+  --t-label: 13px; --t-small: 14px; --t-body: 15px; --t-h3: 15px; --t-h2: 18px;
+  --ease: cubic-bezier(.2, .8, .2, 1); --ease-enter: cubic-bezier(.22, 1, .36, 1);
+  --m-in: 150ms; --m-out: 120ms; --m-press: 90ms; --m-panel: 200ms;
+  --cepillado: repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, rgba(0,0,0,0) 1px 3px, rgba(17,17,17,0.025) 3px 4px, rgba(0,0,0,0) 4px 7px);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--crema); color: var(--tinta);
+  font-family: var(--f-ui); font-size: var(--t-body); line-height: 1.5;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: var(--rojo); } a:hover { color: var(--rojo-2); }
+button { font-family: inherit; font-size: inherit; color: inherit; }
+button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+p, h1, h2, h3, dl, dd, dt, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+.disp { font-family: var(--f-disp); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+/* títulos de página y de panel en serif; datos, rótulos y texto siguen en Inter / Plex Mono */
+h1.disp, h2.disp { font-family: var(--f-serif); font-variant-numeric: lining-nums; letter-spacing: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* ---------- barras de desplazamiento: píldora de tinta suave sobre crema, sin flechas ---------- */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--borde-2); border: 4px solid transparent; border-radius: 999px; background-clip: padding-box; min-height: 40px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--gris-3); border-width: 3px; }
+::-webkit-scrollbar-thumb:active { background-color: var(--tinta-2); border-width: 3px; }
+::-webkit-scrollbar-button, ::-webkit-scrollbar-corner { display: none; background: transparent; }
+@supports (-moz-appearance: none) { * { scrollbar-width: thin; scrollbar-color: var(--borde-2) transparent; } }
+
+/* ---------- papel: tarjetas crema con grano, solo línea de 1 px (sin canto ni sombra) ---------- */
+.paper {
+  position: relative; background: var(--crema); border: 1px solid var(--borde); border-radius: var(--r-lg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+}
+.paper::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .5; background-image: var(--grano); background-size: 160px 160px; }
+.paper > * { position: relative; z-index: 1; }
+.paper.flat { box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); }
+.paper.glass { background: rgba(244,239,230,0.94); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
+.paper.glass::after { opacity: .35; }
+
+/* etiqueta grabada en el panel: rótulo en minúsculas, sin espaciado de mayúsculas */
+.engraved { font-size: var(--t-label); font-weight: 500; color: var(--gris-2); text-shadow: 0 1px 0 rgba(255,255,255,0.9); }
+
+/* ---------- navegación en píldora: las mismas cinco palabras en cada página, la actual en tinta ---------- */
+.pillnav { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-btn); background: var(--crema); border: 1px solid var(--borde); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); }
+.pillnav a, .pillnav span { display: flex; align-items: center; height: 40px; padding: 0 var(--s-4); border-radius: var(--r-btn); color: var(--gris); font-size: 15px; font-weight: 500; text-decoration: none; white-space: nowrap; transition: background-color var(--m-out) var(--ease), color var(--m-out) var(--ease); }
+.pillnav a:hover { background: rgba(17,17,17,0.06); color: var(--tinta); transition-duration: var(--m-in); }
+.pillnav [aria-current] { background: var(--tinta); color: var(--crema); font-weight: 600; }
+/* cabecera: misma posición de la píldora en todas las páginas. Cada página pone .top en rejilla de tres
+ * columnas iguales; la marca va a la izquierda, la píldora centrada en la ventana a 1 px del borde superior
+ * de la cabecera (21 px de la ventana) y los controles de la página a la derecha. */
+.top > .pillnav { grid-column: 2; grid-row: 1; justify-self: center; align-self: start; margin-top: 1px; }
+.top > :first-child { grid-column: 1; grid-row: 1; justify-self: start; }
+.top > :last-child:not(.pillnav) { grid-column: 3; grid-row: 1; justify-self: end; }
+/* logo: píldora con la luna y «Lunar Map»; misma proporción en todas las páginas */
+.brand { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 18px 0 12px; border-radius: 999px; }
+.brand .moon { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #F4F4F6, #A8A8AE 55%, #46464C); box-shadow: 0 0 0 1px var(--borde), 0 3px 0 var(--borde); }
+.brand h1 { font-size: 21px; font-weight: 700; }
+.brand .sep { width: 1px; height: 20px; background: var(--borde); }
+.brand small { font-size: 13px; color: var(--gris); }
+/* pasos del Planificador (1 · Alunizaje, 2 · Caminata): píldora junto a la marca, mismo alto (52 px) */
+.topl { display: flex; align-items: center; gap: 10px; }
+.psteps { display: flex; gap: var(--s-1); padding: var(--s-1); border-radius: var(--r-btn); background: var(--crema); border: 1px solid var(--borde); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); }
+.psteps a, .psteps span { display: flex; align-items: center; gap: var(--s-2); height: 42px; padding: 0 var(--s-4) 0 6px; border-radius: var(--r-btn); color: var(--gris); font-size: 15px; font-weight: 500; text-decoration: none; white-space: nowrap; transition: background-color var(--m-out) var(--ease), color var(--m-out) var(--ease); }
+.psteps b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(17,17,17,0.07); color: var(--tinta); font-family: var(--f-disp); font-size: 14px; font-weight: 700; }
+.psteps a:hover { background: rgba(17,17,17,0.06); color: var(--tinta); transition-duration: var(--m-in); }
+.psteps [aria-current] { background: var(--tinta); color: var(--crema); font-weight: 600; }
+.psteps [aria-current] b { background: var(--rojo); color: #FFFFFF; }
+/* sin sitio para tres columnas: la píldora baja a su propia línea, centrada */
+@media (max-width: 1279px) {
+  header.top.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; row-gap: 10px; }
+  header.top.top > .pillnav { order: 3; margin: 0 auto; }
+  header.top.top::after { content: ""; order: 2; flex-basis: 100%; }
+}
+
+/* ---------- botones: una pareja. Secundario crema con línea; primario rojo, uno por vista ----------
+ * .red y .dark son el mismo primario (las páginas antiguas usan uno u otro).
+ * Hover: sube 1 px y el fondo da un paso hacia la tinta. Pulsar: baja 1 px y escala .985. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); height: 44px; padding: 0 var(--s-5); border-radius: var(--r-btn); border: 1px solid var(--borde-2); background: var(--crema-2); color: var(--tinta); font-size: 15px; font-weight: 600; line-height: 1; text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: inset 0 1px 0 #FFFFFF; transition: transform var(--m-out) var(--ease), background-color var(--m-out) var(--ease), border-color var(--m-out) var(--ease); }
+.btn.red, .btn.dark, .btn.primary { border-color: var(--rojo); background: var(--rojo); color: #FFFFFF; box-shadow: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--crema-2) 90%, var(--tinta)); border-color: var(--gris-3); transition-duration: var(--m-in); }
+  .btn.red:hover, .btn.dark:hover, .btn.primary:hover { background: color-mix(in srgb, var(--rojo) 86%, var(--tinta)); border-color: color-mix(in srgb, var(--rojo) 86%, var(--tinta)); }
+}
+.btn:active { transform: translateY(1px) scale(.985); transition-duration: var(--m-press); }
+.btn[disabled], .btn[aria-disabled="true"] { transform: none; cursor: not-allowed; border-color: var(--borde); background: var(--crema-3); color: var(--gris-2); }
+.btn svg { flex: none; }
+
+/* ---------- lámpara indicadora ---------- */
+.lamp { width: 10px; height: 10px; border-radius: 50%; background: var(--crema-4); box-shadow: inset 0 1px 2px rgba(17,17,17,0.35), 0 1px 0 rgba(255,255,255,0.8); transition: background-color .25s ease, box-shadow .25s ease; }
+.lamp.on { background: radial-gradient(circle at 40% 35%, #4A4A4A, var(--tinta) 70%); box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), 0 0 0 3px rgba(17,17,17,0.12), 0 0 10px rgba(17,17,17,0.35); }
+.lamp.on.red { background: radial-gradient(circle at 40% 35%, #FF6B7D, var(--rojo) 65%); box-shadow: inset 0 1px 1px rgba(255,255,255,0.45), 0 0 0 3px rgba(200,16,46,0.16), 0 0 14px rgba(200,16,46,0.75); }
+
+/* ---------- pantalla: bisel y vidrio ---------- */
+.screen { position: relative; border-radius: 22px; padding: 10px; background: linear-gradient(180deg, #23232A 0%, #0E0E12 100%); border: 1px solid #000; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.6), 0 10px 0 var(--borde), 0 30px 60px rgba(17,17,17,0.24); }
+.screen > .glass-inner { position: relative; overflow: hidden; border-radius: 14px; background: var(--pantalla); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 60px rgba(0,0,0,0.9); }
+.screen .fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.screen .fx .scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.028) 0 1px, rgba(0,0,0,0) 1px 3px); mix-blend-mode: overlay; }
+.screen .fx .vig { position: absolute; inset: 0; background: radial-gradient(ellipse 120% 100% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.5) 100%); }
+.screen .fx .refl { position: absolute; inset: 0; background: linear-gradient(112deg, rgba(255,255,255,0.075) 0%, rgba(255,255,255,0.02) 22%, rgba(255,255,255,0) 40%), radial-gradient(ellipse 60% 30% at 20% 0%, rgba(255,255,255,0.08), rgba(255,255,255,0) 70%); }
+.screen .fx .sweep { position: absolute; top: 0; bottom: 0; width: 28%; background: linear-gradient(90deg, rgba(244,239,230,0), rgba(244,239,230,0.05), rgba(244,239,230,0)); animation: sweep 6s linear infinite; }
+.screen .fx .bloom { position: absolute; inset: -20px; background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,255,255,0.025), rgba(255,255,255,0) 70%); mix-blend-mode: screen; }
+.screen .led { position: absolute; right: 20px; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--rojo); box-shadow: 0 0 6px rgba(200,16,46,0.95); }
+.screen .model { position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%); font-family: var(--f-mono); font-size: 7px; letter-spacing: .3em; color: rgba(255,255,255,0.22); }
+
+/* etiquetas sobre mapa oscuro */
+.tag { display: inline-flex; align-items: center; gap: var(--s-2); height: 32px; padding: 0 var(--s-3); border-radius: var(--r-btn); background: rgba(10,10,14,0.78); border: 1px solid rgba(244,239,230,0.22); color: rgba(244,239,230,0.9); font-size: var(--t-label); font-weight: 600; white-space: nowrap; }
+.tag .sw { width: 10px; height: 10px; border-radius: 3px; }
+.tag.on { background: var(--crema); color: var(--tinta); border-color: rgba(244,239,230,0.9); }
+button.tag { cursor: pointer; transition: background-color var(--m-out) var(--ease), color var(--m-out) var(--ease), border-color var(--m-out) var(--ease); }
+@media (hover: hover) and (pointer: fine) { button.tag:hover { border-color: rgba(244,239,230,0.6); } }
+/* fuentes y avisos de un visual: una línea al pie de la página, nunca un rótulo sobre la imagen */
+.credits { font-size: var(--t-label); line-height: 1.5; color: var(--gris-2); text-align: center; text-wrap: balance; }
+
+/* tornillos */
+.screw { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(45deg, rgba(0,0,0,0) 44%, rgba(17,17,17,0.5) 44%, rgba(17,17,17,0.5) 56%, rgba(0,0,0,0) 56%), radial-gradient(circle at 35% 30%, #FBF8F2, var(--borde) 62%, #9A9183); box-shadow: inset 0 1px 1px rgba(17,17,17,0.35), 0 1px 0 rgba(255,255,255,0.85); }
+.screw.r { background: linear-gradient(120deg, rgba(0,0,0,0) 44%, rgba(17,17,17,0.5) 44%, rgba(17,17,17,0.5) 56%, rgba(0,0,0,0) 56%), radial-gradient(circle at 35% 30%, #FBF8F2, var(--borde) 62%, #9A9183); }
+
+/* ---------- animaciones ---------- */
+@keyframes sweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(460%); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes pulse { 0% { r: 10; opacity: .8; } 100% { r: 34; opacity: 0; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -60; } }
+@keyframes draw { from { stroke-dashoffset: 1600; } to { stroke-dashoffset: 0; } }
+@keyframes glow { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes boot { 0% { opacity: 0; transform: scale(1.02); } 100% { opacity: 1; transform: none; } }
+.blink { animation: blink 1.2s ease-in-out infinite; }
+.pulse { animation: pulse 1.8s ease-out infinite; }
+.bob { animation: bob 3.2s ease-in-out infinite; }
+.flow { stroke-dasharray: 14 16; animation: flow 1.2s linear infinite; }
+.route { stroke-dasharray: 1600; animation: draw 1.6s cubic-bezier(.4, 0, .2, 1) both; }
+.glow { animation: glow 3s ease-in-out infinite; }
+.boot { animation: boot .9s var(--ease-enter) both; }
+@media (prefers-reduced-motion: reduce) {
+  .blink, .pulse, .bob, .flow, .route, .glow, .boot, .screen .fx .sweep { animation: none; }
+  .btn, .pillnav a, button.tag { transition: none; }
+  .btn:hover, .btn:active { transform: none; }
+}
+
+/* grano cinematográfico sobre escenas */
+.grain { position: absolute; inset: 0; pointer-events: none; opacity: .14; mix-blend-mode: overlay; background-image: var(--grano); background-size: 160px 160px; }

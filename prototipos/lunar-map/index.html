@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lunar Map · Planificador · Alunizaje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+/* Consola del coordinador: tres monitores sobre un pupitre inclinado */
+.app { position: relative; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: radial-gradient(ellipse 90% 70% at 50% 18%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
+.app::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; background-image: var(--grano); background-size: 160px 160px; }
+.app::after { content: ""; position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(200,16,46,0.6), transparent); }
+.top { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; column-gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 3px max(24px, env(safe-area-inset-left, 0px)); }
+/* cabecera: la misma de Inicio (marca en píldora, cinco secciones, reloj a la derecha) */
+.topr { display: flex; align-items: center; gap: 10px; }
+.clock { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px; border-radius: 999px; font-size: 13px; }
+.clock .dot { width: 8px; height: 8px; border-radius: 50%; }
+.clock b { font-weight: 600; }
+
+.stage { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; align-items: stretch; gap: 22px; padding: 6px max(44px, env(safe-area-inset-right, 0px)) 0 max(44px, env(safe-area-inset-left, 0px)); perspective: 1600px; }
+.side { flex: none; width: clamp(290px, 25vw, 360px); min-height: 0; margin-top: 24px; display: flex; flex-direction: column; gap: 10px; padding: 16px 22px; overflow: hidden; }
+.side.r { overflow-y: auto; }
+/* sala de control: los monitores laterales giran hacia el coordinador, el central se inclina hacia atrás */
+.side.l { transform: rotateY(14deg); transform-origin: 100% 50%; }
+.side.r { transform: rotateY(-14deg); transform-origin: 0 50%; }
+.side h2 { font-size: var(--t-h2); font-weight: 600; }
+.hd { display: flex; flex-direction: column; gap: 2px; }
+.hd .src { font-size: var(--t-label); color: var(--gris-2); }
+
+.cards { display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow: auto; }
+.card { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 8px 14px; border-radius: 14px; cursor: pointer; text-align: left; border: 1px solid var(--borde); background: transparent; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
+.card:hover { background: rgba(255,255,255,0.35); }
+.card:active { transform: translateY(1px); }
+.card[aria-checked="true"] { border-color: var(--tinta); background: rgba(255,255,255,0.6); }
+.card .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card .nm { display: flex; align-items: center; gap: 10px; font-size: var(--t-body); font-weight: 600; }
+.badge { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9px; font-family: var(--f-disp); font-size: 14px; font-weight: 700; background: rgba(17,17,17,0.07); color: var(--tinta); }
+.card[aria-checked="true"] .badge { background: var(--tinta); color: var(--crema); }
+.card .sub { font-size: var(--t-label); color: var(--gris); }
+/* métricas del sitio: las cuatro de la comparación de escenarios (luz, Tierra, ambas, noche) */
+.met { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; padding: 6px 8px; border-radius: var(--r-sm); background: rgba(17,17,17,0.04); }
+.met span { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.met small { font-size: var(--t-label); color: var(--gris-2); }
+.met b { font-size: var(--t-body); font-weight: 600; font-variant-numeric: tabular-nums; }
+.met b.na { font-weight: 500; color: var(--gris-3); }
+.card .note { font-size: var(--t-label); line-height: 1.35; color: var(--gris); }
+.card .note.bad { color: var(--rojo); }
+/* botón único bajo las tarjetas: simular y, ya simulado, confirmar */
+.act { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.act .btn { width: 100%; height: 52px; border: 0; border-radius: 14px; font-weight: 800; color: var(--gris-3); background: linear-gradient(180deg, var(--crema), var(--crema-3)); box-shadow: inset 0 1px 0 #FFFFFF, inset 0 0 0 1px var(--borde), 0 6px 0 var(--borde); transform: none; }
+/* tecla de consola encendida: roja, con canto de 6 px; al pulsar se hunde 3 px */
+.act .btn.red { color: var(--crema); background: linear-gradient(180deg, var(--rojo-3) 0%, var(--rojo) 55%, #A50D26 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 6px 0 #7E0A1D, 0 12px 24px rgba(200,16,46,0.3); }
+.act .btn.red:hover { background: linear-gradient(180deg, var(--rojo-3) 0%, var(--rojo) 55%, #A50D26 100%); filter: brightness(1.05); transform: none; }
+.act .btn.red:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 3px 0 #7E0A1D, 0 6px 12px rgba(200,16,46,0.3); }
+.act { padding-bottom: 6px; }
+.act .foot { text-align: center; }
+.act .foot:empty { display: none; }
+.verdict { padding: 3px 10px; border-radius: 999px; font-size: var(--t-label); font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+.verdict.GO { background: var(--tinta); color: var(--crema); } .verdict.REVISAR { background: var(--borde); color: var(--tinta); } .verdict.NOGO { background: var(--rojo); color: var(--crema); }
+
+.monitor { flex: 1; min-width: 0; display: flex; flex-direction: column; transform: rotateX(4deg); transform-origin: 50% 100%; }
+.monitor .glass-inner { flex: 1; min-height: 0; background: #060608; }
+.monitor canvas, .monitor svg.map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.monitor canvas { object-fit: contain; }
+.monitor canvas.ov { transition: opacity .3s ease; }
+.chips { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.telem { position: absolute; right: 12px; top: 56px; display: none; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 10px; background: rgba(10,10,14,0.78); border: 1px solid rgba(155,255,228,0.35); color: var(--menta-2); font-size: var(--t-label); text-align: right; box-shadow: 0 0 18px rgba(155,255,228,0.12); }
+.telem.on { display: flex; }
+.telem b { font-size: var(--t-h2); font-weight: 600; }
+.telem small { color: rgba(244,239,230,0.7); font-size: var(--t-label); }
+.banner { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: none; align-items: center; gap: 12px; width: max-content; max-width: calc(100% - 24px); padding: 10px 10px 10px 16px; border-radius: 14px; background: rgba(10,10,14,0.88); border: 1px solid rgba(244,239,230,0.35); box-shadow: 0 0 34px rgba(0,0,0,0.55); color: var(--crema); font-size: 14px; font-weight: 600; }
+.banner.on { display: flex; }
+
+.telemgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; padding: 9px 10px; border-radius: 12px; background: rgba(17,17,17,0.05); border: 1px solid var(--borde); font-size: var(--t-label); box-shadow: inset 0 1px 2px rgba(17,17,17,0.08); }
+.telemgrid dt { color: var(--gris-2); } .telemgrid dd { margin-top: 2px; font-size: var(--t-body); font-weight: 600; }
+.checks { display: flex; flex-direction: column; gap: 5px; min-height: 0; }
+.check { display: flex; align-items: flex-start; gap: 8px; font-size: var(--t-small); }
+.check .dot { flex: none; margin-top: 3px; width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 1px 0 rgba(255,255,255,0.6); }
+.check .lab { font-weight: 500; line-height: 1.25; } .check .val { font-size: var(--t-label); color: var(--gris-2); }
+.foot { font-size: var(--t-label); color: var(--gris-2); }
+.stage + .credits { position: relative; z-index: 1; margin: 10px auto 0; padding: 0 24px; }
+
+/* línea de tiempo: pantalla baja de la consola, inclinada hacia el coordinador */
+.tline { position: relative; z-index: 1; flex: none; margin: 10px max(44px, env(safe-area-inset-right, 0px)) 0 max(44px, env(safe-area-inset-left, 0px)); padding: 8px 8px 0; border-radius: 18px 18px 0 0; border-bottom: 0; transform: perspective(1200px) rotateX(8deg); transform-origin: 50% 100%; }
+.tline > .glass-inner { display: grid; grid-template-columns: 250px minmax(0, 1fr) 330px; gap: 20px; align-items: center; padding: 10px 16px 12px; border-radius: 12px 12px 0 0; color: var(--crema); }
+.tl-cab { display: flex; align-items: center; gap: 10px; }
+.tl-play { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer; background: var(--rojo); box-shadow: 0 3px 0 #7E0A1D; transition: transform var(--m-press) var(--ease), box-shadow var(--m-press) var(--ease); }
+.tl-play:active { transform: translateY(2px); box-shadow: 0 1px 0 #7E0A1D; }
+.tl-play svg { width: 12px; height: 12px; fill: var(--crema); }
+.tline h2 { font-size: var(--t-small); font-weight: 600; color: var(--crema); }
+.tl-now { margin-top: 4px; white-space: nowrap; font-size: var(--t-small); color: var(--crema); }
+/* resumen del período: las seis cifras del motor (Sol, Tierra, ambos, noche y silencio más largos, panel medio) */
+.tl-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; padding-left: 18px; border-left: 1px solid rgba(244,239,230,0.14); }
+.tl-sum span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.tl-sum small { font-size: var(--t-label); line-height: 1.2; color: rgba(244,239,230,0.6); white-space: nowrap; }
+.tl-sum b { font-family: var(--f-mono); font-size: var(--t-body); line-height: 1.2; font-weight: 600; color: var(--crema); white-space: nowrap; }
+.tl-sum .na { grid-column: 1 / -1; font-size: var(--t-label); color: rgba(244,239,230,0.6); }
+.tl-st { margin-top: 0; font-size: var(--t-label); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(244,239,230,0.62); }
+#tl { display: block; width: 100%; height: 76px; cursor: ew-resize; touch-action: none; -webkit-user-select: none; user-select: none; }
+#tl text { font-family: var(--f-ui); font-size: 13px; fill: rgba(244,239,230,0.62); }
+#tl .fuerte { fill: var(--crema); font-weight: 600; }
+#tl .na { fill: rgba(244,239,230,0.38); }
+#tl .grid { stroke: rgba(244,239,230,0.12); }
+#tl .fondo { fill: #26241F; } #tl .sol { fill: var(--rojo); } #tl .tierra { fill: var(--borde); } #tl .ambos { fill: var(--crema); } #tl .noche { fill: url(#rayado); }
+#tl .ray-fondo { fill: #26241F; } #tl .ray-linea { stroke: rgba(244,239,230,0.45); stroke-width: 2; }
+#tl .contacto { stroke: var(--rojo-3); stroke-width: 1.5; stroke-dasharray: 3 3; } #tl text.contacto-t { fill: #FF8A9B; stroke: none; }
+#tl .cursor { stroke: var(--crema); stroke-width: 1.5; } #tl .mango { fill: var(--crema); }
+/* horizonte de la zona elegida: una sola gráfica, en el panel derecho bajo el perfil, con el Sol del cursor */
+#hz { display: block; width: 100%; height: 80px; margin-top: 6px; border-radius: var(--r-sm); background: rgba(17,17,17,0.05); box-shadow: inset 0 1px 2px rgba(17,17,17,0.08); }
+#hz .sil { fill: var(--tinta); } #hz .sol { fill: var(--rojo); } #hz .halo { fill: var(--rojo); opacity: .16; }
+#hz .grid { stroke: rgba(17,17,17,0.10); } #hz .cero { stroke: rgba(17,17,17,0.35); stroke-dasharray: 3 3; }
+#hz text.eje { fill: var(--gris-2); }
+#hz .tierra { fill: #2F6F9F; stroke: #FBF8F2; stroke-width: 1.5; } #hz text.tierra-t { fill: #2F6F9F; paint-order: stroke; stroke: rgba(244,239,230,0.9); stroke-width: 3px; }
+#hz .pasado { fill: none; stroke: var(--rojo); stroke-width: 1.5; opacity: .55; }
+#hz .futuro { fill: none; stroke: var(--rojo); stroke-width: 1.5; stroke-dasharray: 3 4; opacity: .45; }
+#hz text { font-family: var(--f-ui); font-size: 13px; fill: var(--gris); }
+#tl:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+
+@media (min-width: 1101px) { .app { height: 100vh; min-height: 640px; } }
+@media (max-width: 1100px) {
+  .stage { flex-direction: column; perspective: none; }
+  .side, .side.l, .side.r, .monitor { transform: none; width: auto; }
+  .monitor .glass-inner { min-height: 420px; }
+  .tline { margin-left: 16px; margin-right: 16px; transform: none; }
+  .tline > .glass-inner { grid-template-columns: 1fr; gap: 10px; }
+  .tl-sum { padding-left: 0; border-left: 0; }
+}
+/* escenario editable: botón bajo «Zonas candidatas» y diálogo */
+.scbtn { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 0; border: 0; background: none; font-family: var(--f-mono); font-size: var(--t-label); color: var(--gris-2); text-align: left; cursor: pointer; white-space: nowrap; }
+.scbtn span { overflow: hidden; text-overflow: ellipsis; text-decoration: underline dotted rgba(17,17,17,0.35); text-underline-offset: 3px; }
+.scbtn:hover { color: var(--tinta); } .scbtn.changed { color: var(--rojo); } .scbtn svg { flex: none; }
+/* cómo cumplir: sustituye a las cifras del descenso cuando la zona elegida no cumple */
+.telemgrid[hidden], .ways[hidden] { display: none; }
+.ways { display: flex; flex-direction: column; gap: 6px; padding: 9px 10px; border-radius: 12px; background: rgba(200,16,46,0.06); border: 1px solid rgba(200,16,46,0.35); }
+.ways h3 { font-size: var(--t-small); font-weight: 600; color: var(--rojo); }
+.ways ul { display: flex; flex-direction: column; gap: 5px; }
+.ways li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--t-label); line-height: 1.25; white-space: nowrap; }
+.ways small { color: var(--gris-2); font-size: var(--t-label); }
+.ways .mini { flex: none; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--borde-2); background: var(--crema-2); color: var(--tinta); font-size: var(--t-label); font-weight: 600; cursor: pointer; }
+.ways .mini:hover { border-color: var(--tinta); }
+.dlg { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; }
+.dlg[hidden] { display: none; }
+.dlg-back { position: absolute; inset: 0; background: rgba(17,17,17,0.35); }
+.dlg-box { position: relative; width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 30px 80px rgba(17,17,17,0.35); }
+.dlg-box h2 { font-size: 22px; font-weight: 600; }
+.dlg-sub, .dlg-note { font-size: var(--t-label); color: var(--gris); }
+.dlg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.dlg-grid label { display: flex; flex-direction: column; gap: 4px; font-size: var(--t-label); color: var(--gris); }
+.dlg-grid .wide, .dlg-grid .checksf { grid-column: 1 / -1; }
+.dlg-grid input[type=number], .dlg-grid input[type=datetime-local] { height: 40px; padding: 0 10px; border: 1px solid var(--borde-2); border-radius: 10px; background: var(--crema-2); font-family: var(--f-mono); font-size: var(--t-body); color: var(--tinta); }
+.dlg-grid input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 1px; }
+.checksf { display: flex; gap: 18px; flex-wrap: wrap; }
+.dlg-grid label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--tinta); font-size: var(--t-small); }
+.dlg-acts { display: flex; gap: 10px; align-items: center; }
+/* comparación de escenarios (hasta 6), como la del planificador del equipo (docs/04, sección 2) */
+.scrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.scrow .scbtn { flex: 1; min-width: 0; }
+.cmpbtn { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: 1px solid var(--borde-2); border-radius: 999px; background: var(--crema-2); color: var(--tinta); font-family: var(--f-mono); font-size: var(--t-label); cursor: pointer; }
+.cmpbtn:hover { border-color: var(--tinta); }
+.cmp-box { width: min(1180px, 100%); }
+.cmp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cmp-wrap { overflow-x: auto; }
+.cmp-table { width: 100%; border-collapse: collapse; font-size: var(--t-label); }
+.cmp-table th { padding: 6px; text-align: left; font-weight: 500; color: var(--gris-2); border-bottom: 1px solid var(--borde-2); white-space: nowrap; }
+.cmp-table td { padding: 8px 6px; border-bottom: 1px solid var(--borde); white-space: nowrap; vertical-align: middle; }
+.cmp-table tr.row-sc { cursor: pointer; } .cmp-table tr.row-sc:hover td { background: rgba(17,17,17,0.04); }
+.cmp-table .n { font-family: var(--f-mono); text-align: right; }
+.cmp-table .best { font-weight: 700; color: var(--tinta); box-shadow: inset 0 -2px 0 var(--rojo); }
+.cmp-table .x { width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: var(--gris); cursor: pointer; font-size: 16px; line-height: 1; }
+.cmp-table .x:hover { background: rgba(17,17,17,0.08); color: var(--tinta); }
+.cmp-strip { display: block; }
+.cmp-empty { padding: 18px 0; font-size: var(--t-small); color: var(--gris); }
+/* punto propio */
+.glass-inner.picking svg.map { cursor: crosshair; }
+button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--tinta); }
+.card .aprox { color: #8A6D00; }
+#tl .estadia { fill: rgba(244,239,230,0.07); }
+@media (max-width: 600px) { .dlg-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="topl"><div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Pasos del planificador"><span aria-current="step"><b>1</b>Alunizaje</span><a href="planificar.html"><b>2</b>Caminata</a></nav></div>
+    <nav class="pillnav" aria-label="Secciones"><a href="inicio.html">Inicio</a><span aria-current="page">Planificador</span></nav>
+    <div class="topr">
+      <div class="paper flat clock mono" id="clock">
+        <span class="dot" id="clockDot"></span>
+        <span style="color: var(--gris)" id="phase">Evaluando zonas</span>
+        <b id="tminus">T– 00:11:50</b>
+      </div>
+    </div>
+  </header>
+
+  <div class="stage">
+    <section class="paper side l" aria-labelledby="cand-t">
+      <div class="hd"><h2 id="cand-t" class="disp">Zonas candidatas</h2><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Comparar escenarios (hasta 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span id="cmpN">0</span></button></div></div>
+      <div class="cards" role="radiogroup" aria-label="Zonas candidatas" id="cards"></div>
+      <div class="act">
+        <button type="button" class="btn red" id="actBtn"><span id="actIco" aria-hidden="true"></span><span id="actLabel">Simular descenso</span></button>
+        <p class="mono foot" id="actHint" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="screen monitor" aria-label="Pantalla principal">
+      <div class="glass-inner">
+        <canvas id="relief" width="1000" height="800" class="boot" aria-hidden="true"></canvas>
+        <canvas id="ovHaz" width="1000" height="800" class="ov" aria-hidden="true"></canvas>
+        <canvas id="ovLight" width="1000" height="800" class="ov" aria-hidden="true"></canvas>
+        <svg class="map" viewBox="0 -100 1000 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa del polo sur lunar en estereográfica polar, con el polo junto al borde de Shackleton y tres zonas candidatas reales del catálogo de PGDA">
+          <defs>
+            <linearGradient id="altrack" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9BFFE4"></stop><stop offset="100%" stop-color="#22CCEE"></stop></linearGradient>
+            <filter id="softglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
+          </defs>
+          <g fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1">
+            <circle cx="444" cy="239" r="211"></circle><circle cx="444" cy="239" r="421"></circle>
+            <line x1="444" y1="-800" x2="444" y2="1400"></line><line x1="-1000" y1="239" x2="2000" y2="239"></line>
+          </g>
+          <circle cx="555" cy="329" r="146" fill="none" stroke="rgba(240,242,248,0.28)" stroke-width="1.5" stroke-dasharray="3 5"></circle>
+          <g>
+            <line x1="436" y1="239" x2="452" y2="239" stroke="#F5F5F6" stroke-width="2"></line><line x1="444" y1="231" x2="444" y2="247" stroke="#F5F5F6" stroke-width="2"></line>
+            <rect x="346" y="212" width="76" height="20" rx="10" fill="rgba(7,8,11,0.78)"></rect><text x="384" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#F5F5F6" font-family="Inter, sans-serif">Polo sur</text>
+            <rect x="505" y="158" width="100" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="555" y="173" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Shackleton</text>
+          </g>
+          <g id="sites">
+            <circle cx="294" cy="402" r="13" fill="none" stroke="rgba(245,245,246,0.6)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="294" cy="402" r="4.5" fill="#F5F5F6" stroke="#05060A" stroke-width="2"></circle>
+            <circle cx="862" cy="518" r="13" fill="none" stroke="rgba(245,245,246,0.6)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="862" cy="518" r="4.5" fill="#F5F5F6" stroke="#05060A" stroke-width="2"></circle>
+            <circle cx="407" cy="322" r="13" fill="none" stroke="rgba(245,245,246,0.6)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="407" cy="322" r="4.5" fill="#F5F5F6" stroke="#05060A" stroke-width="2"></circle>
+          </g>
+          <ellipse id="eA" cx="294" cy="402" rx="128" ry="35" transform="rotate(-32 294 402)" class="ell"></ellipse>
+          <ellipse id="eB" cx="862" cy="518" rx="128" ry="35" transform="rotate(-18 862 518)" class="ell"></ellipse>
+          <ellipse id="eP" cx="0" cy="0" rx="128" ry="35" class="ell" style="opacity: 0"></ellipse>
+          <g id="ptLayer"></g>
+          <ellipse id="eC" cx="407" cy="322" rx="128" ry="35" transform="rotate(-32 407 322)" class="ell"></ellipse>
+          <g><rect x="266" y="340" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="294" y="355" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zona A</text></g>
+          <g><rect x="834" y="456" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="862" y="471" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zona B</text></g>
+          <g><rect x="379" y="260" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="407" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zona C</text></g>
+          <path id="trackGhost" d="" fill="none" stroke="rgba(155,255,228,0.25)" stroke-width="2" stroke-dasharray="4 6"></path>
+          <path id="trackGlow" d="" fill="none" stroke="rgba(155,255,228,0.55)" stroke-width="7" stroke-linecap="round" filter="url(#softglow)" style="opacity:0"></path>
+          <path id="track" d="" fill="none" stroke="url(#altrack)" stroke-width="3.5" stroke-linecap="round" style="opacity:0"></path>
+          <g id="lander" style="opacity:0">
+            <circle r="16" fill="none" stroke="#9BFFE4" stroke-width="2" class="pulse"></circle>
+            <g id="landerG" fill="#9BFFE4" stroke="#05060A" stroke-width="1.2">
+              <rect x="-5" y="-6" width="10" height="7" rx="2"></rect><path d="M-5 1 L -9 7 M 5 1 L 9 7 M -2 1 L -2 5 M 2 1 L 2 5"></path><path d="M-11 7 h4 M7 7 h4" stroke="#9BFFE4" stroke-width="2"></path>
+            </g>
+          </g>
+          <circle id="target" cx="294" cy="402" r="5" fill="#9BFFE4" stroke="#05060A" stroke-width="2"></circle>
+          <path d="M20 552 L 36 560 L 20 568 Z" fill="#9BFFE4"></path>
+          <text x="44" y="556" font-size="11" fill="rgba(244,239,230,0.75)" font-family="IBM Plex Mono, monospace">inicio del descenso motorizado · rumbo 026°</text>
+          <g font-family="IBM Plex Mono, monospace">
+            <g stroke="rgba(244,239,230,0.35)" stroke-width="1.5" fill="none"><path d="M14 -70 L 14 -86 L 30 -86"></path><path d="M970 -86 L 986 -86 L 986 -70"></path><path d="M14 670 L 14 686 L 30 686"></path><path d="M986 670 L 986 686 L 970 686"></path></g>
+            <text x="452" y="-76" font-size="10.5" fill="rgba(244,239,230,0.6)">0° E</text>
+            <text x="946" y="232" font-size="10.5" fill="rgba(244,239,230,0.6)">90° E</text>
+            <text x="300" y="95" font-size="10" fill="rgba(255,255,255,0.45)">89,5° S</text>
+            <text x="28" y="233" font-size="10" fill="rgba(255,255,255,0.45)">89° S</text>
+            <text x="18" y="678" font-size="10.5" fill="rgba(244,239,230,0.6)">Estereográfica polar sur · LOLA LDEM_75S · 240 m/px · sitios: PGDA (Barker 2021) · sol a 8° desde el NO</text>
+            <g stroke="rgba(244,239,230,0.7)" stroke-width="2"><line x1="540" y1="572" x2="679" y2="572"></line><line x1="540" y1="566" x2="540" y2="578"></line><line x1="679" y1="566" x2="679" y2="578"></line></g>
+            <text x="609" y="560" text-anchor="middle" font-size="10.5" fill="rgba(244,239,230,0.7)">10 km</text>
+          </g>
+        </svg>
+        <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div><div class="bloom"></div></div>
+        <div class="chips">
+          <button type="button" class="tag" id="chipHaz" aria-pressed="true"><span class="sw" style="background: var(--alerta)"></span>Pendiente &gt; 15°</button>
+          <button type="button" class="tag" id="chipLight" aria-pressed="true"><span class="sw" style="background: var(--amarillo)"></span>Luz media alta</button>
+          <span class="tag"><span class="sw" style="background: #000; border: 1px solid rgba(244,239,230,0.6)"></span>Sombra permanente</span>
+          <button type="button" class="tag" id="chipPt" aria-pressed="false" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg><span id="chipPtTxt">Punto propio</span></button>
+        </div>
+        <div class="telem mono" id="telem" aria-live="off">
+          <small>ALTITUD</small><b id="tAlt">14 900 m</b>
+          <small>VELOCIDAD</small><b id="tVel">1 695 m/s</b>
+          <small>FASE</small><b id="tFase">P63</b>
+        </div>
+        <div class="banner" role="status" id="banner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>
+          <span id="bannerText"></span>
+          <a class="btn red" href="planificar.html">Planificar la caminata</a>
+        </div>
+      </div>
+      <span class="led" aria-hidden="true"></span>
+      <span class="model" aria-hidden="true">LUNAR MAP · CRT-2</span>
+    </section>
+
+    <section class="paper side r" aria-label="Descenso y verificación">
+      <div>
+        <div class="hd"><h2 class="disp">Horizonte real · Zona <span id="hzZona">A</span></h2><span class="mono src" id="hzSrc">LOLA</span></div>
+        <svg id="hz" role="img" aria-label="Horizonte real de la zona elegida, en 360° desde el norte, con el Sol y la Tierra"><title>Panorámica de 360° desde el norte. La escala vertical está exagerada y los discos no están a escala.</title></svg>
+      </div>
+      <dl class="telemgrid mono" id="telemGrid">
+        <div><dt>PUERTA ALTA</dt><dd>2 291 m</dd></div><div><dt>VELOCIDAD</dt><dd>154 m/s</dd></div>
+        <div><dt>ΔV TOTAL</dt><dd>2 044 m/s</dd></div><div><dt>COMBUSTIBLE</dt><dd>sobran 496 kg</dd></div>
+      </dl>
+      <div class="ways" id="ways" hidden aria-live="polite"><h3>Cómo cumplir</h3><ul></ul></div>
+      <div class="checks">
+        <div class="hd" style="flex-direction: row; align-items: center; justify-content: space-between"><h2 class="disp">Go / No-Go · Zona <span id="siteId">A</span></h2><span class="verdict" id="verdict">GO</span></div>
+        <div id="checkList" style="display: flex; flex-direction: column; gap: 5px"></div>
+        <p class="mono foot" id="siteFoot" style="margin-top: 2px"></p>
+      </div>
+    </section>
+  </div>
+
+  <p class="credits">Posiciones y medias reales · relieve generado a 240 m · elipse de dispersión del Apollo (18,5 × 5 km) · perfil Apollo 11: R-695 · TN D-6846 · Sol y Tierra sobre el horizonte: JPL Horizons DE441 + LOLA/PGDA</p>
+
+  <section class="screen tline" aria-label="Línea de tiempo de la misión">
+    <div class="glass-inner">
+      <div>
+        <div class="tl-cab">
+          <button type="button" class="tl-play" id="tlPlay" aria-label="Reproducir"></button>
+          <h2>Línea de tiempo · Zona <span id="tlZona">A</span></h2>
+        </div>
+        <p class="mono tl-now" id="tlNow">—</p>
+        <p class="tl-st" id="tlSt"></p>
+      </div>
+      <svg id="tl" role="slider" tabindex="0" aria-label="Fecha en la línea de tiempo: arrastra o usa las flechas" aria-valuemin="0" aria-valuemax="90"></svg>
+      <div class="tl-sum" id="tlSum" aria-label="Resumen del período"></div>
+    </div>
+  </section>
+</div>
+
+<div class="dlg" id="cmp" hidden>
+  <div class="dlg-back" data-close></div>
+  <div class="paper dlg-box cmp-box" role="dialog" aria-modal="true" aria-labelledby="cmpT">
+    <div class="cmp-top">
+      <h2 id="cmpT" class="disp">Comparar escenarios</h2>
+      <button type="button" class="btn red" id="cmpAdd">Añadir el escenario actual</button>
+    </div>
+    <p class="dlg-sub" id="cmpSub">Hasta 6 escenarios, cada uno con su zona. Cifras de la estadía con las definiciones del motor; subrayada en rojo, la mejor de cada columna. Clic en una fila para cargarla.</p>
+    <div class="cmp-wrap" id="cmpWrap"></div>
+    <div class="dlg-acts"><button type="button" class="btn" id="cmpClear">Vaciar</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cerrar</button></div>
+  </div>
+</div>
+
+<div class="dlg" id="ptDlg" hidden>
+  <div class="dlg-back" data-close></div>
+  <form class="paper dlg-box" id="ptForm" role="dialog" aria-modal="true" aria-labelledby="ptT">
+    <h2 id="ptT" class="disp">Punto propio</h2>
+    <p class="dlg-sub">Cualquier lugar a menos de 190 km del polo sur (hasta ~83,7° S). El horizonte sale del relieve LOLA de 240 m y es <b>aproximado</b>: a esa resolución no aparece el relieve de menos de ~500 m, y en crestas y bordes de cráter puede diferir mucho del de las RoI. Para decidir, usa una RoI del catálogo (SPEC E24).</p>
+    <div class="dlg-grid">
+      <label>Latitud (°; sur, negativa)<input type="number" id="pLat" min="-90" max="90" step="0.0001" required></label>
+      <label>Longitud este (°)<input type="number" id="pLon" min="0" max="360" step="0.0001" required></label>
+    </div>
+    <p class="dlg-note" id="pMsg" aria-live="polite"></p>
+    <div class="dlg-acts"><button type="button" class="btn" id="pPick">Elegir en el mapa</button><button type="button" class="btn" id="pDel">Quitar el punto</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn red">Usar este punto</button></div>
+  </form>
+</div>
+
+<div class="dlg" id="dlg" hidden>
+  <div class="dlg-back" data-close></div>
+  <form class="paper dlg-box" id="scForm" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <h2 id="dlgT" class="disp">Escenario de alunizaje</h2>
+    <p class="dlg-sub">El equipo y los requisitos valen para las tres zonas; así se pueden comparar.</p>
+    <div class="dlg-grid">
+      <label class="wide">Aterrizaje (UTC)<input type="datetime-local" id="fLanding" step="60" required></label>
+      <label>Estadía (días)<input type="number" id="fStay" min="1" max="60" step="1" required></label>
+      <label>Batería: horas sin Sol<input type="number" id="fBattery" min="0" max="720" step="1" required></label>
+      <label>Altura del panel (m)<input type="number" id="fPanel" min="0" max="30" step="0.5" required></label>
+      <label>Altura de la antena (m)<input type="number" id="fAntenna" min="0" max="30" step="0.5" required></label>
+      <label>Tierra mínima en la estadía (%)<input type="number" id="fEarth" min="0" max="100" step="1" required></label>
+      <span class="checksf"><label class="chk"><input type="checkbox" id="fSun"> Sol a la vista al aterrizar</label><label class="chk"><input type="checkbox" id="fEarthL"> Tierra a la vista al aterrizar</label></span>
+    </div>
+    <p class="dlg-note">Supuestos del planificador del equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno; panel vertical que sigue al Sol. Fechas de 2026 a 2030, en UTC.</p>
+    <div class="dlg-acts"><button type="button" class="btn" id="fReset">Plan de CR-01</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn red">Aplicar</button></div>
+  </form>
+</div>
+
+<script src="terrain.js"></script>
+<script src="data/efemerides-luna.js"></script>
+<script src="data/zonas.js"></script>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var L = window.Lunar, E = L.Engine, Z = window.LunarData.zonas, TABLA = E.tabla(window.LunarData.efemerides);
+  var $ = function (id) { return document.getElementById(id); };
+  var DAY = E.DAY_MS, HOUR = E.HOUR_MS;
+  var MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  function fmt(n) { return Math.round(n).toLocaleString('es-ES').replace(/\./g, ' '); }
+  function num(x, d) { return x.toFixed(d == null ? 1 : d).replace('.', ','); }
+  function deg(x) { return (x >= 0 ? '+' : '−') + num(Math.abs(x), 1) + '°'; }
+  function fDate(ms, hora) { var t = new Date(ms); return t.getUTCDate() + ' ' + MES[t.getUTCMonth()] + ' ' + t.getUTCFullYear() + (hora ? ' · ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' UTC' : ''); }
+  function horas(h) { h = Math.round(h); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; }
+  function metros(m) { return num(m, m % 1 ? 1 : 0) + ' m'; }
+
+  /* ---------- zonas en el mapa: regiones candidatas (RoI) de Barker et al. (2021) ---------- */
+  var ids = ['A', 'B', 'C'];
+  var MAP = {
+    A: { name: 'Connecting Ridge · RoI 6', pos: [294, 402], track: 'M20 560 C 110 540, 200 474, 294 402' },
+    B: { name: 'Pico cerca de Shackleton · RoI 2', pos: [862, 518], track: 'M300 592 C 500 580, 700 556, 862 518' },
+    C: { name: 'Borde de Shackleton · RoI 4', pos: [407, 322], track: 'M20 560 C 160 520, 300 410, 407 322' }
+  };
+  var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E' };
+  var state = { site: 'A', simulated: false, confirmed: false, haz: true, light: true, running: false };
+
+  /* ---------- escenario: por defecto, el plan de CR-01; editable y recordado en este navegador ----------
+   * Requisitos como en el planificador del equipo (model/evaluate.ts): Sol y Tierra a la vista al aterrizar, la noche más
+   * larga de la estadía dentro de la batería y la Tierra a la vista un mínimo de la estadía. */
+  var PLAN = { landingMs: Date.UTC(2026, 11, 18, 9), stayDays: 3, panelM: 2, antennaM: 2, requirements: { batteryH: 24, minEarthPct: 40, sunAtLanding: true, earthAtLanding: true } };
+  var KEY = 'lunarmap.escenario';
+  function clamp(v, a, b, d) { v = Number(v); return isFinite(v) ? Math.min(b, Math.max(a, v)) : d; }
+  function sanitize(s) {
+    var r = s.requirements || {}, stay = Math.round(clamp(s.stayDays, 1, 60, 3));
+    return {
+      landingMs: Math.round(clamp(s.landingMs, TABLA.inicioMs, TABLA.finMs - stay * DAY, PLAN.landingMs) / 60000) * 60000, stayDays: stay,
+      panelM: clamp(s.panelM, 0, 30, 2), antennaM: clamp(s.antennaM, 0, 30, 2),
+      requirements: { batteryH: Math.round(clamp(r.batteryH, 0, 720, 24)), minEarthPct: Math.round(clamp(r.minEarthPct, 0, 100, 40)), sunAtLanding: r.sunAtLanding !== false, earthAtLanding: r.earthAtLanding !== false }
+    };
+  }
+  var sc;
+  try { sc = sanitize(JSON.parse(localStorage.getItem(KEY)) || PLAN); } catch (e) { sc = sanitize(PLAN); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(sc)); } catch (e) { /* sin almacenamiento: el escenario vale para esta visita */ } }
+  function isPlan() { return JSON.stringify(sc) === JSON.stringify(sanitize(PLAN)); }
+
+  /* ---------- evaluación de las tres zonas con el motor (engine.js) ---------- */
+  var ev = {}, st = {}, per = {}, ways = {};
+  function evaluateAll() {
+    per = {}; ways = {};
+    ids.forEach(function (z) {
+      st[z] = E.station(Z[z], sc.panelM, sc.antennaM);
+      var e = E.evaluate(TABLA, st[z], sc), l = e.landing, rq = sc.requirements;
+      e.means = E.means(TABLA, st[z]);
+      /* REVISAR: cumple, pero el Sol o la Tierra asoman menos de 0,5° al aterrizar */
+      e.verdict = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVISAR' : 'GO';
+      ev[z] = e;
+    });
+  }
+  function noteOf(e) {
+    if (e.verdict === 'GO') return ['Cumple los ' + e.checks.length + ' requisitos', ''];
+    if (e.verdict === 'REVISAR') return ['Cumple, pero ' + (sc.requirements.sunAtLanding && e.landing.sunMarginDeg < 0.5 ? 'el Sol' : 'la Tierra') + ' queda al ras al aterrizar', ''];
+    var c = e.checks.filter(function (x) { return !x.ok; })[0];
+    var t = c.id === 'sunAtLanding' ? 'Sol oculto al aterrizar' : c.id === 'earthAtLanding' ? 'Tierra oculta al aterrizar' :
+      c.id === 'battery' ? 'Noche de ' + horas(c.value) + ': más que la batería' : 'Tierra el ' + Math.round(c.value) + ' % de la estadía (mín. ' + c.limit + ' %)';
+    return [t, 'bad'];
+  }
+
+  /* ---------- relieve del polo sur ---------- */
+  var terrain = L.polarScene();
+  $('relief').getContext('2d').drawImage(L.renderRelief(terrain, { grain: 6 }), 0, 0);
+  var slope = terrain.slope, tone = terrain.tone;
+  $('ovHaz').getContext('2d').drawImage(L.renderMask(terrain, function (i) { var s = slope[i] * 57.3; return s < 15 ? 0 : Math.min(0.3, (s - 15) / 16); }, [255, 77, 61]), 0, 0);
+  $('ovLight').getContext('2d').drawImage(L.renderMask(terrain, function (i) { var v = tone[i]; return v < 0.74 ? 0 : Math.min(0.22, (v - 0.74) * 1.1); }, [253, 230, 138]), 0, 0);
+
+  /* ---------- tarjetas: cifras de la estadía del escenario ---------- */
+  var cards = $('cards'), metLabels = ['Luz solar', 'Tierra visible', 'Sol + Tierra', 'Noche más larga'];
+  function renderCards() {
+    cards.innerHTML = ids.map(function (z) {
+      var e = ev[z], f = e.figures, m = e.means, mz = Z[z].mazarico || null, stay = 'Estadía de ' + sc.stayDays + ' d desde el aterrizaje';
+      var nh = Math.round(f.longestNightH), vals = [Math.round(f.sunPct) + ' %', Math.round(f.earthPct) + ' %', Math.round(f.bothPct) + ' %', nh < 100 ? nh + ' h' : Math.round(nh / 24) + ' d'];
+      var tips = [stay + ' · media 2026–2030 con el panel a ' + metros(sc.panelM) + ': ' + Math.round(m.sunPct) + ' %' + (mz ? ' · Mazarico 2011, a ras del suelo: ' + mz.sol + ' %' : ' · horizonte aproximado'),
+        stay + ' · media 2026–2030 con la antena a ' + metros(sc.antennaM) + ': ' + Math.round(m.earthPct) + ' %' + (mz ? ' · Mazarico 2011, a ras del suelo: ' + mz.tierra + ' %' : ' · horizonte aproximado'),
+        stay + ' · media 2026–2030: ' + Math.round(m.bothPct) + ' %', 'Racha más larga sin Sol en la estadía; la batería aguanta ' + sc.requirements.batteryH + ' h'];
+      var nt = noteOf(e);
+      return '<button type="button" class="card" role="radio" data-site="' + z + '" aria-checked="' + (z === state.site) + '">' +
+        '<span class="row"><span class="nm"><span class="badge">' + z + '</span>' + MAP[z].name + '</span><span class="verdict ' + e.verdict.replace(' ', '') + '">' + e.verdict + '</span></span>' +
+        '<span class="mono sub">' + coordTxt(Z[z].lat, Z[z].lon) + (Z[z].aproximado ? ' · <span class="aprox" title="Horizonte del relieve LOLA de 240 m: no aparece el relieve de menos de ~500 m (SPEC E24)">aprox.</span>' : '') + '</span>' +
+        '<span class="met">' + metLabels.map(function (l, i) { return '<span><b title="' + tips[i] + '">' + vals[i] + '</b><small>' + l + '</small></span>'; }).join('') + '</span>' +
+        '<span class="note' + (nt[1] ? ' ' + nt[1] : '') + '">' + nt[0] + '</span></button>';
+    }).join('');
+    var t = new Date(sc.landingMs);
+    $('scTxt').textContent = fDate(sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' · ' + sc.stayDays + ' d · equipo ' +
+      (sc.panelM === sc.antennaM ? metros(sc.panelM) : metros(sc.panelM) + '/' + metros(sc.antennaM));
+    $('scBtn').classList.toggle('changed', !isPlan());
+    $('scBtn').title = (isPlan() ? 'Plan de CR-01' : 'Escenario distinto del plan de CR-01') + ': batería ' + sc.requirements.batteryH + ' h, Tierra mínima ' + sc.requirements.minEarthPct + ' % de la estadía. Clic para editar.';
+  }
+  cards.addEventListener('click', function (evt) { var b = evt.target.closest('.card'); if (b) pick(b.dataset.site); });
+  function pick(id) { state.site = id; state.simulated = false; state.confirmed = false; stopSim(); tlT = null; render(); }
+
+  /* ---------- Go / No-Go: el descenso (perfil del Apollo 11) y los requisitos del escenario ---------- */
+  var DESC = ['Descenso (perfil del Apollo 11)', 'sobran 496 kg · sobre la línea del Sol en P64', 'TN D-6846', 'ok'];
+  function checkRows(e) {
+    var l = e.landing, rows = [DESC];
+    e.checks.forEach(function (c) {
+      var s = c.ok ? 'ok' : 'fail';
+      /* el Sol cuenta como visible si asoma el borde del disco: con el centro bajo el horizonte se dice así */
+      if (c.id === 'sunAtLanding') rows.push(['Sol al aterrizar', (l.sunAboveDeg < 0 && c.ok ? 'asoma el borde del disco' : deg(l.sunAboveDeg) + ' sobre el horizonte'), 'panel ' + metros(sc.panelM), c.ok && c.value < 0.5 ? 'warn' : s]);
+      if (c.id === 'earthAtLanding') rows.push(['Tierra al aterrizar', deg(l.earthAboveDeg) + ' sobre el horizonte', 'antena ' + metros(sc.antennaM), c.ok && c.value < 0.5 ? 'warn' : s]);
+      if (c.id === 'battery') rows.push(['Noche más larga en la estadía', horas(c.value) + ' · batería ' + c.limit + ' h', '', s]);
+      if (c.id === 'earthContact') rows.push(['Tierra en la estadía', Math.round(c.value) + ' % · mínimo ' + c.limit + ' %', '', s]);
+    });
+    return rows;
+  }
+  function footOf(e) {
+    var l = e.landing, vis = l.sunMarginDeg > 0, ch = l.sunChangeMs;
+    return 'Aterrizaje: ' + fDate(sc.landingMs, true) + ' · ' + (ch == null ? (vis ? 'el Sol no se pone en 60 d' : 'el Sol no sale en 60 d') : (vis ? 'se pone en ' : 'sale en ') + horas((ch - sc.landingMs) / HOUR));
+  }
+
+  /* ---------- cómo cumplir (zona NO GO): otra fecha, otra zona o más altura, como el planificador del equipo ---------- */
+  function waysOf(z) {
+    if (ways[z]) return ways[z];
+    var days = E.scanDates(TABLA, st[z], sc);
+    return (ways[z] = { date: E.suggestDate(days, sc.landingMs), height: E.suggestHeight(TABLA, Z[z], sc, sc.panelM, sc.antennaM), sites: ids.filter(function (y) { return y !== z && ev[y].ok; }) });
+  }
+  function renderWays() {
+    var show = !ev[state.site].ok;
+    $('ways').hidden = !show; $('telemGrid').hidden = show;
+    if (!show) return;
+    var w = waysOf(state.site);
+    var row = function (t, n, act) { return '<li' + (n ? ' title="' + n + '"' : '') + '><span>' + t + '</span>' + (act ? '<button type="button" class="mini" data-act="' + act + '">Aplicar</button>' : '') + '</li>'; };
+    $('ways').querySelector('ul').innerHTML =
+      (w.date ? row('Aterrizar el ' + fDate(w.date.day.landingMs), 'Centro de una ventana de ' + w.date.window.days + ' d en que aterrizar cumple (misma hora, estadía y equipo)', 'date') : row('Ninguna fecha cumple en 120 d', 'Se buscó desde 30 d antes hasta 120 d después', null)) +
+      (w.sites.length ? row('Cambiar a la zona ' + w.sites[0], 'Mismo día, estadía y equipo', 'site') : row('Ninguna otra zona cumple', 'Ninguna de las otras zonas cumple ese día con el mismo equipo', null)) +
+      (w.height ? row('Subir el equipo a ' + w.height.heightM + ' m', 'Panel y antena a ' + w.height.heightM + ' m, mismo lugar y día (alturas probadas: 2, 5, 10, 15, 20 y 30 m)', 'height') : row('Ni subiendo a 30 m cumple', 'Alturas probadas: 2, 5, 10, 15, 20 y 30 m', null));
+  }
+  $('ways').addEventListener('click', function (evt) {
+    var b = evt.target.closest('[data-act]'); if (!b) return;
+    var w = waysOf(state.site), a = b.dataset.act;
+    if (a === 'date') { sc.landingMs = w.date.day.landingMs; apply(); }
+    if (a === 'height') { sc.panelM = Math.max(sc.panelM, w.height.heightM); sc.antennaM = Math.max(sc.antennaM, w.height.heightM); apply(); }
+    if (a === 'site') pick(w.sites[0]);
+  });
+  function apply() { sc = sanitize(sc); save(); evaluateAll(); state.simulated = false; state.confirmed = false; stopSim(); tlT = null; renderCards(); render(); }
+
+  /* ---------- simulación del descenso ---------- */
+  var simTimer = null, simStart = 0, SIM_MS = 2600;
+  var track = $('track'), trackGlow = $('trackGlow'), trackGhost = $('trackGhost'), lander = $('lander');
+  function stopSim() { state.running = false; if (simTimer) { cancelAnimationFrame(simTimer); simTimer = null; } $('telem').classList.remove('on'); lander.style.opacity = 0; }
+  function simulate() {
+    state.simulated = true; state.confirmed = false; state.running = true; render();
+    var len = track.getTotalLength();
+    track.style.strokeDasharray = len; trackGlow.style.strokeDasharray = len;
+    $('telem').classList.add('on'); lander.style.opacity = 1;
+    simStart = performance.now();
+    var ease = function (t) { return 1 - Math.pow(1 - t, 2.2); };
+    var step = function (now) {
+      var t = Math.min(1, (now - simStart) / SIM_MS), e = ease(t);
+      track.style.strokeDashoffset = len * (1 - e); trackGlow.style.strokeDashoffset = len * (1 - e);
+      var p = track.getPointAtLength(len * e), p2 = track.getPointAtLength(Math.max(0, len * e - 2));
+      var angle = Math.atan2(p.y - p2.y, p.x - p2.x) * 180 / Math.PI;
+      lander.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')');
+      $('landerG').setAttribute('transform', 'rotate(' + (angle + 90) * (1 - e) + ')');
+      var alt = 14900 * (1 - e) * (1 - e * 0.15), vel = 1695 * Math.pow(1 - e, 1.6);
+      $('tAlt').textContent = fmt(alt) + ' m'; $('tVel').textContent = fmt(vel) + ' m/s';
+      $('tFase').textContent = e < 0.62 ? 'P63 · frenado' : e < 0.93 ? 'P64 · aproximación' : 'P66 · vertical';
+      var secs = 710 * (1 - e); $('tminus').textContent = 'T– 00:' + two(Math.floor(secs / 60)) + ':' + two(Math.floor(secs % 60));
+      if (t < 1) simTimer = requestAnimationFrame(step); else { simTimer = null; state.running = false; $('tFase').textContent = 'contacto · 710 s'; render(); }
+    };
+    simTimer = requestAnimationFrame(step);
+  }
+
+  /* ---------- línea de tiempo: 30 días antes y 60 después del aterrizaje, con el motor (paso de 1 h) ---------- */
+  var DAYS = 90, tl = $('tl'), tlT = null, tlPlaying = false, tlRaf = null, tlLast = 0;
+  var LW = 112, RP = 12, ROW = 14, GAP = 5, Y0 = 20;
+  function periodOf(z) {
+    if (per[z]) return per[z];
+    var t0 = Math.floor(Math.max(TABLA.inicioMs, Math.min(sc.landingMs - 30 * DAY, TABLA.finMs - DAYS * DAY)) / HOUR) * HOUR;
+    var b = E.sweep(TABLA, st[z], t0, t0 + DAYS * DAY, HOUR), d = function (w) { return [(w[0] - t0) / DAY, (w[1] - t0) / DAY]; };
+    var sun = E.ventanas(b, 'sol'), earth = E.ventanas(b, 'tierra'), sol = sun.map(d), noches = [];
+    for (var i = 0; i <= sol.length; i++) {   /* noches más largas que la batería (rayadas) */
+      var a = i ? sol[i - 1][1] : 0, c = i < sol.length ? sol[i][0] : DAYS;
+      if ((c - a) * 24 > sc.requirements.batteryH) noches.push([a, c]);
+    }
+    return (per[z] = { t0: t0, b: b, contact: (sc.landingMs - t0) / DAY, sol: sol, noches: noches, tierra: earth.map(d), ambos: E.solape(sun, earth).map(d), fig: E.figures(b) });
+  }
+  function fecha(p, d, hora) { var t = new Date(p.t0 + d * DAY); return t.getUTCDate() + ' ' + MES[t.getUTCMonth()] + (hora ? ' ' + t.getUTCFullYear() + ' · ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' UTC' : ''); }
+  function dentro(list, d) { return list.some(function (w) { return d >= w[0] && d < w[1]; }); }
+  function tlW() { return Math.max(320, tl.clientWidth || 800); }
+  function tx(d, W) { return LW + Math.min(Math.max(d, 0), DAYS) / DAYS * (W - LW - RP); }
+  var icoPlayTL = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5 L10.5 6 L3 10.5 Z"></path></svg>';
+  var icoPauseTL = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9"></rect><rect x="7" y="1.5" width="3" height="9"></rect></svg>';
+  function drawTL() {
+    var p = periodOf(state.site), W = tlW(), H = Y0 + 3 * ROW + 2 * GAP + 4;
+    if (tlT == null) tlT = p.contact;
+    tl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var o = '<defs><pattern id="rayado" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" class="ray-fondo"></rect><line x1="0" y1="0" x2="0" y2="6" class="ray-linea"></line></pattern></defs>';
+    var ticks = [], s0 = new Date(p.t0);
+    for (var mo = 0; mo < 5; mo++) { var dd = (Date.UTC(s0.getUTCFullYear(), s0.getUTCMonth() + mo, 1) - p.t0) / DAY; if (dd >= 0 && dd <= DAYS) ticks.push(dd); }
+    if (!ticks.length || ticks[0] >= 8) ticks.unshift(0);
+    ticks.forEach(function (d) {
+      var x = tx(d, W), end = d > DAYS - 6;
+      o += '<line x1="' + x + '" x2="' + x + '" y1="16" y2="' + (H - 2) + '" class="grid"></line><text x="' + x + '" y="12" text-anchor="' + (d < 3 ? 'start' : end ? 'end' : 'middle') + '">' + fecha(p, d) + '</text>';
+    });
+    [['Luz solar', 'sol'], ['Tierra visible', 'tierra'], ['Sol + Tierra', 'ambos']].forEach(function (r, i) {
+      var y = Y0 + i * (ROW + GAP), x0 = tx(0, W), x1 = tx(DAYS, W);
+      o += '<text x="0" y="' + (y + ROW - 2) + '"' + (i === 2 ? ' class="fuerte"' : '') + '>' + r[0] + '</text>';
+      o += '<rect x="' + x0 + '" y="' + y + '" width="' + (x1 - x0) + '" height="' + ROW + '" rx="2" class="fondo"></rect>';
+      if (i === 0) p.noches.forEach(function (w) { o += '<rect x="' + tx(w[0], W) + '" y="' + y + '" width="' + Math.max(1, tx(w[1], W) - tx(w[0], W)) + '" height="' + ROW + '" class="noche"><title>Noche más larga que la batería (' + sc.requirements.batteryH + ' h)</title></rect>'; });
+      p[r[1]].forEach(function (w) { o += '<rect x="' + tx(w[0], W) + '" y="' + y + '" width="' + Math.max(1, tx(w[1], W) - tx(w[0], W)) + '" height="' + ROW + '" rx="2" class="' + r[1] + '"></rect>'; });
+    });
+    var xc = tx(p.contact, W), xe = tx(p.contact + sc.stayDays, W);
+    o += '<rect x="' + xc + '" y="16" width="' + Math.max(1, xe - xc) + '" height="' + (H - 18) + '" class="estadia"><title>Estadía: ' + sc.stayDays + ' d desde el aterrizaje</title></rect>';
+    o += '<line x1="' + xc + '" x2="' + xc + '" y1="16" y2="' + (H - 2) + '" class="contacto"></line>';
+    var xt = tx(tlT, W);
+    o += '<line x1="' + xt + '" x2="' + xt + '" y1="15" y2="' + H + '" class="cursor"></line><path d="M' + (xt - 5) + ',14 L' + (xt + 5) + ',14 L' + xt + ',20 Z" class="mango"></path>';
+    tl.innerHTML = o;
+    tl.setAttribute('aria-valuenow', tlT.toFixed(1)); tl.setAttribute('aria-valuetext', fecha(p, tlT, true));
+    $('tlNow').textContent = fecha(p, tlT, true);
+    $('tlSt').textContent = (Math.abs(tlT - p.contact) < 0.05 ? 'Aterrizaje · ' : '') + 'Sol ' + (dentro(p.sol, tlT) ? 'visible' : 'oculto') + ' · Tierra ' + (dentro(p.tierra, tlT) ? 'visible' : 'oculta');
+    $('tlPlay').innerHTML = tlPlaying ? icoPauseTL : icoPlayTL; $('tlPlay').setAttribute('aria-label', tlPlaying ? 'Pausar' : 'Reproducir');
+    drawHz(p); drawSum(p);
+  }
+  function drawSum(p) {
+    var f = p.fig, el = $('tlSum');
+    el.title = 'Resumen del período ' + fecha(p, 0, false) + ' – ' + fecha(p, DAYS, false) + ' · panel a ' + metros(sc.panelM) + ', antena a ' + metros(sc.antennaM) + ' · JPL Horizons DE441 + horizonte LOLA/PGDA';
+    var cell = function (l, v, t) { return '<span title="' + t + '"><small>' + l + '</small><b>' + v + '</b></span>'; };
+    el.innerHTML = cell('Sol', Math.round(f.sunPct) + ' %', 'Sol visible: alguna parte del disco sobre el horizonte real') +
+      cell('Tierra', Math.round(f.earthPct) + ' %', 'Tierra visible: su centro sobre el horizonte real') +
+      cell('Ambos', Math.round(f.bothPct) + ' %', 'Sol y Tierra a la vez') +
+      cell('Noche máx.', horas(f.longestNightH), 'Noche más larga: mayor racha sin Sol visible; es lo que debe aguantar la batería') +
+      cell('Silencio máx.', horas(f.longestSilenceH), 'Silencio más largo: mayor racha sin la Tierra a la vista (sin enlace directo)') +
+      cell('Panel medio', Math.round(f.meanPanelWm2) + ' W/m²', 'Panel vertical que sigue al Sol (supuesto): 1361 W/m² × disco visible × cos(elevación), promedio del período');
+  }
+  /* panorámica de 360° desde el norte: horizonte real visto desde el panel, el Sol y la Tierra en su posición real y el
+   * recorrido del Sol en un día lunar alrededor del cursor. La silueta va encima: tapa lo que está bajo el horizonte. */
+  var LUNAR_DAY = 29.53;
+  function skyAt(az, el, n, t) { var k = Math.min(n - 1.001, Math.max(0, t * 24)), i = Math.floor(k), f = k - i, a0 = az[i], da = ((az[i + 1] - a0 + 540) % 360) - 180; return [((a0 + da * f) % 360 + 360) % 360, el[i] + (el[i + 1] - el[i]) * f]; }
+  function sunNext(p, t) {
+    for (var i = 0; i < p.sol.length; i++) { var w = p.sol[i]; if (t < w[0]) return ['sale', w[0] - t]; if (t < w[1]) return ['se pone', w[1] - t]; }
+    return null;
+  }
+  function dur(d) { var h = Math.round(d * 24); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; }
+  function drawHz(p) {
+    var svg = $('hz'), W = Math.max(200, svg.clientWidth || 300), H = 80, b = p.b, pe = st[state.site].panel.elev, n = pe.length / 2, prof = [];
+    for (var j = 0; j < n; j++) prof.push(Math.max(pe[2 * j], pe[2 * j + 1]));
+    var lo = Math.min(0, Math.min.apply(null, prof)) - 0.6, hi = Math.max.apply(null, prof);
+    for (var q = 0; q < b.n; q++) hi = Math.max(hi, b.tierraEl[q]);
+    hi += 0.9;
+    var ey = function (e) { return H - 3 - (e - lo) / (hi - lo) * (H - 8); };
+    var G = 24, X = function (az) { return G + az / 360 * (W - G); };
+    var span = hi - lo, step = [1, 2, 5, 10, 20].filter(function (s) { return span / s <= 4; })[0], grid = '', labels = '';
+    for (var v = Math.ceil(lo / step) * step; v < hi; v += step) {
+      var y = ey(v).toFixed(1);
+      grid += '<line x1="' + G + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" class="' + (v === 0 ? 'cero' : 'grid') + '"></line>';
+      labels += '<text x="' + (G - 4) + '" y="' + (+y + 4) + '" text-anchor="end" class="eje">' + v + '°</text>';
+    }
+    var o = grid;
+    var trail = function (t0, t1, cls) {
+      var ts = [t0], d = '', prev = null;
+      for (var k = Math.ceil(t0 * 8); k / 8 < t1; k++) if (k / 8 > t0) ts.push(k / 8);
+      ts.push(t1);
+      ts.forEach(function (t) {
+        if (t < 0 || t > DAYS) return;
+        var s = skyAt(b.solAz, b.solEl, b.n, t), x = X(s[0]), yy = ey(s[1]);
+        d += (prev !== null && Math.abs(x - prev) < W / 2 ? ' L' : ' M') + x.toFixed(1) + ',' + yy.toFixed(1); prev = x;
+      });
+      return d ? '<path d="' + d + '" class="' + cls + '"></path>' : '';
+    };
+    o += trail(tlT - LUNAR_DAY / 2, tlT, 'pasado') + trail(tlT, tlT + LUNAR_DAY / 2, 'futuro');
+    var e = skyAt(b.tierraAz, b.tierraEl, b.n, tlT);
+    if (e[1] > lo) o += '<circle cx="' + X(e[0]).toFixed(1) + '" cy="' + ey(e[1]).toFixed(1) + '" r="5" class="tierra"></circle>';
+    var sp = skyAt(b.solAz, b.solEl, b.n, tlT), sx = X(sp[0]).toFixed(1), sy = ey(sp[1]).toFixed(1);
+    o += '<circle cx="' + sx + '" cy="' + sy + '" r="13" class="halo"></circle><circle cx="' + sx + '" cy="' + sy + '" r="7" class="sol"></circle>';
+    var d = 'M' + G + ',' + H;
+    for (var i = 0; i <= n; i++) d += ' L' + X(i / n * 360).toFixed(1) + ',' + ey(prof[i % n]).toFixed(1);
+    o += '<path d="' + d + ' L' + W + ',' + H + ' Z" class="sil"></path>' + labels;
+    if (e[1] > lo && dentro(p.tierra, tlT)) o += '<text x="' + (X(e[0]) + 8).toFixed(1) + '" y="' + (ey(e[1]) + 4).toFixed(1) + '" class="tierra-t">Tierra</text>';
+    var nx = sunNext(p, tlT);
+    o += '<text x="' + (W - 10) + '" y="18" text-anchor="end">' + (nx ? (nx[0] === 'sale' ? 'Sale en ' : 'Se pone en ') + dur(nx[1]) : 'Sin cambios en el período') + '</text>';
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.innerHTML = '<title>Panorámica de 360° desde el norte. La escala vertical está exagerada y los discos no están a escala.</title>' + o;
+    $('hzZona').textContent = state.site;
+    $('hzSrc').textContent = (Z[state.site].aproximado ? 'LOLA 240 m, aprox.' : 'LOLA') + ' · panel a ' + metros(sc.panelM) + ' · Horizons';
+  }
+  function tlSet(d) { tlT = Math.min(DAYS, Math.max(0, d)); drawTL(); }
+  function tlFromX(clientX) { var r = tl.getBoundingClientRect(), W = tlW(); tlSet(((clientX - r.left) / r.width * W - LW) / (W - LW - RP) * DAYS); }
+  function tlStop() { tlPlaying = false; if (tlRaf) cancelAnimationFrame(tlRaf); tlRaf = null; drawTL(); }
+  function tlStep(now) {
+    tlT += (now - tlLast) / 1000 * (DAYS / 14); tlLast = now;   /* 90 días en 14 s */
+    if (tlT >= DAYS) { tlT = DAYS; tlStop(); return; }
+    drawTL(); tlRaf = requestAnimationFrame(tlStep);
+  }
+  $('tlPlay').addEventListener('click', function () {
+    if (tlPlaying) { tlStop(); return; }
+    if (tlT >= DAYS - 0.5) tlT = 0;
+    tlPlaying = true; tlLast = performance.now(); tlRaf = requestAnimationFrame(tlStep); drawTL();
+  });
+  tl.addEventListener('pointerdown', function (evt) { if (tlPlaying) tlStop(); tl.setPointerCapture(evt.pointerId); tlFromX(evt.clientX); });
+  tl.addEventListener('pointermove', function (evt) { if (evt.buttons) tlFromX(evt.clientX); });
+  tl.addEventListener('keydown', function (evt) {
+    if (evt.key === 'ArrowRight') { evt.preventDefault(); tlSet(tlT + 1); }
+    if (evt.key === 'ArrowLeft') { evt.preventDefault(); tlSet(tlT - 1); }
+  });
+  window.addEventListener('resize', drawTL);
+
+  /* ---------- diálogo del escenario ---------- */
+  var dlg = $('dlg'), lastFocus = null;
+  function toLocal(ms) { var t = new Date(ms); return t.getUTCFullYear() + '-' + two(t.getUTCMonth() + 1) + '-' + two(t.getUTCDate()) + 'T' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()); }
+  function fromLocal(v) { var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5]) : NaN; }
+  function fill(s) {
+    $('fLanding').value = toLocal(s.landingMs); $('fStay').value = s.stayDays; $('fPanel').value = s.panelM; $('fAntenna').value = s.antennaM;
+    $('fBattery').value = s.requirements.batteryH; $('fEarth').value = s.requirements.minEarthPct; $('fSun').checked = s.requirements.sunAtLanding; $('fEarthL').checked = s.requirements.earthAtLanding;
+  }
+  function openDlg() { lastFocus = document.activeElement; fill(sc); $('fLanding').min = toLocal(TABLA.inicioMs); $('fLanding').max = toLocal(TABLA.finMs - DAY); dlg.hidden = false; $('fLanding').focus(); }
+  function closeDlg() { dlg.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  $('scBtn').addEventListener('click', openDlg);
+  dlg.addEventListener('click', function (evt) { if (evt.target.closest('[data-close]')) closeDlg(); });
+  $('fReset').addEventListener('click', function () { fill(sanitize(PLAN)); });
+  $('scForm').addEventListener('submit', function (evt) {
+    evt.preventDefault();
+    var ms = fromLocal($('fLanding').value);
+    sc = { landingMs: isNaN(ms) ? sc.landingMs : ms, stayDays: $('fStay').value, panelM: $('fPanel').value, antennaM: $('fAntenna').value,
+      requirements: { batteryH: $('fBattery').value, minEarthPct: $('fEarth').value, sunAtLanding: $('fSun').checked, earthAtLanding: $('fEarthL').checked } };
+    closeDlg(); apply();
+  });
+
+  /* ---------- comparación de escenarios: hasta 6, guardada en este navegador ---------- */
+  var CKEY = 'lunarmap.comparacion', MAXC = 6, cmpList = [], cmpCache = {}, cmp = $('cmp');
+  try { cmpList = (JSON.parse(localStorage.getItem(CKEY)) || []).filter(function (x) { return x && x.sc && (x.zone === 'P' ? x.pt && isFinite(x.pt.lat) : Z[x.zone]); }).slice(0, MAXC).map(function (x) { return { zone: x.zone, sc: sanitize(x.sc), pt: x.zone === 'P' ? { lat: +x.pt.lat, lon: +x.pt.lon } : undefined }; }); } catch (e) { cmpList = []; }
+  function saveCmp() { try { localStorage.setItem(CKEY, JSON.stringify(cmpList)); } catch (e) { /* sin almacenamiento: vale para esta visita */ } }
+  function keyOf(x) { return x.zone + JSON.stringify(x.sc) + (x.zone === 'P' && x.pt ? x.pt.lat + ',' + x.pt.lon : ''); }
+  function zonaOf(x) { if (x.zone !== 'P') return Z[x.zone]; var k = x.pt.lat + ',' + x.pt.lon; return maskCache[k] || (maskCache[k] = E.mascaraPolar(demObj, x.pt.lat, x.pt.lon)); }
+  function cmpEval(x) {
+    var k = keyOf(x);
+    if (!cmpCache[k]) {
+      var e = E.evaluate(TABLA, E.station(zonaOf(x), x.sc.panelM, x.sc.antennaM), x.sc), l = e.landing, rq = x.sc.requirements;
+      e.verdict = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVISAR' : 'GO';
+      cmpCache[k] = e;
+    }
+    return cmpCache[k];
+  }
+  function curItem() { return { zone: state.site, sc: sc, pt: state.site === 'P' ? { lat: pt.lat, lon: pt.lon } : undefined }; }
+  function inCmp() { var k = keyOf(curItem()); return cmpList.some(function (x) { return keyOf(x) === k; }); }
+  function renderCmp() {
+    $('cmpN').textContent = cmpList.length;
+    var add = $('cmpAdd'), dup = inCmp();
+    add.disabled = dup || cmpList.length >= MAXC;
+    add.textContent = dup ? 'El escenario actual ya está' : cmpList.length >= MAXC ? 'Máximo 6 escenarios' : 'Añadir el escenario actual (zona ' + state.site + ')';
+    $('cmpClear').disabled = !cmpList.length;
+    if (!cmpList.length) { $('cmpWrap').innerHTML = '<p class="cmp-empty">Todavía no hay escenarios. Ajusta el escenario o la zona y pulsa «Añadir el escenario actual».</p>'; return; }
+    if (!demObj && cmpList.some(function (x) { return x.zone === 'P'; })) { $('cmpWrap').innerHTML = '<p class="cmp-empty">Cargando el relieve LOLA para el punto propio…</p>'; loadDem(renderCmp); return; }
+    var evs = cmpList.map(cmpEval), cols = [
+      ['Sol', function (f) { return f.sunPct; }, 1, function (v) { return Math.round(v) + ' %'; }],
+      ['Tierra', function (f) { return f.earthPct; }, 1, function (v) { return Math.round(v) + ' %'; }],
+      ['Ambos', function (f) { return f.bothPct; }, 1, function (v) { return Math.round(v) + ' %'; }],
+      ['Noche máx.', function (f) { return f.longestNightH; }, -1, horas],
+      ['Silencio máx.', function (f) { return f.longestSilenceH; }, -1, horas],
+      ['Panel medio', function (f) { return f.meanPanelWm2; }, 1, function (v) { return Math.round(v) + ' W/m²'; }]
+    ];
+    var best = cols.map(function (c) { var vs = evs.map(function (e) { return Math.round(c[1](e.figures)); }); return c[2] > 0 ? Math.max.apply(null, vs) : Math.min.apply(null, vs); });
+    var maxStay = Math.max.apply(null, cmpList.map(function (x) { return x.sc.stayDays; })), SW = 150;
+    var strip = function (x, e) {   /* Sol arriba y Tierra abajo, alineados desde el aterrizaje; misma escala para todos */
+      var k = SW / (maxStay * DAY), bar = function (w, y, cls) { return '<rect x="' + ((w[0] - e.fromMs) * k).toFixed(1) + '" y="' + y + '" width="' + Math.max(1, (w[1] - w[0]) * k).toFixed(1) + '" height="7" rx="1.5" fill="' + cls + '"></rect>'; };
+      return '<svg class="cmp-strip" width="' + SW + '" height="18" viewBox="0 0 ' + SW + ' 18" role="img" aria-label="Sol y Tierra durante la estadía"><rect x="0" y="0" width="' + (x.sc.stayDays * DAY * k).toFixed(1) + '" height="18" rx="3" fill="rgba(17,17,17,0.06)"></rect>' +
+        e.windows.sun.map(function (w) { return bar(w, 1, '#C8102E'); }).join('') + e.windows.earth.map(function (w) { return bar(w, 10, '#8C857A'); }).join('') + '</svg>';
+    };
+    $('cmpWrap').innerHTML = '<table class="cmp-table"><thead><tr><th>#</th><th>Zona</th><th>Aterrizaje (UTC)</th><th>Estadía</th><th>Equipo</th>' +
+      cols.map(function (c) { return '<th class="n">' + c[0] + '</th>'; }).join('') + '<th title="Sol arriba y Tierra abajo, alineados desde el aterrizaje">Sol / Tierra</th><th></th><th></th></tr></thead><tbody>' +
+      cmpList.map(function (x, i) {
+        var e = evs[i], t = new Date(x.sc.landingMs), cur = keyOf(x) === keyOf(curItem());
+        return '<tr class="row-sc" data-i="' + i + '" title="Cargar este escenario"' + (cur ? ' style="font-weight:600"' : '') + '><td class="n">' + (i + 1) + '</td><td title="' + (x.zone === 'P' ? 'Punto propio (horizonte aproximado): ' + coordTxt(x.pt.lat, x.pt.lon) : MAP[x.zone].name) + '">' + x.zone + ' · ' + (x.zone === 'P' ? 'propio' : MAP[x.zone].name.split(' · ')[1]) + '</td>' +
+          '<td class="n" style="text-align:left">' + fDate(x.sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + '</td><td class="n">' + x.sc.stayDays + ' d</td>' +
+          '<td class="n" style="text-align:left">' + (x.sc.panelM === x.sc.antennaM ? metros(x.sc.panelM) : metros(x.sc.panelM) + ' / ' + metros(x.sc.antennaM)) + '</td>' +
+          cols.map(function (c, j) { var v = c[1](e.figures); return '<td class="n' + (cmpList.length > 1 && Math.round(v) === best[j] ? ' best' : '') + '">' + c[3](v) + '</td>'; }).join('') +
+          '<td>' + strip(x, e) + '</td><td><span class="verdict ' + e.verdict.replace(' ', '') + '">' + e.verdict + '</span></td>' +
+          '<td><button type="button" class="x" data-del="' + i + '" aria-label="Quitar el escenario ' + (i + 1) + '" title="Quitar">×</button></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+  function openCmp() { lastFocus = document.activeElement; renderCmp(); cmp.hidden = false; $('cmpAdd').focus(); }
+  function closeCmp() { cmp.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  $('cmpBtn').addEventListener('click', openCmp);
+  $('cmpAdd').addEventListener('click', function () { if (cmpList.length < MAXC && !inCmp()) { var it = curItem(); it.sc = JSON.parse(JSON.stringify(sc)); cmpList.push(it); saveCmp(); renderCmp(); } });
+  $('cmpClear').addEventListener('click', function () { cmpList = []; saveCmp(); renderCmp(); });
+  cmp.addEventListener('click', function (evt) {
+    if (evt.target.closest('[data-close]')) { closeCmp(); return; }
+    var del = evt.target.closest('[data-del]');
+    if (del) { cmpList.splice(+del.dataset.del, 1); saveCmp(); renderCmp(); return; }
+    var row = evt.target.closest('tr[data-i]');
+    if (row) { var x = cmpList[+row.dataset.i]; if (x.zone === 'P') setPoint(x.pt.lat, x.pt.lon, false); sc = sanitize(x.sc); state.site = x.zone; closeCmp(); apply(); }
+  });
+
+  /* ---------- punto propio (#8): zona P con horizonte aproximado sobre el relieve polar de LOLA ----------
+   * El relieve (data/dem-polo.js, 8 MB) se carga solo al usarlo. El mapa es estereográfico polar real: polo en (444, 239),
+   * 0° E arriba y 90° E a la derecha, 421,15 px por grado de colatitud (72 m/px). */
+  var PKEY = 'lunarmap.punto', demObj = null, demLoading = [], maskCache = {}, pt = null, picking = false;
+  var PX_DEG = 421.15, POLE = [444, 239];
+  function coordTxt(lat, lon) { return Math.abs(lat).toFixed(2) + '° S · ' + lon.toFixed(2) + '° E'; }
+  function toMap(lat, lon) { var r = (90 + lat) * PX_DEG, a = lon * Math.PI / 180; return [POLE[0] + r * Math.sin(a), POLE[1] - r * Math.cos(a)]; }
+  function fromMap(x, y) { var dx = x - POLE[0], dy = y - POLE[1]; return [-(90 - Math.hypot(dx, dy) / PX_DEG), ((Math.atan2(dx, -dy) * 180 / Math.PI) % 360 + 360) % 360]; }
+  function loadDem(cb) {
+    if (demObj) { cb(); return; }
+    demLoading.push(cb);
+    if (demLoading.length > 1) return;
+    var sEl = document.createElement('script');
+    sEl.src = 'data/dem-polo.js';
+    sEl.onload = function () { demObj = E.crearDem(window.LunarData.demPolar); var q = demLoading; demLoading = []; q.forEach(function (f) { f(); }); };
+    sEl.onerror = function () { demLoading = []; $('pMsg').textContent = 'No se pudo cargar el relieve LOLA (data/dem-polo.js).'; };
+    document.head.appendChild(sEl);
+  }
+  function drawPoint() {
+    var lay = $('ptLayer'), eP = $('eP');
+    if (!pt) { lay.innerHTML = ''; eP.style.opacity = 0; return; }
+    var q = toMap(pt.lat, pt.lon), x = q[0].toFixed(1), y = q[1].toFixed(1), vis = q[0] > -20 && q[0] < 1020 && q[1] > -120 && q[1] < 720;
+    lay.innerHTML = vis ? '<circle cx="' + x + '" cy="' + y + '" r="13" fill="none" stroke="rgba(253,230,138,0.8)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#FDE68A" stroke="#05060A" stroke-width="2"></circle>' +
+      '<g><rect x="' + (q[0] - 28) + '" y="' + (q[1] - 62) + '" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="' + x + '" y="' + (q[1] - 47) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#FDE68A" font-family="Space Grotesk, Inter, sans-serif">Punto P</text></g>' : '';
+    eP.setAttribute('cx', x); eP.setAttribute('cy', y); eP.setAttribute('transform', 'rotate(-28 ' + x + ' ' + y + ')');
+  }
+  function setPoint(lat, lon, select) {
+    Z.P = maskCache[lat + ',' + lon] || (maskCache[lat + ',' + lon] = E.mascaraPolar(demObj, lat, lon));
+    var q = toMap(lat, lon);
+    MAP.P = { name: 'Punto propio', pos: [q[0], q[1]], track: 'M20 560 C 160 520, ' + (q[0] - 120).toFixed(0) + ' ' + (q[1] + 60).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
+    pt = { lat: lat, lon: lon };
+    ids = ['A', 'B', 'C', 'P'];
+    try { localStorage.setItem(PKEY, JSON.stringify(pt)); } catch (e) { /* sin almacenamiento */ }
+    if (select) state.site = 'P';
+    drawPoint();
+  }
+  function removePoint() {
+    pt = null; delete Z.P; delete MAP.P; ids = ['A', 'B', 'C'];
+    try { localStorage.removeItem(PKEY); } catch (e) { /* sin almacenamiento */ }
+    if (state.site === 'P') state.site = 'A';
+    drawPoint(); apply();
+  }
+  function usePoint(lat, lon) {
+    if (!isFinite(lat) || !isFinite(lon)) { $('pMsg').textContent = 'Escribe la latitud y la longitud.'; return false; }
+    if (!E.dentroDelDominio(lat, lon)) { var p = E.estereoSur(lat, lon); $('pMsg').textContent = 'Fuera del dominio: el punto está a ' + Math.round(Math.hypot(p[0], p[1]) / 1000) + ' km del polo (máximo 190 km).'; return false; }
+    $('pMsg').textContent = 'Cargando el relieve LOLA (8 MB) y calculando el horizonte…';
+    loadDem(function () { setPoint(Math.round(lat * 1e5) / 1e5, Math.round(lon * 1e5) / 1e5, true); closePt(); apply(); var c = cards.querySelector('[data-site="P"]'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest' }); });
+    return true;
+  }
+  var ptDlg = $('ptDlg');
+  function openPt() {
+    lastFocus = document.activeElement; $('pMsg').textContent = '';
+    $('pLat').value = pt ? pt.lat : ''; $('pLon').value = pt ? pt.lon : ''; $('pDel').hidden = !pt;
+    ptDlg.hidden = false; $('pLat').focus();
+  }
+  function closePt() { ptDlg.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  function setPicking(on) {
+    picking = on; document.querySelector('.monitor .glass-inner').classList.toggle('picking', on);
+    $('chipPt').setAttribute('aria-pressed', on); $('chipPtTxt').textContent = on ? 'Haz clic en el mapa' : 'Punto propio';
+  }
+  $('chipPt').addEventListener('click', function () { if (picking) setPicking(false); else openPt(); });
+  ptDlg.addEventListener('click', function (evt) { if (evt.target.closest('[data-close]')) closePt(); });
+  $('pPick').addEventListener('click', function () { closePt(); setPicking(true); });
+  $('pDel').addEventListener('click', function () { closePt(); removePoint(); });
+  $('ptForm').addEventListener('submit', function (evt) { evt.preventDefault(); usePoint(parseFloat($('pLat').value), parseFloat($('pLon').value)); });
+  document.querySelector('svg.map').addEventListener('click', function (evt) {
+    if (!picking) return;
+    var svgEl = evt.currentTarget, m = svgEl.getScreenCTM(); if (!m) return;
+    var q = new DOMPoint(evt.clientX, evt.clientY).matrixTransform(m.inverse()), ll = fromMap(q.x, q.y);
+    setPicking(false);
+    $('pLat').value = ll[0].toFixed(4); $('pLon').value = ll[1].toFixed(4);
+    if (!usePoint(ll[0], ll[1])) openPt();
+  });
+
+  /* ---------- render ---------- */
+  function render() {
+    var cur = ev[state.site], m = MAP[state.site];
+    cards.querySelectorAll('.card').forEach(function (c) { c.setAttribute('aria-checked', c.dataset.site === state.site); });
+    ids.forEach(function (id) {
+      $('e' + id).setAttribute('style', id === state.site ? 'fill: rgba(34,204,238,0.16); stroke: #9BFFE4; stroke-width: 3; filter: drop-shadow(0 0 8px rgba(124,240,213,0.6))' : 'opacity: 0');
+    });
+    $('target').setAttribute('cx', m.pos[0]); $('target').setAttribute('cy', m.pos[1]);
+    trackGhost.setAttribute('d', m.track); track.setAttribute('d', m.track); trackGlow.setAttribute('d', m.track);
+    track.style.opacity = state.simulated ? 1 : 0; trackGlow.style.opacity = state.simulated ? 1 : 0;
+    if (!state.simulated) { $('tminus').textContent = 'T– 00:11:50'; }
+    $('siteId').textContent = state.site;
+    var v = $('verdict'); v.textContent = cur.verdict; v.className = 'verdict ' + cur.verdict.replace(' ', '');
+    var rows = checkRows(cur);
+    $('checkList').innerHTML = rows.map(function (c) {
+      return '<div class="check"><span class="dot" style="background:' + col[c[3]] + '"></span><span style="flex:1;display:flex;flex-direction:column;min-width:0"><span class="lab">' + c[0] + '</span><span class="mono val">' + c[1] + (c[2] ? ' · ' + c[2] : '') + '</span></span></div>';
+    }).join('');
+    $('siteFoot').textContent = footOf(cur);
+    renderWays();
+    var canConfirm = state.simulated && cur.verdict === 'GO' && !state.confirmed;
+    /* un solo botón: simular → simulando → confirmar (solo GO) → confirmada */
+    var act = $('actBtn'), label, hint = '', ico = '';
+    if (state.confirmed) { label = 'Zona ' + state.site + ' confirmada'; ico = icoCheck; hint = 'Siguiente paso: planificar la caminata'; }
+    else if (state.running) { label = 'Simulando descenso…'; }
+    else if (!state.simulated) { label = 'Simular descenso'; ico = icoPlay; }
+    else { label = 'Confirmar zona ' + state.site; ico = icoCheck; if (!canConfirm) hint = cur.verdict === 'NO GO' ? 'No cumple: mira «Cómo cumplir»' : 'Al ras: ajusta el escenario'; }
+    act.disabled = state.confirmed || state.running || (state.simulated && !canConfirm);
+    act.classList.toggle('red', !act.disabled);
+    $('actLabel').textContent = label; $('actIco').innerHTML = ico; $('actIco').hidden = !ico; $('actHint').textContent = hint;
+    $('banner').classList.toggle('on', state.confirmed);
+    $('bannerText').textContent = 'Zona ' + state.site + ' · ' + m.name + ' confirmada para el alunizaje';
+    $('phase').textContent = state.confirmed ? 'Zona confirmada' : (state.simulated ? 'Simulación completada' : 'Evaluando zonas');
+    $('clockDot').style.background = state.confirmed ? '#C8102E' : (state.simulated ? '#111111' : '#857D72');
+    $('clockDot').style.boxShadow = state.confirmed ? '0 0 8px rgba(200,16,46,0.8)' : 'none';
+    $('tlZona').textContent = state.site; drawTL(); renderCmp();
+    $('ovHaz').style.opacity = state.haz ? 1 : 0; $('ovLight').style.opacity = state.light ? 1 : 0;
+    $('chipHaz').classList.toggle('on', state.haz); $('chipHaz').setAttribute('aria-pressed', state.haz);
+    $('chipLight').classList.toggle('on', state.light); $('chipLight').setAttribute('aria-pressed', state.light);
+  }
+
+  var icoPlay = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>';
+  var icoCheck = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"></path></svg>';
+  $('actBtn').addEventListener('click', function () {
+    if (!state.simulated) simulate();
+    else if (!state.running && !state.confirmed && ev[state.site].verdict === 'GO') { state.confirmed = true; render(); }
+  });
+  $('chipHaz').addEventListener('click', function () { state.haz = !state.haz; render(); });
+  $('chipLight').addEventListener('click', function () { state.light = !state.light; render(); });
+
+  /* teclado: A/B/C eligen zona; Escape cierra el escenario */
+  document.addEventListener('keydown', function (evt) {
+    if (!dlg.hidden) { if (evt.key === 'Escape') closeDlg(); return; }
+    if (!cmp.hidden) { if (evt.key === 'Escape') closeCmp(); return; }
+    if (!ptDlg.hidden) { if (evt.key === 'Escape') closePt(); return; }
+    if (picking && evt.key === 'Escape') { setPicking(false); return; }
+    if (evt.target.tagName === 'INPUT' || evt.target.tagName === 'TEXTAREA') return;
+    var k = evt.key.toUpperCase();
+    if (ids.indexOf(k) >= 0) pick(k);
+  });
+
+  evaluateAll(); renderCards(); render();
+  /* un punto propio guardado se recupera en segundo plano, sin cambiar la zona elegida */
+  try { var savedPt = JSON.parse(localStorage.getItem(PKEY)); if (savedPt && isFinite(savedPt.lat) && E.dentroDelDominio(savedPt.lat, savedPt.lon)) loadDem(function () { setPoint(savedPt.lat, savedPt.lon, false); evaluateAll(); renderCards(); render(); }); } catch (e) { /* sin almacenamiento */ }
+})();
+</script>
+</body>
+</html>
