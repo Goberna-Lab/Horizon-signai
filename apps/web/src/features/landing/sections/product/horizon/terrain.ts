@@ -155,11 +155,12 @@ export function paintLayer(context: CanvasRenderingContext2D, layer: Layer, geo:
       context.save()
       context.translate(lit.sunX, highest)
       context.scale(1, 0.6)
-      const reach = Math.max(width * 0.6, 420)
+      // Llega hasta el borde más lejano: si se quedara corto, se vería dónde termina.
+      const reach = Math.max(lit.sunX, width - lit.sunX) + pad + 40
       const pool = context.createRadialGradient(0, 0, 0, 0, 0, reach)
       pool.addColorStop(0, css(LIT_GROUND, 0.7 * light))
       pool.addColorStop(0.4, css(LIT_GROUND, 0.3 * light))
-      pool.addColorStop(1, css(LIT_GROUND, 0.06 * light))
+      pool.addColorStop(1, css(LIT_GROUND, 0.04 * light))
       context.fillStyle = pool
       context.fillRect(-reach, -20, reach * 2, (bottom - highest) / 0.6 + 20)
       context.restore()

@@ -204,13 +204,19 @@ export const months = {
 }
 
 export const product = {
-  title: "Compare decides. 3D explains. The simulator rehearses.",
+  title: "From a site and a date to a decision you can explain.",
   steps: [
     {
-      verb: "Compare",
+      verb: "Plan",
       question: "Which site, which date?",
-      body: "Pick a catalogued site or drop your own point within 190 km of the pole. Choose any date from 2026 to 2030 and read the Sun and Earth windows against the real horizon. Keep up to six scenarios side by side.",
+      body: "Pick a catalogued site or drop your own point within 190 km of the pole. Choose any date from 2026 to 2030 and read the Sun and Earth windows against the real horizon.",
       action: actions.planner,
+    },
+    {
+      verb: "Compare",
+      question: "Which scenario wins?",
+      body: "Keep up to six scenarios side by side and read the same figures for each one: Sun in view, Earth in view and the longest night.",
+      action: null,
     },
     {
       verb: "See",
@@ -219,10 +225,10 @@ export const product = {
       action: null,
     },
     {
-      verb: "Rehearse",
-      question: "Does the mission hold?",
-      body: "Fly the descent, stay on the surface for the days you plan, and get a pass or fail verdict against your own requirements.",
-      action: actions.simulator,
+      verb: "Learn",
+      question: "Why is the pole different?",
+      body: "The Sun circles the horizon, Earth rocks in place and height buys sunlight. Three figures from the same data explain why a few metres or a few days change the answer.",
+      action: null,
     },
   ],
 }

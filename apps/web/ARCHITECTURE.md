@@ -125,23 +125,29 @@ Map, Plan B y Learn, con el diseño de las pantallas del producto.
   fundido). De esos dos valores cuelgan todos los colores de la página (`.ln` en `landing.css`; la paleta de noche
   está en `styles/tokens.css`). Solo ocurre con la ventana en pantalla: al seguir bajando, la página vuelve al
   papel. El vuelo conserva siempre los colores de día, porque su lienzo se dibuja con ellos.
-- **El tiempo se frena en el cambio.** Con el reloj corriendo, la puesta y la salida pasan a la mitad de la
-  velocidad (`TURN_TEMPO` en `sky.ts`): unos cinco segundos en vez de dos y medio.
+- **El tiempo se frena en el cambio.** Con el reloj corriendo, la puesta y la salida pasan a un tercio de la
+  velocidad (`TURN_TEMPO` en `sky.ts`): unos siete segundos en vez de dos y medio.
+- **El momento de la puesta.** Con el reloj corriendo, unas 20 horas antes de que el Sol se oculte la ventana se
+  aparta y deja el paisaje a pantalla completa: se van el fondo, los filetes y todo menos la cuenta del Sol, la
+  fecha y el botón de pausa; vuelve unas horas después del cambio. Al pausar o tocar la línea de tiempo (que sigue
+  ahí, invisible) vuelve al instante. `spotlight` en `sky.ts` da el cuánto y `ProductWindow.tsx` lo escribe en la
+  sección como `--cinema`, registrada como número en `product.css` para que el navegador la anime. Mientras dura,
+  en la cresta aparece la marca del punto por donde el Sol se oculta (o sale), con su rumbo y su hora reales.
 - **El horizonte de fondo** (`HorizonScene.tsx` y `product/horizon/`): detrás de la vista Lander va la puesta del
-  Sol como se vería de verdad desde el suelo del sitio, filmada con una cámara de cine. Solo aparece en el cambio:
-  el cielo se vuelve negro, el Sol resbala a ras del horizonte y una ladera lo va tapando hasta que desaparece
-  justo cuando la cuenta pasa a "Sunrise in". Entonces asoman la corona y la luz zodiacal tras la cresta y salen
-  las estrellas. Al amanecer ocurre lo mismo al revés. El resto del día la página queda limpia, con el relieve en
-  papel.
-  - Qué es real: el tamaño del Sol (medio grado, como desde la Tierra) y su color (blanco: no hay atmósfera); su
-    trayectoria, de las efemérides (`sky.json`); el relieve que lo tapa, el horizonte real de Connecting Ridge
-    (`sections/data/horizon.json`); que con el Sol en cuadro no se vean estrellas; y la Tierra, que solo aparece
-    cuando está sobre el horizonte del sitio y con su fase real. La cámara mira siempre hacia el Sol y lo sigue
-    alrededor del horizonte: el paisaje gira despacio durante todo el día lunar.
-  - Qué es de cine: el destello de la cámara (velo de luz, rayos de difracción, línea anamórfica y reflejos), que es
-    lo que hace grande al Sol en pantalla; el disco se dibuja 1,5 veces mayor que el real (`SUN.scale`); la escala
-    vertical va exagerada respecto a la horizontal; la Tierra va en una esquina, no en su rumbo; y el primer plano
-    (suelo, rocas y cráteres) es decorativo.
+  Sol vista desde el suelo del sitio, filmada con una cámara de cine. Solo existe en el cambio: de día la página
+  queda limpia, sin relieve ni Sol. Al empezar el cambio el cielo se vuelve negro, entra el relieve y el Sol baja
+  desde arriba por la derecha hasta perderse tras la cresta justo cuando la cuenta pasa a "Sunrise in". Entonces
+  asoman la corona y la luz zodiacal y salen las estrellas. Al amanecer ocurre lo mismo al revés.
+  - Qué es real: el tamaño del Sol (medio grado, como desde la Tierra) y su color (blanco: no hay atmósfera);
+    dónde y cuándo se oculta (durante el cambio la cámara mira al rumbo de la puesta, de las efemérides de
+    `sky.json`, y la cresta que lo tapa es el horizonte real de Connecting Ridge, de `sections/data/horizon.json`);
+    que con el Sol en cuadro no se vean estrellas; y la Tierra, que solo aparece cuando está sobre el horizonte del
+    sitio y con su fase real.
+  - Qué es puesta en escena: el recorrido (en el polo el Sol real no baja, resbala casi a ras del horizonte; aquí
+    entra por arriba a la derecha y baja, `SUN.enterX` y `SUN.setX`); el destello de la cámara (velo de luz, rayos
+    de difracción, línea anamórfica y reflejos), que es lo que hace grande al Sol en pantalla; el disco, 1,5 veces
+    mayor que el real (`SUN.scale`); la escala vertical, exagerada; la Tierra, en una esquina y no en su rumbo; y
+    el primer plano (suelo, rocas y cráteres), decorativo.
   - Capas, de atrás hacia delante: estrellas lejanas, estrellas medias y polvo, la Tierra, el Sol (disco,
     resplandor, corona y luz zodiacal), montañas lejanas, cresta con cráteres, primer plano con rocas y sombras
     larguísimas, y el destello de la cámara por delante de todo. Cada una tiene su profundidad: se mueven distinto
