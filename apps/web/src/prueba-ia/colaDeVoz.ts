@@ -43,16 +43,17 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }:
   let fallbackCola: Promise<void> = Promise.resolve()
   let hablado = ""
 
-  // fuente → robot (timbre de la asistente) → analizador (mide el volumen) → ganancia (baja la voz si hablas encima) → parlantes
-  const robot = conWebAudio ? crearVozRobot(ctx!, personaje.timbre) : null
+  // fuente → robot (timbre de la asistente, si tiene) → analizador (mide el volumen) → ganancia (baja la voz si hablas encima) → parlantes
+  const robot = conWebAudio && personaje.timbre ? crearVozRobot(ctx!, personaje.timbre) : null
   const analizador = conWebAudio ? ctx!.createAnalyser() : null
   const ganancia = conWebAudio ? ctx!.createGain() : null
-  if (robot && analizador && ganancia) {
+  if (analizador && ganancia) {
     analizador.fftSize = 512
-    robot.salida.connect(analizador)
+    robot?.salida.connect(analizador)
     analizador.connect(ganancia)
     ganancia.connect(ctx!.destination)
   }
+  const entrada: AudioNode | null = robot?.entrada ?? analizador
   const datos = new Uint8Array(512)
 
   const comprobarFin = () => {
@@ -87,16 +88,18 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }:
     if (detenida) return
     // La melodía robótica de la asistente (una nota por palabra); misma duración: los tiempos no cambian.
     let buffer = crudo
-    try {
-      buffer = entonarBuffer(ctx!, crudo, personaje.entonacion, f.palabras.map(([, , ini, fin]) => [ini, fin]))
-    } catch (e) {
-      console.warn("[voz] sin entonación:", e)
+    if (personaje.entonacion) {
+      try {
+        buffer = entonarBuffer(ctx!, crudo, personaje.entonacion, f.palabras.map(([, , ini, fin]) => [ini, fin]))
+      } catch (e) {
+        console.warn("[voz] sin entonación:", e)
+      }
     }
     const inicio = Math.max(ctx!.currentTime + 0.05, siguiente)
     siguiente = inicio + buffer.duration
     const fuente = ctx!.createBufferSource()
     fuente.buffer = buffer
-    fuente.connect(robot!.entrada)
+    fuente.connect(entrada!)
     pendientes++
     fuente.onended = () => {
       pendientes--

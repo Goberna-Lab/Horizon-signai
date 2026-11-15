@@ -10,14 +10,15 @@ export type AssistantMode = "assistant" | "educational"
  * Las dos asistentes: personalidad, entonación y voz distintas (pedido de Estephano, 2026-11-15).
  * - VERA, asistente de misión y planificación: voz de instalación, clínica, casi monótona y con humor seco.
  * - EVA, asistente pedagógica: un robot guía que enseña todo el proyecto, bromea, acompaña por todo el flujo
- *   y recuerda lo que la persona le contó (en su navegador). Entonación cantada. Su dibujo: shared/eva.
+ *   y recuerda lo que la persona le contó (en su navegador). Voz natural de Kokoro, sin filtro de robot (elegida
+ *   por Manuel el 2026-11-15 en la prueba de personalidades: «Exploradora curiosa», af_heart). Su dibujo: shared/eva.
  * EVA viene de «extravehicular activity» (caminata espacial); VERA es provisional. `voice` es la voz de Kokoro-82M que pide el API a horizon-voz (Geografo);
  * las dos ya están en su caché. El prompt de cada una está en apps/api/src/asistentes.ts y su filtro de voz
  * en apps/web/src/prueba-ia/personajes.ts.
  */
 export const ASSISTANTS: Record<AssistantMode, { name: string; role: string; voice: string }> = {
   assistant: { name: "VERA", role: "Mission & planning", voice: "af_heart" },
-  educational: { name: "EVA", role: "Your guide", voice: "af_bella" },
+  educational: { name: "EVA", role: "Your guide", voice: "af_heart" },
 }
 export const ASSISTANT_MODES = Object.keys(ASSISTANTS) as AssistantMode[]
 export const isAssistantMode = (x: unknown): x is AssistantMode => x === "assistant" || x === "educational"
