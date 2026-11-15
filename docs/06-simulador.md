@@ -305,6 +305,47 @@ Pendientes anotados en el SPEC:
 - Datatip del terreno con enlace de "evaluar aquí" (E26.2–E26.4).
 - Umbrales de aterrizaje con fuente: pendiente máxima, alabeo tolerable y elevación del Sol al descender. Candidatos: documentos de diseño del LM o requisitos de Artemis (SPEC, Abiertas).
 
+## 9. El simulador de la app (`/simulador`)
+
+Las secciones anteriores describen el prototipo de referencia (`luna-recursos/`). Esta describe lo que hace hoy la pantalla `/simulador` de la app (código en `apps/web/src/features/simulator/alunizaje/`). Reproduce la misión planificada; no añade nada que no esté en el plan.
+
+### 9.1 Dónde y cuándo
+- Por defecto, la misión **CR-01** del Planificador: zona A, **Connecting Ridge RoI 6**, el **18 de diciembre de 2026**. Es el único sitio con relieve fino a 10 m.
+- `?mission=<id>` aluniza en el sitio y la fecha de esa misión; `?sitio=<id>&fecha=<ISO>`, en cualquiera de los 28 sitios del Planificador.
+- El Sol y la Tierra se calculan con el mismo motor que el Planificador (`@/shared/planning`: efemérides y máscara de horizonte del sitio, vistos a 1,7 m), así que las cifras coinciden. Comprobado en Connecting Ridge RoI 6 el 15 de noviembre de 2026 a las 00:00 UTC: Sol a 251,8° de acimut y 1,39° de altura, Tierra a −3,92° (bajo el horizonte) (`sitio.ts`).
+- Relieve: LOLA. Connecting Ridge RoI 6 trae 6 km a 10 m y 20 km a 80 m; los demás sitios, 20 km a 80 m (`apps/web/scripts/build-simulador-sitios.ts`, LDEM_80S_80M). Alrededor del punto hay un suelo de detalle de 250 × 250 m con 90 cráteres pequeños y 520 rocas; ese detalle es generado, no es dato real (`detalle.ts`).
+
+### 9.2 Descenso
+- El módulo lunar del Apollo sigue la trayectoria nominal del Apollo 11 desde 500 m (P64 y P66), con el motor del equipo. No hay control manual: el guiado lleva la nave por la línea planeada.
+- **Error de navegación:** el guiado deja la nave a unos 25 m (σ) del punto planificado (`aterrizaje.ts`).
+- **Fallo del cálculo de altura:** con probabilidad 4 % con luz y 12 % a oscuras, el guiado apaga el motor entre 8 y 30 m sobre el suelo y la nave cae (caso real parecido: Hakuto-R M1, 2023).
+- En P66 un recuadro muestra el riesgo del terreno justo bajo la nave.
+
+### 9.3 Contacto: resultados
+El resultado lo deciden la inclinación del plano de las cuatro patas (a 4,6 m del centro), las rocas bajo la nave y la velocidad de contacto (`aterrizaje.ts`):
+
+| Resultado | Condición | Caso real parecido |
+|---|---|---|
+| Nominal | Patas a menos de 6° y contacto a 3 m/s o menos | — |
+| Posada, pero inclinada | 6° o más, o una roca de más de 0,3 m de radio bajo la nave | SLIM (Japón, 2024) |
+| Aterrizaje duro | Más de 3 m/s, el límite del tren de aterrizaje | — |
+| Vuelco | 12° o más (o 6° con un golpe duro), o más de 2 m/s de velocidad lateral | IM-1 Odysseus (2024), IM-2 Athena (2025) |
+| Se estrella | 5 m/s o más: los tanques se rompen y los propelentes se encienden | Hakuto-R M1 (2023), Beresheet (2019) |
+
+Con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz, una simulación de 20 000 contactos dio 31 % nominal, 32 % inclinada, 33 % vuelco y 4 % estrellada.
+
+### 9.4 Caminata planificada (misión CR-02)
+- Tras un aterrizaje nominal, inclinado o duro se puede salir: escotilla, porche, escalera peldaño a peldaño y primer paso, en primera persona.
+- La caminata sigue la **ruta científica** del Planificador (paso «Walk», `prototipos/lunar-map/terrain.js`), dibujada en el suelo: **parada 1 · Borde iluminado** (muestra de regolito al Sol) y **parada 2 · Sombra permanente** (muestra con lámparas, posible hielo), con **regreso obligatorio en la parada 2** (`tareas.ts`). El relieve del Planificador es conceptual; aquí cada muestra se pone en el punto con Sol, o en sombra, real más cercano a su parada.
+- Se camina a 1/6 de gravedad: cuesta arrancar y frenar, los saltos llegan a ~1,2 m y no se atraviesa el módulo.
+- **Avisos del plan:** pendiente por delante de más de 15° (el límite de la ruta en el Planificador), salir a más de 40 m de la ruta, y cráteres de 2,5 m de radio o más: si se intenta cruzar uno, alarma y el lado por el que rodearlo (`caminata.ts`).
+- **Traje** (cifras de referencia de la PLSS del Apollo / xEMU): O₂ 0,82 kg, agua de refrigeración 3,86 kg, cartucho de LiOH de 8870 kJ y batería de 279 Wh. Se gastan según el esfuerzo (120 W en reposo, 300 W caminando, 470 W al galope), el Sol o la sombra y las lámparas. El límite de regreso es la mitad de lo que dura el consumible más escaso. Sin O₂ o con el cartucho saturado se pierde la misión. El módulo guarda reservas para recargar (21,8 kg de O₂ y 151 kg de agua); un aterrizaje duro rompe un tanque y deja la mitad.
+- Teclas: WASD caminar, Shift galope, Espacio saltar, E recoger, G visor solar, L lámparas, R recargar junto al módulo (o reintentar), T tiempo ×10/×60, Q volver a volar el descenso.
+
+### 9.5 EVA en el simulador
+- Durante el descenso, EVA (la de toda la app) avisa del terreno en P66, del fallo de altura, del impacto y de los resultados malos.
+- Durante la caminata vive dentro del visor del casco como holograma: comenta las paradas, los peligros (cráter, pendiente, salir de la ruta, oxígeno) y, si nadie toca nada durante 60 s, bromea con la ausencia.
+
 ## Fuentes citadas
 
 | Clave | Fuente |

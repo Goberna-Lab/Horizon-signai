@@ -65,3 +65,4 @@
 /* Tarjeta final: salir a caminar o volver a volar */
 .sim-lfp-end-acts { display: flex; flex-wrap: wrap; gap: 10px; }
 .sim-lfp-end button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
+

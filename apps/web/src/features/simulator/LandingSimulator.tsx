@@ -1,20 +1,38 @@
 import { useEffect, useRef } from "react"
+import { useSearchParams } from "react-router"
 import { tr } from "@/shared/i18n"
+import { useMissions } from "@/shared/planning"
 import "./alunizaje/alunizaje.css"
 
 /**
- * Alunizaje del Apollo 11 en el polo sur (Connecting Ridge · RoI 6): descenso real desde 500 m con el motor del equipo,
- * cámara que orbita la nave, ruta en 3D, mapa, perfil de altura y velocidad. Motor sin React (three.js imperativo,
- * como el vuelo de la landing); este componente solo lo monta y lo desmonta.
+ * Alunizaje del Apollo en el polo sur y la caminata planificada: descenso real desde 500 m con el motor del equipo,
+ * contacto con el terreno, caminata con el casco. Motor sin React (three.js imperativo, como el vuelo de la landing);
+ * este componente solo lo monta y lo desmonta. Dónde y cuándo lo decide la planificación, no el simulador:
+ *  · `?mission=<id>`: el sitio y la fecha de aterrizaje de esa misión del Planificador.
+ *  · `?sitio=<id>&fecha=<ISO>`: un sitio del Planificador en una fecha (por ejemplo, desde un enlace del Planificador).
+ *  · `&ruta=segura|corta|cientifica&eva=<h>`: la ruta de la caminata y cuántas horas después del alunizaje sale la EVA
+ *    (la escena pasa entonces al Sol y la Tierra de ese momento). Sin ruta, la científica de CR-02.
+ *  · Sin nada: el plan de la misión CR-01 (Connecting Ridge · RoI 6, 18 de diciembre de 2026, 09:00 UTC).
  */
 export function LandingSimulator() {
   const host = useRef<HTMLDivElement>(null)
+  const [params] = useSearchParams()
+  const missions = useMissions()
+  const mission = missions.find((m) => m.id === params.get("mission")) ?? null
+  const siteId = mission?.siteId ?? params.get("sitio") ?? undefined
+  const fecha = params.get("fecha")
+  const ms = mission?.landingMs ?? (fecha ? Date.parse(fecha) : undefined)
+  const msOk = ms != null && Number.isFinite(ms) ? ms : undefined
+  const ruta = params.get("ruta") ?? undefined
+  const evaN = Number(params.get("eva"))
+  const evaH = Number.isFinite(evaN) && evaN > 0 ? Math.min(evaN, 24 * 60) : undefined
+
   useEffect(() => {
     let alive = true
     let dispose: (() => void) | undefined
     void import("./alunizaje/world").then(async ({ startLanding }) => {
       if (!alive || !host.current) return
-      const stop = await startLanding(host.current)
+      const stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH })
       if (alive) dispose = stop
       else stop()
     })
@@ -22,7 +40,8 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [])
+  }, [siteId, msOk, ruta, evaH])
+
   return (
     <section className="screen sim-alz-screen">
       <div ref={host} className="sim-alz" aria-label={tr("Apollo landing simulation at the lunar south pole", "Simulación del alunizaje del Apollo en el polo sur lunar")} />

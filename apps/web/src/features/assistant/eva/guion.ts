@@ -370,7 +370,7 @@ export function guionDe(ruta: string, pagina = ""): Guion {
  * otra: avisan con `avisarEva("aterrizaje-nominal")` de `@/shared/eva` (un CustomEvent en window). `critico`: se dice aunque no
  * hayan pasado 90 s, y siempre en serio. `festejo`: algo salió bien; al terminar pone ojos contentos en vez de guiñar.
  */
-export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean }> = {
+export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean; /** Indicación útil (qué tecla, qué mirar): no espera los 90 s, pero no interrumpe. */ guia?: boolean }> = {
   "aterrizaje-nominal": { texto: "Welcome to the lunar south pole. Population: you.", es: { texto: "Bienvenido al polo sur lunar. Población: tú." }, festejo: true },
   "primeros-pasos": {
     texto: "Your first steps. Footprints here last millions of years, so no pressure on the style.",
@@ -411,6 +411,126 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     es: { texto: "Hecho. Estrella dorada. Siguiente.", serio: "Tarea completa. Siguiente." },
     repetible: true,
     festejo: true,
+  },
+  // Caminata con el casco (simulador de Jefferson: features/simulator/alunizaje/caminata.ts y tareas.ts). Ahí EVA vive
+  // dentro del visor como holograma y es sarcástica cuando todo va bien; con peligro, la versión seria o nada.
+  // Cifras: las del traje en la cabecera de caminata.ts (PLSS del Apollo / xEMU).
+  galope: {
+    texto: "Loping on the Moon. Apollo crews found it easier than running. Your oxygen does not agree.",
+    es: { texto: "Galope lunar. Las tripulaciones del Apolo lo preferían a correr. Tu oxígeno no opina lo mismo." },
+    repetible: true,
+  },
+  quieta: {
+    texto: "Enjoying the view? Take your time. The oxygen will not.",
+    es: { texto: "¿Disfrutando la vista? Tómate tu tiempo. El oxígeno no se lo toma." },
+    repetible: true,
+  },
+  agotado: {
+    texto: "You are exhausted. I suggest walking. Or breathing. Ideally both.",
+    serio: "You are exhausted. Walk, and catch your breath.",
+    es: { texto: "Estás agotado. Te sugiero caminar. O respirar. Idealmente las dos cosas.", serio: "Estás agotado. Camina y recupera el aliento." },
+  },
+  luces: {
+    texto: "Lamps on. Now the shadows are only slightly terrifying.",
+    es: { texto: "Luces encendidas. Ahora las sombras dan solo un poquito de miedo." },
+  },
+  "visor-solar": {
+    texto: "Sun visor down. Very stylish. Also, you can see again.",
+    es: { texto: "Visor solar abajo. Muy elegante. Y además vuelves a ver." },
+  },
+  recarga: {
+    texto: "Suit recharged. Try not to spend it all on jumping this time.",
+    es: { texto: "Traje recargado. Intenta no gastarlo todo en saltos esta vez." },
+    repetible: true,
+  },
+  tiempo: {
+    texto: "Time sped up. Your consumables noticed before you did.",
+    es: { texto: "Tiempo acelerado. Tus consumibles se dieron cuenta antes que tú." },
+  },
+  "muestra-sol": {
+    texto: "Sample bagged. Regolith is as sharp as broken glass, by the way. Do not lick it.",
+    es: { texto: "Muestra guardada. El regolito corta como vidrio roto, por cierto. No lo pruebes." },
+  },
+  // Nadie toca nada en el simulador durante un rato (AFK): EVA se burla de la ausencia, por turnos
+  "ausente-1": {
+    texto: "Hello? Your oxygen keeps running even when you do not.",
+    es: { texto: "¿Hola? Tu oxígeno sigue corriendo aunque tú no." },
+    repetible: true,
+  },
+  "ausente-2": {
+    texto: "Still there? I will assume you went out for a sandwich. On the Moon. Bold move.",
+    es: { texto: "¿Sigues ahí? Asumiré que saliste por un sándwich. En la Luna. Qué valor." },
+    repetible: true,
+  },
+  "ausente-3": {
+    texto: "If you fell asleep, at least it is quiet up here. No air, no snoring.",
+    es: { texto: "Si te dormiste, al menos aquí arriba hay silencio. Sin aire no hay ronquidos." },
+    repetible: true,
+  },
+  // EVA con el HUD del casco (simulador: caminata.ts y tareas.ts): lo dice apuntando con su rayo a esa parte del visor
+  "casco-hud": {
+    texto: "Your suit is on the left: oxygen, the carbon dioxide filter, cooling water and battery. If anything turns red, I will tell you.",
+    es: { texto: "Tu traje va a la izquierda: oxígeno, filtro de dióxido de carbono, agua de refrigeración y batería. Si algo se pone rojo, te aviso." },
+    guia: true,
+  },
+  "pulso-alto": {
+    texto: "Your heart rate is over one hundred fifty. Slow down: walk instead of loping, and you will spend less oxygen.",
+    es: { texto: "Tu pulso pasa de ciento cincuenta. Baja el ritmo: camina en vez de galopar y gastarás menos oxígeno." },
+    guia: true,
+    repetible: true,
+  },
+  "muestra-cerca": {
+    texto: "The sample is within reach. Press E to collect it.",
+    es: { texto: "La muestra está a tu alcance. Pulsa E para recogerla." },
+    guia: true,
+    repetible: true,
+  },
+  "necesitas-luces": {
+    texto: "No sunlight here. Turn on your lamps with L.",
+    es: { texto: "Aquí no llega el Sol. Enciende las lámparas con L." },
+    guia: true,
+    repetible: true,
+  },
+  deslumbramiento: {
+    texto: "The Sun is in your eyes. Lower the gold visor with G.",
+    es: { texto: "Te está dando el Sol de frente. Baja el visor dorado con G." },
+    guia: true,
+    repetible: true,
+  },
+  // La caminata planificada (CR-02): fuera de la ruta y pendiente sobre el límite del Planificador (15°)
+  "fuera-de-ruta": {
+    texto: "We are off the planned route. The plan exists for a reason. Several, actually.",
+    serio: "We are off the planned route. Head back to it.",
+    es: { texto: "Estamos fuera de la ruta planificada. El plan existe por algo. Por varias cosas, en realidad.", serio: "Estamos fuera de la ruta planificada. Vuelve a ella." },
+    repetible: true,
+  },
+  pendiente: {
+    texto: "Slope over fifteen degrees, the limit of the plan. Go back to the route.",
+    serio: "Slope over fifteen degrees, the limit of the plan. Go back to the route.",
+    es: { texto: "Pendiente de más de quince grados, el límite del plan. Vuelve a la ruta.", serio: "Pendiente de más de quince grados, el límite del plan. Vuelve a la ruta." },
+    critico: true,
+    repetible: true,
+  },
+  // Cráter grande delante y la persona intenta cruzarlo: aviso crítico con el lado por el que rodearlo
+  "crater-izquierda": {
+    texto: "Crater. Do not cross it, the walls are loose regolith. Go around it on the left.",
+    serio: "Crater. Do not cross it, the walls are loose regolith. Go around it on the left.",
+    es: { texto: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la izquierda.", serio: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la izquierda." },
+    critico: true,
+    repetible: true,
+  },
+  "crater-derecha": {
+    texto: "Crater. Do not cross it, the walls are loose regolith. Go around it on the right.",
+    serio: "Crater. Do not cross it, the walls are loose regolith. Go around it on the right.",
+    es: { texto: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la derecha.", serio: "Cráter. No lo cruces, las paredes son regolito suelto. Rodéalo por la derecha." },
+    critico: true,
+    repetible: true,
+  },
+  "eva-completa": {
+    texto: "All tasks done and you are back at the lander. I will pretend I never doubted you.",
+    es: { texto: "Todas las tareas hechas y de vuelta en el módulo. Haré como que nunca dudé de ti." },
+    festejo: true,
+    repetible: true,
   },
   "aviso-critico": { texto: "", serio: "Warning.", es: { texto: "", serio: "Atención." }, critico: true, repetible: true },
 }
