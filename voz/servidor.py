@@ -8,7 +8,10 @@
 - Oído: faster-whisper en CPU (int8), para no competir por la GPU con Ollama.
 
 Contrato (todo con `Authorization: Bearer <token>`, comprobado ANTES de leer el cuerpo):
-  POST /v1/hablar       {"texto": "...", "voz"?: "am_michael"}              → audio/wav (PCM 16 bits)
+  POST /v1/hablar       {"texto": "...", "voz"?, "formato"?: "wav"|"opus"|"mp3", "palabras"?: bool}
+                        → audio (wav por defecto; opus = Ogg/Opus, ~15 veces más liviano).
+                        Con "palabras": cabecera X-Palabras = JSON [[texto, espacio, inicio_s, fin_s], …]
+                        para mostrar cada palabra cuando se pronuncia.
   POST /v1/transcribir  audio crudo (webm/opus, ogg, wav; ≤ 5 MB)        → {"texto", "ms"}
   GET  /v1/salud                                                       → {"listo", ...}
 Una petición a la vez por tipo: la GPU y la CPU no se reparten entre pedidos.
@@ -17,6 +20,7 @@ Una petición a la vez por tipo: la GPU y la CPU no se reparten entre pedidos.
 import asyncio
 import hmac
 import io
+import json
 import os
 import tempfile
 import time
@@ -80,18 +84,40 @@ def cargar():
     print(f"modelos cargados en {time.perf_counter() - t:.1f} s", flush=True)
 
 
-def sintetizar(texto: str, idioma: str, voz: str) -> bytes:
+FORMATOS = {  # formato → (contenedor de libsndfile, códec, media type)
+    "wav": ("WAV", "PCM_16", "audio/wav"),
+    "opus": ("OGG", "OPUS", "audio/ogg"),
+    "mp3": ("MP3", "MPEG_LAYER_III", "audio/mpeg"),
+}
+
+
+def sintetizar(texto: str, idioma: str, voz: str, formato: str):
+    """Devuelve (audio codificado, palabras con tiempos, duración en s)."""
+    palabras: list[list] = []
     with torch.inference_mode():
         if MOTOR == "kokoro":
-            partes = [np.asarray(a, dtype=np.float32) for _, _, a in estado["tts"](texto, voice=voz)]
-            audio, sr = np.concatenate(partes) if partes else np.zeros(1, np.float32), 24000
+            partes, desfase = [], 0.0
+            # Kokoro parte textos largos en segmentos; los tiempos de cada uno empiezan en 0.
+            for r in estado["tts"](texto, voice=voz):
+                a = np.asarray(r.audio, dtype=np.float32)
+                for t in r.tokens or []:
+                    if t.start_ts is None:
+                        continue
+                    palabras.append([t.text, t.whitespace or "", round(desfase + t.start_ts, 3), round(desfase + (t.end_ts or t.start_ts), 3)])
+                partes.append(a)
+                desfase += len(a) / 24000
+            audio, sr = (np.concatenate(partes) if partes else np.zeros(1, np.float32)), 24000
         else:
             wavs, sr = estado["tts"].generate_custom_voice(text=texto, language=idioma, speaker=voz)
             audio = wavs[0]
     audio = np.clip(np.asarray(audio, dtype=np.float32).squeeze(), -1, 1)
+    dur = len(audio) / sr
+    if not palabras:  # sin tiempos por palabra: la frase entera dura todo el audio
+        palabras = [[texto, "", 0.0, round(dur, 3)]]
+    contenedor, codec, _ = FORMATOS[formato]
     buf = io.BytesIO()
-    sf.write(buf, audio, sr, format="WAV", subtype="PCM_16")
-    return buf.getvalue()
+    sf.write(buf, audio, sr, format=contenedor, subtype=codec)
+    return buf.getvalue(), palabras, dur
 
 
 def oir(crudo: bytes) -> str:
@@ -128,15 +154,21 @@ async def hablar(request: Request):
         return JSONResponse({"error": f"texto vacío o mayor a {MAX_TEXTO}"}, status_code=400)
     idioma = str(cuerpo.get("idioma") or IDIOMA)
     voz = str(cuerpo.get("voz") or VOZ)
+    formato = str(cuerpo.get("formato") or "wav")
+    if formato not in FORMATOS:
+        return JSONResponse({"error": f"formato debe ser uno de {list(FORMATOS)}"}, status_code=400)
     estado["cola_tts"] += 1
     try:
         async with candado_tts:
             t = time.perf_counter()
-            wav = await asyncio.to_thread(sintetizar, texto, idioma, voz)
+            audio, palabras, dur = await asyncio.to_thread(sintetizar, texto, idioma, voz, formato)
             ms = round((time.perf_counter() - t) * 1000)
     finally:
         estado["cola_tts"] -= 1
-    return Response(wav, media_type="audio/wav", headers={"X-Ms": str(ms)})
+    cabeceras = {"X-Ms": str(ms), "X-Duracion": f"{dur:.3f}"}
+    if cuerpo.get("palabras"):
+        cabeceras["X-Palabras"] = json.dumps(palabras, ensure_ascii=True, separators=(",", ":"))
+    return Response(audio, media_type=FORMATOS[formato][2], headers=cabeceras)
 
 
 @app.post("/v1/transcribir")

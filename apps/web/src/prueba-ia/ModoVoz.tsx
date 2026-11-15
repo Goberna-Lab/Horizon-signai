@@ -91,9 +91,14 @@ export function ModoVoz({ mensajes, agregar, cerrar }: Props) {
         <p className="voz-pista">{PISTA[voz.estado]}</p>
         {voz.error && <p className="error">{voz.error}</p>}
 
-        <div className="voz-subtitulos" aria-live="polite">
+        <div className="voz-subtitulos">
           {ultimaTuya && <p className="sub-tuyo">«{ultimaTuya.content}»</p>}
-          {ultimaIa && <p className="sub-ia">{ultimaIa.content}</p>}
+          {/* Mientras habla: el texto crece al ritmo de la voz. En reposo: la última respuesta. */}
+          {voz.hablado ? (
+            <p className="sub-ia sub-en-vivo">{voz.hablado}</p>
+          ) : (
+            voz.estado !== "pensando" && ultimaIa && <p className="sub-ia" aria-live="polite">{ultimaIa.content}</p>
+          )}
         </div>
         {voz.tiempos && <p className="voz-tiempos">{voz.tiempos}</p>}
       </div>

@@ -51,7 +51,37 @@ export const chatStream = async (
   }
 }
 
-export type InfoVoz = { idioma: "en" | "es"; voz: string; motor: string; equipo: string }
+export type EventoTurno =
+  | { t: "texto"; d: string }
+  | ({ t: "frase" } & import("./colaDeVoz").FraseDeVoz)
+  | { t: "fin"; respuesta: string; modelo: string; ms: number; primeraVozMs: number }
+  | { t: "error"; msg: string }
+
+// Opus es ~15 veces más liviano que WAV; Safari antiguo no lo decodifica: ahí, MP3.
+const formatoDeVoz = () => (new Audio().canPlayType('audio/ogg; codecs="opus"') ? "opus" : "mp3")
+
+// Turno de voz en streaming: la respuesta llega como líneas NDJSON (texto, audio por frase, fin).
+export const turnoDeVoz = async (messages: Mensaje[], alEvento: (e: EventoTurno) => void, signal?: AbortSignal) => {
+  const r = await pedir("/voz/turno", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, formato: formatoDeVoz() }),
+    signal,
+  })
+  const lector = r.body!.getReader()
+  const dec = new TextDecoder()
+  let resto = ""
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) break
+    resto += dec.decode(value, { stream: true })
+    const lineas = resto.split("\n")
+    resto = lineas.pop() ?? ""
+    for (const l of lineas) if (l.trim()) alEvento(JSON.parse(l) as EventoTurno)
+  }
+}
+
+export type InfoVoz ={ idioma: "en" | "es"; voz: string; motor: string; equipo: string }
 export const infoVoz = async (): Promise<InfoVoz> => {
   try {
     return (await (await pedir("/voz", {})).json()) as InfoVoz

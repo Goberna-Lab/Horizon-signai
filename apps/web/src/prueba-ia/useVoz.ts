@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { chat, enFrases, hablar, transcribir, type Mensaje } from "./cliente"
+import { transcribir, turnoDeVoz, type Mensaje } from "./cliente"
+import { crearColaDeVoz } from "./colaDeVoz"
 
 export type EstadoVoz = "reposo" | "escuchando" | "pensando" | "hablando"
 
@@ -28,7 +29,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
 
   const activa = useRef(false)
   const hilo = useRef<Mensaje[]>([])
-  const audioEl = useRef<HTMLAudioElement | null>(null)
+  const [hablado, setHablado] = useState("") // lo que la IA va diciendo, palabra por palabra
+  const turno = useRef<{ corte: AbortController; cola: ReturnType<typeof crearColaDeVoz> } | null>(null)
   const interrumpida = useRef(false) // tocaste mientras hablaba: no sigue con las demás frases
   const parar = useRef<(() => void) | null>(null) // cierra tu turno ya
   const soltar = useRef<(() => void) | null>(null) // descarta la grabación y libera el mic
@@ -41,7 +43,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   const terminar = useCallback(() => {
     activa.current = false
     soltar.current?.()
-    audioEl.current?.pause()
+    turno.current?.cola.detener()
+    turno.current?.corte.abort()
     void audioCtx.current?.close()
     audioCtx.current = null
     setNivel(0)
@@ -119,56 +122,6 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     })
   }, [])
 
-  // Reproduce la respuesta y publica su volumen para que el orbe "hable".
-  // Reproduce la respuesta y publica su volumen para que el orbe "hable".
-  // Solo pasa por el AudioContext si está corriendo: si el navegador lo suspendió, el audio
-  // va directo al parlante (suena, aunque la Luna no se mueva con la voz).
-  const reproducir = useCallback((wav: Blob) => {
-    return new Promise<void>((resolve) => {
-      const url = URL.createObjectURL(wav)
-      const a = new Audio(url)
-      audioEl.current = a
-      const ctx = audioCtx.current
-      let raf = 0
-      let nodos: AudioNode[] = []
-      if (ctx && ctx.state === "running") {
-        try {
-          const an = ctx.createAnalyser()
-          an.fftSize = 512
-          const src = ctx.createMediaElementSource(a)
-          src.connect(an)
-          an.connect(ctx.destination)
-          nodos = [src, an]
-          const datos = new Uint8Array(an.fftSize)
-          const medir = () => {
-            an.getByteTimeDomainData(datos)
-            let suma = 0
-            for (const v of datos) suma += ((v - 128) / 128) ** 2
-            setNivel(Math.min(1, Math.sqrt(suma / datos.length) * 5))
-            raf = requestAnimationFrame(medir)
-          }
-          raf = requestAnimationFrame(medir)
-        } catch {
-          /* sin analizador: suena igual, el orbe solo respira */
-        }
-      }
-      let listo = false
-      const fin = () => {
-        if (listo) return
-        listo = true
-        cancelAnimationFrame(raf)
-        nodos.forEach((n) => n.disconnect())
-        URL.revokeObjectURL(url)
-        setNivel(0)
-        resolve()
-      }
-      a.onended = fin
-      a.onpause = fin
-      a.onerror = fin
-      void a.play().catch(fin)
-    })
-  }, [])
-
   const bucle = useCallback(async () => {
     setError("")
     hilo.current = opciones.current.historial().slice(-18)
@@ -188,31 +141,46 @@ export function useVoz({ historial, alMensaje }: Opciones) {
         hilo.current = [...hilo.current, tuyo]
         opciones.current.alMensaje(tuyo)
 
-        const r = await chat(hilo.current, true)
-        const suyo: Mensaje = { role: "assistant", content: r.respuesta }
-        hilo.current = [...hilo.current, suyo]
-        opciones.current.alMensaje(suyo)
-        if (!activa.current) break
-
-        // Frase por frase: mientras suena una, ya se está generando la siguiente.
-        const frases = enFrases(r.respuesta)
+        // Turno en streaming: el texto, el audio de cada frase y sus tiempos llegan juntos;
+        // la voz empieza con la primera frase y el texto se revela al ritmo de la voz.
         interrumpida.current = false
-        let siguiente = hablar(frases[0])
-        for (let i = 0; i < frases.length; i++) {
-          const wav = await siguiente
-          if (i + 1 < frases.length) siguiente = hablar(frases[i + 1])
-          if (i === 0)
-            setTiempos(
-              `oído ${(oido.ms / 1000).toFixed(1)} s · IA ${(r.ms / 1000).toFixed(1)} s · primera voz en ${((performance.now() - t0) / 1000).toFixed(1)} s`,
-            )
-          if (!activa.current || interrumpida.current) break
-          setEstado("hablando")
-          await reproducir(wav)
-          if (!activa.current || interrumpida.current) break
-          if (i + 1 < frases.length) setEstado("pensando") // la siguiente aún no está lista
+        const corte = new AbortController()
+        const cola = crearColaDeVoz({
+          ctx: audioCtx.current,
+          alHablar: setHablado,
+          alNivel: setNivel,
+          alEmpezar: () => {
+            setEstado("hablando")
+            setTiempos(`oído ${(oido.ms / 1000).toFixed(1)} s · primera voz ${((performance.now() - t0) / 1000).toFixed(1)} s después de que dejaste de hablar`)
+          },
+        })
+        turno.current = { corte, cola }
+        let respuesta = ""
+        try {
+          await turnoDeVoz(
+            hilo.current,
+            (e) => {
+              if (e.t === "frase") cola.agregar(e)
+              else if (e.t === "fin") respuesta = e.respuesta
+              else if (e.t === "error") throw new Error(e.msg)
+            },
+            corte.signal,
+          )
+          await cola.terminada()
+        } catch (err) {
+          if (!interrumpida.current) throw err
+        } finally {
+          cola.cerrar()
+          turno.current = null
         }
-        // Si cortaste, la frase en vuelo se descarta (no se espera).
-        siguiente.catch(() => {})
+        // Al historial va lo que se alcanzó a decir si la interrumpiste; si no, la respuesta entera.
+        const dicho = interrumpida.current ? cola.hablado().trim() : respuesta || cola.hablado()
+        setHablado("")
+        if (dicho) {
+          const suyo: Mensaje = { role: "assistant", content: dicho }
+          hilo.current = [...hilo.current, suyo]
+          opciones.current.alMensaje(suyo)
+        }
       }
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e)
@@ -222,7 +190,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       setNivel(0)
       setEstado("reposo")
     }
-  }, [grabar, reproducir])
+  }, [grabar])
 
   /** Botón central: arranca, cierra tu turno o interrumpe a la IA según el estado. */
   const tocar = useCallback(() => {
@@ -235,9 +203,10 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     } else if (estado === "escuchando") parar.current?.()
     else if (estado === "hablando") {
       interrumpida.current = true
-      audioEl.current?.pause()
+      turno.current?.cola.detener()
+      turno.current?.corte.abort()
     }
   }, [bucle, estado])
 
-  return { estado, nivel, error, tiempos, tocar, terminar }
+  return { estado, nivel, error, tiempos, hablado, tocar, terminar }
 }

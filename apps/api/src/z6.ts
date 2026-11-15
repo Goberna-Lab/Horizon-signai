@@ -22,7 +22,7 @@ const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz"])
+const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz", "/voz/turno"])
 // Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
 const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
@@ -97,6 +97,156 @@ const preguntar = async (mensajes: Mensaje[], voz: boolean) => {
   if (!r.ok) throw new Error(`${voz ? "Z6" : "Geografo"} respondió ${r.status}`)
   const d = (await r.json()) as { message?: { content?: string } }
   return { respuesta: d.message?.content ?? "", modelo, equipo: voz ? "Z6" : "Geografo" }
+}
+
+// ── Turno de voz en streaming ───────────────────────────────────────────────
+// Lee la respuesta de la Z6 token a token y, apenas se completa una frase, la manda a la voz.
+// Todo sale por una sola respuesta NDJSON, en orden:
+//   {t:"texto", d}                                   cada trozo de texto que llega del modelo
+//   {t:"frase", i, texto, mime, audio, palabras, dur} audio (base64) de la frase i y sus palabras
+//                                                    [[texto, espacio, inicio_s, fin_s], …]
+//   {t:"fin", respuesta, modelo, ms, primeraVozMs}   o {t:"error", msg}
+// Así la voz empieza con la primera frase, no al final, y el navegador muestra cada palabra
+// cuando se pronuncia.
+
+const FORMATOS_VOZ = new Set(["opus", "mp3", "wav"])
+
+// Saca del buffer las frases ya completas (fin de frase seguido de espacio: «3.5» no corta).
+// La primera puede cortarse en una coma si ya es larga, para que la voz arranque antes.
+export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], string] => {
+  const listas: string[] = []
+  let resto = buffer
+  for (;;) {
+    let corte = -1
+    const fin = resto.match(/^[\s\S]*?[.!?…]+["'”)\]]*(?=\s)/)
+    if (fin) corte = fin[0].length
+    else if (esPrimera && listas.length === 0) {
+      const coma = /^[\s\S]{40,}?[,;:](?=\s)/.exec(resto)
+      if (coma) corte = coma[0].length
+    }
+    if (corte < 0) break
+    const frase = resto.slice(0, corte).trim()
+    resto = resto.slice(corte)
+    if (frase) listas.push(frase)
+  }
+  return [listas, resto]
+}
+
+const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal): Response => {
+  const voz = servicioVoz()
+  const enc = new TextEncoder()
+  const corte = new AbortController()
+  señal.addEventListener("abort", () => corte.abort())
+  let ctl!: ReadableStreamDefaultController<Uint8Array>
+  const emitir = (o: unknown) => {
+    try {
+      ctl.enqueue(enc.encode(`${JSON.stringify(o)}\n`))
+    } catch {
+      /* el navegador ya cortó */
+    }
+  }
+
+  const producir = async () => {
+    const t0 = performance.now()
+    let primeraVozMs = 0
+    let n = 0
+    let cola: Promise<void> = Promise.resolve() // una frase a la vez y en orden
+    const hablarFrase = (crudo: string) => {
+      const i = n++
+      const texto = paraHablar(crudo)
+      if (!texto) return
+      cola = cola.then(async () => {
+        if (corte.signal.aborted) return
+        const r = await fetch(`${voz.url}/v1/hablar`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(
+            voz.idioma === "en" ? { texto, formato, palabras: true } : { texto, voz: "es-ivi" },
+          ),
+          signal: AbortSignal.any([corte.signal, AbortSignal.timeout(TIMEOUT_VOZ_MS)]),
+        })
+        if (!r.ok) throw new Error(`Voz respondió ${r.status}`)
+        const audio = Buffer.from(await r.arrayBuffer()).toString("base64")
+        const dur = Number(r.headers.get("x-duracion") ?? 0)
+        let palabras: unknown = [[texto, "", 0, dur]]
+        try {
+          palabras = JSON.parse(r.headers.get("x-palabras") ?? "") as unknown
+        } catch {
+          /* argus-voz no da tiempos: la frase entera */
+        }
+        if (!primeraVozMs) primeraVozMs = Math.round(performance.now() - t0)
+        emitir({ t: "frase", i, texto, mime: r.headers.get("content-type"), audio, palabras, dur })
+      })
+    }
+
+    try {
+      const r = await fetch(`${z6Url()}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.any([corte.signal, AbortSignal.timeout(TIMEOUT_MS)]),
+        body: JSON.stringify({
+          model: z6Modelo(),
+          stream: true,
+          think: false,
+          messages: [{ role: "system", content: SISTEMA_VOZ[voz.idioma] }, ...msgs],
+        }),
+      })
+      if (!r.ok || !r.body) throw new Error(`Z6 respondió ${r.status}`)
+      const lector = r.body.getReader()
+      const dec = new TextDecoder()
+      let lineas = ""
+      let buffer = ""
+      let respuesta = ""
+      for (;;) {
+        const { done, value } = await lector.read()
+        if (done) break
+        lineas += dec.decode(value, { stream: true })
+        const partes = lineas.split("\n")
+        lineas = partes.pop() ?? ""
+        for (const l of partes) {
+          if (!l.trim()) continue
+          const d = JSON.parse(l) as { message?: { content?: string }; error?: string }
+          if (d.error) throw new Error(d.error)
+          const delta = d.message?.content ?? ""
+          if (!delta) continue
+          respuesta += delta
+          buffer += delta
+          emitir({ t: "texto", d: delta })
+          const [listas, resto] = cortarFrases(buffer, n === 0)
+          buffer = resto
+          listas.forEach(hablarFrase)
+        }
+      }
+      if (buffer.trim()) hablarFrase(buffer)
+      await cola
+      emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs })
+    } catch (e) {
+      if (!corte.signal.aborted) emitir({ t: "error", msg: String(e) })
+    } finally {
+      try {
+        ctl.close()
+      } catch {
+        /* ya cerrado */
+      }
+    }
+  }
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(c) {
+      ctl = c
+      void producir()
+    },
+    cancel() {
+      corte.abort()
+    },
+  })
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Accel-Buffering": "no", // que nginx no acumule el stream
+    },
+  })
 }
 
 const igual = (a: string, b: string) => {
@@ -282,6 +432,15 @@ export const z6 = new Hono()
     } catch {
       return c.json({ idioma: "en", voz: "?", motor: "sin respuesta", equipo: "Geografo" })
     }
+  })
+  // Turno de voz en streaming (texto + audio por frase + tiempos por palabra). Ver turnoDeVoz.
+  .post("/voz/turno", async (c) => {
+    const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; formato?: string } | null
+    const msgs = limpiarMensajes(cuerpo)
+    if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
+    if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    const formato = FORMATOS_VOZ.has(cuerpo?.formato ?? "") ? cuerpo!.formato! : "opus"
+    return turnoDeVoz(msgs, formato, c.req.raw.signal)
   })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.
   .post("/transcribir", async (c) => {

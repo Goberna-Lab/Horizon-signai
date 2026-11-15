@@ -398,3 +398,6 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Texto que crece palabra a palabra con la voz: sin la animación de entrada (se repetiría en cada palabra). */
+.sub-en-vivo { animation: none; }
