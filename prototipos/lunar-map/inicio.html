@@ -53,7 +53,7 @@
 .kpi small { display: block; font-size: 10.5px; color: var(--gris-2); line-height: 1.35; }
 
 /* ---------- próximo hito: cuenta regresiva de tableta ---------- */
-.next .who-m { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.next .who-m { font-size: 14px; line-height: 1.2; margin-bottom: 4px; }
 .next .sub { font-size: 11px; color: var(--gris); }
 .flaps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0 4px; }
 .flap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -74,7 +74,7 @@
 .mrow .r1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .idb { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 22px; padding: 0 7px; border-radius: 7px; font-family: var(--f-mono); font-size: 11px; font-weight: 600; background: rgba(17,17,17,0.07); white-space: nowrap; }
 .mrow[aria-pressed="true"] .idb { background: var(--tinta); color: var(--crema); }
-.mrow .nm { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.mrow .nm { font-size: 13px; line-height: 1.2; }
 .mrow .meta { font-size: 10px; color: var(--gris); }
 .bars { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .bars span { display: block; height: 5px; border-radius: 999px; }
@@ -223,7 +223,7 @@
     <div class="col">
       <section class="paper panel next" aria-labelledby="next-t">
         <div class="ph"><h2 id="next-t" class="display-caps">Next milestone</h2><span class="mono aux">CR-01</span></div>
-        <p class="who-m">Landing at Connecting Ridge</p>
+        <p class="who-m display-caps">Landing at Connecting Ridge</p>
         <p class="mono sub">Contact · 18 Dec 2026 · 09:00 UTC</p>
         <div class="flaps" role="timer" aria-live="off" aria-label="Countdown to contact">
           <div class="flap"><b id="cdD">--</b><span>DAYS</span></div>
@@ -361,7 +361,7 @@
       var past = n.filter(function (v) { return v.t <= now; }).length;
       return '<button type="button" class="mrow" data-id="' + m.id + '" aria-pressed="' + (m.id === state.sel) + '">' +
         '<span class="r1"><span class="idb">' + m.id + '</span><span class="st ' + m.status + '">' + C.STATUS_LABEL[m.status] + '</span></span>' +
-        '<span class="nm">' + m.name + '</span>' +
+        '<span class="nm display-caps">' + m.name + '</span>' +
         '<span class="mono meta">' + m.meta + '</span>' +
         '<span class="bars">' + m.bars.map(function (b) { return '<span style="background:' + col[b] + '"></span>'; }).join('') + '</span>' +
         '<span class="mono leg">' + m.legend + '</span>' +
