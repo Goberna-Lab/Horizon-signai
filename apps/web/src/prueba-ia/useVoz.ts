@@ -20,7 +20,21 @@ const VAD_ENCIMA = { positiveSpeechThreshold: 0.7, negativeSpeechThreshold: 0.5,
 const VAD_CDN = "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.31/dist/"
 const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/"
 
+/**
+ * Quien anota los tiempos de cada turno (EVA: features/assistant/eva/tiempos.ts). `empezar(haceMs)`: el instante 0 fue
+ * hace `haceMs` (cuando la persona dejó de hablar). Las marcas usan los mismos nombres que tiempos.ts.
+ */
+export type Cronometro = {
+  empezar: (haceMs: number) => void
+  marcar: (m: "vad" | "oido" | "primerTexto" | "respuestaLlega" | "respuestaSuena" | "fin", en?: number) => void
+  dato: (k: string, v: string | number | boolean) => void
+  pregunta: (texto: string) => void
+  cerrar: (fin?: string) => void
+}
+
 type Opciones = {
+  /** Anota los tiempos de cada turno (opcional: /prueba-ia no lo usa). */
+  cronometro?: Cronometro
   /** Quién responde: VERA (misión) o EVA (guía). Decide cómo suena (personajes.ts). */
   asistente: AssistantMode
   /** Historial con el que arranca la conversación (el del chat de texto). */
@@ -37,7 +51,7 @@ type Turno = { corte: AbortController; cola: ReturnType<typeof crearColaDeVoz>; 
  * la IA vuelve a responder con lo que agregaste (lo que alcanzó a decir queda en el historial).
  * Expone el volumen del micrófono o de la voz (`nivel`, 0..1) para animar el orbe.
  */
-export function useVoz({ asistente, historial, alMensaje }: Opciones) {
+export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones) {
   const [estado, setEstado] = useState<EstadoVoz>("reposo")
   const [nivel, setNivel] = useState(0)
   const [error, setError] = useState("")
@@ -64,8 +78,9 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
     setEncima(e)
     if (e && fugaz) chipFugaz.current = setTimeout(() => setEncima(null), CHIP_FUGAZ_MS)
   }, [])
-  const opciones = useRef({ asistente, historial, alMensaje })
-  opciones.current = { asistente, historial, alMensaje }
+  const opciones = useRef({ asistente, historial, alMensaje, cronometro })
+  opciones.current = { asistente, historial, alMensaje, cronometro }
+  const crono = () => opciones.current.cronometro
 
   const cambiar = useCallback((e: EstadoVoz) => {
     estadoRef.current = e
@@ -100,6 +115,7 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
     if (!t) return
     t.cortado = true
     turno.current = null
+    crono()?.cerrar("interrumpida")
     const dicho = t.cola.detener().trim()
     t.corte.abort()
     setHablado("")
@@ -123,6 +139,9 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
           asistente: opciones.current.asistente,
           alHablar: setHablado,
           alNivel: setNivel,
+          alAgendar: (_, empieza) => {
+            if (turno.current === t) crono()?.marcar("respuestaSuena", empieza)
+          },
           alEmpezar: () => {
             if (turno.current !== t) return
             mostrarEncima(null) // ya responde: lo que agregaste pasa a ser tu mensaje
@@ -141,9 +160,17 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
 
   // Eventos del turno → cola de voz. `guardar` recibe la respuesta completa al final.
   const alimentar = (t: Turno, guardar: (r: string) => void) => (e: EventoTurno) => {
-    if (e.t === "frase") t.cola.agregar(e)
-    else if (e.t === "fin") guardar(e.respuesta)
-    else if (e.t === "error") throw new Error(e.msg)
+    if (e.t === "texto") crono()?.marcar("primerTexto")
+    else if (e.t === "frase") {
+      crono()?.marcar("respuestaLlega")
+      t.cola.agregar(e)
+    } else if (e.t === "fin") {
+      // Lo que midió el servidor (ver turnoDeVoz en apps/api/src/z6.ts).
+      crono()?.dato("servidorMs", e.ms)
+      crono()?.dato("servidorPrimeraVozMs", e.primeraVozMs)
+      for (const [k, v] of Object.entries(e.tiempos ?? {})) crono()?.dato(`servidor_${k}`, v)
+      guardar(e.respuesta)
+    } else if (e.t === "error") throw new Error(e.msg)
   }
 
   // Sigue el turno hasta que termina de sonar. `flujo` resuelve con la respuesta cuando cierra el stream.
@@ -155,6 +182,7 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
         await t.cola.terminada()
       } catch (err) {
         if (t.cortado) return // lo cortó quien interrumpió, que ya ordenó el historial
+        crono()?.cerrar("error")
         t.cola.detener()
         turno.current = null
         setHablado("")
@@ -165,6 +193,9 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
         return
       }
       if (t.cortado) return
+      crono()?.marcar("fin")
+      crono()?.dato("respuestaCaracteres", respuesta.length)
+      crono()?.cerrar("ok")
       t.cola.cerrar()
       turno.current = null
       setHablado("")
@@ -197,6 +228,18 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
     async (audio: Float32Array, fin: number) => {
       const wav = aWav(audio)
       const t = turno.current
+      // Tiempos: el instante 0 es cuando dejó de hablar (el VAD cierra la frase PAUSA_FIN_MS después).
+      const c = crono()
+      const empezar = () => {
+        c?.empezar(performance.now() - fin + PAUSA_FIN_MS)
+        c?.marcar("vad", fin)
+        c?.dato("hablaMs", Math.round(audio.length / 16))
+      }
+      const alOirlo = (e: EventoOido) => {
+        c?.marcar("oido")
+        c?.dato("oidoServidorMs", e.ms)
+        if (e.texto) c?.pregunta(e.texto)
+      }
 
       if (!t) {
         // La IA estaba callada: lo oído y la respuesta llegan en el mismo stream.
@@ -205,13 +248,20 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
         let alOir!: (e: EventoOido) => void
         let alFallar!: (e: unknown) => void
         const oidoP = new Promise<EventoOido>((res, rej) => ((alOir = res), (alFallar = rej)))
+        empezar()
         const flujo = escucharApi(
           wav,
           { iaHabla: false, messages: hilo.current },
           (e) => {
             if (e.t === "oido") {
               alOir(e)
-              if (e.tipo !== "habla" || !activa.current) return
+              alOirlo(e)
+              if (e.tipo !== "habla" || !activa.current) {
+                c?.dato("tipo", `ignorado:${e.tipo}`)
+                c?.cerrar(e.tipo)
+                return
+              }
+              c?.dato("tipo", "ia")
               sumar({ role: "user", content: e.texto })
               cambiar("pensando")
               h.turno = nuevoTurno(corte, fin, e.ms)
@@ -250,6 +300,8 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
       const o = oido as EventoOido | null
       if (!o || !activa.current) return
       console.debug(`[voz] oído «${o.texto}» → ${o.tipo} (${o.ms} ms)`)
+      // Habló encima de la respuesta: si es habla real, su propio registro (el de la respuesta lo cierra cortar()).
+      if (o.tipo !== "habla") c?.dato("encimaIgnorado", true)
       if (o.tipo === "parada") {
         mostrarEncima({ texto: o.texto, estado: "parada" }, true)
         cortar()
@@ -264,12 +316,20 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
       }
       const d = decision as EventoIntencion | null
       const intencion = deEtiqueta(d?.intencion ?? "add") // sin respuesta del 8B: adición
+      const abrirEncima = () => {
+        empezar()
+        alOirlo(o)
+        c?.dato("tipo", `encima:${intencion}`)
+      }
       const acuse = d?.acuse ?? ""
       console.debug(`[voz] intención ${d?.intencion ?? "?"} «${acuse}» (${d?.ms ?? 0} ms)${d?.error ? ` · ${d.error}` : ""}`)
       if (turno.current !== t) {
         // La respuesta terminó mientras se decidía: lo dicho ya es un turno nuevo, sin corte.
         mostrarEncima(null)
-        if (intencion !== "ignorar" && intencion !== "parada") void responder(o.texto, fin, o.ms, acuse)
+        if (intencion !== "ignorar" && intencion !== "parada") {
+          abrirEncima()
+          void responder(o.texto, fin, o.ms, acuse)
+        }
         return
       }
       if (intencion === "ignorar") {
@@ -282,6 +342,7 @@ export function useVoz({ asistente, historial, alMensaje }: Opciones) {
       } else {
         mostrarEncima({ texto: o.texto, estado: "integrando", intencion })
         cortar(intencion)
+        abrirEncima()
         void responder(o.texto, fin, o.ms, acuse)
       }
     },

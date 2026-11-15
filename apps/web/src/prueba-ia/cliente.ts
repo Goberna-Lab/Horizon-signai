@@ -173,14 +173,18 @@ export const turnoDeVoz = async (
 }
 
 /**
- * Los tiempos de una conversación con EVA (eva/tiempos.ts), sin texto de la persona: al log del API. sendBeacon sale
- * aunque la página se esté cerrando; si no hay, fetch con keepalive. Nunca lanza.
+ * Los tiempos de una conversación con EVA (eva/tiempos.ts), sin texto de la persona: al log del API y al de nginx.
+ * sendBeacon sale aunque la página se esté cerrando; si no hay, fetch con keepalive. Nunca lanza.
  */
 export const enviarTiempos = (registro: unknown) => {
   const cuerpo = JSON.stringify(registro)
+  // El registro va en la URL (base64url): así queda en el log de nginx de VPS2, que sobrevive a los deploys (los logs
+  // de Docker se borran cada vez que se recrea el contenedor). Son ~1 KB, sin texto de la persona.
+  const r = btoa(String.fromCharCode(...new TextEncoder().encode(cuerpo))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+  const url = `/api/z6/eva/tiempos?r=${r}`
   try {
-    if (navigator.sendBeacon?.("/api/z6/eva/tiempos", new Blob([cuerpo], { type: "application/json" }))) return
-    void fetch("/api/z6/eva/tiempos", { method: "POST", headers: { "Content-Type": "application/json" }, body: cuerpo, keepalive: true }).catch(() => {})
+    if (navigator.sendBeacon?.(url)) return
+    void fetch(url, { method: "POST", keepalive: true }).catch(() => {})
   } catch {
     /* sin red: queda en el navegador */
   }

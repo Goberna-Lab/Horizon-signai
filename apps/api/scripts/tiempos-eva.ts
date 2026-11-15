@@ -1,9 +1,10 @@
 // Resume los tiempos de las conversaciones con EVA que el API escribe en su log («[eva-tiempos] {json}», ver
 // /eva/tiempos en apps/api/src/z6.ts y apps/web/src/features/assistant/eva/tiempos.ts).
 //
-// Producción (las dos copias de la app):
-//   ssh vps2 'sudo docker logs --since 24h horizon_signai_app_a 2>&1; sudo docker logs --since 24h horizon_signai_app_b 2>&1' \
-//     | npx tsx apps/api/scripts/tiempos-eva.ts
+// Producción: el log de nginx, que sobrevive a los deploys (los de Docker se borran al recrear el contenedor). Cada
+// registro va en la URL del pedido (/api/z6/eva/tiempos?r=<base64url>):
+//   ssh vps2 'sudo cat /var/log/nginx/domains/signal-horizon.goberna.us.log' | npx tsx apps/api/scripts/tiempos-eva.ts
+// También lee las líneas «[eva-tiempos] {json}» del API (docker logs horizon_signai_app_a / _app_b).
 // Opciones: --json (cada registro en una línea, para guardarlos) · --ultimos=N (la tabla de los N más recientes; 20).
 import { createInterface } from "node:readline"
 
@@ -17,13 +18,16 @@ type Registro = {
 }
 
 const registros: Registro[] = []
+const valido = (r: unknown): r is Registro =>
+  !!r && typeof r === "object" && typeof (r as Registro).marcas === "object" && typeof (r as Registro).datos === "object"
 for await (const linea of createInterface({ input: process.stdin })) {
-  const i = linea.indexOf("[eva-tiempos] ")
-  if (i < 0) continue
   try {
-    registros.push(JSON.parse(linea.slice(i + 14)) as Registro)
+    const i = linea.indexOf("[eva-tiempos] ")
+    const u = linea.match(/\/api\/z6\/eva\/tiempos\?r=([\w-]+)/)
+    const r: unknown = i >= 0 ? JSON.parse(linea.slice(i + 14)) : u ? JSON.parse(Buffer.from(u[1]!, "base64url").toString("utf8")) : null
+    if (valido(r)) registros.push(r)
   } catch {
-    /* línea cortada */
+    /* línea cortada o ajena */
   }
 }
 // Una misma conversación no se repite, aunque se lean los logs de las dos copias.

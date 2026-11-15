@@ -752,7 +752,9 @@ export const z6 = new Hono()
   // en el log como «[eva-tiempos] {json}» para medir la latencia real que viven las personas. Solo números y etiquetas
   // cortas: nunca el texto de la pregunta ni la IP. Para sacarlos y resumirlos: apps/api/scripts/tiempos-eva.ts.
   .post("/eva/tiempos", async (c) => {
-    const crudo = await c.req.text().catch(() => "")
+    // La web lo manda en la URL (?r=, base64url: así queda también en el log de nginx); antes iba en el cuerpo.
+    const enUrl = c.req.query("r") ?? ""
+    const crudo = enUrl ? Buffer.from(enUrl.slice(0, 6000), "base64url").toString("utf8") : await c.req.text().catch(() => "")
     if (crudo.length > 4000) return c.json({ ok: false }, 413)
     let r: Record<string, unknown>
     try {

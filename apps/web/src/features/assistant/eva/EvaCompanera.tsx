@@ -383,6 +383,14 @@ export default function EvaCompanera() {
 
   // Conversación por voz con micrófono abierto (la misma de /prueba-ia), como EVA.
   const voz = useVoz({
+    // Tiempos de cada turno con micrófono abierto (./tiempos.ts), como los de manos libres y lo escrito.
+    cronometro: {
+      empezar: (haceMs) => tiempos.empezar("micro", idiomaRef.current, haceMs),
+      marcar: (m, en) => tiempos.marcar(m, en),
+      dato: tiempos.dato,
+      pregunta: tiempos.pregunta,
+      cerrar: tiempos.cerrar,
+    },
     asistente: "educational",
     historial: () => hilo.current,
     alMensaje: (m) => {

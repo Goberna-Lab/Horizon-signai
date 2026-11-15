@@ -9,7 +9,8 @@
 // - En el log del API de producción, SIN el texto de la pregunta ni nada de la persona (`[eva-tiempos]`, ver
 //   /eva/tiempos en apps/api/src/z6.ts). Para sacarlos: apps/api/scripts/tiempos-eva.ts.
 
-export type Origen = "voz" | "texto" | "sugerencia"
+/** voz: manos libres (oido.ts) · micro: la conversación con micrófono abierto (useVoz) · texto · sugerencia. */
+export type Origen = "voz" | "micro" | "texto" | "sugerencia"
 
 /** Las marcas, en orden de aparición típico. Solo se guarda la primera vez que pasa cada una. */
 export const MARCAS = {
