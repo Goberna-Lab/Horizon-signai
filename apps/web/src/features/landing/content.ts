@@ -128,8 +128,11 @@ export const scenes: Scene[] = [
   {
     id: "horizon",
     rail: "Horizon",
-    title: "The horizon decides.",
-    body: "At the pole the Sun and Earth never climb: they skim the horizon. A ridge in the way means no sunlight for the panels and no line of sight to Earth. Horizon AI measures both against the real terrain, hour by hour.",
+    title: tr("The horizon decides.", "El horizonte decide."),
+    body: tr(
+      "At the pole the Sun and Earth never climb: they skim the horizon. A ridge in the way means no sunlight for the panels and no line of sight to Earth. Horizon Signai measures both against the real terrain, hour by hour.",
+      "En el polo el Sol y la Tierra nunca suben: rozan el horizonte. Una cresta en medio significa quedarse sin luz para los paneles y sin línea de vista a la Tierra. Horizon Signai mide los dos frente al relieve real, hora por hora.",
+    ),
   },
   {
     id: "sun",
