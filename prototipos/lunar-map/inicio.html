@@ -12,7 +12,7 @@
 <!-- El flujo guiado pasa de aquí al planificador: sus archivos se piden ya, con la página en reposo, para que abra sin espera. -->
 <link rel="prefetch" href="index.html"><link rel="prefetch" href="data/efemerides-luna.js"><link rel="prefetch" href="data/zonas.js"><link rel="prefetch" href="engine.js"><link rel="prefetch" href="terrain.js"><link rel="prefetch" href="i18n-es.js">
 <style>
-/* Centro de misiones: dashboard de la campaña. A la izquierda, próximo hito y firma; a la derecha, indicadores, mapa y misiones a la par, y calendario y bitácora a la par */
+/* Centro de misiones: dashboard de la campaña. A la izquierda, próximo hito y firma; a la derecha, indicadores, pestañas y mapa y misiones a la par (o el calendario o la bitácora en su lugar) */
 .app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
 .app::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; background-image: var(--grano); background-size: 160px 160px; }
 .app::after { content: ""; position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(200,16,46,0.6), transparent); }
@@ -84,17 +84,15 @@
 .mrow .leg { font-size: 9.5px; color: var(--gris-2); }
 .mrow .cnt { font-size: 10px; color: var(--gris-2); }
 
-/* ---------- calendario y movimientos a la par: las pestañas eligen cuál va a la izquierda ---------- */
+/* ---------- pestañas: el calendario o los movimientos ocupan el lugar del mapa y las misiones ---------- */
 .tabs { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(17,17,17,0.05); box-shadow: inset 0 1px 2px rgba(17,17,17,0.1); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .tab { flex: none; height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; font-weight: 600; color: var(--gris); cursor: pointer; white-space: nowrap; transition: background-color .18s ease, color .18s ease; }
 .tab:hover { color: var(--tinta); }
 .tab[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
 .tab:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
-.pair { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-/* las pestañas van sobre «Mission sites», bajo los indicadores */
+/* van sobre «Mission sites», bajo los indicadores; sin ninguna elegida se ven el mapa y las misiones */
 .swap { align-self: flex-start; }
-.pairrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-.pair.mv-first .movs { order: -1; }
+.main [hidden] { display: none !important; }
 
 /* ---------- calendario de campaña ---------- */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -2px 0 10px; font-size: 11px; color: var(--gris); }
@@ -186,21 +184,19 @@
   .col > :last-child { flex-grow: 1; }
   .col > .pending:last-child { flex-grow: 0; } /* la firma pendiente no se estira: quedaría un hueco vacío dentro */
   .movs { display: flex; flex-direction: column; }
-  .log { flex: 1 1 0; height: 0; min-height: 240px; max-height: none; }
+  .log { flex: 1 1 0; height: 0; min-height: 420px; max-height: none; }
   /* la lista de misiones mide lo mismo que el mapa de al lado y se desplaza por dentro */
   .upcoming { display: flex; flex-direction: column; min-height: 0; }
   .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; }
 }
 
-/* ---------- sin sitio para las dos mitades: calendario y movimientos uno encima del otro (el elegido arriba) ---------- */
-@media (max-width: 1300px) { .pairrow { grid-template-columns: minmax(0, 1fr); } }
 /* ---------- pantallas estrechas: una sola columna ---------- */
 @media (max-width: 1000px) {
   .app { padding: 14px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
   .main { display: flex; flex-direction: column; min-width: 0; }
   .col, .duo { display: contents; }
   .main > .col > * { min-width: 0; max-width: 100%; }
-  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .swap { order: 4; } .sites { order: 5; } .upcoming { order: 6; } .pair { order: 7; }
+  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .swap { order: 4; } .sites { order: 5; } .upcoming { order: 6; } .cal { order: 7; } .movs { order: 8; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .utc small { display: none; }
 }
@@ -270,16 +266,16 @@
 
     </div>
 
-    <!-- derecha: indicadores; pestañas; sitios de misión y misiones a la par; calendario y bitácora a la par (las pestañas eligen cuál va a la izquierda) -->
+    <!-- derecha: indicadores; pestañas; sitios de misión y misiones a la par, o en su lugar el calendario o la bitácora -->
     <div class="col">
       <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
 
-      <div class="tabs swap" id="pairTabs" role="group" aria-label="Panel on the left">
-        <button type="button" class="tab display-caps" data-first="cal" aria-pressed="true">Campaign calendar</button>
-        <button type="button" class="tab display-caps" data-first="mv" aria-pressed="false">Mission movements</button>
+      <div class="tabs swap" id="viewTabs" role="group" aria-label="Campaign views">
+        <button type="button" class="tab display-caps" data-view="cal" aria-pressed="false">Campaign calendar</button>
+        <button type="button" class="tab display-caps" data-view="mv" aria-pressed="false">Mission movements</button>
       </div>
 
-      <div class="duo">
+      <div class="duo" id="duo">
         <section class="paper panel sites" aria-labelledby="sites-t">
           <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">radar · 200 km</span></div>
           <div class="screen">
@@ -300,38 +296,34 @@
         </section>
       </div>
 
-      <div class="pair" id="pair">
-        <div class="pairrow">
-          <section class="paper panel cal" id="cal-p" aria-labelledby="cal-t">
-            <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
-            <div class="legend" aria-hidden="true">
-              <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
-              <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
-              <span><i class="lg-bar" style="background: var(--gris-3)"></i>Sun above the horizon</span>
-              <span><i class="lg-dot"></i>Movement</span>
-              <span><i class="lg-dot o"></i>Scheduled</span>
-              <span><i class="lg-hit"></i>Milestone</span>
-              <span><i class="lg-now"></i>Today</span>
-            </div>
-            <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Campaign calendar with the Sun windows, preparation, the stay on the surface and the movements of each mission"></svg><div class="tip" id="tip" role="tooltip"></div></div>
-          </section>
-          <section class="paper panel movs" id="mv-p" aria-labelledby="mv-t">
-            <div class="ph"><h2 id="mv-t" class="display-caps">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
-            <div class="tools">
-              <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
-              <label class="sr-only" for="fType">Movement type</label>
-              <select class="sel" id="fType"></select>
-              <div class="chips" id="fWhen" role="group" aria-label="Filter by time">
-                <button type="button" class="chip" data-v="all" aria-pressed="true">All</button>
-                <button type="button" class="chip" data-v="past" aria-pressed="false">Logged</button>
-                <button type="button" class="chip" data-v="next" aria-pressed="false">Scheduled</button>
-              </div>
-              <span class="mono count" id="logCount" aria-live="polite"></span>
-            </div>
-            <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
-          </section>
+      <section class="paper panel cal" id="cal-p" aria-labelledby="cal-t" hidden>
+        <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
+        <div class="legend" aria-hidden="true">
+          <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
+          <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
+          <span><i class="lg-bar" style="background: var(--gris-3)"></i>Sun above the horizon</span>
+          <span><i class="lg-dot"></i>Movement</span>
+          <span><i class="lg-dot o"></i>Scheduled</span>
+          <span><i class="lg-hit"></i>Milestone</span>
+          <span><i class="lg-now"></i>Today</span>
         </div>
-      </div>
+        <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Campaign calendar with the Sun windows, preparation, the stay on the surface and the movements of each mission"></svg><div class="tip" id="tip" role="tooltip"></div></div>
+      </section>
+      <section class="paper panel movs" id="mv-p" aria-labelledby="mv-t" hidden>
+        <div class="ph"><h2 id="mv-t" class="display-caps">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
+        <div class="tools">
+          <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
+          <label class="sr-only" for="fType">Movement type</label>
+          <select class="sel" id="fType"></select>
+          <div class="chips" id="fWhen" role="group" aria-label="Filter by time">
+            <button type="button" class="chip" data-v="all" aria-pressed="true">All</button>
+            <button type="button" class="chip" data-v="past" aria-pressed="false">Logged</button>
+            <button type="button" class="chip" data-v="next" aria-pressed="false">Scheduled</button>
+          </div>
+          <span class="mono count" id="logCount" aria-live="polite"></span>
+        </div>
+        <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
+      </section>
     </div>
   </div>
   <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · radar: real distances over LOLA 240 m relief</span><button type="button" id="resetDemo">Reset demo</button></p>
@@ -667,13 +659,17 @@
   var localT = null;
   function local() { if (!localT) localT = L.localScene(); return localT; }
 
-  /* calendario y movimientos a la par: la pestaña elegida (sobre «Mission sites») pone su panel a la izquierda (o arriba, si van apilados) */
-  var pair = $('pair'), pairTabs = [].slice.call(document.querySelectorAll('#pairTabs .tab'));
-  pairTabs.forEach(function (tb) {
-    tb.addEventListener('click', function () {
-      pairTabs.forEach(function (x) { x.setAttribute('aria-pressed', x === tb); });
-      pair.classList.toggle('mv-first', tb.dataset.first === 'mv');
-    });
+  /* pestañas: sin ninguna elegida se ven el mapa y las misiones; la elegida pone el calendario o la bitácora en su
+   * lugar, a todo lo ancho; un segundo clic en la misma pestaña la suelta y vuelven el mapa y las misiones */
+  var viewTabs = [].slice.call(document.querySelectorAll('#viewTabs .tab'));
+  function showView(v) {
+    viewTabs.forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.view === v); });
+    $('duo').hidden = !!v; $('cal-p').hidden = v !== 'cal'; $('mv-p').hidden = v !== 'mv';
+    /* la bitácora, oculta, no tenía alto: al mostrarla se lleva otra vez a «ahora» */
+    if (v === 'mv') renderLog(true);
+  }
+  viewTabs.forEach(function (tb) {
+    tb.addEventListener('click', function () { showView(tb.getAttribute('aria-pressed') === 'true' ? null : tb.dataset.view); });
   });
 
   /* interacción de paneles */
