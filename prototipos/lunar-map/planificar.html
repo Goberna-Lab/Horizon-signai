@@ -25,6 +25,8 @@ body { background: #141418; }
 .date { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 18px; border-radius: 999px; font-size: 13px; color: var(--gris); }
 .date .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rojo); box-shadow: 0 0 0 3px rgba(200,16,46,0.18); }
 .btn.tall { height: 52px; }
+/* botón al simulador, bajo el plan de caminata */
+.aside .sim { width: 100%; }
 
 .layers { left: max(24px, env(safe-area-inset-left, 0px)); top: 96px; width: 296px; padding: 18px; border-radius: 22px; }
 .layers h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
@@ -135,7 +137,7 @@ body { background: #141418; }
   </div>
 
   <header class="hud top">
-    <div class="topl"><a class="paper glass brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1></a><nav class="psteps" aria-label="Planner steps"><a href="index.html"><b>1</b>Landing</a><span aria-current="step" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</span></nav></div>
+    <div class="topl"><a class="paper glass brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><h1 class="logo"><img src="logo.png" alt="Horizon Signai" width="223" height="24"></h1></a><nav class="psteps" aria-label="Planner steps"><a href="index.html"><b>1</b>Landing</a><span aria-current="step" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</span></nav></div>
     <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Missions</a><span aria-current="page">Planner</span><a href="/3d-map" target="_top">3D Map</a></nav>
     <div class="actions">
       <span class="paper glass flat langsw mono" data-lang-toggle></span>
@@ -160,6 +162,7 @@ body { background: #141418; }
         <div><p>Max slope</p><b class="disp" id="sPmax">—</b></div>
       </div>
     </section>
+    <a class="btn red tall sim" href="/simulador" target="_top"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>Start simulator</a>
     <section class="paper glass" aria-labelledby="v2-sup">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px"><h2 id="v2-sup" class="disp">Survival</h2><span class="status" id="status"></span></div>
       <div class="rings" id="rings"></div>
@@ -255,6 +258,30 @@ body { background: #141418; }
   $('zOut').addEventListener('click', function () { state.zoom = Math.max(1, state.zoom / 1.3); render(); });
   $('zReset').addEventListener('click', function () { state.zoom = 1; render(); });
 
+  /* ---------- encuadre: la ruta centrada en el hueco libre entre los paneles ----------
+   * El centro de la ruta (sus puntos, en coordenadas del viewBox 1440×900 con «slice») se lleva al centro del hueco que
+   * dejan las capas, el plan, la cabecera y el perfil. Para que al moverlo no asomen bordes vacíos del mapa, se acerca lo
+   * justo para seguir cubriendo la pantalla; el zoom de los botones se multiplica encima. En pantallas de ≤ 1100 px
+   * (paneles apilados) el mapa no se mueve. */
+  function frame(st) {
+    var mz = $('mapzoom'), wrap = mz.parentNode.getBoundingClientRect(), W = wrap.width, H = wrap.height;
+    if (window.innerWidth <= 1100 || !W || !H) { mz.style.transformOrigin = '50% 50%'; mz.style.transform = 'scale(' + state.zoom + ')'; return; }
+    var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    st.pts.forEach(function (p) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); });
+    var s0 = Math.max(W / 1440, H / 900), ox = (W - 1440 * s0) / 2, oy = (H - 900 * s0) / 2;
+    var cx = ox + (x0 + x1) / 2 * s0, cy = oy + (y0 + y1) / 2 * s0;
+    var r = function (sel) { return document.querySelector(sel).getBoundingClientRect(); };
+    /* el aviso rojo de pendiente, cuando está, ocupa la parte de arriba del hueco */
+    var top = r('.layers').top, w = $('warn');
+    if (w.classList.contains('on')) top = Math.max(top, w.getBoundingClientRect().bottom + 8);
+    var fx = (r('.layers').right + r('.aside').left) / 2 - wrap.left, fy = (top + r('.profile').top) / 2 - wrap.top;
+    var dx = fx - cx, dy = fy - cy;
+    var cover = Math.max(1, (cx + dx) / cx, (W - cx - dx) / (W - cx), (cy + dy) / cy, (H - cy - dy) / (H - cy));
+    mz.style.transformOrigin = cx.toFixed(1) + 'px ' + cy.toFixed(1) + 'px';
+    mz.style.transform = 'translate(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px) scale(' + (cover * state.zoom).toFixed(3) + ')';
+  }
+  window.addEventListener('resize', function () { frame(M.routeStats(t, state.objective)); });
+
   /* ---------- render ---------- */
   function render() {
     var count = 0;
@@ -266,7 +293,6 @@ body { background: #141418; }
     $('ovIce').style.opacity = state.on.minerals ? 1 : 0;
     $('ovThermal').style.opacity = state.on.thermal ? 1 : 0;
     $('ovRad').style.opacity = state.on.rad ? 1 : 0;
-    $('mapzoom').style.transform = 'scale(' + state.zoom + ')';
 
     var st = M.routeStats(t, state.objective), meta = st.meta;
     objWrap.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.key === state.objective); });
@@ -297,6 +323,7 @@ body { background: #141418; }
     }
     $('routeTicks').innerHTML = tk;
     $('warn').classList.toggle('on', st.anyWarn);
+    frame(st);
 
     var S = M.STATUS[meta.status];
     var stt = $('status'); stt.textContent = S.label; stt.style.background = S.bg; stt.style.color = S.fg;

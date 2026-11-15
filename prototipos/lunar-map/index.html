@@ -179,6 +179,9 @@ a.brand { color: inherit; text-decoration: none; }
 .dlg-grid label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--tinta); font-size: var(--t-small); }
 .dlg-acts { display: flex; gap: 10px; align-items: center; }
 /* comparación de escenarios (hasta 6), como la del planificador del equipo (docs/04, sección 2) */
+/* título de las zonas con «Compare» y «Link» a su derecha; si no caben, bajan de línea */
+.hdrow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; }
+.hdbtns { display: inline-flex; gap: 4px; }
 .scrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .scrow .scbtn { flex: 1; min-width: 0; }
 .cmpbtn { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: 1px solid var(--borde-2); border-radius: 999px; background: var(--crema-2); color: var(--tinta); font-family: var(--f-mono); font-size: var(--t-label); cursor: pointer; }
@@ -207,7 +210,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 <body>
 <div class="app">
   <header class="top">
-    <div class="topl"><a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1></a><nav class="psteps" aria-label="Planner steps"><span aria-current="step"><b>1</b>Landing</span><a href="planificar.html" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</a></nav></div>
+    <div class="topl"><a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start"><h1 class="logo"><img src="logo.png" alt="Horizon Signai" width="223" height="24"></h1></a><nav class="psteps" aria-label="Planner steps"><span aria-current="step"><b>1</b>Landing</span><a href="planificar.html" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</a></nav></div>
     <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Missions</a><span aria-current="page">Planner</span><a href="/3d-map" target="_top">3D Map</a></nav>
     <div class="topr">
       <span class="paper flat langsw mono" data-lang-toggle></span>
@@ -221,7 +224,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
   <div class="stage">
     <section class="paper side l" aria-labelledby="cand-t">
-      <div class="hd"><h2 id="cand-t" class="disp">Candidate zones</h2><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span id="cmpN">0</span></button><button type="button" class="cmpbtn" id="shareBtn" title="Copy a link to this zone and scenario"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg><span id="shareTxt">Link</span></button></div></div>
+      <div class="hd"><div class="hdrow"><h2 id="cand-t" class="disp">Candidate zones</h2><span class="hdbtns"><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span>Compare</span><span id="cmpN">0</span></button><button type="button" class="cmpbtn" id="shareBtn" title="Copy a link to this zone and scenario"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg><span id="shareTxt">Link</span></button></span></div><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button></div></div>
       <div class="slip" id="slip">
         <p class="slip-msg" id="slipMsg" aria-live="polite"></p>
         <div class="slip-row" role="group" aria-label="Move the landing date">
@@ -299,9 +302,9 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
         </svg>
         <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div><div class="bloom"></div></div>
         <div class="chips">
-          <button type="button" class="tag" id="chipHaz" aria-pressed="true"><span class="sw" style="background: var(--alerta)"></span>Slope &gt; 15°</button>
-          <button type="button" class="tag" id="chipLight" aria-pressed="true"><span class="sw" style="background: var(--amarillo)"></span>High mean light</button>
-          <span class="tag"><span class="sw" style="background: #000; border: 1px solid rgba(244,239,230,0.6)"></span>Permanent shadow</span>
+          <span class="tag" title="These two overlays are drawn over generated relief to illustrate. They are not measurements, and the verdict does not use them.">Illustrative layers</span>
+          <button type="button" class="tag" id="chipHaz" aria-pressed="false"><span class="sw" style="background: var(--alerta)"></span>Slope &gt; 15°</button>
+          <button type="button" class="tag" id="chipLight" aria-pressed="false"><span class="sw" style="background: var(--amarillo)"></span>High mean light</button>
           <button type="button" class="tag" id="chipPt" aria-pressed="false" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg><span id="chipPtTxt">Own point</span></button>
         </div>
         <div class="telem mono" id="telem" aria-live="off">
@@ -432,7 +435,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     C: { name: 'Shackleton rim · RoI 4', pos: [407, 322], track: 'M20 560 C 160 520, 300 410, 407 322' }
   };
   var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E' };
-  var state = { site: 'A', simulated: false, confirmed: false, haz: true, light: true, running: false };
+  var state = { site: 'A', simulated: false, confirmed: false, haz: false, light: false, running: false };   /* las capas son ilustrativas (relieve generado): apagadas al abrir */
 
   /* ---------- escenario: por defecto, el plan de CR-01; editable y recordado en este navegador ----------
    * Requisitos como en el planificador del equipo (model/evaluate.ts): Sol y Tierra a la vista al aterrizar, la noche más
@@ -464,6 +467,8 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     if (has('z')) out.zone = q.get('z').toUpperCase();
     if (has('site')) out.site = q.get('site');
     if (has('lat') && has('lon') && isFinite(+q.get('lat')) && isFinite(+q.get('lon'))) out.pt = { lat: +q.get('lat'), lon: ((+q.get('lon') % 360) + 360) % 360 };
+    /* nombre del punto (lo manda el mapa 3D): solo letras, cifras y puntuación simple, porque se pinta en la página */
+    if (has('name')) out.name = q.get('name').replace(/[^0-9A-Za-zÀ-ÿ .,'()\-]/g, '').trim().slice(0, 40);
     return out.sc || out.zone || out.site || out.pt ? out : null;
   }
   var link = readLink();
@@ -568,7 +573,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   function pick(id) { state.site = id; state.simulated = false; state.confirmed = false; stopSim(); tlT = null; render(); }
 
   /* ---------- Go / No-Go: el descenso (perfil del Apollo 11) y los requisitos del escenario ---------- */
-  var DESC = ['Descent (Apollo 11 profile)', '496 kg spare · on the Sun line at P64', 'TN D-6846', 'ok'];
+  var DESC = ['Descent (Apollo 11 example)', '496 kg spare · the same for every zone and date', 'TN D-6846', 'warn'];
   function checkRows(e) {
     var l = e.landing, rows = [DESC];
     e.checks.forEach(function (c) {
@@ -758,7 +763,9 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     o += '<path d="' + d + ' L' + W + ',' + H + ' Z" class="sil"></path>' + labels;
     if (e[1] > lo && dentro(p.tierra, tlT)) o += '<text x="' + (X(e[0]) + 8).toFixed(1) + '" y="' + (ey(e[1]) + 4).toFixed(1) + '" class="tierra-t">Earth</text>';
     var nx = sunNext(p, tlT);
-    o += '<text x="' + (W - 10) + '" y="18" text-anchor="end">' + (nx ? (nx[0] === 'rises' ? 'Rises in ' : 'Sets in ') + dur(nx[1]) : 'No change in the period') + '</text>';
+    /* si la ventana de Sol llega al final de los 90 días, la puesta no se conoce: «más de», como en drawLeft */
+    var abierta = nx && nx[0] === 'sets' && Math.abs(tlT + nx[1] - DAYS) < 0.05;
+    o += '<text x="' + (W - 10) + '" y="18" text-anchor="end">' + (nx ? (abierta ? 'Sun: over ' : nx[0] === 'rises' ? 'Rises in ' : 'Sets in ') + dur(nx[1]) : 'No change in the period') + '</text>';
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     svg.innerHTML = '<title>360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.</title>' + o;
     $('hzZona').textContent = state.site;
@@ -862,7 +869,16 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
           '<td><button type="button" class="x" data-del="' + i + '" aria-label="Remove scenario ' + (i + 1) + '" title="Remove">×</button></td></tr>';
       }).join('') + '</tbody></table>';
   }
-  function openCmp() { lastFocus = document.activeElement; renderCmp(); cmp.hidden = false; $('cmpAdd').focus(); }
+  /* Vacía, la tabla abre ya con dos filas de la zona elegida: la fecha del plan y el escenario actual. Así comparar el
+   * plan con el cambio de fecha no pide armar nada. */
+  function seedCmp() {
+    if (cmpList.length) return;
+    var actual = curItem(); actual.sc = JSON.parse(JSON.stringify(sc));
+    var plan = curItem(); plan.sc = JSON.parse(JSON.stringify(sc)); plan.sc.landingMs = sanitize(PLAN).landingMs;
+    if (keyOf(plan) !== keyOf(actual)) cmpList.push(plan);
+    cmpList.push(actual); saveCmp();
+  }
+  function openCmp() { lastFocus = document.activeElement; seedCmp(); renderCmp(); cmp.hidden = false; $('cmpAdd').focus(); }
   function closeCmp() { cmp.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
   $('cmpBtn').addEventListener('click', openCmp);
   $('cmpAdd').addEventListener('click', function () { if (cmpList.length < MAXC && !inCmp()) { var it = curItem(); it.sc = JSON.parse(JSON.stringify(sc)); cmpList.push(it); saveCmp(); renderCmp(); } });
@@ -878,6 +894,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   /* ---------- punto propio (#8): zona P con horizonte aproximado sobre el relieve polar de LOLA ----------
    * El relieve (data/dem-polo.js, 8 MB) se carga solo al usarlo. El mapa es estereográfico polar real: polo en (444, 239),
    * 0° E arriba y 90° E a la derecha, 421,15 px por grado de colatitud (72 m/px). */
+  var ptName = (link && link.pt && link.name) || '';   /* nombre del punto, si llegó en el enlace */
   var PKEY = 'lunarmap.punto', demObj = null, demLoading = [], maskCache = {}, pt = null, picking = false;
   var PX_DEG = 421.15, POLE = [444, 239];
   function coordTxt(lat, lon) { return Math.abs(lat).toFixed(2) + '° S · ' + lon.toFixed(2) + '° E'; }
@@ -904,7 +921,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   function setPoint(lat, lon, select) {
     Z.P = maskCache[lat + ',' + lon] || (maskCache[lat + ',' + lon] = E.mascaraPolar(demObj, lat, lon));
     var q = toMap(lat, lon);
-    MAP.P = { name: 'Own point', pos: [q[0], q[1]], track: 'M20 560 C 160 520, ' + (q[0] - 120).toFixed(0) + ' ' + (q[1] + 60).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
+    MAP.P = { name: ptName || 'Own point', pos: [q[0], q[1]], track: 'M20 560 C 160 520, ' + (q[0] - 120).toFixed(0) + ' ' + (q[1] + 60).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
     pt = { lat: lat, lon: lon };
     ids = ['A', 'B', 'C', 'P'];
     try { localStorage.setItem(PKEY, JSON.stringify(pt)); } catch (e) { /* sin almacenamiento */ }
@@ -918,6 +935,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     drawPoint(); apply();
   }
   function usePoint(lat, lon) {
+    ptName = '';   /* un punto elegido a mano ya no es el que llegó con nombre */
     if (!isFinite(lat) || !isFinite(lon)) { $('pMsg').textContent = 'Enter the latitude and longitude.'; return false; }
     if (!E.dentroDelDominio(lat, lon)) { var p = E.estereoSur(lat, lon); $('pMsg').textContent = 'Out of range: the point is ' + Math.round(Math.hypot(p[0], p[1]) / 1000) + ' km from the pole (maximum 190 km).'; return false; }
     $('pMsg').textContent = 'Loading the LOLA terrain (8 MB) and computing the horizon…';

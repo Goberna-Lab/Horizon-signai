@@ -6,7 +6,7 @@
  * `apps/web/scripts/build-landing-data.ts` con el motor validado y los datos de la NASA. Las demás cifras citan su
  * documento en `docs/`.
  */
-import { plannerPath, routes } from "@/app/routes"
+import { routes } from "@/app/routes"
 import { tr } from "@/shared/i18n"
 import facts from "./flight/data/facts.json"
 
@@ -74,18 +74,15 @@ export const opening = {
   },
 }
 
-/** Una etiqueta por intención: se usa igual en la barra, el inicio y el cierre. `short` es la de la barra en un teléfono. */
+/**
+ * Una etiqueta por intención: se usa igual en la barra, el inicio y el cierre. `short` es la de la barra en un teléfono.
+ * "Open the planner" lleva primero a Missions (`/planner`, la campaña); desde ahí se entra al planificador.
+ */
 export const actions = {
-  planner: { label: tr("Open the planner", "Abrir el planificador"), short: tr("Planner", "Planear"), to: plannerPath() },
+  planner: { label: tr("Open the planner", "Abrir el planificador"), short: tr("Planner", "Planear"), to: routes.lunarMap },
   map3d: { label: tr("Open the 3D map", "Abrir el mapa 3D"), to: routes.map3d },
 }
 
-/** La barra superior lleva a las pantallas de la aplicación. */
-export const nav = [
-  { label: tr("Planner", "Planificador"), to: plannerPath() },
-  { label: tr("Missions", "Misiones"), to: routes.lunarMap },
-  { label: tr("3D Map", "Mapa 3D"), to: routes.map3d },
-]
 
 export type Fact = { value: string; label: string }
 
@@ -125,8 +122,11 @@ export const scenes: Scene[] = [
   {
     id: "horizon",
     rail: "Horizon",
-    title: "The horizon decides.",
-    body: "At the pole the Sun and Earth never climb: they skim the horizon. A ridge in the way means no sunlight for the panels and no line of sight to Earth. Horizon AI measures both against the real terrain, hour by hour.",
+    title: tr("The horizon decides.", "El horizonte decide."),
+    body: tr(
+      "At the pole the Sun and Earth never climb: they skim the horizon. A ridge in the way means no sunlight for the panels and no line of sight to Earth. Horizon Signai measures both against the real terrain, hour by hour.",
+      "En el polo el Sol y la Tierra nunca suben: rozan el horizonte. Una cresta en medio significa quedarse sin luz para los paneles y sin línea de vista a la Tierra. Horizon Signai mide los dos frente al relieve real, hora por hora.",
+    ),
   },
   {
     id: "sun",
@@ -228,7 +228,7 @@ export const hud = {
  * (sections/data/sky.json, product.json y catalog.json).
  */
 export const software = {
-  title: tr("The planner's engine, live on this page.", "El motor del planificador, en vivo en esta página."),
+  title: tr("The planner's views, right on this page.", "Las vistas del planificador, en esta misma página."),
   body: tr(
     `Not a screenshot. These are the planner's own views running on real ephemeris and terrain: one lunar day at ${featured.name}, from 1 December 2026. Move the date and watch the plan respond.`,
     `No es una captura. Son las vistas del propio planificador, funcionando con efemérides y relieve reales: un día lunar en ${featured.name}, desde el 1 de diciembre de 2026. Mueve la fecha y mira cómo responde el plan.`,
@@ -391,8 +391,8 @@ export const product = {
       verb: tr("Learn", "Aprende"),
       question: tr("Why did the plan change?", "¿Por qué cambió el plan?"),
       body: tr(
-        "Ask the AI assistant. It explains the figures the engine computed and cites its sources; it never invents a number. EVA, the guide robot, walks you through the planner step by step.",
-        "Pregúntale al asistente de IA. Explica las cifras que calculó el motor y cita sus fuentes; nunca inventa un número. EVA, el robot guía, te lleva por el planificador paso a paso.",
+        "Ask the AI assistant. It explains the figures the engine computed and cites its sources; it is instructed never to invent a number, and the figures on screen are the reference. EVA, the guide robot, walks you through the planner step by step.",
+        "Pregúntale al asistente de IA. Explica las cifras que calculó el motor y cita sus fuentes; tiene la instrucción de no inventar números, y las cifras en pantalla son la referencia. EVA, el robot guía, te lleva por el planificador paso a paso.",
       ),
       action: null,
     },
@@ -432,8 +432,8 @@ export const audience = {
 export const validation = {
   title: tr("Checked against the record.", "Comprobado con fuentes externas."),
   body: tr(
-    "A fast replan is only useful if its numbers hold. Every calculation is tested against an independent source. The suite ran on 14 November 2026.",
-    "Replanificar rápido solo sirve si los números se sostienen. Cada cálculo se prueba contra una fuente independiente. La suite corrió el 14 de noviembre de 2026.",
+    "A fast replan is only useful if its numbers hold. The key calculations are checked against an independent source. The suite ran on 14 November 2026.",
+    "Replanificar rápido solo sirve si los números se sostienen. Los cálculos clave se comprueban contra una fuente independiente. La suite corrió el 14 de noviembre de 2026.",
   ),
   moreLabel: tr("All checks and stated limits", "Todas las comprobaciones y los límites declarados"),
   /** docs/04-planificador.md (sección 5), docs/07-pruebas-y-validacion.md y luna-recursos/LEEME.md. */
@@ -553,7 +553,7 @@ export const sources = {
         },
         {
           name: tr("LROC NAC terrain model, Apollo 17, 2 m", "Modelo de terreno LROC NAC, Apollo 17, 2 m"),
-          detail: tr("Arizona State University for NASA. The detailed scene of the simulator.", "Arizona State University para la NASA. La escena detallada del simulador."),
+          detail: tr("Arizona State University for NASA. The detailed scene used to validate the engine.", "Arizona State University para la NASA. La escena detallada con la que se validó el motor."),
           href: "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/SDP/NAC_DTM/APOLLO17_2M/",
         },
       ],

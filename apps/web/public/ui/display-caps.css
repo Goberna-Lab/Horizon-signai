@@ -1,0 +1,30 @@
+/*
+ * Display caps: la tipografía de la marca de la barra de la landing, como componente reutilizable.
+ * Archivo en peso 900 (Black), en mayúsculas y con el espaciado entre letras cerrado (-0.03em).
+ *
+ * Una sola fuente para todo el proyecto:
+ *  - React: <DisplayCaps> (`apps/web/src/shared/ui/DisplayCaps.tsx`); esta hoja se enlaza en `apps/web/index.html`.
+ *  - Páginas estáticas (p. ej. `prototipos/lunar-map/`): <link rel="stylesheet" href="/ui/display-caps.css"> y class="display-caps".
+ * El tamaño lo pone quien la usa.
+ *
+ * La fuente va autoalojada aquí (archivo-latin-wght-normal.woff2, de @fontsource-variable/archivo 5.3.0;
+ * SIL Open Font License 1.1, The Archivo Project Authors). En React ya está cargada como "Archivo Variable" y
+ * esa va primero, así que el navegador no baja este archivo dos veces.
+ */
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./archivo-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+.display-caps {
+  font-family: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 900;
+  font-style: normal;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}

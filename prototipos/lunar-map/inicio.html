@@ -6,10 +6,12 @@
 <title>Horizon Signai · Missions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Títulos de los paneles: display caps, la tipografía compartida del proyecto (apps/web/public/ui/display-caps.css) -->
+<link rel="stylesheet" href="/ui/display-caps.css">
 <link rel="stylesheet" href="shared.css">
 <style>
 /* Centro de misiones: dashboard de la campaña. Indicadores, calendario y bitácora al centro; misiones a la izquierda; firma, mapa y asistente a la derecha */
-.app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 92px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
+.app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
 .app::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; background-image: var(--grano); background-size: 160px 160px; }
 .app::after { content: ""; position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(200,16,46,0.6), transparent); }
 .app > * { position: relative; z-index: 1; }
@@ -29,8 +31,8 @@
 .main { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .panel { padding: 16px; border-radius: 20px; }
-.ph { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-.ph h2 { font-size: 19px; font-weight: 600; }
+.ph { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 8px; margin-bottom: 12px; }
+.ph h2 { font-size: 16px; line-height: 1.2; }
 .ph .aux { font-size: 11px; color: var(--gris-2); }
 
 /* estados */
@@ -154,81 +156,11 @@
 .alist .m { font-size: 10.5px; color: var(--gris-2); }
 .alist li.fresh { animation: fresh 2.4s ease-out both; border-radius: 10px; }
 
-/* ---------- asistente: etiqueta fija abajo a la derecha que se despliega hacia arriba ---------- */
-.app > .chat { position: fixed; z-index: 40; right: max(24px, env(safe-area-inset-right, 0px)); bottom: 18px; width: 360px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; padding: 0; border-radius: 20px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 0 var(--borde), 0 22px 44px rgba(17,17,17,0.24); }
-.chat-h { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px; border: 0; border-bottom: 1px solid transparent; background: transparent; text-align: left; cursor: pointer; transition: border-color .2s ease; }
-.chat-h:focus-visible { outline-offset: -4px; border-radius: 20px; }
-.chat.open .chat-h { border-bottom-color: var(--borde); }
-.chat-h .who-c { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.chat-h .ttl { font-family: var(--f-serif); font-size: 19px; font-weight: 600; }
-.chat-h .live { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; color: var(--gris); }
-.chat-h .live i { display: inline-block; margin: 0 6px 0 2px; vertical-align: 0; width: 7px; height: 7px; border-radius: 50%; background: #1F9D55; box-shadow: 0 0 0 3px rgba(31,157,85,0.18); }
-.chat-h .chev { flex: none; width: 28px; height: 28px; padding: 6px; border-radius: 50%; color: var(--gris); background: var(--crema-2); box-shadow: inset 0 0 0 1px var(--borde), 0 2px 0 var(--borde); transition: transform .3s cubic-bezier(.2, .7, .2, 1), color .15s ease; }
-.chat-h:hover .chev { color: var(--tinta); }
-.chat.open .chev { transform: rotate(180deg); }
-.unread { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--rojo); color: #FFFFFF; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; box-shadow: 0 2px 0 var(--rojo-2); }
-.unread[hidden] { display: none; }
-.chat-b { display: flex; flex-direction: column; height: 0; transition: height .32s cubic-bezier(.2, .7, .2, 1); }
-.chat.open .chat-b { height: min(560px, calc(100vh - 110px)); }
-.thread { flex: 1; min-height: 0; overflow: auto; padding: 14px 14px 6px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
-.msg { display: flex; gap: 8px; max-width: 100%; animation: msgin .35s cubic-bezier(.2, .7, .2, 1) both; }
-@keyframes msgin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.msg .mav { flex: none; width: 28px; height: 28px; }
-.msg .body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.msg .who-l { font-size: 10.5px; color: var(--gris-2); }
-.msg .who-l b { color: var(--tinta); font-weight: 600; }
-.bubble { padding: 9px 12px; border-radius: 4px 14px 14px 14px; background: var(--crema-2); border: 1px solid var(--borde); box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 0 var(--borde); font-size: 13px; line-height: 1.5; text-wrap: pretty; }
-.bubble b { font-weight: 600; }
-.msg.user { align-self: flex-end; flex-direction: row-reverse; max-width: 88%; }
-.msg.user .body { align-items: flex-end; }
-.msg.user .bubble { border-radius: 14px 4px 14px 14px; background: linear-gradient(180deg, #2A2A2A, var(--tinta)); color: var(--crema); border-color: var(--tinta); box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 2px 0 #000; }
-.msg.user .mav { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--crema-3); box-shadow: inset 0 0 0 1px var(--borde); font-family: var(--f-disp); font-size: 10.5px; font-weight: 700; }
-.msg.note .bubble { background: transparent; border-style: dashed; box-shadow: none; font-size: 12px; color: var(--gris); }
-.cite { font-family: var(--f-mono); font-size: 9.5px; color: var(--gris-2); }
-.typing { display: inline-flex; gap: 4px; padding: 6px 4px; }
-.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--gris-2); animation: dot 1s ease-in-out infinite; }
-.typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
-@keyframes dot { 0%, 80%, 100% { transform: translateY(0); opacity: .45; } 40% { transform: translateY(-4px); opacity: 1; } }
-.rc { border-radius: 14px; border: 1px solid var(--borde); background: var(--crema); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 3px 0 var(--borde); overflow: hidden; animation: msgin .4s cubic-bezier(.2, .7, .2, 1) both; }
-.rc .rch { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--borde); }
-.rc .rch h3 { font-family: var(--f-serif); font-size: 15px; font-weight: 600; }
-.rc .rcb { padding: 10px 12px; }
-.rc .acts { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 12px; }
-.rc .acts .btn { height: 34px; font-size: 12px; padding: 0 12px; }
-.rmap { position: relative; aspect-ratio: 660 / 330; max-width: 100%; background: #111; }
-.rmap canvas, .rmap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.rmap .caption { left: 8px; bottom: 6px; font-size: 8.5px; }
-.kgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--borde); }
-.kgrid div { padding: 8px 12px; border-bottom: 1px solid var(--borde); }
-.kgrid div:nth-child(odd) { border-right: 1px solid var(--borde); }
-.kgrid p { font-size: 10.5px; color: var(--gris); } .kgrid b { display: block; margin-top: 1px; font-family: var(--f-disp); font-size: 19px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; } .kgrid b small { font-size: 11px; color: var(--gris); margin-left: 3px; font-weight: 500; } .kgrid b.warn { color: var(--rojo); }
-table.cmp { width: 100%; border-collapse: collapse; font-size: 12px; }
-table.cmp th { text-align: left; font-weight: 500; font-size: 10.5px; color: var(--gris); padding: 0 6px 6px; border-bottom: 1px solid var(--borde); }
-table.cmp td { padding: 8px 6px; border-bottom: 1px solid rgba(17,17,17,0.07); font-variant-numeric: tabular-nums; }
-table.cmp tr:last-child td { border-bottom: 0; }
-table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: nowrap; }
-.srow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(17,17,17,0.07); font-size: 12px; }
-.srow:last-child { border-bottom: 0; }
-.srow .l { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.sugs { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding: 4px 14px 8px; scrollbar-width: none; }
-.sug { flex: none; display: inline-flex; align-items: center; height: 30px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--borde); background: rgba(255,255,255,0.5); font-size: 12px; font-weight: 500; cursor: pointer; box-shadow: 0 2px 0 var(--borde); white-space: nowrap; }
-.sug:hover { background: #FFFFFF; }
-.sug:active { transform: translateY(2px); box-shadow: none; }
-.composer { padding: 8px 12px 12px; border-top: 1px solid var(--borde); background: var(--cepillado), linear-gradient(180deg, var(--crema) 0%, var(--crema-3) 100%); }
-.ctx { display: flex; align-items: center; gap: 6px; margin: 0 2px 6px; font-size: 11px; color: var(--gris); }
-.ctx b { padding: 1px 8px; border-radius: 999px; background: var(--crema-2); box-shadow: inset 0 0 0 1px var(--borde); color: var(--tinta); font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; }
-.well { display: flex; align-items: flex-end; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--crema-2); box-shadow: inset 0 2px 4px rgba(17,17,17,0.12), inset 0 0 0 1px var(--borde), 0 1px 0 rgba(255,255,255,0.9); }
-.well textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: none; background: transparent; font-family: var(--f-ui); font-size: 13.5px; line-height: 1.45; color: var(--tinta); padding: 7px 0; max-height: 100px; }
-.well textarea::placeholder { color: var(--gris-2); }
-.well:focus-within { box-shadow: inset 0 2px 4px rgba(17,17,17,0.12), inset 0 0 0 1.5px var(--tinta), 0 1px 0 rgba(255,255,255,0.9); }
-.send { flex: none; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 0; border-radius: 50%; cursor: pointer; background: linear-gradient(180deg, var(--rojo-3) 0%, var(--rojo) 55%, #A50D26 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 3px 0 var(--rojo-2); }
-.send:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 1px 0 var(--rojo-2); }
-.send[disabled] { filter: grayscale(1) brightness(1.4); cursor: default; }
 
 .foot { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 9.5px; color: var(--gris-2); }
 .foot button { border: 0; background: none; padding: 0; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
 
-@media (prefers-reduced-motion: reduce) { .msg, .rc, .alist li.fresh, .ev.fresh { animation: none; } .typing i { animation: none; } .tip { transition: none; } .log { scroll-behavior: auto; } .chat-b, .chat-h .chev { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .alist li.fresh, .ev.fresh { animation: none; } .tip { transition: none; } .log { scroll-behavior: auto; } }
 
 /* ---------- columnas a la par: el último panel de cada columna baja hasta el fondo; la bitácora llena el hueco ---------- */
 @media (min-width: 1001px) {
@@ -246,13 +178,11 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 }
 /* ---------- pantallas estrechas: una sola columna ---------- */
 @media (max-width: 1000px) {
-  .app { padding: 14px max(16px, env(safe-area-inset-right, 0px)) 88px max(16px, env(safe-area-inset-left, 0px)); }
+  .app { padding: 14px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
   .main { display: flex; flex-direction: column; min-width: 0; }
   .col, .col.right { display: contents; }
   .main > .col > * { min-width: 0; max-width: 100%; }
   .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .cal { order: 4; } .movs { order: 5; } .upcoming { order: 6; } .sites { order: 7; } .approved { order: 8; }
-  .app > .chat { left: 16px; right: 16px; bottom: 12px; width: auto; max-width: none; }
-  .chat.open .chat-b { height: calc(100dvh - 100px); }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .who, .utc small { display: none; }
 }
@@ -273,7 +203,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 <body>
 <div class="app">
   <header class="top">
-    <a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1><span class="sep"></span><small>Example campaign · south pole</small></a>
+    <a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><h1 class="logo"><img src="logo.png" alt="Horizon Signai" width="223" height="24"></h1><span class="sep"></span><small>Example campaign · south pole</small></a>
     <nav class="pillnav" aria-label="Sections">
       <span aria-current="page">Missions</span>
       <a href="index.html">Planner</a>
@@ -290,7 +220,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     <!-- izquierda: tiempo, firma pendiente y decisiones -->
     <div class="col">
       <section class="paper panel next" aria-labelledby="next-t">
-        <div class="ph"><h2 id="next-t" class="disp">Next milestone</h2><span class="mono aux">CR-01</span></div>
+        <div class="ph"><h2 id="next-t" class="display-caps">Next milestone</h2><span class="mono aux">CR-01</span></div>
         <p class="who-m">Landing at Connecting Ridge</p>
         <p class="mono sub">Contact · 18 Dec 2026 · 09:00 UTC</p>
         <div class="flaps" role="timer" aria-live="off" aria-label="Countdown to contact">
@@ -304,7 +234,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 
       <section class="paper panel pending" id="pending" aria-labelledby="pend-t">
         <span class="stripe" aria-hidden="true"></span>
-        <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="disp">Awaiting your sign-off</h2><span class="st PEND" id="pendChip">1 PENDING SIGN-OFF</span></div>
+        <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="display-caps">Awaiting your sign-off</h2><span class="st PEND" id="pendChip">1 PENDING SIGN-OFF</span></div>
         <div id="pendBody">
           <p class="t">CR-02 · Scientific route to the Shackleton rim</p>
           <p class="d">Walk on 19 Dec · two stops · sent by Planning on 13 Nov</p>
@@ -314,14 +244,14 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
             <span>O₂ on return<b class="warn">26%</b></span>
           </div>
           <div class="acts">
-            <button type="button" class="btn" id="askPend"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"></path></svg>Analyse</button>
+            <a class="btn" href="planificar.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Open walk</a>
             <button type="button" class="btn dark approve" data-approve>Approve</button>
           </div>
         </div>
       </section>
 
       <section class="paper panel approved" aria-labelledby="ap-t">
-        <div class="ph"><h2 id="ap-t" class="disp">Approved decisions</h2><span class="aux"><span id="apCount">3</span> signed</span></div>
+        <div class="ph"><h2 id="ap-t" class="display-caps">Approved decisions</h2><span class="aux"><span id="apCount">3</span> signed</span></div>
         <ul class="alist" id="alist"></ul>
       </section>
     </div>
@@ -331,7 +261,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
 
       <section class="paper panel cal" aria-labelledby="cal-t">
-        <div class="ph"><h2 id="cal-t" class="disp">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
+        <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
         <div class="legend" aria-hidden="true">
           <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
           <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
@@ -345,7 +275,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       </section>
 
       <section class="paper panel movs" aria-labelledby="mv-t">
-        <div class="ph"><h2 id="mv-t" class="disp">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
+        <div class="ph"><h2 id="mv-t" class="display-caps">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
         <div class="tools">
           <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
           <label class="sr-only" for="fType">Movement type</label>
@@ -364,7 +294,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     <!-- derecha: mapa y misiones -->
     <div class="col right">
       <section class="paper panel sites" aria-labelledby="sites-t">
-        <div class="ph"><h2 id="sites-t" class="disp">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
+        <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
         <div class="screen">
           <div class="glass-inner">
             <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
@@ -378,40 +308,12 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
       </section>
 
       <section class="paper panel upcoming" aria-labelledby="up-t">
-        <div class="ph"><h2 id="up-t" class="disp">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
+        <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
         <div class="mlist" id="mlist"></div>
       </section>
     </div>
   </div>
   <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate</span><button type="button" id="resetDemo">Reset demo</button></p>
-  <section class="paper chat" id="chat" aria-labelledby="chat-t">
-    <button type="button" class="chat-h" id="chatToggle" aria-expanded="false" aria-controls="chatBody">
-      <svg width="34" height="34" viewBox="0 0 76 76" aria-hidden="true">
-        <g class="bob"><line x1="38" y1="16" x2="38" y2="7" stroke="#111111" stroke-width="2"></line><circle cx="38" cy="5" r="3.5" fill="#C8102E" class="blink"></circle>
-        <rect x="12" y="16" width="52" height="38" rx="12" fill="#FBF8F2" stroke="#C9C1B6" stroke-width="2"></rect><rect x="19" y="23" width="38" height="20" rx="8" fill="#111111"></rect>
-        <circle cx="31" cy="33" r="3.2" fill="#F4EFE6"></circle><circle cx="45" cy="33" r="3.2" fill="#F4EFE6"></circle><path d="M33 38 Q 38 41 43 38" fill="none" stroke="#F4EFE6" stroke-width="1.6" stroke-linecap="round"></path>
-        <rect x="22" y="56" width="32" height="16" rx="7" fill="#FBF8F2" stroke="#C9C1B6" stroke-width="2"></rect><circle cx="38" cy="64" r="3" fill="#C8102E"></circle></g>
-      </svg>
-      <span class="who-c">
-        <span id="chat-t" class="disp ttl">Assistant</span>
-        <span class="live"><i></i>Example answers · LOLA · PGDA · Horizons</span>
-      </span>
-      <span class="unread" id="chatUnread" hidden>New</span>
-      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>
-    </button>
-    <div class="chat-b" id="chatBody" inert>
-      <div class="thread" id="thread" aria-live="polite"></div>
-      <div class="sugs" id="sugs" aria-label="Suggested questions"></div>
-      <form class="composer" id="composer" autocomplete="off">
-        <div class="ctx"><span>Context</span><b id="ctx">CR-02</b></div>
-        <div class="well">
-          <label for="ask" class="sr-only">Ask the assistant</label>
-          <textarea id="ask" rows="1" placeholder="Ask about a mission or a route…"></textarea>
-          <button type="submit" class="send" id="sendBtn" aria-label="Send question"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
-        </div>
-      </form>
-    </div>
-  </section>
 </div>
 
 <script src="i18n.js"></script>
@@ -423,13 +325,12 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
 (function () {
   'use strict';
   var L = window.Lunar, M = L.Mission, C = L.Campaign, $ = function (id) { return document.getElementById(id); };
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E', none: '#DCD4C8' };
   var PAGES = { 'index.html': 'Planner · Landing', 'planificar.html': 'Planner · Walk' };
   var two = C.two, hhmm = C.hhmm;
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-  var state = { sel: 'CR-02', approved: C.approvedAt() !== null, busy: false };
+  var state = { sel: 'CR-02', approved: C.approvedAt() !== null };
   var missions = C.missions(), movs = null;
   var logF = { mission: 'all', type: 'all', when: 'all' };
   function current() { return missions.filter(function (m) { return m.id === state.sel; })[0]; }
@@ -503,7 +404,7 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
         '<g><rect x="' + (lx - w / 2) + '" y="' + (s.y - 66) + '" width="' + w + '" height="40" rx="20" fill="' + (on ? 'rgba(155,255,228,0.95)' : 'rgba(7,8,11,0.82)') + '"></rect><text x="' + lx + '" y="' + (s.y - 39) + '" text-anchor="middle" font-size="24" font-weight="700" fill="' + (on ? '#05060A' : '#F5F5F6') + '" font-family="IBM Plex Mono, monospace">' + label + '</text></g>';
     });
     $('smap').innerHTML = html;
-    if (sel) { $('siteTag').textContent = sel.id + ' · ' + C.SITES[sel.site].name; $('ctx').textContent = sel.id; }
+    if (sel) { $('siteTag').textContent = sel.id + ' · ' + C.SITES[sel.site].name; }
   }
   function renderPending() {
     var p = $('pending');
@@ -653,148 +554,26 @@ table.cmp td.n { font-family: var(--f-mono); font-size: 11.5px; white-space: now
     if (localT) movs = C.movements(localT);
     renderAll();
     document.querySelectorAll('[data-approve]').forEach(function (b) { b.disabled = true; b.classList.remove('red'); b.classList.add('dark'); b.textContent = 'Approved'; });
-    note('I logged the approval of <b>CR-02 · scientific route</b> at ' + hhmm(Date.now()) + ' UTC. It is in the movement log and I told Planning about the mandatory return at stop 2.');
   }
   $('resetDemo').addEventListener('click', function () { C.resetApproval(); location.reload(); });
 
-  /* ---------- asistente ---------- */
-  var thread = $('thread'), chat = $('chat'), booted = false;
-  function chatOpen() { return chat.classList.contains('open'); }
-  function setChat(open, focus) {
-    chat.classList.toggle('open', open);
-    $('chatToggle').setAttribute('aria-expanded', String(open));
-    $('chatBody').inert = !open;
-    if (!open) return;
-    $('chatUnread').hidden = true; scrollEnd();
-    setTimeout(function () { scrollEnd(); if (focus) $('ask').focus({ preventScroll: true }); }, reduce ? 0 : 330);
-  }
-  function unread() { if (booted && !chatOpen()) $('chatUnread').hidden = false; }
-  var robot = '<svg class="mav" viewBox="0 0 76 76" aria-hidden="true"><rect x="12" y="16" width="52" height="38" rx="12" fill="#FBF8F2" stroke="#C9C1B6" stroke-width="2"></rect><rect x="19" y="23" width="38" height="20" rx="8" fill="#111111"></rect><circle cx="31" cy="33" r="3.2" fill="#F4EFE6"></circle><circle cx="45" cy="33" r="3.2" fill="#F4EFE6"></circle><line x1="38" y1="16" x2="38" y2="8" stroke="#111111" stroke-width="2"></line><circle cx="38" cy="6" r="3.5" fill="#C8102E"></circle><rect x="22" y="56" width="32" height="14" rx="6" fill="#FBF8F2" stroke="#C9C1B6" stroke-width="2"></rect></svg>';
-  function scrollEnd() { thread.scrollTop = thread.scrollHeight; }
-  function el(html) { var d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
-  function addUser(text) {
-    var m = el('<div class="msg user"><span class="mav" aria-hidden="true">CM</span><div class="body"><span class="who-l"><b>You</b> · ' + hhmm(Date.now()) + ' UTC</span><div class="bubble"></div></div></div>');
-    m.querySelector('.bubble').textContent = text;
-    thread.appendChild(m); scrollEnd();
-  }
-  function note(html) { thread.appendChild(el('<div class="msg note">' + robot + '<div class="body"><div class="bubble">' + html + '</div></div></div>')); scrollEnd(); unread(); }
-  function stream(node, html, done) {
-    if (reduce) { node.innerHTML = html; done(); return; }
-    var toks = html.match(/<[^>]+>|\s+|[^\s<]+/g) || [], i = 0, acc = '';
-    (function step() {
-      var n = 0;
-      while (i < toks.length && n < 3) { acc += toks[i]; if (toks[i][0] !== '<' && toks[i].trim()) n++; i++; }
-      node.innerHTML = acc; scrollEnd();
-      if (i < toks.length) setTimeout(step, 28); else done();
-    })();
-  }
-  var queue = [];
-  function addAI(html, card, cite, delay) {
-    state.busy = true; $('sendBtn').disabled = true;
-    var m = el('<div class="msg ai">' + robot + '<div class="body"><span class="who-l"><b>Assistant</b> · ' + hhmm(Date.now()) + ' UTC</span><div class="bubble"><span class="typing" aria-label="Typing"><i></i><i></i><i></i></span></div></div></div>');
-    var bubble = m.querySelector('.bubble'), body = m.querySelector('.body');
-    thread.appendChild(m); scrollEnd(); unread();
-    setTimeout(function () {
-      bubble.innerHTML = '';
-      stream(bubble, html, function () {
-        if (card) { var c = card(); if (c) body.appendChild(c); }
-        if (cite) body.appendChild(el('<span class="cite">Sources · ' + cite + '</span>'));
-        state.busy = false; $('sendBtn').disabled = false; scrollEnd();
-        if (queue.length) setTimeout(function () { send(queue.shift()); }, 250);
-      });
-    }, reduce ? 0 : (delay || 650));
-  }
-
   /* terreno: se calcula después de pintar */
-  var polarT = null, localT = null, localRelief = null;
-  function local() { if (!localT) { localT = L.localScene(); localRelief = L.renderRelief(localT, { grain: 5 }); } return localT; }
-
-  /* tarjetas */
-  function cardWalk() {
-    var t = local(), st = M.routeStats(t, 'science');
-    var c = el('<div class="rc"><div class="rch"><h3 class="disp">CR-02 · Scientific route</h3><span class="st ' + (state.approved ? 'OK' : 'PEND') + '">' + (state.approved ? 'APPROVED' : 'PENDING SIGN-OFF') + '</span></div>' +
-      '<div class="rmap"><canvas width="660" height="330"></canvas><svg viewBox="390 300 660 330" preserveAspectRatio="xMidYMid slice" aria-label="Scientific route over the Connecting Ridge terrain" role="img">' +
-      '<path d="' + st.d + '" fill="none" stroke="#22CCEE" stroke-width="14" stroke-linecap="round" opacity="0.2"></path><path d="' + st.d + '" fill="none" stroke="#7CF0D5" stroke-width="4.5" stroke-linecap="round" class="route"></path>' +
-      '<circle cx="430" cy="640" r="9" fill="#07080B" stroke="#22CCEE" stroke-width="4"></circle><circle cx="1000" cy="300" r="9" fill="#7CF0D5" stroke="#07080B" stroke-width="3"></circle>' +
-      st.stops.map(function (s, i) { return '<circle cx="' + s.x + '" cy="' + s.y + '" r="10" fill="#7DD3FC" stroke="#07080B" stroke-width="3"></circle><text x="' + s.x + '" y="' + (s.y + 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#07080B" font-family="Inter, sans-serif">' + (i + 1) + '</text>'; }).join('') +
-      '</svg><p class="caption">generated terrain 9.4 m · Sun 5°</p></div>' +
-      '<div class="kgrid"><div><p>Distance</p><b>' + M.num(st.distKm, 1) + '<small>km</small></b></div><div><p>Round trip</p><b>' + M.num(st.timeH, 1) + '<small>h</small></b></div><div><p>Max slope</p><b>' + M.num(st.pmax) + '<small>°</small></b></div><div><p>O₂ on return</p><b class="warn">26<small>%</small></b></div></div>' +
-      '<div class="acts" style="padding-top:10px"><button type="button" class="btn dark" data-approve data-label="Approve route"' + (state.approved ? ' disabled' : '') + '>' + (state.approved ? 'Approved' : 'Approve route') + '</button><a class="btn" href="planificar.html">Open walk</a></div></div>');
-    M.drawCrop(localRelief, t, c.querySelector('canvas'), { x: 390, y: 300, w: 660, h: 330 });
-    var b = c.querySelector('[data-approve]'); if (!state.approved) wireApprove(b);
-    return c;
-  }
-  function cardCompare() {
-    var rows = [['A', 'Connecting Ridge · RoI 6', 91, 54, 'GO', 'GO'], ['B', 'Peak near Shackleton · RoI 2', 86, 53, 'GO', 'GO'], ['C', 'Shackleton rim · RoI 4', 89, 53, 'GO', 'GO']];
-    return el('<div class="rc"><div class="rch"><h3 class="disp">Candidate zones</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">2026–2030 · at 2 m</span></div><div class="rcb" style="overflow-x:auto"><table class="cmp"><thead><tr><th>Zone</th><th>Sun</th><th>Earth</th><th></th></tr></thead><tbody>' +
-      rows.map(function (r) { return '<tr><td><span class="mono" style="font-weight:600;margin-right:5px">' + r[0] + '</span>' + r[1] + '</td><td class="n">' + r[2] + '%</td><td class="n">' + r[3] + '%</td><td><span class="st ' + r[5] + '"' + (r[5] === 'NOGO' ? ' style="background:var(--rojo);color:var(--crema)"' : '') + '>' + r[4] + '</span></td></tr>'; }).join('') +
-      '</tbody></table></div><div class="acts"><a class="btn dark" href="index.html">Open landing</a></div></div>');
-  }
-  function cardSun() {
-    return el('<div class="rc"><div class="rch"><h3 class="disp">Sun at Connecting Ridge · RoI 6</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">Oct → Jan · at 2 m</span></div>' +
-      '<div class="kgrid"><div><p>Sun at contact</p><b>+2.7<small>°</small></b></div><div><p>Earth at contact</p><b>+6.5<small>°</small></b></div><div><p>Windows</p><b>1</b></div><div><p>Longest night</p><b>0<small>h</small></b></div></div></div>');
-  }
-  function cardSummary() {
-    return el('<div class="rc"><div class="rch"><h3 class="disp">Campaign status</h3><span class="mono" style="font-size:9.5px;color:var(--gris-2)">' + missions.length + ' missions</span></div><div class="rcb">' +
-      missions.map(function (m) { return '<div class="srow"><span class="l"><span class="idb">' + m.id + '</span></span><span class="st ' + m.status + '">' + C.STATUS_LABEL[m.status] + '</span></div>'; }).join('') + '</div></div>');
-  }
-
-  /* respuestas de ejemplo, enrutadas por palabras clave */
-  function norm(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
-  function answer(q) {
-    var n = norm(q);
-    if (/approv|sign|walk|route|cr-?02|oxygen|viab/.test(n)) {
-      var st = M.routeStats(local(), 'science');
-      addAI('Yes, with one condition. The scientific route is <b>' + M.num(st.distKm, 1) + ' km</b> long and no stretch exceeds <b>' + M.num(st.pmax) + '°</b> of slope, below the 15° limit. The weak point is oxygen: the crew returns with <b>26%</b> of the reserve. I recommend approving it with a <b>mandatory return at stop 2</b> if consumption runs above forecast.', cardWalk, 'DTM 5 m PGDA · LOLA LDEM_75S · 2.2 km/h, 8 %/h of O₂', 900);
-    } else if (/zone|compar|candidat|site|land/.test(n)) {
-      addAI('All three candidate zones are GO for 18 Dec, with the panel and antenna at 2 m. <b>Connecting Ridge RoI 6</b> has the most Sun (91%); the peak near Shackleton (RoI 2) has the most time with Sun and Earth at once (50%).', cardCompare, 'RoI de Barker et al. 2021 · JPL Horizons DE441 + LOLA/PGDA');
-    } else if (/sun|light|window|illumin|night/.test(n)) {
-      addAI('With the panel at 2 m, at <b>Connecting Ridge RoI 6</b> the Sun does not set between October and January (see the calendar). At contact on 18 Dec it is <b>+2.7°</b> above the horizon, and Earth at +6.5°.', cardSun, 'JPL Horizons DE441 · horizonte LOLA/PGDA');
-    } else if (/status|summar|mission|pending|today|campaign|movem|log/.test(n)) {
-      addAI((state.approved
-        ? 'The campaign is up to date. <b>CR-01</b> is GO for landing in ' + daysLeft() + ' days and the <b>CR-02</b> walk is already approved.'
-        : 'You have <b>one pending decision</b>: the CR-02 scientific route. <b>CR-01</b> is GO for landing in ' + daysLeft() + ' days.') +
-        ' <b>PS-03</b> needs a date and <b>DG-04</b> is still a draft. We have <b>' + (movs ? movs.filter(function (v) { return v.t <= Date.now(); }).length : '—') + ' movements</b> logged.', cardSummary, 'Campaign log');
-    } else {
-      addAI('In this prototype I answer with examples about the campaign. With <b>' + state.sel + '</b> as context, try asking whether the walk can be approved, how the zones compare, or when there is Sun.', null, null, 500);
-    }
-  }
-  function send(q) {
-    q = (q || '').trim(); if (!q) return;
-    if (state.busy) { queue.push(q); return; }
-    addUser(q); answer(q);
-  }
-  ['Shall I approve CR-02?', 'Compare the zones', 'When is there Sun?', 'Campaign status'].forEach(function (s) {
-    var b = el('<button type="button" class="sug"></button>'); b.textContent = s;
-    b.addEventListener('click', function () { send(s); }); $('sugs').appendChild(b);
-  });
-  var ask = $('ask');
-  ask.addEventListener('input', function () { ask.style.height = 'auto'; ask.style.height = Math.min(100, ask.scrollHeight) + 'px'; });
-  ask.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('composer').requestSubmit(); } });
-  $('composer').addEventListener('submit', function (e) { e.preventDefault(); var q = ask.value; ask.value = ''; ask.style.height = 'auto'; send(q); });
+  var polarT = null, localT = null;
+  function local() { if (!localT) localT = L.localScene(); return localT; }
 
   /* interacción de paneles */
   $('mlist').addEventListener('click', function (e) { var b = e.target.closest('.mrow'); if (b) select(b.dataset.id, true); });
-  $('askPend').addEventListener('click', function () {
-    setChat(true);
-    send('Can I approve the CR-02 scientific route?');
-  });
-  $('chatToggle').addEventListener('click', function () { setChat(!chatOpen(), true); });
-  chat.addEventListener('keydown', function (e) { if (e.key === 'Escape' && chatOpen()) { setChat(false); $('chatToggle').focus(); } });
   if (!state.approved) wireApprove(document.querySelector('#pending [data-approve]'));
 
   /* ---------- arranque ---------- */
   renderAll();
-  note(state.approved
-    ? 'Hello. The campaign is up to date: no sign-offs pending. Ask me about a mission, a zone or a route.'
-    : 'Hello. You have <b>one route to sign</b> (CR-02). Ask me about it or about any mission, zone or route.');
-  booted = true;
 
   setTimeout(function () {
     polarT = L.polarScene();
     var cv = $('polar'); M.drawCrop(L.renderRelief(polarT, { grain: 6 }), polarT, cv, { x: 170, y: 150, w: 740, h: 484 }); cv.classList.add('boot');
     var st = M.routeStats(local(), 'science');
-    $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°';
+    /* con la ruta ya aprobada, la tarjeta de firma no tiene estas cifras */
+    if ($('pDist')) { $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°'; }
     movs = C.movements(localT);
     renderKpis(); renderMissions(); renderCal(); renderLog(true);
   }, 60);

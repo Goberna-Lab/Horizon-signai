@@ -8,6 +8,7 @@ Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`
 
 ## Cambios del 2026-11-15 (entrega)
 
+- **Tipografía compartida:** los títulos de los paneles de `inicio.html` usan la clase `display-caps` de `/ui/display-caps.css` (`apps/web/public/ui/`), que sirve la app. Abriendo la carpeta suelta, sin la app, caen a la fuente de reserva.
 - **Marca y navegación:** las tres páginas dicen Horizon Signai y enlazan a la landing, a Missions (`inicio.html`), al planificador y al mapa 3D.
 - **Vista inicial: el calendario se movió.** Sin escenario guardado, el planificador abre con el plan de CR-01 (18 dic 2026, las tres zonas GO) movido al 3 abr 2027: A y C NO GO, B GO. La barra bajo «Candidate zones» mueve la fecha ±1 día o ±1 semana y vuelve al plan. Son cifras de `engine.js`.
 - **Enlace al escenario.** El botón «Link» copia `/planner#z=…&t=…&stay=…&panel=…&antenna=…&battery=…&earth=…`; la página lee ese `#` al abrir (también `site=<id del catálogo>` y `lat`/`lon` para un punto propio).
@@ -32,7 +33,7 @@ y abrir `http://localhost:8765/inicio.html`. Los datos se cargan como scripts, a
 
 | Archivo | Pantalla | Área en el repo |
 |---|---|---|
-| `inicio.html` | Centro de misiones: próximo hito y cuenta regresiva, firma pendiente, decisiones aprobadas, KPIs, calendario de campaña, movimientos de las misiones, sitios de misión, lista de misiones y asistente | Dashboard (`features/dashboard/`) |
+| `inicio.html` | Centro de misiones: próximo hito y cuenta regresiva, firma pendiente, decisiones aprobadas, KPIs, calendario de campaña, movimientos de las misiones, sitios de misión y lista de misiones | Dashboard (`features/dashboard/`) |
 | `campaign.js` | Datos de la campaña de ejemplo: misiones CR-01, CR-02, PS-03 y DG-04, movimientos registrados y programados, aprobación de CR-02 (en `localStorage`) | Dashboard |
 | `index.html` | Planificador · paso 1, Alunizaje: zonas candidatas, escenario editable, Go/No-Go, «Cómo cumplir», comparación, punto propio, horizonte real, línea de tiempo y simulación del descenso | Planificador (`features/mission-planner/`) |
 | `planificar.html` | Planificador · paso 2, Caminata: capas, plan de caminata con tres rutas, supervivencia y perfil de elevación | Planificador |

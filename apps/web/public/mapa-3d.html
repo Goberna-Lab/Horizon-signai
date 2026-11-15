@@ -1243,6 +1243,8 @@ function abrirEnPlanificador(f) {
   const lat = f.sitio ? f.sitio.lat : f.iau ? f.iau.lat : f.lat, lon = f.sitio ? f.sitio.lon : f.iau ? f.iau.lon : f.lon
   const q = new URLSearchParams({ lat: lat.toFixed(5), lon: (((lon % 360) + 360) % 360).toFixed(5), t: new Date(ahoraMs).toISOString().slice(0, 16) })
   if (f.sitio?.id) q.set('site', f.sitio.id)
+  const nombre = f.sitio?.nombre ?? f.iau?.n
+  if (nombre) q.set('name', nombre)   // el planificador lo muestra en lugar de «Own point»
   const url = '/planner#' + q
   try { window.top.location.href = url } catch { window.location.href = url }
 }
