@@ -89,6 +89,9 @@ button, input, select { font: inherit; color: inherit }
 .btn:hover { background: var(--tint) }
 .btn.primary { background: var(--signal); color: #f4efe6; border-color: var(--signal) }
 .btn.primary:hover { filter: brightness(1.08) }
+.btn:disabled { opacity: .55; cursor: default; background: none }
+/* «Mis misiones»: las guardadas, para abrir otra */
+.mis { max-width: 260px; border: 1px solid var(--ink); background: none; padding: 7px 10px; font: 500 13px var(--f-display); color: var(--ink); cursor: pointer }
 a.btn { text-decoration: none; display: inline-block; color: inherit }
 a.btn.primary { color: #f4efe6 }
 
@@ -271,6 +274,7 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
     </div>
     <div class="tools">
       <a class="btn" href="/planner" target="_top" style="color:inherit;text-decoration:none" data-en="← Missions">← Misiones</a>
+      <select class="mis" id="misiones" hidden></select>
       <button type="button" class="btn" id="nueva" hidden data-en="+ New mission">+ Nueva misión</button>
       <div class="seg" role="group" aria-label="Idioma">
         <button id="lang-es" type="button" aria-pressed="true">ES</button><button id="lang-en" type="button" aria-pressed="false">EN</button>
@@ -468,6 +472,42 @@ const ENERGIAS = {
 const PLAN_EJEMPLO = { nombre: '', tipo: 'tripulada', energia: 'solar', bateriaH: PLANIF.bateriaH, minTierra: PLANIF.minTierra, altura: 2, zona: 'A', t: Date.UTC(2026, 11, 18, 9), estadia: 168, ruta: 'cientifica', eva: 25, roverKmh: VIPER_KMH, roverParadaH: 2 };
 let plan = Object.assign({}, PLAN_EJEMPLO);
 
+/* ---------- misiones guardadas ----------
+ * En localStorage («horizon-signai.missions»), en este navegador. Es el mismo origen que Missions (/lunar-map/), así que
+ * el Dashboard también puede leerlas. Cada una: { id, savedAt, plan, resumen: { ok, zona } }. planId es la misión
+ * abierta (null: una nueva que aún no se guardó). */
+const MKEY = 'horizon-signai.missions';
+let planId = null;
+const leerMisiones = () => { try { const a = JSON.parse(localStorage.getItem(MKEY) || '[]'); return Array.isArray(a) ? a.filter((m) => m && m.id && m.plan && ZONAS[m.plan.zona]) : []; } catch (e) { return []; } };
+const ordenadas = () => leerMisiones().sort((x, y) => y.savedAt - x.savedAt);
+const sinCambios = () => { const g = leerMisiones().find((m) => m.id === planId); return !!g && JSON.stringify(g.plan) === JSON.stringify(plan); };
+function guardar() {
+  const a = leerMisiones(), ahora = Date.now(), resumen = { ok: R ? R.ok : null, zona: ZONAS[plan.zona].nombre };
+  const m = a.find((x) => x.id === planId);
+  if (m) Object.assign(m, { plan: Object.assign({}, plan), savedAt: ahora, resumen });
+  else { planId = 'm' + ahora.toString(36); a.push({ id: planId, savedAt: ahora, plan: Object.assign({}, plan), resumen }); }
+  try { localStorage.setItem(MKEY, JSON.stringify(a)); } catch (e) { toast(L('No se pudo guardar en este navegador', 'Could not save in this browser')); return; }
+  toast(L('Misión guardada', 'Mission saved')); pintarGuardar(); pintarMisiones();
+}
+function pintarGuardar() {
+  const b = $('guardar'); if (!b) return;
+  const listo = sinCambios();
+  b.textContent = listo ? L('Guardada ✓', 'Saved ✓') : planId ? L('Guardar cambios', 'Save changes') : L('Guardar misión', 'Save mission');
+  b.disabled = listo;
+}
+function pintarMisiones() {
+  const sel = $('misiones'), a = ordenadas();
+  sel.hidden = !a.length; if (!a.length) return;
+  sel.setAttribute('aria-label', L('Mis misiones', 'My missions'));
+  sel.innerHTML = '<option value="">' + L('Mis misiones', 'My missions') + ' (' + a.length + ')</option>' +
+    a.map((m) => '<option value="' + m.id + '"' + (m.id === planId ? ' selected' : '') + '>' + esc(m.plan.nombre || L('Sin nombre', 'Untitled')) + ' · ' + m.plan.zona + ' · ' + new Date(m.plan.t).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) + '</option>').join('');
+}
+function abrirMision(m) {
+  plan = Object.assign({}, PLAN_EJEMPLO, m.plan); planId = m.id;
+  antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
+  ver('consola'); pintar(); pintarMisiones();
+}
+
 /* ---------- utilidades ---------- */
 const fmt = (n, d = 0) => n.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
 const fechaTxt = (t) => new Date(t).toLocaleString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
@@ -609,8 +649,8 @@ function pintar() {
     '<div class="badge">' + (ok ? 'GO' : 'NO-GO') + '<small>' + (ok ? L('cumple todo', 'meets all') : fallan + ' ' + L(fallan === 1 ? 'no cumple' : 'no cumplen', fallan === 1 ? 'fails' : 'fail')) + '</small></div>' +
     '<div style="min-width:0">' + (plan.nombre ? '<div class="mision-nombre">' + esc(plan.nombre) + '</div>' : '') + '<h2>' + (ok ? L('Listo para volar', 'Ready to fly') : L('Replanifica', 'Replan')) + '</h2>' +
     '<p>' + z.nombre + ' · ' + fechaTxt(plan.t) + ' · ' + horas(plan.estadia) + ' · ' + L(TIPOS[tipo].es, TIPOS[tipo].en) + ' · ' + L(ENERGIAS[plan.energia].es, ENERGIAS[plan.energia].en) + (tipo === 'fija' ? '' : ' · ' + L(w.ru.es, w.ru.en)) + '</p>' +
-    '<div class="acts"><a class="btn primary" href="' + sim + '">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
-  $('copiar').onclick = copiar;
+    '<div class="acts"><a class="btn primary" href="' + sim + '">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a><button type="button" class="btn" id="guardar"></button><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
+  $('copiar').onclick = copiar; $('guardar').onclick = guardar; pintarGuardar();
 
   // comprobaciones
   const cuenta = checks.filter((c) => c.s !== 'info');
@@ -977,7 +1017,8 @@ function siguiente() {
   if (wz.paso < PS.length - 1) { wz.paso++; pintarWz(); return; }
   plan = { nombre: wz.nombre.trim(), tipo: wz.tipo, energia: wz.energia, bateriaH: wz.bateriaH, minTierra: wz.minTierra, altura: wz.altura, zona: wz.zona, t: wz.t, estadia: wz.estadia, ruta: wz.ruta || 'segura', eva: wz.eva, roverKmh: wz.roverKmh, roverParadaH: wz.roverParadaH };
   antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
-  ver('consola'); pintar();
+  planId = null;
+  ver('consola'); pintar(); pintarMisiones();
 }
 $('wz').addEventListener('submit', (e) => { e.preventDefault(); siguiente(); });
 $('wz').addEventListener('click', (e) => {
@@ -1104,13 +1145,19 @@ function iniciarLuz() {
 function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('lq-play'); if (b) b.textContent = '▶'; }
 
 /* ---------- idioma y arranque ---------- */
-const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); };
+const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); pintarMisiones(); };
+$('misiones').addEventListener('change', (e) => { const m = leerMisiones().find((x) => x.id === e.target.value); if (m) abrirMision(m); });
 $('lang-es').onclick = () => setLang('es'); $('lang-en').onclick = () => setLang('en');
 try { const l = localStorage.getItem('horizon.lang'); if (l === 'en' || l === 'es') lang = l; } catch (e) {}
 { const q = new URLSearchParams(location.search).get('lang'); if (q === 'en' || q === 'es') lang = q; }
-construir(); ver('inicio');
-/* ?nueva (lo manda «Add mission» de Missions): abre directamente el formulario de la misión nueva */
-if (new URLSearchParams(location.search).has('nueva')) empezar();
+construir();
+/* Al entrar: ?nueva (lo manda «Add mission» de Missions) abre el formulario de una misión nueva; si no, con misiones
+   guardadas se abre la última guardada (no obliga a crear otra) y, sin ninguna, la portada. ?mision=<id> abre esa. */
+{
+  const q = new URLSearchParams(location.search), a = ordenadas(), m = a.find((x) => x.id === q.get('mision')) || a[0];
+  if (q.has('nueva')) empezar(); else if (m) abrirMision(m); else ver('inicio');
+  pintarMisiones();
+}
 })();
 </script>
 </body>
