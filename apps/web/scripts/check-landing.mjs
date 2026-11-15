@@ -136,32 +136,40 @@ try {
   }
   const day = await shadeAt(0.4)
   check("day: the whole page is paper while the Sun is far from setting", day.night === 0 && luminance(day.background) > 0.85 && luminance(day.bar) > 0.85 && /sunset/i.test(day.label), JSON.stringify(day))
-  const dusk = await shadeAt(0.665)
+  // El cielo se vuelve negro pronto (no hay atmósfera) y el Sol baja ya sobre negro hasta la puesta.
+  const dusk = await shadeAt(0.635)
   check("dusk: the page darkens as sunset approaches", dusk.night > 0.2 && dusk.night < 0.95 && luminance(dusk.background) < luminance(day.background) - 0.1 && /sunset/i.test(dusk.label), JSON.stringify(dusk))
   const dark = await shadeAt(0.85)
   check("night: the whole page is black once the Sun has set", dark.night === 1 && luminance(dark.background) < 0.12 && luminance(dark.bar) < 0.12 && /sunrise/i.test(dark.label), JSON.stringify(dark))
-  /** Lo que hay dibujado en el horizonte de fondo: relieve, el rojo del Sol y estrellas. */
+  /** El horizonte de fondo: cuánto se ve, cuánto asoma el Sol sobre la cresta ("off": no está) y cuánto brillan las estrellas. */
   const sceneNow = () =>
-    page.locator(".sw-sky canvas").evaluate((canvas) => {
-      const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data
+    page.locator(".hz").evaluate((el) => {
+      const land = el.querySelector('[data-part="land-ridge"]')
+      const pixels = land.getContext("2d").getImageData(0, 0, land.width, land.height).data
       let drawn = 0
-      let sun = 0
-      for (let i = 0; i < pixels.length; i += 4) {
-        if (pixels[i + 3] < 40) continue
-        drawn++
-        if (pixels[i] > 235 && pixels[i + 1] > 70 && pixels[i + 1] < 235 && pixels[i + 2] < 160 && pixels[i + 3] > 240) sun++
+      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 40) drawn++
+      return {
+        shown: Number(getComputedStyle(el.parentElement).opacity),
+        sun: el.dataset.sun,
+        stars: Number(getComputedStyle(el.querySelector('[data-part="stars"]')).opacity),
+        drawn,
+        shader: Boolean(el.querySelector('[data-part="sun"]').getContext("webgl")),
       }
-      return { drawn, sun, shown: Number(getComputedStyle(canvas.parentElement).opacity) }
     })
+  /** Las estrellas salen y se apagan poco a poco: se espera a que lleguen a donde van. */
+  const starsSettle = (test) => page.waitForFunction(test, null, { timeout: 20_000 }).catch(() => {})
+  await starsSettle(() => Number(getComputedStyle(document.querySelector('.hz [data-part="stars"]')).opacity) > 0.9)
   const nightScene = await sceneNow()
-  check("night: the Sun is hidden behind the horizon", nightScene.shown > 0.9 && nightScene.drawn > 5000 && nightScene.sun < 200, JSON.stringify(nightScene))
+  check("night: the Sun is hidden behind the horizon and the stars are out", nightScene.shown > 0.9 && nightScene.drawn > 5000 && (nightScene.sun === "off" || Number(nightScene.sun) === 0) && nightScene.stars > 0.9, JSON.stringify(nightScene))
   await shot("lander-night")
-  await shadeAt(0.672)
+  await shadeAt(0.665)
   const duskScene = await sceneNow()
-  check("dusk: the setting Sun is on the horizon", duskScene.shown > 0.9 && duskScene.sun > 800, JSON.stringify(duskScene))
+  check("dusk: the setting Sun is on the horizon and dims the stars", duskScene.shown > 0.9 && Number(duskScene.sun) > 0.1 && duskScene.stars < nightScene.stars && duskScene.shader, JSON.stringify(duskScene))
+  await shot("lander-dusk")
   await shadeAt(0.4)
+  await starsSettle(() => Number(getComputedStyle(document.querySelector('.hz [data-part="stars"]')).opacity) === 0)
   const dayScene = await sceneNow()
-  check("day: no Sun far from sunrise and sunset", dayScene.sun < 200, JSON.stringify(dayScene))
+  check("day: no Sun far from sunrise and sunset", dayScene.sun === "off" && dayScene.stars === 0, JSON.stringify(dayScene))
   await page.getByRole("tab", { name: "Compare", exact: true }).click()
   await page.waitForTimeout(1500)
   const other = await page.locator(".ln").evaluate((el) => Number(el.style.getPropertyValue("--night")))

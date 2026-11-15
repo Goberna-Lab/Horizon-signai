@@ -16,8 +16,8 @@ src/
         product/           La ventana del producto: las pantallas del software funcionando con datos reales.
                            ProductWindow.tsx es el marco (selector de vistas, tiempo compartido, día y noche) y
                            cada vista es un archivo: Lander, Compare, Calendar, Map, PlanB y Learn. PolarSky.tsx
-                           dibuja el cielo en polar, Timeline.tsx las ventanas, HorizonScene.tsx el horizonte de fondo y
-                           sky.ts lee los datos
+                           dibuja el cielo en polar, Timeline.tsx las ventanas, HorizonScene.tsx el horizonte de fondo
+                           (sus piezas están en horizon/) y sky.ts lee los datos
       flight/              El vuelo sobre el polo sur: un escenario fijo que el scroll recorre
         FlightStage.tsx    Escenario: lienzo, texto de las escenas, riel, tablero y scroll (GSAP ScrollTrigger)
         stops.ts           Paradas de la cámara, una por escena
@@ -117,22 +117,46 @@ Map, Plan B y Learn, con el diseño de las pantallas del producto.
 - **Sin barra propia.** La ventana no lleva cabecera: el selector de vistas va encima, con los controles de la
   página.
 - **Día y noche los marca el Sol del sitio.** En la vista Lander la pantalla entera sigue a la cuenta regresiva:
-  papel mientras dice "Sunset in", cada vez más oscura en las 40 horas anteriores a la puesta y negra cuando pasa a
-  "Sunrise in"; antes de la salida vuelve a aclarar. `sky.ts` (`darkness`) da la oscuridad de cada hora y
-  `ProductWindow.tsx` la escribe en la raíz de la landing como `--night` (el fondo) y `--night-text` (la tinta, que
-  cambia de oscura a clara a mitad del fundido). De esos dos valores cuelgan todos los colores de la página
-  (`.ln` en `landing.css`; la paleta de noche está en `styles/tokens.css`). Solo ocurre con la ventana en pantalla:
-  al seguir bajando, la página vuelve al papel. El vuelo conserva siempre los colores de día, porque su lienzo se
-  dibuja con ellos.
-- **El horizonte de fondo** (`HorizonScene.tsx`): detrás de la vista Lander va lo que vería una persona de pie en
-  el sitio. El Sol solo aparece en el cambio: en las 40 horas previas a la puesta baja, grande y en el centro, con
-  su resplandor sobre el horizonte, hasta hundirse tras la cresta justo cuando la cuenta pasa a "Sunrise in"; al
-  amanecer sale igual y se desvanece al subir. El resto del día la página queda limpia y de noche quedan las
-  estrellas. El relieve es el horizonte real de Connecting Ridge en capas (montañas lejanas y cresta cercana, de
-  `sections/data/horizon.json`, más un suelo decorativo) y cada capa se mueve distinto con el puntero y con el
-  scroll (parallax). No es una simulación: en el polo el Sol real se desliza casi a ras del horizonte y su disco
-  es mucho más pequeño; lo exacto son el relieve y las horas. Con el fondo visible la ventana se vuelve casi
-  transparente. Se dibuja en un lienzo 2D, a 30 cuadros por segundo y solo si algo cambió.
+  papel mientras dice "Sunset in" y negra en las 40 horas del cambio. El cielo se oscurece pronto (en el primer
+  tercio de ese tramo: la Luna no tiene atmósfera) y sigue negro toda la noche; tras la salida vuelve al papel cuando
+  el Sol ya está alto. `sky.ts` (`darkness`) da la oscuridad de cada hora y `ProductWindow.tsx` la escribe en la raíz
+  de la landing como `--night` (el fondo) y `--night-text` (la tinta, que cambia de oscura a clara a mitad del
+  fundido). De esos dos valores cuelgan todos los colores de la página (`.ln` en `landing.css`; la paleta de noche
+  está en `styles/tokens.css`). Solo ocurre con la ventana en pantalla: al seguir bajando, la página vuelve al
+  papel. El vuelo conserva siempre los colores de día, porque su lienzo se dibuja con ellos.
+- **El tiempo se frena en el cambio.** Con el reloj corriendo, la puesta y la salida pasan a un cuarto de la
+  velocidad (`tempo` en `sky.ts`): unos diez segundos en vez de dos y medio.
+- **El horizonte de fondo** (`HorizonScene.tsx` y `product/horizon/`): detrás de la vista Lander va la puesta del
+  Sol como se vería de verdad desde el suelo del sitio, filmada con una cámara de cine. Solo aparece en el cambio:
+  el cielo se vuelve negro, el Sol resbala a ras del horizonte y una ladera lo va tapando hasta que desaparece
+  justo cuando la cuenta pasa a "Sunrise in". Entonces asoman la corona y la luz zodiacal tras la cresta y salen
+  las estrellas. Al amanecer ocurre lo mismo al revés. El resto del día la página queda limpia, con el relieve en
+  papel.
+  - Qué es real: el tamaño del Sol (medio grado, como desde la Tierra) y su color (blanco: no hay atmósfera); su
+    trayectoria, de las efemérides (`sky.json`); el relieve que lo tapa, el horizonte real de Connecting Ridge
+    (`sections/data/horizon.json`); que con el Sol en cuadro no se vean estrellas; y la Tierra, que solo aparece
+    cuando está sobre el horizonte del sitio y con su fase real. La cámara mira siempre hacia el Sol y lo sigue
+    alrededor del horizonte: el paisaje gira despacio durante todo el día lunar.
+  - Qué es de cine: el destello de la cámara (velo de luz, rayos de difracción, línea anamórfica y reflejos), que es
+    lo que hace grande al Sol en pantalla; el disco se dibuja 1,5 veces mayor que el real (`SUN.scale`); la escala
+    vertical va exagerada respecto a la horizontal; la Tierra va en una esquina, no en su rumbo; y el primer plano
+    (suelo, rocas y cráteres) es decorativo.
+  - Capas, de atrás hacia delante: estrellas lejanas, estrellas medias y polvo, la Tierra, el Sol (disco,
+    resplandor, corona y luz zodiacal), montañas lejanas, cresta con cráteres, primer plano con rocas y sombras
+    larguísimas, y el destello de la cámara por delante de todo. Cada una tiene su profundidad: se mueven distinto
+    con el puntero, con el scroll y, en el teléfono, al inclinarlo.
+  - Archivos: `horizon/config.ts` tiene todos los mandos (tamaño del Sol, profundidades, colores, intensidades y
+    calidad por pantalla); `horizon/sun.ts`, el shader del Sol (WebGL 1 sin bibliotecas); `horizon/backdrop.ts`,
+    estrellas, polvo, Tierra y rayos de difracción; `horizon/terrain.ts`, el relieve.
+  - Rendimiento: un solo bucle, que solo corre con la vista en pantalla. El parallax, el giro de la cámara y los
+    fundidos son solo `transform` y `opacity`. Las estrellas y los rayos se pintan una vez; el relieve, solo cuando
+    cambia la luz o la cámara giró más que su margen (como mucho 30 veces por segundo); el shader, solo mientras el
+    Sol está en escena, con un tope de píxeles que baja solo si el equipo no llega. En pantallas pequeñas hay menos
+    estrellas, menos rocas y un ruido más barato.
+  - Con "reducir movimiento" no hay parallax ni titileo y la corona queda quieta: la escena es una lámina fija de
+    la hora elegida. Sin WebGL el Sol se dibuja con degradados.
+  - Legibilidad: con el fondo visible la ventana es casi transparente de día y hace de visor ahumado de noche,
+    más oscuro cuanto más deslumbra el Sol (`--glare`, que escribe la escena en la sección).
 - **La vista Lander cabe entera en la pantalla** (desde 900 px de ancho): el bloque central toma el alto que queda
   libre y el cielo y las cifras se miden contra él (`cqh`). La nota de la vista va debajo de la ventana, como pie.
 - **Colores de dato:** el Sol va en el rojo de señal y la Tierra en azul (`--earth`), solo dentro de las figuras.

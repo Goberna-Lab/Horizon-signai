@@ -42,19 +42,50 @@ export function stateOf(windows: number[][], t: number): { visible: boolean; hou
   return { visible: false, hours: next ? next[0] - t : null }
 }
 
-/** Horas que dura el anochecer (y el amanecer) de la ventana: unos dos segundos y medio con el tiempo corriendo. */
+/** Horas que dura el anochecer (y el amanecer) de la ventana: el tramo en el que el Sol baja a la vista. */
 export const DUSK_H = 40
+/** Parte de ese tramo en la que la pantalla pasa del papel al negro: el resto, el Sol baja ya sobre el cielo negro. */
+export const NIGHTFALL = 0.3
+/** Horas de noche junto al cambio en las que la corona todavía asoma tras el horizonte. */
+export const AFTERGLOW_H = 12
+/** Última hora con datos de ventanas: una ventana que llega hasta aquí no termina en una puesta. */
+const DATA_END_H = 1559
+
+const clamp01 = (x: number) => Math.min(Math.max(x, 0), 1)
+const smooth = (x: number) => x * x * (3 - 2 * x)
+
+/** El cambio (salida o puesta) más cercano a la hora t: de qué tipo es, a cuántas horas queda y si el Sol está a la vista. */
+export type Turn = { rising: boolean; up: boolean; hours: number }
+export function turnOf(windows: number[][], t: number): Turn | null {
+  let best: Turn | null = null
+  const up = inside(windows, t)
+  for (const [from, to] of windows) {
+    if (from > 0 && (!best || Math.abs(t - from) < best.hours)) best = { rising: true, up, hours: Math.abs(t - from) }
+    if (to < DATA_END_H && (!best || Math.abs(t - to) < best.hours)) best = { rising: false, up, hours: Math.abs(t - to) }
+  }
+  return best
+}
 
 /**
- * Cuánta noche hay en la hora t, de 0 (día) a 1 (noche cerrada). Con el Sol a la vista vale 0 y sube según se
- * acerca la puesta, hasta 1 justo cuando se oculta. De noche vale 1 y baja según se acerca la salida.
+ * Cuánta noche hay en la hora t, de 0 (día) a 1 (cielo negro). Lejos del cambio, con el Sol a la vista, vale 0. Al
+ * entrar en el anochecer sube rápido hasta 1 (la Luna no tiene atmósfera: el cielo es negro aunque el Sol siga
+ * arriba) y así se queda toda la noche. Tras la salida baja igual de rápido cuando el Sol ya está alto.
  */
 export function darkness(windows: number[][], t: number): number {
-  const { visible, hours } = stateOf(windows, t)
-  if (hours === null) return visible ? 0 : 1
-  const near = Math.min(Math.max(1 - hours / DUSK_H, 0), 1)
-  const eased = near * near * (3 - 2 * near)
-  return visible ? eased : 1 - eased
+  const turn = turnOf(windows, t)
+  if (!turn || !turn.up) return inside(windows, t) ? 0 : 1
+  return smooth(clamp01((1 - turn.hours / DUSK_H) / NIGHTFALL))
+}
+
+/**
+ * Velocidad del tiempo cuando corre solo, de 0 a 1: se frena alrededor de la puesta y de la salida para que el
+ * cambio se pueda ver (a velocidad normal duraría dos segundos y medio).
+ */
+export function tempo(windows: number[][], t: number): number {
+  const turn = turnOf(windows, t)
+  if (!turn) return 1
+  const near = clamp01(1 - turn.hours / (turn.up ? DUSK_H : AFTERGLOW_H))
+  return 1 - 0.74 * smooth(clamp01(near * 4))
 }
 
 export const span = (hours: number) => formatSpan(hours * HOUR_MS)

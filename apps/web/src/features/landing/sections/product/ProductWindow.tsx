@@ -8,7 +8,7 @@ import { LanderView } from "./LanderView"
 import { LearnView } from "./LearnView"
 import { MapView } from "./MapView"
 import { PlanBView } from "./PlanBView"
-import { darkness, type HeightId, LAST, sky } from "./sky"
+import { darkness, type HeightId, LAST, sky, tempo } from "./sky"
 import "./product.css"
 
 type Tab = keyof typeof copy.tabs
@@ -68,15 +68,15 @@ export function ProductWindow() {
     let id = 0
     let last = performance.now()
     const step = (now: number) => {
-      // El día lunar entero en unos 45 segundos.
+      // El día lunar entero en unos 45 segundos, más lo que se frena en la puesta y en la salida del Sol.
       const dt = Math.min(now - last, 100)
       last = now
-      setT((value) => (value + (dt / 1000) * (LAST / 45)) % LAST)
+      setT((value) => (value + (dt / 1000) * (LAST / 45) * (tab === "lander" ? tempo(sky[height].windows.sun, value) : 1)) % LAST)
       id = requestAnimationFrame(step)
     }
     id = requestAnimationFrame(step)
     return () => cancelAnimationFrame(id)
-  }, [running])
+  }, [running, tab, height])
 
   // Día y noche. La oscuridad sale de las ventanas de Sol del sitio; fuera de la vista Lander, o con la ventana
   // fuera de pantalla, la página va en papel. Los dos valores se escriben en la raíz de la landing (`.ln`), de la
@@ -148,7 +148,7 @@ export function ProductWindow() {
   return (
     // `--scene` dice cuánto se ve el horizonte de fondo: entra con la ventana y solo en la vista Lander.
     <section className="ln-sec" id="software" style={{ "--scene": scene } as CSSProperties}>
-      <HorizonScene time={clock} horizon={sky[height].horizon} sunWindows={sky[height].windows.sun} level={shade} active={scene > 0} />
+      <HorizonScene time={clock} horizon={sky[height].horizon} sunWindows={sky[height].windows.sun} earthWindows={sky[height].windows.earth} level={shade} active={scene > 0} />
       <div className="ln-wrap">
         <Reveal as="h2" className="ln-title" wipe>
           {copy.title}
