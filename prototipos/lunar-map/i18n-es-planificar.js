@@ -56,6 +56,7 @@
 
       /* ---------- plan de caminata (rutas de mission.js) ---------- */
       'Walk plan': 'Plan de caminata',
+      'Start simulator': 'Iniciar simulador',
       'Route goal': 'Objetivo de la ruta',
       'Safe': 'Segura',
       'Short': 'Corta',
