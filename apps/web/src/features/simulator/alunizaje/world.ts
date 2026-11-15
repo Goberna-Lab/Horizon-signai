@@ -8,6 +8,8 @@ import wideUrl from './data/wide.i16?url';
 import siteUrl from './data/site.json?url';
 import { LandingSim } from './landing';
 import { Sonido } from './sonido';
+import { createAstronaut } from './astronauta';
+import { Caminata } from './caminata';
 
 const D2R = Math.PI / 180;
 const SKY_D = 60000;
@@ -107,9 +109,13 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
     eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 },
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
-    astro: { object: new THREE.Object3D(), dust: new THREE.Object3D(), update() {}, pose: null },
+    astro: createAstronaut(), // procedural: baja la escalera y camina (en primera persona casi no se ve)
     pos: new THREE.Vector3(), heading: 0, quality: 0,
   };
+  scene.add(view.astro.object, view.astro.dust);
+  view.astro.object.visible = false;
+  // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
+  const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start(), sonido }));
   const sim = new LandingSim(view);
   await sim.start();
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
@@ -122,9 +128,12 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
   renderer.setAnimationLoop(() => {
     const t = performance.now(), dt = Math.min(0.05, (t - last) / 1000); last = t;
     sim.update(dt);
-    const f = sim.lm?.position ?? camera.position; // las sombras se calculan alrededor de la nave
+    caminata.update(dt);
+    // Las sombras se calculan alrededor de la nave (o del astronauta, en la caminata)
+    const f = caminata.active ? caminata.pos : sim.lm?.position ?? camera.position;
     sunLight.target.position.copy(f); sunLight.position.copy(f).addScaledVector(sd, 1500);
-    renderer.render(scene, camera);
+    if (caminata.active) caminata.render(dt); // a través del vidrio del casco, con su HUD
+    else renderer.render(scene, camera);
   });
 
   return () => {
@@ -132,6 +141,7 @@ export async function startLanding(host: HTMLElement): Promise<() => void> {
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
+    caminata.dispose(); view.astro.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
 }

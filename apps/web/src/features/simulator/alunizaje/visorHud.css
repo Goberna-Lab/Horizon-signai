@@ -1,0 +1,238 @@
+/* HUD del visor del casco durante la caminata (portado de nuestro simulador NASA, visorHud.css). Prefijo sim-. */
+/* HUD del visor: luz sobre el vidrio, sin cajas. Color --hx (hielo), acento --ac (ámbar); en crítico todo pasa a rojo.
+   Solo se animan transform/opacity (más el trazo del borde al encender). */
+.sim-vh { position: absolute; inset: 0; pointer-events: none; overflow: hidden; --hx: #c9f4ff; --hx2: rgba(170, 232, 255, .3); --ac: #ffab5e; --u: 1;
+  color: var(--hx); font: 500 calc(var(--u) * 13px) "IBM Plex Mono", ui-monospace, Menlo, monospace; letter-spacing: .08em; will-change: translate; }
+.sim-vh > svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; overflow: visible; }
+.sim-vh [hidden] { display: none !important; }
+/* --- Pista del borde del vidrio --- */
+.sim-vh-rim .line { stroke: var(--hx); stroke-width: 1.2; opacity: .55; }
+.sim-vh-rim .ticks { stroke: var(--hx); stroke-width: calc(var(--u) * 7px); stroke-dasharray: 1.2 9; opacity: .28; }
+.sim-vh-rim .acc { stroke: var(--hx); stroke-width: 2.4; opacity: .9; }
+.sim-vh-rim .acc2 { stroke: var(--ac); stroke-width: 3.5; stroke-dasharray: 22 7 4 7; opacity: .85; }
+.sim-vh-rim text.cv { fill: var(--hx); stroke: none; text-anchor: middle; font-size: calc(var(--u) * 11.5px); letter-spacing: .2em; text-transform: uppercase; }
+.sim-vh-rim text.tr.ok { fill: #6dffc0; }
+.sim-vh-rim text.tr.warn { fill: #ffc04d; }
+.sim-vh-rim text.tr.crit { fill: #ff5c70; }
+.sim-vh-rim text.obj { fill: #fff; font-size: calc(var(--u) * 13px); letter-spacing: .06em; text-transform: none; }
+.sim-vh-rim text.alarm { fill: #ff5c70; font-size: calc(var(--u) * 21px); font-weight: 700; letter-spacing: .34em; animation: sim-vhblink .8s steps(2) infinite; }
+@keyframes sim-vhblink { 50% { opacity: .25; } }
+@keyframes sim-vhthrob { 50% { opacity: .45; } }
+.sim-vh-comet { position: absolute; left: 0; top: 0; width: calc(var(--u) * 46px); height: 3px; margin: -1.5px 0 0 calc(var(--u) * -23px); border-radius: 3px; background: linear-gradient(90deg, transparent, var(--hx) 70%, #fff); offset-rotate: auto; animation: sim-vhrun 14s linear infinite; will-change: offset-distance; }
+.sim-vh-comet.c2 { animation-duration: 22s; animation-direction: reverse; background: linear-gradient(90deg, #fff, var(--ac) 30%, transparent); }
+.sim-vh-comet.c3 { animation-delay: -7s; opacity: .6; }
+@keyframes sim-vhrun { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+/* --- Brújula curva (arriba) --- */
+.sim-vh-compass .tk { stroke: var(--hx); stroke-width: 1.2; opacity: .6; }
+.sim-vh-compass .tk2 { stroke: var(--hx); stroke-width: 2; }
+.sim-vh-compass text { fill: var(--hx); stroke: none; text-anchor: middle; dominant-baseline: middle; font-size: calc(var(--u) * 12px); }
+.sim-vh-compass text.card { fill: #fff; font-size: calc(var(--u) * 17px); font-weight: 700; }
+.sim-vh-compass text.sun { fill: #ffd25a; font-size: calc(var(--u) * 17px); }
+.sim-vh-compass text.earth { fill: #6fb4ff; font-size: calc(var(--u) * 17px); }
+.sim-vh-compass text.lm { fill: #8dffb0; font-weight: 700; }
+.sim-vh-compass text.dim { opacity: .35; }
+.sim-vh-head { position: absolute; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: calc(var(--u) * 3px); white-space: nowrap; }
+.sim-vh-head > i { width: 0; height: 0; border: calc(var(--u) * 6px) solid transparent; border-bottom-color: var(--ac); margin-top: calc(var(--u) * -14px); }
+.sim-vh-head b { color: #fff; font-size: calc(var(--u) * 26px); font-weight: 600; letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+.sim-vh-head span { font-size: calc(var(--u) * 12px); letter-spacing: .22em; }
+.sim-vh-head em { font-style: normal; color: #fff; font-variant-numeric: tabular-nums; }
+.sim-vh-head u { text-decoration: none; color: var(--ac); }
+/* --- Avisos: solo texto con luz --- */
+.sim-vh-alerts { position: absolute; left: 50%; transform: translateX(-50%); display: grid; gap: calc(var(--u) * 5px); justify-items: center; text-align: center; width: 44%; }
+.sim-vh-alerts p { margin: 0; text-transform: uppercase; letter-spacing: .2em; font-size: calc(var(--u) * 12px); animation: sim-vhin .45s cubic-bezier(.2, 1.3, .3, 1) backwards; }
+.sim-vh-alerts p b { font-weight: 500; }
+.sim-vh-alerts p b::before { content: "— "; opacity: .5; }
+.sim-vh-alerts p b::after { content: " —"; opacity: .5; }
+.sim-vh-alerts small { display: block; text-transform: none; letter-spacing: .04em; opacity: .8; font-size: calc(var(--u) * 11.5px); margin-top: 2px; }
+.sim-vh-alerts .warn { color: #ffc04d; }
+.sim-vh-alerts .crit { color: #ff5c70; font-size: calc(var(--u) * 14px); animation: sim-vhin .45s backwards, sim-vhblink .8s steps(2) .45s infinite; }
+.sim-vh-alerts .crit b { font-weight: 700; }
+@keyframes sim-vhin { from { opacity: 0; transform: scaleX(.3); } }
+/* --- Indicadores laterales: tramos de arco pegados al contorno + texto apoyado en la curva --- */
+.sim-vh-g .bg { stroke: var(--hx2); stroke-width: calc(var(--u) * 11px); stroke-dasharray: 8.4 1.6; opacity: .5; }
+.sim-vh-g .fg { stroke-width: calc(var(--u) * 11px); transition: stroke .4s; }
+.sim-vh-g .thin { stroke: var(--hx); stroke-width: 1; opacity: .5; }
+.sim-vh-rows p { position: absolute; margin: 0; transform: translateY(-50%); display: grid; grid-template-columns: auto auto; column-gap: calc(var(--u) * 10px); align-items: baseline; white-space: nowrap; --c: var(--hx); }
+.sim-vh-rows p b { grid-column: 1 / -1; font-size: calc(var(--u) * 10.5px); font-weight: 500; letter-spacing: .3em; color: var(--c); }
+.sim-vh-rows p em { font-style: normal; color: #fff; font-size: calc(var(--u) * 21px); font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.sim-vh-rows p small { font-size: calc(var(--u) * 11px); opacity: .8; letter-spacing: .04em; }
+.sim-vh-rows.r p { justify-items: end; text-align: right; }
+.sim-vh-rows.r p em { order: 2; }
+.sim-vh-rows.r p small { order: 1; }
+.sim-vh-rows p.bad em { color: #ff5c70; animation: sim-vhblink .8s steps(2) infinite; }
+.sim-vh-rows p.mini { display: flex; gap: calc(var(--u) * 8px); align-items: center; }
+.sim-vh-rows p.mini em { font-size: calc(var(--u) * 12px); font-weight: 400; color: var(--hx); letter-spacing: .08em; }
+.sim-vh-rows p.mini svg { width: calc(var(--u) * 58px); height: calc(var(--u) * 16px); overflow: hidden; }
+.sim-vh-rows p.mini path { fill: none; stroke: var(--ac); stroke-width: 1.4; animation: sim-vhecg var(--bpm, 1s) linear infinite; }
+@keyframes sim-vhecg { to { transform: translateX(-60px); } }
+/* --- Lentes circulares: radar y traje --- */
+.sim-vh-lens { position: absolute; width: calc(var(--u) * 170px); height: calc(var(--u) * 170px); margin: calc(var(--u) * -85px) 0 0 calc(var(--u) * -85px); border-radius: 50%; background: radial-gradient(closest-side, rgba(170, 232, 255, .07), transparent 88%); }
+.sim-vh-lens svg, .sim-vh-lens > i { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; }
+.sim-vh-lens .ring { stroke: var(--hx); will-change: transform; }
+.sim-vh-lens .r1 { animation: sim-vhspin 40s linear infinite; }
+.sim-vh-lens .r1 circle { stroke-width: 3; stroke-dasharray: 1 5; opacity: .7; }
+.sim-vh-lens .r2 { animation: sim-vhspin 22s linear infinite reverse; }
+.sim-vh-lens .r2 circle { stroke: var(--ac); stroke-width: 1.4; stroke-dasharray: 60 16 7 16 100 24; }
+.sim-vh-lens .r3 { animation: sim-vhspin 5s linear infinite; }
+.sim-vh-lens .r3 circle { stroke: var(--ac); stroke-width: 2.4; stroke-dasharray: 30 330; stroke-linecap: round; }
+@keyframes sim-vhspin { to { transform: rotate(360deg); } }
+.sim-vh-lens .scope { inset: 12%; width: 76%; height: 76%; stroke: var(--hx2); stroke-width: 1; overflow: visible; }
+.sim-vh-lens .me { fill: var(--ac); stroke: none; }
+.sim-vh-lens .blips circle { stroke: none; }
+.sim-vh-lens .lm { fill: #8dffb0; }
+.sim-vh-lens .sun { fill: #ffd25a; }
+.sim-vh-lens .earth { fill: #6fb4ff; }
+.sim-vh-lens .off { opacity: .35; }
+.sim-vh-lens .sweep { inset: 14%; width: auto; height: auto; border-radius: 50%; background: conic-gradient(from 0deg, var(--hx) 0 12%, transparent 12%); opacity: .2; animation: sim-vhspin 3.2s linear infinite; will-change: transform; }
+.sim-vh-lens .ping { inset: 14%; width: auto; height: auto; border-radius: 50%; border: 1.5px solid var(--hx); opacity: 0; animation: sim-vhping 3.2s linear infinite; will-change: transform, opacity; }
+.sim-vh-lens .ping.p2 { animation-delay: -1.6s; }
+@keyframes sim-vhping { from { transform: scale(.05); opacity: .9; } to { transform: scale(1); opacity: 0; } }
+.sim-vh-lens .fig { inset: 13%; width: 74%; height: 74%; stroke: var(--hx); stroke-width: 1; stroke-linejoin: round; }
+.sim-vh-lens .p-n { fill: rgba(190, 240, 255, .16); }
+.sim-vh-lens .vz { fill: rgba(4, 12, 20, .8); stroke: none; }
+.sim-vh-lens .p-o2 { fill: color-mix(in srgb, var(--c-o2, #6dffc0) 60%, transparent); }
+.sim-vh-lens .p-co2 { fill: color-mix(in srgb, var(--c-co2, #6dffc0) 80%, transparent); }
+.sim-vh-lens .p-h2o { fill: color-mix(in srgb, var(--c-h2o, #6dffc0) 42%, transparent); }
+.sim-vh-lens .p-bat { fill: color-mix(in srgb, var(--c-bat, #6dffc0) 32%, transparent); }
+.sim-vh-lens .scan { position: absolute; inset: 16%; border-radius: 50%; overflow: hidden; }
+.sim-vh-lens .scan i { position: absolute; left: 0; right: 0; top: 0; height: 14%; background: linear-gradient(transparent, rgba(170, 232, 255, .35)); border-bottom: 1.5px solid #fff; animation: sim-vhscan 2.8s ease-in-out infinite alternate; will-change: transform; }
+@keyframes sim-vhscan { from { transform: translateY(-110%); } to { transform: translateY(720%); } }
+.sim-vh-lens.suit.bad .fig { animation: sim-vhblink .8s steps(2) infinite; }
+/* --- Centro: retícula, horizonte, escalera de cabeceo y marcadores del mundo --- */
+.sim-vh-reticle { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 96px); height: calc(var(--u) * 96px); margin: calc(var(--u) * -48px) 0 0 calc(var(--u) * -48px); opacity: .75; transition: scale .35s cubic-bezier(.2, .9, .2, 1); }
+.mv .sim-vh-reticle { scale: 1.3; }
+.sim-vh-reticle svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--hx); will-change: transform; }
+.sim-vh-reticle .a { animation: sim-vhspin 14s linear infinite; }
+.sim-vh-reticle .a circle { stroke-width: 1.4; stroke-dasharray: 46 25; }
+.sim-vh-reticle .b { animation: sim-vhspin 22s linear infinite reverse; }
+.sim-vh-reticle .b circle { stroke: var(--ac); stroke-width: 2.4; stroke-dasharray: 8 38 70 38; opacity: .8; }
+.sim-vh-reticle .c path { stroke-width: 1.4; }
+.sim-vh-reticle .c circle { fill: #fff; stroke: none; }
+.sim-vh-reticle .pulse, .sim-vh-marks em { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid currentColor; opacity: 0; animation: sim-vhpulse 3.6s cubic-bezier(.1, .6, .3, 1) infinite; will-change: transform, opacity; }
+@keyframes sim-vhpulse { 0% { transform: scale(.25); opacity: .8; } 70%, 100% { transform: scale(1.9); opacity: 0; } }
+.sim-vh-horizon { position: absolute; left: 50%; top: 50%; width: 40%; height: 0; transform: translateX(-50%); }
+.sim-vh-horizon i { position: absolute; left: 0; right: 0; height: 1.5px; background: linear-gradient(90deg, transparent, var(--hx) 12%, var(--hx) 31%, transparent 31.5%, transparent 68.5%, var(--hx) 69%, var(--hx) 88%, transparent); opacity: .45; will-change: transform; }
+.sim-vh-ladder { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 150px); height: 34%; transform: translate(-50%, -50%); overflow: hidden; opacity: .7;
+  -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 40%, transparent 44%, transparent 56%, #000 60%, #000 75%, transparent); mask-image: linear-gradient(transparent, #000 25%, #000 40%, transparent 44%, transparent 56%, #000 60%, #000 75%, transparent); }
+.sim-vh-ladder > div { position: absolute; left: 0; right: 0; top: 50%; height: 0; will-change: transform; }
+.sim-vh-ladder i { position: absolute; left: 16%; right: 16%; top: calc(var(--d) * var(--ppd, 10) * -1px); height: 6px; border: 1.5px solid var(--hx); border-bottom: 0; clip-path: polygon(0 0, 34% 0, 34% 100%, 66% 100%, 66% 0, 100% 0, 100% 100%, 0 100%); }
+.sim-vh-ladder i.neg { border: 1.5px dashed var(--hx); border-top: 0; }
+.sim-vh-ladder b { position: absolute; right: -2.6em; top: -.5em; font-size: .8em; font-weight: 400; }
+.sim-vh-marks { position: absolute; inset: 0; }
+.sim-vh-marks .mk { position: absolute; left: 0; top: 0; will-change: transform; color: #8dffb0; }
+.sim-vh-marks .sun { color: #ffd25a; }
+.sim-vh-marks .earth { color: #6fb4ff; }
+.sim-vh-marks u { position: absolute; left: -28px; top: -28px; width: 56px; height: 56px; border-radius: 50%; border: 1.5px dashed currentColor; opacity: .75; animation: sim-vhspin 9s linear infinite; will-change: transform; }
+.sim-vh-marks em { inset: auto; left: -20px; top: -20px; width: 40px; height: 40px; animation-duration: 2.4s; }
+.sim-vh-marks b { position: absolute; left: 38px; top: -.6em; white-space: nowrap; font-weight: 500; font-size: calc(var(--u) * 11.5px); letter-spacing: .14em; }
+.sim-vh-marks b::before { content: ""; position: absolute; left: -9px; top: 50%; width: 7px; height: 1px; background: currentColor; }
+/* --- Teclas: glifos redondos que siguen el borde inferior --- */
+.sim-vh-keys span { position: absolute; display: grid; justify-items: center; gap: calc(var(--u) * 3px); transform: translate(-50%, -50%); white-space: nowrap; }
+.sim-vh-keys b { display: grid; place-items: center; width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); border-radius: 50%; border: 1.5px solid var(--hx); color: #fff; font-size: calc(var(--u) * 11px); font-weight: 600; letter-spacing: 0; box-shadow: inset 0 0 0 3px rgba(3, 10, 18, .35), inset 0 0 0 4px var(--hx2); }
+.sim-vh-keys i { font-style: normal; font-size: calc(var(--u) * 9.5px); letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.sim-vh-keys .on b { background: var(--ac); border-color: var(--ac); color: #1a0d04; }
+.sim-vh-keys .on i { color: var(--ac); opacity: 1; }
+/* --- Encendido: el borde se dibuja, lista de comprobación y cada elemento entra a su turno --- */
+.sim-vh-boot { position: absolute; left: 50%; top: 33%; transform: translateX(-50%); display: grid; gap: .3em; width: calc(var(--u) * 320px); letter-spacing: .2em; }
+.sim-vh-boot > * { opacity: 0; }
+.sim-vh-boot b { text-align: center; color: #fff; letter-spacing: .5em; }
+.sim-vh-boot span { display: flex; justify-content: space-between; border-bottom: 1px dotted var(--hx2); }
+.sim-vh-boot u { text-decoration: none; color: #6dffc0; }
+.sim-vh-boot em { font-style: normal; text-align: center; color: var(--ac); letter-spacing: .6em; margin-top: .4em; }
+.sim-vh.boot .sim-vh-boot b, .sim-vh.boot .sim-vh-boot span { animation: sim-vhbl 2.4s ease-out both; animation-delay: calc(.1s + var(--i, -1) * .15s); }
+.sim-vh.boot .sim-vh-boot em { animation: sim-vhbl2 1.2s steps(2) 1.2s both; }
+@keyframes sim-vhbl { 0% { opacity: 0; transform: translateX(-14px); } 8%, 78% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes sim-vhbl2 { 0% { opacity: 0; } 15%, 45%, 75% { opacity: 1; } 30%, 60% { opacity: .2; } 100% { opacity: 0; } }
+.sim-vh.boot .sim-vh-rim .line { stroke-dasharray: 1000; animation: sim-vhdraw 1.8s cubic-bezier(.5, 0, .2, 1) both; }
+@keyframes sim-vhdraw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
+.sim-vh.boot .sim-vh-rim .ticks, .sim-vh.boot .sim-vh-rim .acc, .sim-vh.boot .sim-vh-rim .acc2, .sim-vh.boot .sim-vh-rim text, .sim-vh.boot .sim-vh-comet { animation-name: sim-vhfade; animation-duration: .8s; animation-delay: 1.7s; animation-fill-mode: backwards; animation-iteration-count: 1; }
+.sim-vh.boot .sim-vh-comet { animation: sim-vhfade .8s 1.7s backwards, sim-vhrun 14s linear infinite; }
+@keyframes sim-vhfade { 0% { opacity: 0; } 30% { opacity: 1; } 45% { opacity: .2; } }
+@keyframes sim-vhgrow { 0% { scale: 0; opacity: 0; } 60% { opacity: 1; } }
+@keyframes sim-vhslide { 0% { opacity: 0; translate: var(--from, -30px) 0; } }
+.sim-vh.boot .sim-vh-lens, .sim-vh.boot .sim-vh-reticle { animation: sim-vhgrow .9s cubic-bezier(.2, 1.3, .3, 1) 2s backwards; }
+.sim-vh.boot .sim-vh-lens.suit { animation-delay: 2.15s; }
+.sim-vh.boot .sim-vh-rows p, .sim-vh.boot .sim-vh-keys span { animation: sim-vhslide .6s cubic-bezier(.2, .9, .2, 1) backwards; }
+.sim-vh.boot .sim-vh-rows.r p { --from: 30px; }
+.sim-vh.boot .sim-vh-rows p:nth-child(1) { animation-delay: 2s; }
+.sim-vh.boot .sim-vh-rows p:nth-child(2) { animation-delay: 2.08s; }
+.sim-vh.boot .sim-vh-rows p:nth-child(3) { animation-delay: 2.16s; }
+.sim-vh.boot .sim-vh-rows p:nth-child(4) { animation-delay: 2.24s; }
+.sim-vh.boot .sim-vh-rows p:nth-child(5) { animation-delay: 2.32s; }
+.sim-vh.boot .sim-vh-rows p:nth-child(6) { animation-delay: 2.4s; }
+.sim-vh.boot .sim-vh-rows p:nth-child(7) { animation-delay: 2.48s; }
+.sim-vh.boot .sim-vh-keys span { --from: 0px; animation-delay: 2.5s; }
+.sim-vh.boot .sim-vh-g, .sim-vh.boot .sim-vh-compass, .sim-vh.boot .sim-vh-head, .sim-vh.boot .sim-vh-ladder, .sim-vh.boot .sim-vh-horizon { animation: sim-vhfade .8s 2s backwards; }
+/* --- Estados --- */
+.sim-vh.gold { --hx: #ffe2ad; --hx2: rgba(255, 215, 150, .3); }
+.lowfx .sim-vh-comet, .lowfx .sim-vh-lens .scan { display: none; }
+.lowfx .sim-vh-lens .ring, .lowfx .sim-vh-lens .ping, .lowfx .sim-vh-reticle svg, .lowfx .sim-vh-reticle .pulse, .lowfx .sim-vh-marks u, .lowfx .sim-vh-marks em { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sim-vh, .sim-vh * { animation: none !important; } .sim-vh-boot { display: none; } }
+/* Alarma del propio traje (además de la de la misión): mismo paso a rojo */
+.sim-vh.crit { --hx: #ff6b7e; --hx2: rgba(255, 90, 110, .38); --ac: #ffd9dd; }
+.sim-vh.crit .sim-vh-rim .st { animation: sim-vhthrob 1s ease-in-out infinite; }
+.sim-vh.crit .sim-vh-comet { animation-duration: 4s; }
+.sim-vh.crit .sim-vh-reticle .pulse { animation-duration: .9s; }
+/* Lentes estilo Mark VII: anillo segmentado grueso, y el traje como holograma 3D (lo dibuja Three.js en el centro) */
+.sim-vh-lens .r4 { stroke: var(--hx); }
+.sim-vh-lens .r4 circle { stroke-width: 6; stroke-dasharray: 7 2.2; opacity: .55; }
+.sim-vh-lens.suit .r4 { animation: sim-vhspin 60s linear infinite reverse; }
+.sim-vh-lens.suit small { position: absolute; left: 50%; bottom: calc(var(--u) * -20px); transform: translateX(-50%); font-size: calc(var(--u) * 10px); letter-spacing: .4em; opacity: .85; }
+.sim-vh-lens .scan { inset: 20%; }
+.sim-vh-lens .scope { inset: 20%; width: 60%; height: 60%; }
+.sim-vh-lens .sweep, .sim-vh-lens .ping { inset: 21%; }
+/* Tablero de avisos (arriba a la derecha): estado general + una línea por cosa que está pasando; sin cajas */
+.sim-vh-feed { position: absolute; width: calc(var(--u) * 400px); display: grid; gap: calc(var(--u) * 7px); justify-items: end; text-align: right; }
+.sim-vh-feed header { background: none; border: 0; padding: 0; height: auto; position: static; display: flex; align-items: baseline; gap: calc(var(--u) * 12px); padding-bottom: calc(var(--u) * 5px); border-bottom: 1px solid var(--hx2); width: 78%; justify-content: flex-end; }
+.sim-vh-feed header small { font-size: calc(var(--u) * 10px); letter-spacing: .4em; opacity: .8; }
+.sim-vh-feed header b { font-size: calc(var(--u) * 22px); font-weight: 700; letter-spacing: .16em; color: #6dffc0; }
+.sim-vh-feed.warn header b { color: #ffc04d; }
+.sim-vh-feed.crit header b { color: #ff5c70; animation: sim-vhblink .8s steps(2) infinite; }
+.sim-vh-feed .sim-vh-alerts { position: static; transform: none; width: 100%; display: flex; flex-direction: column; gap: calc(var(--u) * 6px); align-items: flex-end; text-align: right; }
+.sim-vh-feed .sim-vh-alerts p { margin: 0; padding-right: calc(var(--u) * 10px); border-right: 3px solid currentColor; text-transform: none; letter-spacing: .04em; font-size: calc(var(--u) * 12px); animation: sim-vhslidein .4s cubic-bezier(.2, .9, .2, 1) backwards; color: #6dffc0; }
+.sim-vh-feed .sim-vh-alerts p b { display: block; font-weight: 600; text-transform: uppercase; letter-spacing: .16em; font-size: calc(var(--u) * 12.5px); }
+.sim-vh-feed .sim-vh-alerts p b::before, .sim-vh-feed .sim-vh-alerts p b::after { content: none; }
+.sim-vh-feed .sim-vh-alerts p small { display: block; margin: 1px 0 0; color: #e6f4fa; opacity: .85; font-size: calc(var(--u) * 11px); letter-spacing: .02em; }
+.sim-vh-feed .sim-vh-alerts .warn { color: #ffc04d; }
+.sim-vh-feed .sim-vh-alerts .info { color: var(--hx); }
+.sim-vh-feed .sim-vh-alerts .crit { color: #ff5c70; font-size: calc(var(--u) * 12px); animation: sim-vhslidein .4s backwards; }
+.sim-vh-feed .sim-vh-alerts .crit b { animation: sim-vhblink .8s steps(2) infinite; }
+@keyframes sim-vhslidein { from { opacity: 0; transform: translateX(24px); } }
+.sim-vh.boot .sim-vh-feed { animation: sim-vhfade .8s 2.2s backwards; }
+.sim-vh-head .site { opacity: .85; text-transform: uppercase; }
+.sim-vh-head .mis { text-transform: uppercase; }
+.sim-vh-head .mis.ok { color: #6dffc0; }
+.sim-vh-head .mis.warn { color: #ffc04d; }
+.sim-vh-head .mis.crit { color: #ff5c70; }
+/* Deslumbramiento del Sol: un velo que se mueve con la posición del Sol (solo transform y opacity) */
+.sim-vh-glare { position: absolute; left: -150vmax; top: -150vmax; width: 300vmax; height: 300vmax; opacity: 0; pointer-events: none; will-change: transform, opacity;
+  background: radial-gradient(closest-side, rgba(255, 252, 240, .98), rgba(255, 244, 214, .8) 5%, rgba(255, 236, 190, .42) 16%, rgba(255, 230, 180, .16) 38%, transparent 70%); }
+/* Fallos que se viven */
+.sim-vh-tunnel { position: absolute; left: -60%; top: -60%; width: 220%; height: 220%; opacity: 0; pointer-events: none; will-change: transform, opacity; z-index: 3;
+  background: radial-gradient(closest-side, transparent 14%, rgba(0, 0, 0, .7) 24%, #000 34%); box-shadow: 0 0 0 300vmax #000; }
+.sim-vh-lost { position: absolute; inset: 0; z-index: 4; display: grid; place-content: center; justify-items: center; gap: calc(var(--u) * 14px); text-align: center; background: rgba(0, 0, 0, .86); animation: sim-vhfade 1.2s both; }
+.sim-vh-lost small { color: #ff5c70; letter-spacing: .6em; font-size: calc(var(--u) * 14px); }
+.sim-vh-lost b { color: #fff; font-size: calc(var(--u) * 44px); font-weight: 700; letter-spacing: .04em; }
+.sim-vh-lost p { margin: 0; max-width: calc(var(--u) * 720px); color: #cfe3ee; font-size: calc(var(--u) * 16px); line-height: 1.6; letter-spacing: .02em; }
+.sim-vh-lost em { font-style: normal; color: var(--ac); letter-spacing: .2em; margin-top: calc(var(--u) * 10px); }
+.sim-vh-lost u { text-decoration: none; border: 1.5px solid var(--ac); border-radius: 4px; padding: 1px 8px; color: #fff; }
+/* Sin batería en el traje: el HUD parpadea y se apaga (queda una sombra de lo que había) */
+.sim-vh.nopower > *:not(.sim-vh-tunnel):not(.sim-vh-lost) { animation: sim-vhdie 1.6s steps(1) forwards; }
+@keyframes sim-vhdie { 0% { opacity: 1; } 8% { opacity: .2; } 14% { opacity: .9; } 30% { opacity: .1; } 38% { opacity: .7; } 55% { opacity: .05; } 62% { opacity: .4; } 100% { opacity: .05; } }
+/* Objetivo de la tarea actual: marcador en el mundo y punto en el radar */
+.sim-vh-marks .obj { color: #ff9a4d; }
+.sim-vh-marks .obj u { border-style: solid; border-width: 2px; clip-path: polygon(0 0, 30% 0, 30% 100%, 70% 100%, 70% 0, 100% 0, 100% 100%, 0 100%); }
+.sim-vh-lens .obj { fill: #ff9a4d; animation: sim-vhblink 1s steps(2) infinite; }
+/* Objetivo de la misión bajo el rumbo, y corazón que late con el pulso real */
+.sim-vh-head .goal { font-size: calc(var(--u) * 11px); letter-spacing: .12em; color: #fff; }
+.sim-vh-head .goal small { color: var(--ac); letter-spacing: .3em; font-size: .85em; }
+.sim-vh-head .goal i { font-style: normal; }
+.sim-vh-rows .heart { font-style: normal; color: #ff5c70; font-size: calc(var(--u) * 14px); line-height: 1; will-change: transform; }
+.sim-vh-rows .heart.b { animation: sim-vhbeat .32s ease-out; }
+@keyframes sim-vhbeat { 0% { transform: scale(1); } 22% { transform: scale(1.55); } 45% { transform: scale(.95); } 62% { transform: scale(1.22); } 100% { transform: scale(1); } }
+/* Alunizaje en primera persona: lecturas del descenso dentro del visor, mismo lenguaje que el HUD */
+/* Mapa del descenso (arriba a la izquierda): relieve real visto desde arriba, ruta, punto de alunizaje y la nave; debajo, el perfil de altura */
+/* Perfil de altura expandido: franja a lo ancho, con cuadrícula, relieve bajo la ruta y el módulo lunar */
+/* Misión perdida en el alunizaje */
+/* P66 a mano: lo que hay bajo la nave */
+/* Dormir en el módulo */
