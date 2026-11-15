@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horizon Signai · Project demo (7 slides)</title>
+<meta name="description" content="Horizon Signai: project demo for the NASA Space Apps Challenge 2026, Lunar Landing Site Navigator. Seven slides.">
+<!--
+  Demo de la entrega de Space Apps: 7 diapositivas (el máximo), en inglés, con el nombre del equipo, sus miembros y el reto.
+  Página suelta, sin dependencias de la app: se abre en /demo.html. Flechas, espacio o rueda para pasar; imprime una por hoja.
+  Las cifras salen de apps/web/src/features/landing/flight/data/facts.json, docs/07-pruebas-y-validacion.md y el motor del
+  planificador (prototipos/lunar-map/engine.js). Las capturas son del producto, en apps/web/public/demo/.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --paper: #F4EFE6; --paper-2: #FBF8F2; --ink: #111111; --ink-2: #5A554D; --line: #D9D2C5; --red: #C8102E; --night: #0B0B0D;
+    --disp: "Playfair Display", Georgia, serif; --ui: Inter, system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace; }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--ui); -webkit-font-smoothing: antialiased; }
+  .slide { position: relative; min-height: 100vh; scroll-snap-align: start; display: grid; place-items: center; padding: clamp(16px, 3vw, 40px); }
+  .stage { position: relative; width: min(100%, 1280px, calc((100vh - 2 * clamp(16px, 3vw, 40px)) * 16 / 9)); aspect-ratio: 16 / 9; display: grid; grid-template-rows: auto 1fr auto; gap: clamp(10px, 1.6vw, 22px);
+    padding: clamp(18px, 3.2vw, 44px); border: 1px solid var(--line); border-radius: 14px; background: var(--paper-2); overflow: hidden; font-size: clamp(11px, 1.25vw, 17px); }
+  .bar { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font: 500 .72em/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+  .bar b { color: var(--ink); font-weight: 600; }
+  .bar i { font-style: normal; color: var(--red); }
+  h1, h2 { font-family: var(--disp); font-weight: 600; letter-spacing: -.01em; line-height: 1.05; text-wrap: balance; }
+  h1 { font-size: 4.6em; }
+  h2 { font-size: 2.5em; }
+  h2 em, h1 em { font-style: normal; color: var(--red); }
+  p, li { line-height: 1.45; text-wrap: pretty; }
+  .lede { font-size: 1.25em; color: var(--ink-2); max-width: 34em; }
+  .foot { display: flex; justify-content: space-between; gap: 16px; font: 400 .7em/1.4 var(--mono); color: var(--ink-2); }
+  .two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(14px, 2.4vw, 34px); align-items: center; min-height: 0; }
+  .two.wide { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
+  .col { display: flex; flex-direction: column; gap: 1em; min-width: 0; }
+  ul.points { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .7em; }
+  ul.points li { padding-left: 1.1em; position: relative; }
+  ul.points li::before { content: ""; position: absolute; left: 0; top: .55em; width: .45em; height: .45em; background: var(--red); border-radius: 50%; }
+  ul.points b { font-weight: 600; }
+  figure { min-height: 0; height: 100%; display: flex; flex-direction: column; gap: .5em; }
+  figure img { width: 100%; height: 100%; min-height: 0; object-fit: cover; object-position: top left; border-radius: 10px; border: 1px solid var(--line); background: #E9E3D6; }
+  figure.contain img { object-fit: contain; background: none; border: 0; }
+  figcaption { font: 400 .7em/1.3 var(--mono); color: var(--ink-2); }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(8px, 1.4vw, 18px); }
+  .stat { padding: 1em 1.1em; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); display: flex; flex-direction: column; gap: .35em; }
+  .stat b { font: 600 2.3em/1 var(--disp); font-variant-numeric: tabular-nums; }
+  .stat b small { font-size: .5em; font-weight: 500; }
+  .stat span { font-size: .85em; color: var(--ink-2); line-height: 1.35; }
+  table { width: 100%; border-collapse: collapse; font-size: .9em; }
+  th { text-align: left; font: 500 .75em/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); padding: 0 .8em .7em 0; border-bottom: 1px solid var(--ink); }
+  td { padding: .65em .8em .65em 0; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.35; }
+  td:last-child, th:last-child { padding-right: 0; }
+  td b { font-weight: 600; }
+  td .n { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+  .verdicts { display: flex; gap: .5em; flex-wrap: wrap; font: 600 .78em/1 var(--mono); letter-spacing: .04em; }
+  .verdicts span { padding: .5em .8em; border-radius: 999px; border: 1px solid var(--ink); white-space: nowrap; }
+  .verdicts .no { background: var(--red); border-color: var(--red); color: #fff; }
+  .verdicts .go { background: var(--ink); color: var(--paper); }
+  /* portada: fondo de noche con la captura del amanecer */
+  .cover .stage { background: var(--night); color: var(--paper); border-color: #26262A; }
+  .cover .stage::before { content: ""; position: absolute; inset: 0; background: url("demo/landing.jpg") center bottom / cover no-repeat; opacity: .9; }
+  .cover .stage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,11,13,.92) 0%, rgba(11,11,13,.55) 45%, rgba(11,11,13,0) 75%); }
+  .cover .stage > * { position: relative; z-index: 1; }
+  .cover .bar, .cover .foot { color: rgba(244,239,230,.7); }
+  .cover .bar b { color: var(--paper); }
+  .cover .lede { color: rgba(244,239,230,.82); }
+  .cover .mid { display: flex; flex-direction: column; gap: 1em; align-self: start; padding-top: 1.5em; }
+  .cover .team { font: 400 .8em/1.6 var(--mono); color: rgba(244,239,230,.85); }
+  .cover .team b { color: var(--paper); font-weight: 600; }
+  .links { display: flex; flex-direction: column; gap: .5em; font: 500 .85em/1.3 var(--mono); }
+  .links a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; overflow-wrap: anywhere; }
+  .who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(8px, 1.4vw, 18px); }
+  .who div { padding: 1em 1.1em; border-top: 2px solid var(--ink); display: flex; flex-direction: column; gap: .4em; }
+  .who h3 { font: 600 1.05em/1.2 var(--ui); }
+  .who p { font-size: .88em; color: var(--ink-2); }
+  .next { font-size: .9em; color: var(--ink-2); }
+  .next b { color: var(--ink); font-weight: 600; }
+  .hint { position: fixed; right: 14px; bottom: 12px; font: 500 11px/1 var(--mono); color: var(--ink-2); background: rgba(244,239,230,.85); padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); }
+  @media (max-width: 720px) {
+    html { scroll-snap-type: none; }
+    .stage { aspect-ratio: auto; width: 100%; }
+    .two, .two.wide, .stats, .who { grid-template-columns: 1fr; }
+    figure img { height: auto; max-height: 60vh; }
+    h1 { font-size: 3em; }
+  }
+  @media print {
+    @page { size: 13.333in 7.5in; margin: 0; }
+    html { scroll-snap-type: none; }
+    .slide { min-height: 0; height: 7.5in; width: 13.333in; padding: 0; break-after: page; }
+    .stage { width: 100%; height: 100%; aspect-ratio: auto; border: 0; border-radius: 0; font-size: 15px; padding: .5in; }
+    .hint { display: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 1 · Title -->
+<section class="slide cover">
+  <div class="stage">
+    <div class="bar"><span><b>NASA Space Apps Challenge 2026</b> · Lunar Landing Site Navigator</span><span>1 / 7</span></div>
+    <div class="mid">
+      <h1>Horizon Sign<em>ai</em></h1>
+      <p class="lede">Find light. Keep contact. Compare lunar south pole landing sites and dates, with the Sun and Earth measured against the real horizon.</p>
+      <p class="team"><b>Team Goberna Lab</b><br>Estephano · Jean · Francisco · Manuel · Angel · Jefferson</p>
+    </div>
+    <div class="foot"><span>signal-horizon.goberna.us</span><span>Independent project by Space Apps participants. Not endorsed by NASA.</span></div>
+  </div>
+</section>
+
+<!-- 2 · Introduction: the problem -->
+<section class="slide">
+  <div class="stage">
+    <div class="bar"><span><b>Horizon Signai</b> · The problem</span><span>2 / 7</span></div>
+    <div class="col" style="justify-content: center">
+      <h2>The launch slipped. <em>Is the site still viable?</em></h2>
+      <p class="lede">A lander at the Moon's south pole needs the Sun for power and Earth for a direct radio link. There, both sit at the horizon, so a ridge can hide either one for days.</p>
+      <div class="stats">
+        <div class="stat"><b>1.59°</b><span>Highest the Sun climbs over the pole between 2026 and 2030</span></div>
+        <div class="stat"><b>328 <small>m</small></b><span>Between two points on one ridge: one has sunlight 56.8% of the lunar day, the other never loses it</span></div>
+        <div class="stat"><b>3 <small>tools</small></b><span>Quickmap, Moon Trek and JPL Horizons hold the answer today, as raw data, one site and date at a time</span></div>
+      </div>
+      <p class="next">Mission planners have to answer this again every time a schedule moves. <b>We made it one screen.</b></p>
+    </div>
+    <div class="foot"><span>Figures: our engine on JPL Horizons DE441 and LOLA terrain, lunar day from 1 Dec 2026, ground level</span><span></span></div>
+  </div>
+</section>
+
+<!-- 3 · The planner -->
+<section class="slide">
+  <div class="stage">
+    <div class="bar"><span><b>Horizon Signai</b> · The planner</span><span>3 / 7</span></div>
+    <div class="two wide">
+      <div class="col">
+        <h2>Move the date. <em>See who still lands.</em></h2>
+        <ul class="points">
+          <li>The plan lands on <b>18 Dec 2026</b>: all three candidate zones pass.</li>
+          <li>Slip it <b>106 days</b>, same lander, same requirements:</li>
+        </ul>
+        <div class="verdicts"><span class="no">Zone A · NO GO</span><span class="go">Zone B · GO</span><span class="no">Zone C · NO GO</span></div>
+        <ul class="points">
+          <li>The verdict checks the mission's own needs: Sun and Earth at landing, a night the battery survives, enough Earth contact.</li>
+          <li>One click moves the landing a day or a week, or returns to the plan.</li>
+        </ul>
+      </div>
+      <figure><img src="demo/planner.jpg" alt="The planner: three candidate zones with their verdicts for a landing moved to 3 April 2027, a polar map, the real horizon and a timeline"><figcaption>signal-horizon.goberna.us/planner · zones from NASA's 5 m south pole terrain models (Barker et al. 2021)</figcaption></figure>
+    </div>
+    <div class="foot"><span>Plan and requirements are an example; every figure is computed</span><span></span></div>
+  </div>
+</section>
+
+<!-- 4 · Sun and Earth against the horizon -->
+<section class="slide">
+  <div class="stage">
+    <div class="bar"><span><b>Horizon Signai</b> · Sun, Earth and the horizon</span><span>4 / 7</span></div>
+    <div class="two">
+      <figure class="contain"><img src="demo/horizon.jpg" alt="The real terrain horizon of a zone with the Sun and Earth, the time left until each sets or rises, and three ways to meet the requirements"><figcaption>The terrain horizon comes from LOLA; the Moon has no atmosphere, so there is no refraction to add</figcaption></figure>
+      <div class="col">
+        <h2>Where they are, <em>and for how long.</em></h2>
+        <ul class="points">
+          <li><b>Sun and Earth against the real horizon</b> of the site, for any date and time from 2026 to 2030.</li>
+          <li><b>Time left</b> until sunset or Earthset, or until they rise again.</li>
+          <li><b>When a plan fails, three ways out</b>, each one click: another date, another zone, taller equipment.</li>
+          <li><b>Compare</b> up to six scenarios side by side, on a 90-day timeline of sunlight and Earth contact.</li>
+          <li><b>Share</b> a scenario with a link, so science and engineering look at the same numbers.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot"><span>Sun: any part of the disc above the terrain. Earth: its centre. Panel assumed vertical and Sun-tracking.</span><span></span></div>
+  </div>
+</section>
+
+<!-- 5 · 3D Moon -->
+<section class="slide">
+  <div class="stage">
+    <div class="bar"><span><b>Horizon Signai</b> · The 3D Moon</span><span>5 / 7</span></div>
+    <div class="two wide">
+      <div class="col">
+        <h2>Every landing site, <em>on real relief.</em></h2>
+        <ul class="points">
+          <li><b>62 sites</b>: Apollo, Luna, Surveyor, Chang'e, Chandrayaan, commercial deliveries and south pole candidate regions, each with its source.</li>
+          <li><b>LOLA relief</b> for the globe and the south pole, with 8,876 official place names.</li>
+          <li><b>Pick a date</b>: the real Sun, Earth and shadows, and each site's Sun and Earth against its horizon.</li>
+          <li>A polar point <b>opens in the planner</b> with one click.</li>
+        </ul>
+      </div>
+      <figure><img src="demo/map3d.jpg" alt="A 3D globe of the Moon with landing sites marked and the record of one site: date, coordinates, elevation, slope, and the Sun and Earth on the chosen date"><figcaption>signal-horizon.goberna.us/3d-map</figcaption></figure>
+    </div>
+    <div class="foot"><span>Sites: NASA NSSDCA, PGDA and published mission records · names: IAU / USGS Gazetteer</span><span></span></div>
+  </div>
+</section>
+
+<!-- 6 · NASA data and validation -->
+<section class="slide">
+  <div class="stage">
+    <div class="bar"><span><b>Horizon Signai</b> · NASA data, checked</span><span>6 / 7</span></div>
+    <div class="col" style="justify-content: center">
+      <h2>NASA data is the engine. <em>We checked it against the record.</em></h2>
+      <table>
+        <thead><tr><th>NASA data</th><th>What it does here</th><th>How it was checked</th></tr></thead>
+        <tbody>
+          <tr><td><b>JPL Horizons</b>, DE441 ephemeris, 2026 to 2030</td><td>Where the Sun and Earth are, from any site and date</td><td>Against Horizons queried directly for two sites: worst difference <span class="n">0.0065°</span></td></tr>
+          <tr><td><b>LRO LOLA</b> terrain: 5 m south pole models (PGDA) and 240 m polar grid</td><td>The real horizon of each site</td><td>Sunlight at Connecting Ridge over 18.6 years: <span class="n">36.6%</span>, published maps give <span class="n">38.5%</span> (Mazarico et al. 2011)</td></tr>
+          <tr><td><b>NASA TN D-6846</b>, Apollo 11 descent plan</td><td>Example vehicle for the descent simulation</td><td>Touchdown at <span class="n">712 s</span>; the report plans <span class="n">714 s</span></td></tr>
+          <tr><td><b>NSSDCA</b> landing records, <b>Blue Marble</b></td><td>The 62 sites and the Earth of the 3D Moon</td><td>A script compares the map with the NASA catalogues</td></tr>
+        </tbody>
+      </table>
+      <p class="next">Nothing is queried live: each product is downloaded once by a script and stored with its provenance. <b>The engine's own suite ran 113 tests with 0 failures</b>; the app keeps its own tests of the key cases.</p>
+    </div>
+    <div class="foot"><span>Details and tolerances: README and docs in the repository</span><span></span></div>
+  </div>
+</section>
+
+<!-- 7 · Who it is for and what is next -->
+<section class="slide">
+  <div class="stage">
+    <div class="bar"><span><b>Horizon Signai</b> · Who it is for</span><span>7 / 7</span></div>
+    <div class="col" style="justify-content: center">
+      <h2>A replan in minutes, <em>for more than specialists.</em></h2>
+      <div class="who">
+        <div><h3>Mission planners</h3><p>Re-check a site and date the moment the schedule moves, and send the scenario to the team as a link.</p></div>
+        <div><h3>Science and engineering</h3><p>One set of figures and definitions for both: light, link, longest night, longest silence.</p></div>
+        <div><h3>Educators and the public</h3><p>A guided flight over the pole and EVA, a guide robot that explains each screen, in English or Spanish.</p></div>
+      </div>
+      <p class="next"><b>Next:</b> 5 m horizons for every candidate region, real LOLA relief inside the planner map, and a 3D rehearsal of the days on the surface.</p>
+      <div class="links">
+        <a href="https://signal-horizon.goberna.us">signal-horizon.goberna.us</a>
+        <a href="https://github.com/Goberna-Lab/Horizon-signai">github.com/Goberna-Lab/Horizon-signai</a>
+      </div>
+    </div>
+    <div class="foot"><span>Built with an AI coding assistant; EVA's answers are generated and her voice is synthesized. Every figure is computed from the cited data.</span><span>Not endorsed by NASA</span></div>
+  </div>
+</section>
+
+<p class="hint">↑ ↓ or space</p>
+<script>
+  // Flechas, espacio o Re Pág / Av Pág pasan de diapositiva.
+  (function () {
+    var slides = [].slice.call(document.querySelectorAll('.slide'));
+    function current() { var y = window.scrollY + window.innerHeight / 2, i = 0; slides.forEach(function (s, k) { if (s.offsetTop <= y) i = k; }); return i; }
+    document.addEventListener('keydown', function (e) {
+      var d = (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') ? 1 : (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = Math.min(slides.length - 1, Math.max(0, current() + d));
+      slides[n].scrollIntoView({ behavior: 'smooth' });
+    });
+  })();
+</script>
+</body>
+</html>
