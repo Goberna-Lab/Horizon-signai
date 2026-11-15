@@ -29,10 +29,11 @@ export const actions = {
   simulator: { label: "Open the simulator", to: routes.simulator },
 }
 
+/** La barra superior lleva a las pantallas de la aplicación. */
 export const nav = [
-  { label: "Software", href: "#software" },
-  { label: "Validation", href: "#validation" },
-  { label: "Data", href: "#data" },
+  { label: "Simulator", to: routes.simulator },
+  { label: "Planner", to: routes.missionPlanner },
+  { label: "3D Map", to: routes.map3d },
 ]
 
 export type Fact = { value: string; label: string }

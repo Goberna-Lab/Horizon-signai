@@ -8,11 +8,11 @@ export function Header() {
       <Link className="ln-bar__brand" to={routes.landing}>
         {brand.name}
       </Link>
-      <nav className="ln-bar__nav" aria-label="On this page">
+      <nav className="ln-bar__nav" aria-label="Screens">
         {nav.map((item) => (
-          <a key={item.href} href={item.href}>
+          <Link key={item.to} to={item.to}>
             {item.label}
-          </a>
+          </Link>
         ))}
       </nav>
       <Link className="ln-bar__cta" to={actions.planner.to}>
