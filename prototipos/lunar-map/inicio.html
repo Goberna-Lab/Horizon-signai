@@ -12,7 +12,7 @@
 <!-- El flujo guiado pasa de aquí al planificador: sus archivos se piden ya, con la página en reposo, para que abra sin espera. -->
 <link rel="prefetch" href="index.html"><link rel="prefetch" href="data/efemerides-luna.js"><link rel="prefetch" href="data/zonas.js"><link rel="prefetch" href="engine.js"><link rel="prefetch" href="terrain.js"><link rel="prefetch" href="i18n-es.js">
 <style>
-/* Centro de misiones: dashboard de la campaña. A la izquierda, próximo hito y firma; a la derecha, indicadores, mapa y misiones a la par, calendario y bitácora */
+/* Centro de misiones: dashboard de la campaña. A la izquierda, próximo hito y firma; a la derecha, indicadores, calendario y bitácora en pestañas, y mapa y misiones a la par */
 .app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
 .app::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; background-image: var(--grano); background-size: 160px 160px; }
 .app::after { content: ""; position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(200,16,46,0.6), transparent); }
@@ -258,30 +258,10 @@
 
     </div>
 
-    <!-- derecha: indicadores; sitios de misión y misiones a la par; calendario y bitácora -->
+    <!-- derecha: indicadores; calendario y bitácora en pestañas; sitios de misión y misiones a la par -->
     <div class="col">
       <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
 
-      <div class="duo">
-        <section class="paper panel sites" aria-labelledby="sites-t">
-          <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
-          <div class="screen">
-            <div class="glass-inner">
-              <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
-              <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the south pole with the mission sites" id="smap"></svg>
-              <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
-              <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
-              <p class="caption">Sun at 8° · generated terrain · PGDA sites</p>
-            </div>
-            <span class="led" aria-hidden="true"></span>
-          </div>
-        </section>
-
-        <section class="paper panel upcoming" aria-labelledby="up-t">
-          <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
-          <div class="mlist" id="mlist"></div>
-        </section>
-      </div>
 
       <section class="paper panel board">
         <div class="ph">
@@ -318,6 +298,27 @@
           <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
         </div>
       </section>
+
+      <div class="duo">
+        <section class="paper panel sites" aria-labelledby="sites-t">
+          <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
+          <div class="screen">
+            <div class="glass-inner">
+              <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
+              <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the south pole with the mission sites" id="smap"></svg>
+              <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
+              <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
+              <p class="caption">Sun at 8° · generated terrain · PGDA sites</p>
+            </div>
+            <span class="led" aria-hidden="true"></span>
+          </div>
+        </section>
+
+        <section class="paper panel upcoming" aria-labelledby="up-t">
+          <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
+          <div class="mlist" id="mlist"></div>
+        </section>
+      </div>
     </div>
   </div>
   <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · map relief generated to illustrate</span><button type="button" id="resetDemo">Reset demo</button></p>
