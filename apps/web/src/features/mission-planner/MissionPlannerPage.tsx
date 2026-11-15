@@ -1,3 +1,6 @@
+import { ComingSoon } from "@/shared/ui/ComingSoon"
+
 export function MissionPlannerPage() {
-  return <section className="screen" />
+  // Provisional: se reemplaza por el planificador.
+  return <ComingSoon label="Mission planner" />
 }

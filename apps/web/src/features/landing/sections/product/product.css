@@ -1,0 +1,1495 @@
+/*
+ * La ventana del producto: las pantallas del software dentro de la landing.
+ *
+ * Sigue el diseño del software: papel y tinta, títulos y cifras en serif, rótulos en versalitas, el Sol en rojo
+ * y la Tierra en azul. La ventana no tiene barra propia: el selector de vistas va encima, con los controles de la
+ * página, y el día y la noche los marca el Sol del sitio. Todo cuelga de `.sw` para no tocar el resto de la página.
+ */
+
+/* --- Selector de vistas ----------------------------------------------------------------------------------------- */
+
+.sw-views {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: clamp(24px, 3.2vw, 40px);
+}
+
+.sw-views button {
+  margin: 0 -1px -1px 0;
+  padding: 11px 14px 10px;
+  border: var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.sw-views button:hover {
+  background: var(--shade);
+}
+
+.sw-views button[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* --- Cielo de noche --------------------------------------------------------------------------------------------- */
+
+/*
+ * Las estrellas y la galaxia (NightSky.tsx) van detrás de toda la sección y ocupan la pantalla entera: el lienzo
+ * se queda fijo mientras la página pasa por encima. `--stars` va de 0 a 1 con el final del anochecer.
+ */
+.sw-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: clip;
+  pointer-events: none;
+  opacity: var(--stars, 0);
+}
+
+.sw-sky canvas {
+  position: sticky;
+  top: 0;
+  display: block;
+  width: 100%;
+  height: 100lvh;
+}
+
+#software > .ln-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- La ventana ------------------------------------------------------------------------------------------------- */
+
+.sw-frame {
+  margin-top: clamp(14px, 1.6vw, 20px);
+}
+
+.sw {
+  /*
+   * La ventana usa los colores de la página, que siguen al Sol del sitio (`--night` y `--night-text`, en `.ln`):
+   * de día va en papel y, cuando el Sol se pone, se apaga junto con toda la pantalla. Aquí solo se afinan los
+   * matices propios de las figuras.
+   */
+  --sw-bg: var(--paper);
+  --sw-ink: var(--ink);
+  --sw-soft: var(--ink-soft);
+  --sw-rule: color-mix(in srgb, rgb(244 239 230 / 0.36) calc(var(--night-text) * 100%), var(--ink-day));
+  --sw-hair: var(--shade);
+  --sw-terrain: color-mix(in srgb, #4b4742 calc(var(--night) * 100%), var(--ink-day));
+  --sw-sun: var(--signal);
+  --sw-earth: var(--earth);
+  --sw-hatch: color-mix(in srgb, rgb(244 239 230 / 0.3) calc(var(--night-text) * 100%), rgb(17 17 17 / 0.34));
+  --sw-on-terrain: color-mix(in srgb, rgb(244 239 230 / 0.82) calc(var(--night-text) * 100%), var(--paper-day));
+  --sw-pad: clamp(16px, 2.2vw, 32px);
+  border: 1.5px solid var(--sw-ink);
+  /* De noche el fondo se vuelve casi transparente: la vista flota sobre el cielo. */
+  background: color-mix(in srgb, var(--sw-bg) calc((1 - 0.88 * var(--stars, 0)) * 100%), transparent);
+  color: var(--sw-ink);
+  font-family: var(--font-display);
+}
+
+/* Pie de figura: la nota de la vista, debajo de la ventana. */
+.sw-caption {
+  margin-top: 12px;
+  max-width: 96ch;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* Navegadores sin mezcla de colores: las figuras se quedan de día. */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .sw {
+    background: var(--sw-bg);
+    --sw-rule: var(--ink-day);
+    --sw-terrain: var(--ink-day);
+    --sw-hatch: rgb(17 17 17 / 0.34);
+    --sw-on-terrain: var(--paper-day);
+  }
+}
+
+/* --- Piezas comunes ----------------------------------------------------------------------------------------- */
+
+.sw-label,
+.sw-count span,
+.sw-stats dt,
+.sw-card dt {
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sw-soft);
+}
+
+.sw-field {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--sw-rule);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.sw-seg {
+  display: inline-flex;
+  border: 1px solid var(--sw-rule);
+}
+
+.sw-seg button {
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  font: 500 0.8125rem/1 var(--font-display);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.sw-seg button + button {
+  border-left: 1px solid var(--sw-rule);
+}
+
+.sw-seg button:hover {
+  background: var(--sw-hair);
+}
+
+.sw-seg button[aria-pressed="true"] {
+  background: var(--sw-ink);
+  color: var(--sw-bg);
+}
+
+/* Estado con glifo: activo (relleno), limitado (contorno) y negado (rayado). */
+.sw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid var(--sw-ink);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sw-chip::before {
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols", system-ui, sans-serif;
+  font-size: 1.05em;
+  letter-spacing: 0;
+}
+
+.sw-chip[data-state="on"] {
+  background: var(--sw-ink);
+  color: var(--sw-bg);
+}
+/* La segunda forma deja el glifo sin texto alternativo: el estado ya lo dice la palabra. */
+.sw-chip[data-state="on"]::before {
+  content: "\2713";
+  content: "\2713" / "";
+}
+.sw-chip[data-state="limited"]::before {
+  content: "\25D0";
+  content: "\25D0" / "";
+}
+.sw-chip[data-state="off"] {
+  border-color: var(--sw-rule);
+  background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 6px);
+}
+.sw-chip[data-state="off"]::before {
+  content: "\2715";
+  content: "\2715" / "";
+}
+
+.sw-note {
+  margin-top: var(--sw-pad);
+  max-width: 96ch;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--sw-soft);
+}
+
+.sw-lede {
+  max-width: 62ch;
+  margin-bottom: var(--sw-pad);
+  font-size: 1.0625rem;
+  line-height: 1.45;
+}
+
+.sw-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.sw-key::before {
+  content: "";
+  width: 13px;
+  height: 13px;
+  background: var(--sw-ink);
+}
+
+.sw-key[data-key="sun"]::before {
+  background: var(--sw-sun);
+}
+.sw-key[data-key="earth"]::before {
+  background: var(--sw-earth);
+}
+.sw-key[data-key="earth-line"]::before {
+  height: 3px;
+  background: var(--sw-earth);
+}
+.sw-key[data-key="none"]::before {
+  border: 1px solid var(--sw-rule);
+  background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 5px);
+}
+
+.sw__panel {
+  padding: var(--sw-pad);
+}
+
+/* --- Cabecera de cada vista ----------------------------------------------------------------------------------- */
+
+.sw-view__head {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 28px);
+  margin-bottom: var(--sw-pad);
+}
+
+.sw-view__title {
+  font: 900 clamp(2.25rem, 4.6vw, 4rem) / 0.95 var(--font-serif);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* El filete que sigue al título, como en el software. */
+.sw-view__head::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  height: 1px;
+  background: var(--sw-rule);
+}
+
+.sw-view__head > :not(.sw-view__title) {
+  order: 2;
+}
+
+/* --- Cielo en polar ------------------------------------------------------------------------------------------- */
+
+.sw-polar {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.sw-polar__sky {
+  fill: none;
+}
+
+.sw-polar__ring,
+.sw-polar__level {
+  fill: none;
+  stroke: var(--sw-soft);
+  stroke-width: 1.25;
+  stroke-dasharray: 0.1 5;
+  stroke-linecap: round;
+}
+
+.sw-polar__level {
+  stroke: var(--sw-ink);
+  stroke-dasharray: 5 4;
+  stroke-linecap: butt;
+  stroke-width: 1;
+}
+
+.sw-polar__centre,
+.sw-polar__tick {
+  fill: none;
+  stroke: var(--sw-ink);
+  stroke-width: 1.25;
+}
+
+.sw-polar__terrain {
+  fill: var(--sw-terrain);
+}
+
+.sw-polar__rim {
+  fill: none;
+  stroke: var(--sw-ink);
+  stroke-width: 2;
+}
+
+.sw-polar__other {
+  fill: none;
+  stroke: var(--sw-bg);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.85;
+}
+
+.sw-polar__path {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-dasharray: 0.1 7;
+  stroke-linecap: round;
+}
+
+.sw-polar__path--sun {
+  stroke: var(--sw-sun);
+}
+
+.sw-polar__path--earth {
+  stroke: var(--sw-earth);
+}
+
+.sw-polar__path[data-hidden="true"] {
+  opacity: 0.55;
+}
+
+.sw-polar__below {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  fill: var(--sw-on-terrain);
+}
+
+.sw-polar__az {
+  font-weight: 600;
+  font-size: 14px;
+  fill: var(--sw-ink);
+}
+
+.sw-polar__el {
+  font-size: 12px;
+  fill: var(--sw-soft);
+  paint-order: stroke;
+  stroke: var(--sw-bg);
+  stroke-width: 4px;
+}
+
+.sw-polar__body line {
+  stroke: var(--sw-ink);
+  stroke-width: 1;
+}
+
+.sw-polar__body circle {
+  stroke: var(--sw-bg);
+  stroke-width: 2;
+}
+
+.sw-polar__body--sun circle {
+  fill: var(--sw-sun);
+}
+
+.sw-polar__body--earth circle {
+  fill: var(--sw-earth);
+}
+
+.sw-polar__body text {
+  font-weight: 600;
+  font-size: 15px;
+  fill: var(--sw-ink);
+  paint-order: stroke;
+  stroke: var(--sw-bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.sw-polar__body[data-seen="false"] circle {
+  fill-opacity: 0.4;
+  stroke: var(--sw-ink);
+  stroke-width: 1;
+}
+
+/* En miniatura el dibujo se ve a menos de la mitad: los trazos y los rótulos se agrandan. */
+.sw-polar--mini .sw-polar__path {
+  stroke-width: 6;
+  stroke-dasharray: 0.1 13;
+}
+.sw-polar--mini .sw-polar__az {
+  font-size: 30px;
+}
+.sw-polar--mini .sw-polar__rim {
+  stroke-width: 3;
+}
+.sw-polar--mini .sw-polar__ring,
+.sw-polar--mini .sw-polar__level {
+  stroke-width: 2;
+}
+.sw-polar--mini .sw-polar__other {
+  stroke-width: 3;
+  stroke-dasharray: 6 7;
+}
+
+/* --- Lander --------------------------------------------------------------------------------------------------- */
+
+.sw-lander__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+/* El gráfico se mide a sí mismo: sus rótulos crecen cuando se dibuja pequeño, esté en la pantalla que esté. */
+.sw-lander__sky {
+  container-type: inline-size;
+  justify-self: center;
+  width: 100%;
+  max-width: 640px;
+  min-width: 0;
+}
+
+@container (max-width: 470px) {
+  .sw-polar--full .sw-polar__az {
+    font-size: 22px;
+  }
+  .sw-polar--full .sw-polar__body text {
+    font-size: 24px;
+  }
+  .sw-polar--full .sw-polar__el {
+    font-size: 19px;
+  }
+  .sw-polar--full .sw-polar__below {
+    font-size: 15px;
+  }
+  .sw-polar--full .sw-polar__path {
+    stroke-width: 4.5;
+    stroke-dasharray: 0.1 9;
+  }
+}
+
+.sw-lander__side {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: var(--sw-pad);
+  border-left: 1px solid var(--sw-rule);
+}
+
+.sw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: clamp(14px, 1.8vw, 24px);
+  border-bottom: 1px solid var(--sw-rule);
+}
+
+.sw-count {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: clamp(14px, 1.8vw, 24px) 0;
+  border-bottom: 1px solid var(--sw-rule);
+}
+
+.sw-count strong {
+  font: 900 clamp(2.75rem, 6.2vw, 5.75rem) / 0.92 var(--font-serif);
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.sw-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: clamp(14px, 1.8vw, 24px);
+}
+
+.sw-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 clamp(10px, 1.4vw, 20px);
+}
+
+.sw-stats > div:first-child {
+  padding-left: 0;
+}
+
+.sw-stats > div + div {
+  border-left: 1px solid var(--sw-rule);
+}
+
+.sw-stats dd {
+  font: 700 clamp(1.5rem, 2.8vw, 2.5rem) / 1 var(--font-serif);
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.sw-stats small {
+  font: 500 0.4em/1 var(--font-display);
+  letter-spacing: 0;
+  color: var(--sw-soft);
+}
+
+.sw-lander__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px clamp(14px, 2vw, 28px);
+  margin-top: var(--sw-pad);
+  padding-top: clamp(14px, 1.6vw, 20px);
+  border-top: 1px solid var(--sw-rule);
+}
+
+.sw-play {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 36px;
+  border: 1.5px solid var(--sw-ink);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 140ms;
+}
+
+.sw-play:hover {
+  background: var(--sw-hair);
+}
+
+/* Triángulo de reproducir y, en marcha, las dos barras de pausa. */
+.sw-play i {
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-style: solid;
+  border-width: 7px 0 7px 12px;
+  border-color: transparent transparent transparent var(--sw-ink);
+}
+
+.sw-play[data-playing="true"] i {
+  width: 12px;
+  height: 14px;
+  margin-left: 0;
+  border-width: 0 4px;
+  border-color: var(--sw-ink);
+}
+
+.sw-lander__date {
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sw-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-left: auto;
+  list-style: none;
+}
+
+.sw-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.sw-legend li::before {
+  content: "";
+  width: 26px;
+  height: 11px;
+  background: var(--sw-sun);
+}
+
+.sw-legend li[data-key="earth"]::before {
+  background: var(--sw-earth);
+}
+
+.sw-legend li[data-key="none"]::before {
+  border: 1px solid var(--sw-rule);
+  background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 5px);
+}
+
+/* --- Línea de tiempo ------------------------------------------------------------------------------------------ */
+
+.sw-time {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  margin-top: clamp(22px, 2.6vw, 34px);
+}
+
+.sw-time__names {
+  display: grid;
+  grid-template-rows: 18px 18px;
+  gap: 8px;
+}
+
+.sw-time__names span {
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sw-time__plot {
+  position: relative;
+  display: grid;
+  grid-template-rows: 18px 18px 26px;
+  gap: 8px;
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.sw-time__plot:focus-visible {
+  outline: 2px solid var(--sw-ink);
+  outline-offset: 6px;
+}
+
+.sw-time__bar,
+.sw-strip {
+  position: relative;
+  background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 5px);
+}
+
+.sw-time__bar i,
+.sw-strip i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--sw-sun);
+}
+
+.sw-time__bar[data-body="earth"] i,
+.sw-strip i {
+  background: var(--sw-earth);
+}
+
+.sw-time__axis {
+  position: relative;
+  border-top: 1px solid var(--sw-ink);
+}
+
+.sw-time__axis span {
+  position: absolute;
+  top: 0;
+  padding: 9px 0 0 0;
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  color: var(--sw-soft);
+}
+
+.sw-time__axis span::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 6px;
+  border-left: 1px solid var(--sw-ink);
+}
+
+.sw-time__axis span:first-child {
+  transform: none;
+}
+.sw-time__axis span:first-child::before {
+  left: 0;
+}
+.sw-time__axis span[data-end="true"] {
+  transform: translateX(-100%);
+}
+.sw-time__axis span[data-end="true"]::before {
+  left: 100%;
+}
+
+.sw-time__now {
+  position: absolute;
+  top: -5px;
+  height: 54px;
+  width: 0;
+  border-left: 1.5px solid var(--sw-ink);
+  pointer-events: none;
+}
+
+.sw-time__now span {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding-bottom: 9px;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sw-time__now span::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  margin-left: -5px;
+  border-style: solid;
+  border-width: 7px 5px 0;
+  border-color: var(--sw-ink) transparent transparent;
+}
+
+/* --- Tarjetas (Comparar y Aprender) ---------------------------------------------------------------------------- */
+
+.sw-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--sw-rule);
+  background: var(--sw-rule);
+}
+
+.sw-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(14px, 1.8vw, 24px);
+  background: var(--sw-bg);
+}
+
+.sw-card__name {
+  font: 700 clamp(1.375rem, 2.1vw, 1.875rem) / 1.05 var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+.sw-card__where {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  color: var(--sw-soft);
+}
+
+.sw-card__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 18px);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sw-hair);
+}
+
+.sw-card__figures {
+  display: grid;
+  gap: clamp(14px, 1.6vw, 22px);
+}
+
+.sw-card__figures > div {
+  display: grid;
+  gap: 6px;
+}
+
+.sw-card__figures dd {
+  font: 700 clamp(1.25rem, 1.9vw, 1.75rem) / 1 var(--font-serif);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.sw-card__big {
+  justify-self: start;
+  padding-bottom: 6px;
+  border-bottom: 3px solid var(--sw-sun);
+  font: 900 clamp(2.25rem, 4vw, 3.5rem) / 1 var(--font-serif) !important;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.sw-card__gauge {
+  height: 7px;
+  border-bottom: 1px solid var(--sw-rule);
+}
+
+.sw-card__gauge i {
+  display: block;
+  height: 6px;
+  background: var(--sw-ink);
+}
+
+.sw-card__earth {
+  margin-top: clamp(14px, 1.6vw, 22px);
+  padding-top: 12px;
+  border-top: 1px solid var(--sw-hair);
+}
+
+.sw-card__earth p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+}
+
+.sw-card__earth p span:first-child {
+  margin-right: auto;
+}
+
+.sw-strip {
+  height: 16px;
+}
+
+.sw-strip b {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 0;
+  border-left: 1.5px solid var(--sw-ink);
+}
+
+.sw-card__verdict {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: clamp(14px, 1.6vw, 22px);
+}
+
+.sw-card__verdict p {
+  padding-left: 12px;
+  border-left: 1px solid var(--sw-rule);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.sw-pull {
+  margin-top: var(--sw-pad);
+  padding-left: clamp(12px, 1.4vw, 18px);
+  border-left: 4px solid var(--sw-sun);
+  font: italic 700 clamp(1.375rem, 2.7vw, 2.25rem) / 1.15 var(--font-serif);
+  /* La cursiva con descendentes necesita aire abajo. */
+  padding-bottom: 4px;
+  text-wrap: balance;
+}
+
+.sw-card--learn {
+  gap: 4px;
+}
+
+.sw-card--learn .sw-polar {
+  width: min(100%, 300px);
+  margin: 0 auto 10px;
+}
+
+.sw-card--learn .sw-card__big {
+  margin-top: 14px;
+}
+
+/* --- Calendario ----------------------------------------------------------------------------------------------- */
+
+.sw-months__readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-height: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.sw-months__readout strong {
+  font: 900 1.75rem/1 var(--font-serif);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.sw-months__readout strong[data-key="sun"] {
+  color: var(--sw-sun);
+}
+
+.sw-months__readout strong[data-key="earth"] {
+  margin-left: 12px;
+  color: var(--sw-earth);
+}
+
+.sw-months__plot {
+  display: grid;
+  grid-template-columns: repeat(61, minmax(0, 1fr));
+  height: clamp(150px, 20vw, 290px);
+  border-bottom: 1px solid var(--sw-ink);
+  touch-action: pan-y;
+}
+
+.sw-months__slot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 clamp(0.5px, 0.14vw, 2px);
+  cursor: crosshair;
+}
+
+.sw-months__bar {
+  width: 100%;
+  min-height: 1px;
+  background: var(--sw-sun);
+}
+
+.sw-months__slot[data-active="true"] .sw-months__bar {
+  background: var(--sw-ink);
+}
+
+/* Marca de la Tierra: su porcentaje, a la misma escala que las barras del Sol. */
+.sw-months__slot i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--sw-earth);
+  transform: translateY(50%);
+}
+
+.sw-months__axis {
+  display: grid;
+  grid-template-columns: repeat(61, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.sw-months__axis span {
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--sw-soft);
+}
+
+.sw-months__caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 26px;
+  margin-top: 18px;
+}
+
+/* --- Mapa ----------------------------------------------------------------------------------------------------- */
+
+.sw-map__main {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  border: 1px solid var(--sw-rule);
+}
+
+.sw-map__chart {
+  border-right: 1px solid var(--sw-rule);
+}
+
+.sw-map__plate {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.sw-map__plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sw-pin {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 0;
+  background:
+    linear-gradient(var(--ink), var(--ink)) center / 13px 2px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center / 2px 13px no-repeat;
+  cursor: pointer;
+}
+
+.sw-pin::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  background: var(--paper);
+}
+
+.sw-pin:hover,
+.sw-pin[aria-pressed="true"] {
+  z-index: 2;
+  background:
+    linear-gradient(var(--sw-sun), var(--sw-sun)) center / 17px 2.5px no-repeat,
+    linear-gradient(var(--sw-sun), var(--sw-sun)) center / 2.5px 17px no-repeat !important;
+}
+
+/* El sitio elegido no recibe clics: así no tapa a un vecino que queda a pocos píxeles. */
+.sw-pin[aria-pressed="true"] {
+  pointer-events: none;
+}
+
+.sw-pin[aria-pressed="true"]::before {
+  inset: -3px;
+  border: 2px solid var(--sw-sun);
+  background: transparent !important;
+}
+
+.sw-pin span {
+  position: absolute;
+  left: 26px;
+  top: 0;
+  display: none;
+  padding: 6px 8px 5px;
+  background: var(--signal);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.sw-pin:hover span,
+.sw-pin[aria-pressed="true"] span {
+  display: block;
+}
+
+.sw-map__list {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  border-top: 1px solid var(--sw-rule);
+}
+
+.sw-map__list li {
+  flex: 1 1 auto;
+  margin: 0 -1px -1px 0;
+  border-right: 1px solid var(--sw-hair);
+  border-bottom: 1px solid var(--sw-hair);
+}
+
+.sw-map__list button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  font: 500 0.8125rem/1 var(--font-display);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms;
+}
+
+.sw-map__list button:hover {
+  background: var(--sw-hair);
+}
+
+.sw-map__list button[aria-pressed="true"] {
+  background: var(--sw-ink);
+  color: var(--sw-bg);
+}
+
+.sw-map__panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--sw-pad);
+}
+
+.sw-map__name {
+  margin-top: 8px;
+  font: 900 clamp(1.875rem, 3.4vw, 3rem) / 1 var(--font-serif);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.sw-map__panel .sw-note {
+  margin-top: auto;
+  padding-top: var(--sw-pad);
+}
+
+/* --- Tablas --------------------------------------------------------------------------------------------------- */
+
+.sw-table {
+  width: 100%;
+  margin-top: clamp(16px, 2vw, 26px);
+  border-collapse: collapse;
+  border-top: 1px solid var(--sw-ink);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.sw-table caption {
+  caption-side: top;
+  padding-bottom: 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sw-soft);
+}
+
+.sw-table th,
+.sw-table td {
+  padding: 8px 0 8px 14px;
+  text-align: right;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sw-table th:first-child,
+.sw-table td:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.sw-table thead th {
+  padding-top: 10px;
+  padding-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sw-soft);
+}
+
+.sw-table tbody th {
+  font-weight: 500;
+  white-space: normal;
+}
+
+.sw-table tbody tr:nth-child(3n + 1):not(:first-child) {
+  border-top: 1px solid var(--sw-hair);
+}
+
+.sw-table--regions th,
+.sw-table--regions td {
+  font-size: 0.9375rem;
+}
+
+/* --- Plan B --------------------------------------------------------------------------------------------------- */
+
+.sw-scroll {
+  overflow-x: auto;
+}
+
+.sw-table--plan {
+  min-width: 760px;
+  margin-top: 0;
+}
+
+.sw-table--plan th,
+.sw-table--plan td {
+  padding-top: 16px;
+  padding-bottom: 15px;
+  vertical-align: middle;
+}
+
+.sw-table--plan tbody tr {
+  border-top: 1px solid var(--sw-hair) !important;
+}
+
+.sw-table--plan tbody th {
+  font: 700 clamp(1.125rem, 1.6vw, 1.375rem) / 1.15 var(--font-serif);
+}
+
+.sw-table--plan tbody th small,
+.sw-table--plan tbody th .sw-label {
+  display: block;
+  margin-top: 5px;
+  font: 400 0.8125rem/1.3 var(--font-display);
+  color: var(--sw-soft);
+}
+
+.sw-table--plan tbody th .sw-label {
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 0.6875rem;
+}
+
+.sw-table--plan td strong {
+  display: block;
+  font: 700 clamp(1.25rem, 2vw, 1.75rem) / 1 var(--font-serif);
+}
+
+.sw-table--plan td small {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sw-soft);
+}
+
+/* Lo que empeora respecto del plan va en el color de señal. */
+.sw-table--plan td small[data-up="false"] {
+  color: var(--sw-sun);
+}
+
+.sw-plan__base {
+  background: var(--sw-hair);
+}
+
+.sw-plan__base th {
+  padding-left: 14px !important;
+}
+
+.sw-table--plan td:last-child {
+  padding-right: 14px;
+}
+
+/* Cifras alineadas (no de estilo antiguo) en todo lo que va en serif. Va al final porque `font` las reinicia. */
+.sw-view__title,
+.sw-count strong,
+.sw-stats dd,
+.sw-card__name,
+.sw-card__figures dd,
+.sw-card__big,
+.sw-pull,
+.sw-months__readout strong,
+.sw-map__name,
+.sw-table--plan tbody th,
+.sw-table--plan td strong {
+  font-variant-numeric: lining-nums tabular-nums !important;
+}
+
+/* --- Lander a la medida de la pantalla -------------------------------------------------------------------------
+ *
+ * En pantallas anchas la vista Lander cabe entera sin desplazarse: el selector de vistas, el título, el cielo, las
+ * cuentas regresivas, la barra de reproducción y la línea de tiempo. El bloque central (cielo y cifras) toma el
+ * alto que queda libre y lo de dentro se mide contra ese alto (unidades cqh): en un portátil bajo todo encoge a
+ * la vez, y en una pantalla alta queda como estaba.
+ */
+
+@media (min-width: 900px) {
+  .sw[data-view="lander"] {
+    --sw-pad: clamp(16px, min(2.2vw, 3.2svh), 32px);
+    --sw-title: clamp(2.25rem, min(4.6vw, 6.6svh), 4rem);
+    /* Lo que ocupa la ventana sin el bloque central: bordes, márgenes, título, barra de reproducción y línea de tiempo. */
+    --sw-rest: calc(4 * var(--sw-pad) + 0.95 * var(--sw-title) + 172px);
+    /* Alto libre: la pantalla visible menos la barra de la página, el selector de vistas y un margen. */
+    --sw-main: calc(100svh - var(--bar) - 80px - var(--sw-rest));
+  }
+
+  .sw[data-view="lander"] .sw-view__title {
+    font-size: var(--sw-title);
+  }
+
+  /* El ancho de la vista dice cuánto mediría el cielo sin límite de alto (48,6 % del ancho, 619 px como mucho). */
+  .sw-lander {
+    container-type: inline-size;
+  }
+
+  .sw-lander__main {
+    container-type: size;
+    height: max(264px, min(619px, 48.6cqi, var(--sw-main)));
+  }
+
+  /* El cielo es casi cuadrado (600 x 580): su ancho sale del alto disponible. */
+  .sw-lander__sky {
+    width: min(100%, 103.4cqh);
+  }
+
+  .sw-lander__side {
+    min-height: 0;
+  }
+
+  .sw-chips {
+    padding-bottom: min(clamp(14px, 1.8vw, 24px), 3.6cqh);
+  }
+
+  .sw-count {
+    gap: min(8px, 1.6cqh);
+    padding: min(clamp(14px, 1.8vw, 24px), 3.6cqh) 0;
+  }
+
+  .sw-count strong {
+    font-size: min(clamp(2.75rem, 6.2vw, 5.75rem), 16cqh);
+  }
+
+  .sw-stats {
+    padding-top: min(clamp(14px, 1.8vw, 24px), 3.6cqh);
+  }
+
+  .sw-stats > div {
+    gap: min(10px, 2cqh);
+  }
+
+  .sw-stats dd {
+    font-size: min(clamp(1.5rem, 2.8vw, 2.5rem), 7.4cqh);
+  }
+}
+
+/* --- Según el ancho -------------------------------------------------------------------------------------------
+ *
+ *   desde 900 px    las vistas en columnas.
+ *   700 a 899 px    tabletas: las vistas siguen en columnas, con tarjetas más prietas.
+ *   hasta 699 px    teléfonos: una sola columna.
+ */
+
+@media (max-width: 899px) {
+  .sw-view__head {
+    flex-wrap: wrap;
+  }
+  .sw-legend {
+    margin-left: 0;
+  }
+  .sw-table th,
+  .sw-table td {
+    padding-left: 8px;
+  }
+  .sw-table thead th {
+    letter-spacing: 0.06em;
+    white-space: normal;
+  }
+  .sw-table--plan {
+    min-width: 0;
+  }
+}
+
+/* Tabletas: tres tarjetas por fila, con el cielo arriba y las cifras debajo. */
+@media (min-width: 700px) and (max-width: 899px) {
+  .sw-card__name {
+    min-height: 2.1em;
+  }
+  .sw-card__main {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 12px;
+  }
+  .sw-card__main .sw-polar {
+    width: min(100%, 160px);
+  }
+  .sw-card__figures {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 10px;
+  }
+  .sw-card__big {
+    font-size: 1.875rem !important;
+  }
+  .sw-card__verdict {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 10px;
+  }
+  .sw-card__verdict p {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .sw-card--learn .sw-polar {
+    width: min(100%, 200px);
+  }
+  .sw-table--plan td:last-child {
+    padding-right: 8px;
+  }
+}
+
+@media (max-width: 699px) {
+  .sw-lander__main,
+  .sw-map__main,
+  .sw-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sw-lander__side {
+    padding: var(--sw-pad) 0 0;
+    border-left: 0;
+  }
+  .sw-time {
+    grid-template-columns: 52px minmax(0, 1fr);
+    /* La línea de tiempo deja sitio al rótulo "Now". */
+    margin-top: 40px;
+  }
+  /* Las dos últimas marcas del eje se montarían. */
+  .sw-time__axis span:nth-last-child(2) {
+    display: none;
+  }
+  .sw-map__chart {
+    border-right: 0;
+    border-bottom: 1px solid var(--sw-rule);
+  }
+  .sw-map__list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .sw-map__list li {
+    flex: 0 0 auto;
+  }
+  .sw-card--learn .sw-polar {
+    width: min(100%, 240px);
+  }
+
+  /* Plan B: cada opción pasa de fila a bloque, con el nombre arriba y las cifras en dos columnas. */
+  .sw-table--plan {
+    border-top: 0;
+  }
+  .sw-table--plan thead {
+    display: none;
+  }
+  .sw-table--plan,
+  .sw-table--plan tbody {
+    display: block;
+  }
+  .sw-table--plan tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+    padding: 16px 0;
+    border-top: 1px solid var(--sw-rule) !important;
+  }
+  .sw-table--plan tbody tr.sw-plan__base {
+    padding: 16px 14px;
+  }
+  .sw-table--plan tbody th {
+    grid-column: 1 / -1;
+    padding: 0 !important;
+  }
+  .sw-table--plan td {
+    padding: 0 !important;
+    text-align: left;
+  }
+  .sw-table--plan td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sw-soft);
+  }
+  .sw-table--plan td:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Teléfonos anchos: la tarjeta tiene sitio de sobra y el cielo no debe comerse la fila. */
+@media (min-width: 480px) and (max-width: 699px) {
+  .sw-card__main {
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 399px) {
+  .sw-seg button {
+    padding: 0 9px;
+  }
+}
+
+@media (max-width: 339px) {
+  /* La unidad baja a su propia línea: en tres columnas tan estrechas no cabe al lado de la cifra. */
+  .sw-stats dd {
+    white-space: normal;
+  }
+  .sw-stats small {
+    display: block;
+    margin-top: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-views button {
+    transition: none;
+  }
+}

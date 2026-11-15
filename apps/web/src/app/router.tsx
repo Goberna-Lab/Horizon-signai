@@ -7,6 +7,8 @@ import { routes } from "./routes"
 export const router = createBrowserRouter([
   {
     Component: RootLayout,
+    // Mientras baja el trozo de la pantalla pedida no hay nada que pintar: se deja vacío a propósito.
+    HydrateFallback: () => null,
     children: [
       {
         path: routes.landing,

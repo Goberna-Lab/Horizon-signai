@@ -1,0 +1,68 @@
+/*
+ * Tokens de diseño compartidos por las tres pantallas.
+ * Paleta del equipo: fondo, sombra, textos y CTA. Los matices salen de la tinta con transparencia o de tramas.
+ * La única ampliación es su versión de noche, la misma lámina con la luz apagada.
+ */
+:root {
+  /* Color: de día, la paleta del equipo */
+  --paper-day: #f4efe6; /* Fondo */
+  --shade-day: #c9c1b6; /* Sombra */
+  --ink-day: #111111; /* Textos */
+  --signal-day: #c8102e; /* CTA */
+  /* Color de dato del software: la Tierra va en azul y el Sol en el rojo de señal. Solo dentro de las figuras. */
+  --earth-day: #1f5fa8;
+  --ink-soft-day: rgb(17 17 17 / 0.7); /* Texto secundario: la misma tinta, más ligera (8:1 sobre el fondo) */
+
+  /*
+   * De noche: la misma lámina con la luz apagada. Solo la usa la landing, que pasa de unos colores a otros cuando
+   * el Sol se pone en la ventana del software (ver `.ln` en landing.css).
+   */
+  --paper-night: #141312;
+  --shade-night: #3b3835;
+  --ink-night: #f4efe6;
+  --signal-night: #ea3b52;
+  --earth-night: #6f9ef1;
+  --ink-soft-night: rgb(244 239 230 / 0.68);
+
+  /* Los colores en uso. Por defecto, los de día. */
+  --paper: var(--paper-day);
+  --shade: var(--shade-day);
+  --ink: var(--ink-day);
+  --signal: var(--signal-day);
+  --earth: var(--earth-day);
+  --ink-soft: var(--ink-soft-day);
+
+  /* Tipografía */
+  --font-display: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* Tipografía del software (títulos y cifras de sus pantallas). */
+  --font-serif: "Playfair Display Variable", "Playfair Display", Georgia, "Times New Roman", serif;
+
+  /* Medidas */
+  --gutter: clamp(16px, 2.4vw, 36px);
+  --page: 1400px;
+  --bar: 64px;
+  --rule: 1px solid var(--ink);
+  --hairline: 1px solid var(--shade);
+
+  /* Capas */
+  --z-stage: 1;
+  --z-overlay: 2;
+  --z-bar: 20;
+  --z-grain: 30;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* En teléfonos la barra se encoge: el alto de pantalla es lo que más falta hace. */
+@media (max-width: 599px) {
+  :root {
+    --bar: 56px;
+  }
+}
+
+@media (max-height: 520px) {
+  :root {
+    --bar: 48px;
+  }
+}
