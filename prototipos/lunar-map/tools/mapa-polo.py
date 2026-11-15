@@ -104,37 +104,6 @@ def main() -> None:
     Image.fromarray(rgba, "RGBA").save(png, optimize=True)
     print("->", png, f"{png.stat().st_size / 1024:.0f} KB, {100 * (pend > 15).mean():.1f} % del mapa sobre 15°")
 
-    radar(cerca, lejos)
-
-
-def radar(cerca: dict, lejos: dict) -> None:
-    """data/radar-polo-sur.jpg: el fondo del radar de Missions. Disco de 200 km de radio alrededor del polo, a distancia
-    real (azimutal equidistante: r = distancia de arco), 0° E arriba, en tono fósforo sobre vidrio oscuro."""
-    N, RADIO_KM = 512, 200.0
-    c = (np.arange(N) + 0.5) / N * 2 - 1
-    u, w = np.meshgrid(c, c)
-    d_m = np.hypot(u, w) * RADIO_KM * 1000
-    colat = d_m / R_M
-    lon = np.arctan2(u, -w)
-    rho = 2 * R_M * np.tan(colat / 2)
-    X, Y = rho * np.sin(lon), rho * np.cos(lon)
-    h = muestrear(cerca, X, Y)
-    falta = np.isnan(h)
-    h[falta] = muestrear(lejos, X[falta], Y[falta])
-    h = np.nan_to_num(h, nan=float(np.nanmin(h)))
-    paso = 2 * RADIO_KM * 1000 / N
-    dzdy, dzdx = np.gradient(h, paso)
-    el, az = math.radians(30), math.radians(135)
-    lx, ly, lz = math.cos(el) * math.cos(az), -math.cos(el) * math.sin(az), math.sin(el)
-    nx, ny = -dzdx * 2.0, -dzdy * 2.0
-    luz = np.clip((nx * lx + ny * ly + lz) / np.sqrt(nx * nx + ny * ny + 1), 0, 1) ** 0.9
-    base, tinte = np.array([4, 17, 13], float), np.array([96, 168, 148], float)
-    rgb = base + luz[..., None] * tinte
-    rgb[np.hypot(u, w) > 1] = base
-    jpg = AQUI / "data" / "radar-polo-sur.jpg"
-    Image.fromarray(rgb.clip(0, 255).astype(np.uint8)).save(jpg, quality=70, optimize=True, progressive=True)
-    print("->", jpg, f"{jpg.stat().st_size / 1024:.0f} KB")
-
 
 if __name__ == "__main__":
     main()
