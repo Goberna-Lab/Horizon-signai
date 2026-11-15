@@ -3,6 +3,7 @@ import { serveStatic } from "@hono/node-server/serve-static"
 import { Hono } from "hono"
 import { compress } from "hono/compress"
 import { readFile } from "node:fs/promises"
+import type { IncomingMessage, Server, ServerResponse } from "node:http"
 import { join } from "node:path"
 import { Agent, setGlobalDispatcher } from "undici"
 import api from "./app.js"
@@ -55,13 +56,32 @@ const server = serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, (info) => 
 // —nginx reintenta esas en la otra copia— y termina las que tiene en curso, como una respuesta del asistente
 // que todavía se está transmitiendo. El tope de 125 s cubre el proxy_read_timeout de 120 s de nginx y queda
 // por debajo del stop_grace_period del compose, para que Docker no tenga que matarla.
+//
+// Las conexiones keep-alive no se esperan: nginx no le manda `Connection: close` a la app y el proxy de puertos
+// de Docker no le pasa a la app el cierre de nginx, así que una conexión ya servida queda abierta del lado de
+// la app. En VPS2, una que había servido un stream retuvo el apagado los 125 s enteros (medido 2026-11-15).
+// Por eso, mientras se apaga, cada respuesta que termina cierra su conexión, y las ociosas se cierran cada segundo.
+const http = server as Server
 let apagando = false
+http.on("request", (req: IncomingMessage, res: ServerResponse) => {
+  res.on("finish", () => {
+    if (apagando) req.socket.end()
+  })
+})
 const apagar = (senal: string) => {
   if (apagando) return
   apagando = true
   console.log(`${senal}: no acepto conexiones nuevas; termino las que están en curso`)
-  server.close(() => process.exit(0))
-  setTimeout(() => process.exit(0), 125_000).unref()
+  const inicio = Date.now()
+  http.close(() => {
+    console.log(`apagado ordenado en ${((Date.now() - inicio) / 1000).toFixed(1)} s`)
+    process.exit(0)
+  })
+  setInterval(() => http.closeIdleConnections(), 1000).unref()
+  setTimeout(() => {
+    console.log("apagado forzado a los 125 s: quedaban conexiones abiertas")
+    process.exit(0)
+  }, 125_000).unref()
 }
 process.on("SIGTERM", () => apagar("SIGTERM"))
 process.on("SIGINT", () => apagar("SIGINT"))

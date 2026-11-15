@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pide producción sin parar mientras corre un deploy y cuenta las respuestas fallidas (deploy/README.md).
-# Uso: scripts/vigilar-deploy.sh [url]   y Ctrl-C cuando el deploy terminó (o scripts/esperar-deploy.sh en otra terminal).
+# Uso: scripts/vigilar-deploy.sh [url]   y Ctrl-C (o kill, si corre en segundo plano) cuando el deploy terminó.
 # Fallida = sin respuesta (000) o 5xx. Un 4xx cuenta como bien: la app atendió.
 # GET /api/health cada 0,2 s; POST /api/z6/chat con un cuerpo inválido cada 2 s (la app responde 400 sin llamar a
 # la IA, y a ese ritmo no llega al límite de 60 por minuto por IP).
@@ -15,7 +15,7 @@ resumen() {
   [ "$malos" -eq 0 ]
   exit
 }
-trap resumen INT
+trap resumen INT TERM  # TERM: lanzado en segundo plano, bash ignora SIGINT
 
 mirar() {
   local metodo="$1" codigo
