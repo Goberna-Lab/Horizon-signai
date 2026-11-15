@@ -57,6 +57,20 @@ export async function ejecutarAccion(a: AccionIA, navegar: (a: string) => void |
     await navegar(destino)
     return true
   }
+  // Solo la usa el flujo guiado (recorridos.ts), la IA no tiene esta orden: espera hasta ~50 s a que aparezca un botón
+  // de la pantalla (p. ej. «Salir a caminar» al terminar el alunizaje) y lo pulsa.
+  if (a.tipo === "clic") {
+    const selector = String(a.selector)
+    for (let k = 0; k < 200; k++) {
+      const el = document.querySelector<HTMLElement>(selector)
+      if (el) {
+        el.click()
+        return true
+      }
+      await new Promise((r) => setTimeout(r, 250))
+    }
+    return false
+  }
   if (a.tipo === "language") {
     if (a.to !== "en" && a.to !== "es") return false
     setLang(a.to) // recarga la página en ese idioma

@@ -313,6 +313,8 @@ export default function EvaCompanera() {
   const [nombre, setNombre] = useState("")
   // Manos libres (./oido.ts y ./escucha.ts): el micrófono queda abierto y EVA escucha cuando espera algo.
   const [manos, setManos] = useState(false)
+  const manosRef = useRef(manos)
+  manosRef.current = manos
   const [oido, setOido] = useState("") // lo último que entendió, para mostrarlo en su globo
   const fraseActual = useRef({ frase: "", hasta: 0 }) // lo que dice EVA y hasta cuándo su eco puede colarse
   const oidoEva = useOido((wav) => void alOirFraseRef.current(wav))
@@ -752,6 +754,9 @@ export default function EvaCompanera() {
     async (frase: string, tipo: "idioma" | "nombre" | "oferta") => {
       // Mientras pregunta quién llega, trae ya la voz del primer paso de cada recorrido: al elegir, empieza sin espera.
       if (tipo === "oferta") for (const frase of [INICIO.pasos[0].texto, ...PERFILES.map((x) => x.saludo)]) precargarVoz(idiomaRef.current, frase[idiomaRef.current])
+      // Manos libres: con su primera pregunta pide el micrófono (el navegador muestra el permiso). Si el audio aún no
+      // está habilitado (nadie tocó la página), queda anotado y se abre con el primer toque (ver `habilitar`).
+      if (tipo !== "idioma" && !manosRef.current) void encenderManos()
       // El campo o los botones salen mientras lo dice, no al terminar: se le puede contestar desde ya.
       const dicho = hablar(frase, null)
       setPregunta(tipo)
@@ -794,14 +799,14 @@ export default function EvaCompanera() {
     setEstado("reposo")
     const t = TEXTOS[idiomaRef.current]
     // Mientras se carga, trae ya la voz de lo primero que va a decir (solo saluda en la landing).
-    if (ruta.current === routes.landing) for (const frase of [t.cualIdioma, t.hola]) precargarVoz(idiomaRef.current, frase)
+    if (ruta.current === routes.landing) precargarVoz(idiomaRef.current, t.hola)
     await esperar(CARGA_MS)
     if (ruta.current !== routes.landing || yaSaludo() || abiertaRef.current || conversandoRef.current) {
       ocupada.current = false
       return
     }
-    if (enVisita(IDIOMA_ELEGIDO)) await saludar()
-    else await preguntar(t.cualIdioma, "idioma")
+    // El idioma ya lo pregunta la landing (su tarjeta, al pausar la entrada): EVA no lo repite y saluda.
+    await saludar()
   }, [preguntar, saludar])
 
   // Apagada hasta que sale el Sol. En la landing, el Sol es el disco que sube por detrás de la cresta
@@ -995,7 +1000,8 @@ export default function EvaCompanera() {
       esperarEnPaso(frase)
       return
     }
-    // Las respuestas siguen a la vista mientras festeja: si le quitan la palabra, se puede volver a contestar.
+    // Acertó: la pregunta se cierra ya, así lo que diga mientras festeja (o el eco) no vuelve a empezar el festejo.
+    cerrarPregunta()
     if (!(await hablar(r.acierto[idiomaRef.current], "alegre")) || recorrido.current !== t) return
     void alPaso(true)
   }
@@ -1074,7 +1080,11 @@ export default function EvaCompanera() {
       /* sin almacenamiento: vale para esta página */
     }
     for (const frase of [...PUENTES[idiomaRef.current], SEGUIMOS[idiomaRef.current]]) precargarVoz(idiomaRef.current, frase)
-    setManos(await oidoEva.encender(audioCtx.current))
+    const ctx = audioCtx.current
+    if (!ctx || ctx.state !== "running") return // sin toque todavía: lo abre el primer toque en la página
+    const ok = await oidoEva.encender(ctx)
+    manosRef.current = ok
+    setManos(ok)
   }
   // EVA escucha solo cuando espera algo (el nombre, quién llega, una misión, el repaso o un paso del flujo).
   useEffect(() => {

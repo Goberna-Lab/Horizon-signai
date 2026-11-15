@@ -22,7 +22,8 @@
 // - SR-05, zona C, 5 may 2027 09:00: C NO GO (Sol 0,9° bajo el relieve y noche de 26 h contra 24 h); A y B GO.
 //   Salida «zona»: zona A el mismo día, GO. A y C están a unos 10 km (89,47° S 222,6° E y 89,78° S 204,0° E).
 // - El Sol no pasa de 1,59° sobre el polo entre 2026 y 2030: features/landing/flight/data/facts.json.
-// - El simulador 3D (features/simulator) aluniza en Connecting Ridge RoI 6, la zona A: por eso va en la misión CR-01.
+// - El simulador 3D (features/simulator) aluniza en Connecting Ridge RoI 6, la zona A: por eso va en la misión CR-01, con
+//   la caminata de después (tareas reales de una EVA de Artemis: tareas.ts; el traje: visorHud.ts).
 //
 // Voz: cada oración se graba por separado y por su texto exacto. Las oraciones que se repiten entre misiones están
 // escritas igual a propósito; los números van en letras. Tras cambiar un texto: `node apps/web/scripts/grabar-voz-eva.ts`.
@@ -190,8 +191,43 @@ export const MISIONES: Mision[] = [
           accion: { tipo: "open", screen: "simulator" },
           espera: 900,
           texto: {
-            en: "Now the full ride, in three dimensions. The descent flies itself. Drag to look around. Press next when we are down.",
-            es: "Ahora el viaje completo, en tres dimensiones. El descenso vuela solo. Arrastra para mirar alrededor. Pulsa siguiente cuando estemos abajo.",
+            en: "Now the full ride, in three dimensions. The descent flies itself. Drag to look around. Say next when we are down.",
+            es: "Ahora el viaje completo, en tres dimensiones. El descenso vuela solo. Arrastra para mirar alrededor. Di siguiente cuando estemos abajo.",
+          },
+        },
+        {
+          // La caminata del simulador (features/simulator/alunizaje: caminata.ts, tareas.ts, visorHud.ts): al posarse,
+          // la tarjeta final ofrece «Salir a caminar»; EVA la pulsa y el astronauta baja por la escalera.
+          etapa: 4,
+          accion: { tipo: "clic", selector: '.sim-lfp-end [data-act="out"]' },
+          espera: 2500,
+          texto: {
+            en: "We are down. Now the best part: we step outside. The astronaut climbs down the ladder, and you look through the helmet.",
+            es: "Ya estamos abajo. Ahora lo mejor: salimos. El astronauta baja por la escalera, y tú miras a través del casco.",
+          },
+        },
+        {
+          etapa: 4,
+          selector: ".sim-vh-rows",
+          texto: {
+            en: "This is the screen inside your helmet. Oxygen, the carbon dioxide filter, cooling water and battery all drain as you work, faster in the shade.",
+            es: "Esta es la pantalla dentro de tu casco. El oxígeno, el filtro de dióxido de carbono, el agua de refrigeración y la batería se gastan mientras trabajas, más rápido en la sombra.",
+          },
+        },
+        {
+          etapa: 4,
+          selector: ".sim-vh-feed",
+          texto: {
+            en: "Your tasks are real moonwalk jobs: check a landing leg, plant a seismometer far from the lander, put a solar panel where the Sun really shines, and collect samples in light and in shadow.",
+            es: "Tus tareas son trabajos reales de una caminata lunar: revisar una pata, instalar un sismómetro lejos de la nave, poner un panel solar donde de verdad dé el Sol y tomar muestras en la luz y en la sombra.",
+          },
+        },
+        {
+          etapa: 4,
+          selector: ".sim-vh-keys",
+          texto: {
+            en: "Walk with the arrow keys and look around with the mouse. Take a stroll if you like. Say next when you are ready for the quiz.",
+            es: "Camina con las flechas y mira alrededor con el ratón. Da un paseo si quieres. Di siguiente cuando estés listo para el repaso.",
           },
         },
         {
