@@ -10,8 +10,8 @@ Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`
 
 - **Tipografía compartida:** los títulos de los paneles de `inicio.html` usan la clase `display-caps` de `/ui/display-caps.css` (`apps/web/public/ui/`), que sirve la app. Abriendo la carpeta suelta, sin la app, caen a la fuente de reserva.
 - **Marca y navegación:** las tres páginas dicen Horizon Signai y enlazan a la landing, a Missions (`inicio.html`), al planificador y al mapa 3D.
-- **Vista inicial: el calendario se movió.** Sin escenario guardado, el planificador abre con el plan de CR-01 (18 dic 2026, las tres zonas GO) movido al 3 abr 2027: A y C NO GO, B GO. La barra bajo «Candidate zones» mueve la fecha ±1 día o ±1 semana y vuelve al plan. Son cifras de `engine.js`.
-- **Enlace al escenario.** El botón «Link» copia `/planner#z=…&t=…&stay=…&panel=…&antenna=…&battery=…&earth=…`; la página lee ese `#` al abrir (también `site=<id del catálogo>` y `lat`/`lon` para un punto propio).
+- **Vista inicial: el calendario se movió.** Sin escenario guardado, el planificador abre con el plan de CR-01 (18 dic 2026, las tres zonas GO) movido al 3 abr 2027: A y C NO GO, B GO. Son cifras de `engine.js`.
+- **Enlace al escenario.** La página lee al abrir `/planner#z=…&t=…&stay=…&panel=…&antenna=…&battery=…&earth=…` (ya no hay botón «Link» para copiarlo) (también `site=<id del catálogo>` y `lat`/`lon` para un punto propio).
 - **Cuánto queda.** Bajo el horizonte: «Sunlight left / Sunrise in» y «Earth contact left / Earthrise in», en el instante del cursor.
 - **Períodos rotulados.** Las tarjetas dicen que sus cifras son de la estadía; el resumen de la línea de tiempo, que son de la ventana de 90 días.
 - **LROC Quickmap.** Enlace al mismo lugar en Quickmap (estereográfica polar sur).
