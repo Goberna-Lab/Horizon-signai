@@ -74,9 +74,12 @@ export const opening = {
   },
 }
 
-/** Una etiqueta por intención: se usa igual en la barra, el inicio y el cierre. `short` es la de la barra en un teléfono. */
+/**
+ * Una etiqueta por intención: se usa igual en la barra, el inicio y el cierre. `short` es la de la barra en un teléfono.
+ * "Open the planner" lleva primero a Missions (`/planner`, la campaña); desde ahí se entra al planificador.
+ */
 export const actions = {
-  planner: { label: tr("Open the planner", "Abrir el planificador"), short: tr("Planner", "Planear"), to: plannerPath() },
+  planner: { label: tr("Open the planner", "Abrir el planificador"), short: tr("Planner", "Planear"), to: routes.lunarMap },
   map3d: { label: tr("Open the 3D map", "Abrir el mapa 3D"), to: routes.map3d },
 }
 
