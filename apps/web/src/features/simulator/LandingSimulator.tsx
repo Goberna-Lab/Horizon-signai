@@ -10,6 +10,8 @@ import "./alunizaje/alunizaje.css"
  * este componente solo lo monta y lo desmonta. Dónde y cuándo lo decide la planificación, no el simulador:
  *  · `?mission=<id>`: el sitio y la fecha de aterrizaje de esa misión del Planificador.
  *  · `?sitio=<id>&fecha=<ISO>`: un sitio del Planificador en una fecha (por ejemplo, desde un enlace del Planificador).
+ *  · `&ruta=segura|corta|cientifica&eva=<h>`: la ruta de la caminata y cuántas horas después del alunizaje sale la EVA
+ *    (la escena pasa entonces al Sol y la Tierra de ese momento). Sin ruta, la científica de CR-02.
  *  · Sin nada: el plan de la misión CR-01 (Connecting Ridge · RoI 6, 18 de diciembre de 2026, 09:00 UTC).
  */
 export function LandingSimulator() {
@@ -21,13 +23,16 @@ export function LandingSimulator() {
   const fecha = params.get("fecha")
   const ms = mission?.landingMs ?? (fecha ? Date.parse(fecha) : undefined)
   const msOk = ms != null && Number.isFinite(ms) ? ms : undefined
+  const ruta = params.get("ruta") ?? undefined
+  const evaN = Number(params.get("eva"))
+  const evaH = Number.isFinite(evaN) && evaN > 0 ? Math.min(evaN, 24 * 60) : undefined
 
   useEffect(() => {
     let alive = true
     let dispose: (() => void) | undefined
     void import("./alunizaje/world").then(async ({ startLanding }) => {
       if (!alive || !host.current) return
-      const stop = await startLanding(host.current, { siteId, ms: msOk })
+      const stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH })
       if (alive) dispose = stop
       else stop()
     })
@@ -35,7 +40,7 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [siteId, msOk])
+  }, [siteId, msOk, ruta, evaH])
 
   return (
     <section className="screen sim-alz-screen">

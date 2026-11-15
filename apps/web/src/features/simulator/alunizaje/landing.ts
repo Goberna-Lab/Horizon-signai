@@ -269,6 +269,8 @@ export class LandingSim {
     await this.load();
     const v = this.view;
     if (!v.now) return;
+    // Si la caminata anterior iluminó la escena con la hora de la EVA, el descenso vuelve a la del alunizaje
+    if (this._luzEva) { this._luzEva = false; await v.iluminarEn?.(v.tAlunizaje); }
     this.stop(true);
     this.active = true; this.locks = true;
     this.cineOutro = 0; this.tipped = false; this.q0 = null;
@@ -653,6 +655,13 @@ export class LandingSim {
   _startEgress() {
     const v = this.view;
     this.state = 'egress'; this.eT = 0;
+    // La EVA sale a la hora del plan: la escena pasa al Sol y la Tierra de ese momento (motor del Planificador)
+    const h = v.plan?.evaH ?? 0;
+    if (h > 0 && !this._luzEva && v.iluminarEn) {
+      this._luzEva = true;
+      this.flash(tr(`EVA as planned: ${h} h after landing. Light, Sun and Earth of that moment.`, `EVA según el plan: ${h} h después del alunizaje. Luz, Sol y Tierra de ese momento.`), 6000);
+      void v.iluminarEn(v.tAlunizaje + h * 3600e3);
+    }
     const m = new THREE.Matrix4().compose(this.lm.position, this.lm.quaternion, new THREE.Vector3(1, 1, 1));
     this.eg = Object.fromEntries(Object.entries(EG).map(([k, p]) => [k, new THREE.Vector3(...p).applyMatrix4(m)]));
     const g = new THREE.Vector3(0, 0, 3.05 * S + 1.15).applyMatrix4(m);

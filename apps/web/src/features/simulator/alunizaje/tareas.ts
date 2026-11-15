@@ -16,6 +16,12 @@ const MAX_HUELLAS = 600;
 const M_POR_PX = 4.7, MODULO_PX = { x: 430, y: 640 };
 const RUTA_CIENTIFICA = 'M430 640 C 470 590, 510 540, 560 520 S 760 570, 860 600 S 885 520, 893 470 S 905 390, 1000 300';
 const PARADAS_PX = [{ x: 560, y: 520 }, { x: 860, y: 600 }];
+/** Las tres rutas del Planificador (terrain.js, ROUTES): la elegida llega en el plan (`?ruta=`). */
+const RUTAS = {
+  cientifica: { d: RUTA_CIENTIFICA, paradas: PARADAS_PX, muestras: ['sol', 'sombra'], vueltaEn: 1 },
+  segura: { d: 'M430 640 C 520 660, 640 660, 760 620 S 860 560, 890 500 S 905 400, 1000 300', paradas: [{ x: 760, y: 620 }], muestras: ['sol'] },
+  corta: { d: 'M430 640 C 520 590, 620 510, 700 450 L 830 330 C 880 300, 950 296, 1000 300', paradas: [], muestras: [] },
+};
 const FUERA_DE_RUTA_M = 40;
 
 /** Muestrea un path SVG (M, L, C, S absolutos), como samplePath de prototipos/lunar-map/terrain.js. */
@@ -107,10 +113,12 @@ export class Tareas {
     if (this.started) return; this.started = true;
     const c = this.cam, v = this.view, o = c.lmPos ?? c.pos.clone();
     this.home = o.clone();
-    // Ruta: del módulo a la parada 2 (ahí el regreso es obligatorio)
-    const px = muestrearRuta(RUTA_CIENTIFICA, 24);
-    let fin = 0, best = 1e9;
-    px.forEach((p, k) => { const d = Math.hypot(p.x - PARADAS_PX[1].x, p.y - PARADAS_PX[1].y); if (d < best) { best = d; fin = k; } });
+    // Ruta del plan: la científica (CR-02) termina en la parada 2, donde el regreso es obligatorio; las otras, al final
+    const clave = RUTAS[v.plan?.ruta] ? v.plan.ruta : 'cientifica', R = RUTAS[clave];
+    this.clave = clave;
+    const px = muestrearRuta(R.d, 24);
+    let fin = px.length - 1;
+    if (R.vueltaEn != null) { let best = 1e9; px.forEach((p, k) => { const d = Math.hypot(p.x - R.paradas[R.vueltaEn].x, p.y - R.paradas[R.vueltaEn].y); if (d < best) { best = d; fin = k; } }); }
     this.ruta = px.slice(0, fin + 1).map((p) => aEscena(p, o));
     const linea = this.ruta.map((p) => new THREE.Vector3(p.x, v.groundY(p.x, p.z) + 0.15, p.z));
     const trazo = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linea), new THREE.LineDashedMaterial({ color: 0x9fe4f2, dashSize: 2.5, gapSize: 2, transparent: true, opacity: 0.85, depthWrite: false }));
@@ -125,18 +133,28 @@ export class Tareas {
       const r = new THREE.Mesh(new THREE.RingGeometry(2.6, 3, 40).rotateX(-Math.PI / 2), anillo); r.position.set(p.x, y + 0.08, p.z);
       this.group.add(m, r); this.samples.push({ name, mesh: m, taken: false, real: !!sitio });
     };
-    parada(PARADAS_PX[0], 'sol', (x, z) => this.lit(x, z));
-    parada(PARADAS_PX[1], 'sombra', (x, z) => !this.lit(x, z));
-    this.darkReal = this.samples[1].real;
+    R.paradas.forEach((pp, k) => parada(pp, R.muestras[k], R.muestras[k] === 'sombra' ? (x, z) => !this.lit(x, z) : (x, z) => this.lit(x, z)));
+    this.darkReal = !!this.samples.find((m) => m.name === 'sombra')?.real;
     const dist = (t) => Math.round(this.cam.pos.distanceTo(t));
-    this.steps = [
-      { text: () => (this._near(0) ? tr('Stop 1 · Lit rim: sample within reach · press E', 'Parada 1 · Borde iluminado: muestra a tu alcance · pulsa E') : tr(`Follow the scientific route to stop 1 · Lit rim · ${dist(this.samples[0].mesh.position)} m`, `Sigue la ruta científica hasta la parada 1 · Borde iluminado · ${dist(this.samples[0].mesh.position)} m`)),
-        target: () => this.samples[0].mesh.position, ok: () => this.samples[0].taken, msg: tr('Stop 1: sunlit sample stowed', 'Parada 1: muestra iluminada guardada'), kind: 'sampleSol' },
-      { text: () => (this._near(1) ? (c.lamps || !this.darkReal ? tr('Stop 2 · Permanent shadow: sample within reach · press E', 'Parada 2 · Sombra permanente: muestra a tu alcance · pulsa E') : tr('No sunlight here: turn on the lamps (L) to see the sample', 'Aquí no llega el Sol: enciende las lámparas (L) para ver la muestra')) : tr(`Continue to stop 2 · Permanent shadow (possible ice) · ${dist(this.samples[1].mesh.position)} m`, `Sigue hasta la parada 2 · Sombra permanente (posible hielo) · ${dist(this.samples[1].mesh.position)} m`)),
-        target: () => this.samples[1].mesh.position, ok: () => this.samples[1].taken, msg: tr('Stop 2: shadow sample stowed, a candidate for water ice', 'Parada 2: muestra en sombra guardada, candidata a contener hielo'), kind: 'sampleSombra' },
-      { text: () => tr(`Mandatory return at stop 2: back to the lander along the route · ${Math.round(this._dLM())} m`, `Regreso obligatorio en la parada 2: vuelve al módulo por la ruta · ${Math.round(this._dLM())} m`),
-        target: () => this.cam.lmPos ?? this.home, ok: () => this._dLM() < 6, msg: tr('Back at the lander: walk complete as planned', 'De vuelta en el módulo: caminata completada como se planificó') },
-    ];
+    if (clave === 'cientifica') {
+      this.steps = [
+        { text: () => (this._near(0) ? tr('Stop 1 · Lit rim: sample within reach · press E', 'Parada 1 · Borde iluminado: muestra a tu alcance · pulsa E') : tr(`Follow the scientific route to stop 1 · Lit rim · ${dist(this.samples[0].mesh.position)} m`, `Sigue la ruta científica hasta la parada 1 · Borde iluminado · ${dist(this.samples[0].mesh.position)} m`)),
+          target: () => this.samples[0].mesh.position, ok: () => this.samples[0].taken, msg: tr('Stop 1: sunlit sample stowed', 'Parada 1: muestra iluminada guardada'), kind: 'sampleSol' },
+        { text: () => (this._near(1) ? (c.lamps || !this.darkReal ? tr('Stop 2 · Permanent shadow: sample within reach · press E', 'Parada 2 · Sombra permanente: muestra a tu alcance · pulsa E') : tr('No sunlight here: turn on the lamps (L) to see the sample', 'Aquí no llega el Sol: enciende las lámparas (L) para ver la muestra')) : tr(`Continue to stop 2 · Permanent shadow (possible ice) · ${dist(this.samples[1].mesh.position)} m`, `Sigue hasta la parada 2 · Sombra permanente (posible hielo) · ${dist(this.samples[1].mesh.position)} m`)),
+          target: () => this.samples[1].mesh.position, ok: () => this.samples[1].taken, msg: tr('Stop 2: shadow sample stowed, a candidate for water ice', 'Parada 2: muestra en sombra guardada, candidata a contener hielo'), kind: 'sampleSombra' },
+        { text: () => tr(`Mandatory return at stop 2: back to the lander along the route · ${Math.round(this._dLM())} m`, `Regreso obligatorio en la parada 2: vuelve al módulo por la ruta · ${Math.round(this._dLM())} m`),
+          target: () => this.cam.lmPos ?? this.home, ok: () => this._dLM() < 6, msg: tr('Back at the lander: walk complete as planned', 'De vuelta en el módulo: caminata completada como se planificó') },
+      ];
+    } else {
+      // Ruta segura o corta: cada parada con su muestra, el final de la ruta (hacia el borde de Shackleton) y el regreso
+      const finPos = this.ruta[this.ruta.length - 1], meta = new THREE.Vector3(finPos.x, v.groundY(finPos.x, finPos.z), finPos.z), nombre = clave === 'segura' ? tr('safe route', 'ruta segura') : tr('short route', 'ruta corta');
+      this.steps = [
+        ...this.samples.map((m, k) => ({ text: () => (this._near(k) ? tr(`Stop ${k + 1}: sample within reach · press E`, `Parada ${k + 1}: muestra a tu alcance · pulsa E`) : tr(`Follow the ${nombre} to stop ${k + 1} · ${dist(m.mesh.position)} m`, `Sigue la ${nombre} hasta la parada ${k + 1} · ${dist(m.mesh.position)} m`)),
+          target: () => m.mesh.position, ok: () => m.taken, msg: tr(`Stop ${k + 1}: sample stowed`, `Parada ${k + 1}: muestra guardada`), kind: m.name === 'sombra' ? 'sampleSombra' : 'sampleSol' })),
+        { text: () => tr(`Reach the end of the ${nombre} · ${dist(meta)} m`, `Llega al final de la ${nombre} · ${dist(meta)} m`), target: () => meta, ok: () => Math.hypot(c.pos.x - meta.x, c.pos.z - meta.z) < 8, msg: tr('End of the route reached', 'Final de la ruta alcanzado') },
+        { text: () => tr(`Back to the lander along the route · ${Math.round(this._dLM())} m`, `Vuelve al módulo por la ruta · ${Math.round(this._dLM())} m`), target: () => this.cam.lmPos ?? this.home, ok: () => this._dLM() < 6, msg: tr('Back at the lander: walk complete as planned', 'De vuelta en el módulo: caminata completada como se planificó') },
+      ];
+    }
   }
 
   /** Distancia (m) de la posición a la ruta planificada. */
@@ -158,7 +176,7 @@ export class Tareas {
   get target() { return this.step?.target?.() ?? null; }
   text() {
     if (!this.started) return null;
-    if (this.done) return tr(`Walk complete · ${Math.round(this.cam.walked)} m walked, 2 samples`, `Caminata completada · ${Math.round(this.cam.walked)} m recorridos, 2 muestras`);
+    if (this.done) return tr(`Walk complete · ${Math.round(this.cam.walked)} m walked, ${this.samples.length} samples`, `Caminata completada · ${Math.round(this.cam.walked)} m recorridos, ${this.samples.length} muestras`);
     return `${this.i + 1}/${this.steps.length} · ${this.step.text()}`;
   }
 
@@ -166,7 +184,7 @@ export class Tareas {
   interact() {
     const c = this.cam;
     for (let k = 0; k < this.samples.length; k++) if (this._near(k)) {
-      if (k === 1 && this.darkReal && !c.lamps) { c.notice = tr('Too dark: turn on the helmet lamps (L)', 'Está demasiado oscuro: enciende las lámparas del casco (L)'); c.sonido?.blip(); return; }
+      if (this.samples[k].name === 'sombra' && this.darkReal && !c.lamps) { c.notice = tr('Too dark: turn on the helmet lamps (L)', 'Está demasiado oscuro: enciende las lámparas del casco (L)'); c.sonido?.blip(); return; }
       const s = this.samples[k]; s.taken = true; s.mesh.visible = false; c.sonido?.blip(true);
       return;
     }

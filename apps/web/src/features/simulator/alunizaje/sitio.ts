@@ -48,6 +48,11 @@ async function cielo(id: string, lat: number, lon: number, ms: number) {
   }
 }
 
+/** El cielo (Sol y Tierra) de un sitio ya cargado en otro instante: para la hora de la EVA. */
+export function cieloEn(site: DatosSitio & { id?: string }, ms: number) {
+  return cielo(site.id ?? SITIO_POR_DEFECTO, site.lat, site.lon, ms)
+}
+
 /** Carga el sitio `id` para el instante `ms` (si no hay `ms`, el del plan CR-01). */
 export async function cargarSitio(id = SITIO_POR_DEFECTO, ms?: number): Promise<Sitio> {
   if (id === SITIO_POR_DEFECTO || !siteById.has(id)) {

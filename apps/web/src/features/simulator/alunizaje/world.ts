@@ -3,7 +3,7 @@
 // Ridge · RoI 6, que trae relieve fino a 10 m. Encima, cerca del punto, el suelo de detalle con cráteres y rocas.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { cargarSitio } from './sitio';
+import { cargarSitio, cieloEn } from './sitio';
 import { verSol, rejillaDeLuz, pintarLuz } from './luz';
 import { LandingSim } from './landing';
 import { Sonido } from './sonido';
@@ -53,7 +53,7 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?: string; ms?: number } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number } = {}): Promise<() => void> {
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
   const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
@@ -94,56 +94,66 @@ export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?:
   for (let i = 0; i <= bins; i++) {
     const az = (i / bins) * 2 * Math.PI, r0 = site.wide.half * 0.97, x0 = Math.sin(az) * r0, z0 = -Math.cos(az) * r0;
     rp.set([x0, wide(x0, z0) - 40, z0, Math.sin(az) * RING_R, Math.tan(ringDeg[i] * D2R) * RING_R, -Math.cos(az) * RING_R], i * 6);
-    // El relieve lejano solo brilla por la cara que mira al Sol (con el Sol a la espalda de quien mira); el resto, en sombra
-    const cara = Math.max(0, -Math.cos(az - site.sun.az * D2R)) * site.sun.frac, k = 0.03 + 0.55 * Math.sqrt(cara);
-    col.set([0.02, 0.02, 0.02, k, k, k * 0.97], i * 6);
     if (i < bins) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   }
   const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rp, 3)); rg.setAttribute('color', new THREE.BufferAttribute(col, 3)); rg.setIndex(idx); rg.computeVertexNormals();
   scene.add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: 0x8a8884, roughness: 1, side: THREE.DoubleSide, vertexColors: true })));
 
-  // Cielo: estrellas, Sol (HDR) y, si está sobre el horizonte, la Tierra
+  // Cielo: estrellas, Sol (HDR) y la Tierra (se ve solo si está sobre el horizonte)
   const sp = new Float32Array(4000 * 3); for (let i = 0; i < 4000; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(SKY_D * 1.5); sp.set([v.x, v.y, v.z], i * 3); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
   scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.3, sizeAttenuation: false, transparent: true, opacity: 0.8 })));
   const dir = (az, el) => new THREE.Vector3(Math.cos(el * D2R) * Math.sin(az * D2R), Math.sin(el * D2R), -Math.cos(el * D2R) * Math.cos(az * D2R));
-  const sd = dir(site.sun.az, site.sun.el);
-  // Sombras del relieve hacia el Sol (luz.ts): rasante en el polo, casi todo lo que no mira al Sol queda negro
-  const luzFina = rejillaDeLuz(groundY, sd, FH, 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, 100, 8000);
-  const luzDe = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? luzFina(x, z) : luzAmplia(x, z));
-  pintarLuz(mallaFina, luzDe); pintarLuz(mallaAmplia, luzDe);
-  pintarLuz(detailMesh.children[0], (x, z) => verSol(groundY, sd, x, z, 160, 1) * luzFina(x, z)); // cráteres y rocas: su propia sombra
+  let sd = dir(site.sun.az, site.sun.el);
   const sun = new THREE.Mesh(new THREE.SphereGeometry(Math.tan(site.sun.radius * D2R) * SKY_D, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xfff8e6).multiplyScalar(9), toneMapped: false }));
-  sun.position.copy(sd).multiplyScalar(SKY_D); scene.add(sun);
+  scene.add(sun);
   // Resplandor del Sol (el vacío no lo difunde: es el de la óptica, como en las fotos del Apollo)
   const glow = document.createElement('canvas'); glow.width = glow.height = 128;
   { const g = glow.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,240,200,1)'); gr.addColorStop(0.15, 'rgba(255,220,150,.5)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
   const glowTex = new THREE.CanvasTexture(glow); glowTex.colorSpace = THREE.SRGBColorSpace;
   const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-  sunGlow.position.copy(sun.position); sunGlow.scale.setScalar(Math.tan(site.sun.radius * D2R) * SKY_D * 14); scene.add(sunGlow);
-  // La Tierra, si está sobre el horizonte: continentes, nubes y su fase según dónde está el Sol
-  if (site.earth.visible) {
-    const ec = document.createElement('canvas'); ec.width = 512; ec.height = 256; const g = ec.getContext('2d');
+  sunGlow.scale.setScalar(Math.tan(site.sun.radius * D2R) * SKY_D * 14); scene.add(sunGlow);
+  // La Tierra: continentes, nubes y su fase según dónde está el Sol
+  const ec = document.createElement('canvas'); ec.width = 512; ec.height = 256;
+  { const g = ec.getContext('2d');
     g.fillStyle = '#1f4e8c'; g.fillRect(0, 0, 512, 256);
     const blob = (color, n, rmin, rmax) => { for (let k = 0; k < n; k++) { const x = Math.random() * 512, y = 256 * (0.15 + Math.random() * 0.7), r = rmin + Math.random() * (rmax - rmin); g.fillStyle = color; g.beginPath(); g.ellipse(x, y, r * 1.6, r, Math.random() * 3, 0, Math.PI * 2); g.fill(); } };
-    blob('#4f7a3a', 26, 8, 30); blob('#a68a5b', 10, 6, 18); g.globalAlpha = 0.75; blob('#ffffff', 60, 4, 20); g.fillRect(0, 0, 512, 18); g.fillRect(0, 238, 512, 18);
-    const map = new THREE.CanvasTexture(ec); map.colorSpace = THREE.SRGBColorSpace;
-    const earthMat = new THREE.ShaderMaterial({
-      uniforms: { map: { value: map }, sunDir: { value: sd.clone() } },
-      vertexShader: 'varying vec2 vUv; varying vec3 vN; void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: 'uniform sampler2D map; uniform vec3 sunDir; varying vec2 vUv; varying vec3 vN; void main(){ vec3 c = texture2D(map, vUv).rgb; float l = max(dot(normalize(vN), sunDir), 0.0); gl_FragColor = vec4(c * (0.1 + 1.25 * l), 1.0); }',
-    });
-    const e = new THREE.Mesh(new THREE.SphereGeometry(Math.tan(site.earth.radius * D2R) * SKY_D, 48, 32), earthMat);
-    e.position.copy(dir(site.earth.az, site.earth.el)).multiplyScalar(SKY_D); scene.add(e);
-  }
+    blob('#4f7a3a', 26, 8, 30); blob('#a68a5b', 10, 6, 18); g.globalAlpha = 0.75; blob('#ffffff', 60, 4, 20); g.fillRect(0, 0, 512, 18); g.fillRect(0, 238, 512, 18); }
+  const earthMap = new THREE.CanvasTexture(ec); earthMap.colorSpace = THREE.SRGBColorSpace;
+  const earthMat = new THREE.ShaderMaterial({
+    uniforms: { map: { value: earthMap }, sunDir: { value: sd.clone() } },
+    vertexShader: 'varying vec2 vUv; varying vec3 vN; void main(){ vUv = uv; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: 'uniform sampler2D map; uniform vec3 sunDir; varying vec2 vUv; varying vec3 vN; void main(){ vec3 c = texture2D(map, vUv).rgb; float l = max(dot(normalize(vN), sunDir), 0.0); gl_FragColor = vec4(c * (0.1 + 1.25 * l), 1.0); }',
+  });
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(Math.tan(site.earth.radius * D2R) * SKY_D, 48, 32), earthMat);
+  scene.add(earth);
 
   // Luz: Sol rasante con sombras que siguen a la nave, luz rebotada por el regolito y un mínimo de ambiente
-  const sunLight = new THREE.DirectionalLight(0xfff6e8, 4.2 * site.sun.frac);
+  const sunLight = new THREE.DirectionalLight(0xfff6e8, 0);
   sunLight.castShadow = true; sunLight.shadow.mapSize.set(2048, 2048); sunLight.shadow.bias = -0.0005;
   Object.assign(sunLight.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 3000 });
-  scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0x9aa6c0, 0.012), new THREE.HemisphereLight(0x05060a, 0xbdb7aa, 0.14 * site.sun.frac + 0.01));
+  const hemi = new THREE.HemisphereLight(0x05060a, 0xbdb7aa, 0.01);
+  scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0x9aa6c0, 0.012), hemi);
   // Luz cenicienta: la Tierra, si se ve, ilumina un poco las sombras (azulada)
-  if (site.earth.visible) { const tierraL = new THREE.DirectionalLight(0x8fb4ff, 0.06); tierraL.position.copy(dir(site.earth.az, site.earth.el)).multiplyScalar(1500); scene.add(tierraL); }
+  const tierraL = new THREE.DirectionalLight(0x8fb4ff, 0.06); scene.add(tierraL);
+
+  /** Ilumina la escena para un cielo (Sol y Tierra del motor del Planificador): sombras del relieve, astros y luces. */
+  function iluminar(c) {
+    sd = dir(c.sun.az, c.sun.el);
+    // Sombras del relieve hacia el Sol (luz.ts): rasante en el polo, casi todo lo que no mira al Sol queda negro
+    const luzFina = rejillaDeLuz(groundY, sd, FH, 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, 100, 8000);
+    const luzDe = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? luzFina(x, z) : luzAmplia(x, z));
+    pintarLuz(mallaFina, luzDe); pintarLuz(mallaAmplia, luzDe);
+    pintarLuz(detailMesh.children[0], (x, z) => verSol(groundY, sd, x, z, 160, 1) * luzFina(x, z)); // cráteres y rocas: su propia sombra
+    // El relieve lejano solo brilla por la cara que mira al Sol (con el Sol a la espalda de quien mira); el resto, en sombra
+    for (let i = 0; i <= bins; i++) { const az = (i / bins) * 2 * Math.PI, cara = Math.max(0, -Math.cos(az - c.sun.az * D2R)) * c.sun.frac, k = 0.03 + 0.55 * Math.sqrt(cara); col.set([0.02, 0.02, 0.02, k, k, k * 0.97], i * 6); }
+    rg.attributes.color.needsUpdate = true;
+    sun.position.copy(sd).multiplyScalar(SKY_D); sunGlow.position.copy(sun.position);
+    earth.visible = c.earth.visible; earth.position.copy(dir(c.earth.az, c.earth.el)).multiplyScalar(SKY_D); earthMat.uniforms.sunDir.value.copy(sd);
+    sunLight.intensity = 4.2 * c.sun.frac; hemi.intensity = 0.14 * c.sun.frac + 0.01;
+    tierraL.visible = c.earth.visible; tierraL.position.copy(dir(c.earth.az, c.earth.el)).multiplyScalar(1500);
+  }
+  iluminar(site);
 
   // La simulación espera una "vista" con estas piezas (en nuestro navegador las da la escena 3D completa)
   // Efectos del descenso (alarma, impacto, estática). La voz es la de EVA, la de toda la aplicación (avisarEva).
@@ -152,6 +162,13 @@ export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?:
   const view = {
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
+    // El plan: la ruta elegida en el Planificador y cuándo sale la EVA (horas después del alunizaje)
+    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0 }, tAlunizaje: Date.parse(site.time),
+    /** Vuelve a iluminar la escena con el cielo de otro instante (la hora de la EVA). */
+    async iluminarEn(t) {
+      const c = await cieloEn(site, t);
+      iluminar(c); view.now = { sun: { ...c.sun }, earth: { ...c.earth } }; view.time = Date.parse(c.time);
+    },
     eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 }, sonido,
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
     astro: createAstronaut(), // procedural: baja la escalera y camina (en primera persona casi no se ve)
