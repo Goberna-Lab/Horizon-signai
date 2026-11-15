@@ -272,7 +272,8 @@ export class LandingSim {
     if (!v.now) return;
     // Si la caminata anterior iluminó la escena con la hora de la EVA, el descenso vuelve a la del alunizaje
     v.rover?.stop(); document.querySelector('.sim-informe')?.remove();
-    if (this._luzEva) { this._luzEva = false; await v.iluminarEn?.(v.tAlunizaje); }
+    v.tSalida = null;
+    if (this._luzEva || v.cieloMovido) { this._luzEva = false; v.cieloMovido = false; await v.iluminarEn?.(v.tAlunizaje); }
     this.stop(true);
     this.active = true; this.locks = true;
     this.cineOutro = 0; this.tipped = false; this.q0 = null;
@@ -665,6 +666,7 @@ export class LandingSim {
     if (this.fp && v.eva) v.eva.root.style.visibility = '';
     this.fp = false; this.distant = false;
     const h = v.plan?.evaH ?? 0;
+    v.tSalida = v.tAlunizaje + h * 3600e3; // desde aquí corre el reloj de la EVA o del recorrido
     if (h > 0 && !this._luzEva && v.iluminarEn) { this._luzEva = true; void v.iluminarEn(v.tAlunizaje + h * 3600e3); }
     v.rover?.start(this.lmPos, Math.atan2(this.u.x, this.u.z), { lm: this.lm });
   }
@@ -675,6 +677,7 @@ export class LandingSim {
     this.state = 'egress'; this.eT = 0;
     // La EVA sale a la hora del plan: la escena pasa al Sol y la Tierra de ese momento (motor del Planificador)
     const h = v.plan?.evaH ?? 0;
+    v.tSalida = v.tAlunizaje + h * 3600e3; // desde aquí corre el reloj de la EVA o del recorrido
     if (h > 0 && !this._luzEva && v.iluminarEn) {
       this._luzEva = true;
       this.flash(tr(`EVA as planned: ${h} h after landing. Light, Sun and Earth of that moment.`, `EVA según el plan: ${h} h después del alunizaje. Luz, Sol y Tierra de ese momento.`), 6000);

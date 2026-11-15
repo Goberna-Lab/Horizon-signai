@@ -141,13 +141,15 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   const tierraL = new THREE.DirectionalLight(0x8fb4ff, 0.06); scene.add(tierraL);
 
   /** Ilumina la escena para un cielo (Sol y Tierra del motor del Planificador): sombras del relieve, astros y luces. */
-  function iluminar(c) {
+  function iluminar(c, sombras = true) {
     sd = dir(c.sun.az, c.sun.el);
+    if (sombras) {
     // Sombras del relieve hacia el Sol (luz.ts): rasante en el polo, casi todo lo que no mira al Sol queda negro
     const luzFina = rejillaDeLuz(groundY, sd, FH, movil ? 40 : 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, movil ? 160 : 100, 8000);
     const luzDe = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? luzFina(x, z) : luzAmplia(x, z));
     pintarLuz(mallaFina, luzDe); pintarLuz(mallaAmplia, luzDe);
     pintarLuz(detailMesh.children[0], (x, z) => verSol(groundY, sd, x, z, 160, 1) * luzFina(x, z)); // cráteres y rocas: su propia sombra
+    }
     // El relieve lejano solo brilla por la cara que mira al Sol (con el Sol a la espalda de quien mira); el resto, en sombra
     for (let i = 0; i <= bins; i++) { const az = (i / bins) * 2 * Math.PI, cara = Math.max(0, -Math.cos(az - c.sun.az * D2R)) * c.sun.frac, k = 0.03 + 0.55 * Math.sqrt(cara); col.set([0.02, 0.02, 0.02, k, k, k * 0.97], i * 6); }
     rg.attributes.color.needsUpdate = true;
@@ -162,6 +164,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   // Efectos del descenso (alarma, impacto, estática). La voz es la de EVA, la de toda la aplicación (avisarEva).
   const sonido = new Sonido();
   const sfx = { radio: (abre) => sonido.radio(abre), static: (d) => sonido.staticNoise(d), boom: () => sonido.boom(), programAlarm: () => sonido.programAlarm() };
+  const cielo = { t: Date.parse(site.time), sombras: Date.parse(site.time), pidiendo: false }; // último cielo calculado (reloj de la misión): al cargar, el del alunizaje
   const view = {
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
@@ -171,6 +174,18 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     async iluminarEn(t) {
       const c = await cieloEn(site, t);
       iluminar(c); view.now = { sun: { ...c.sun }, earth: { ...c.earth } }; view.time = Date.parse(c.time);
+      cielo.t = cielo.sombras = t;
+    },
+    /** Durante la EVA o el recorrido: el cielo avanza con el reloj de la misión. Sol y Tierra cada 10 min de misión
+     *  (barato: un punto del motor); las sombras del relieve, cada 2 h (caro: se vuelven a calcular). */
+    async cieloAl(t) {
+      if (cielo.pidiendo || (cielo.t != null && Math.abs(t - cielo.t) < 600e3)) return;
+      cielo.pidiendo = true;
+      try {
+        const c = await cieloEn(site, t), sombras = cielo.sombras == null || Math.abs(t - cielo.sombras) >= 7200e3;
+        iluminar(c, sombras); view.now = { sun: { ...c.sun }, earth: { ...c.earth } }; view.time = Date.parse(c.time);
+        cielo.t = t; if (sombras) cielo.sombras = t; view.cieloMovido = true;
+      } catch { /* sin tabla: se queda el cielo de antes */ } finally { cielo.pidiendo = false; }
     },
     eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 }, sonido,
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },

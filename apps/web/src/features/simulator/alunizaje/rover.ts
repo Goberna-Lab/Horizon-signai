@@ -109,6 +109,7 @@ export class Rover {
     this.luz.intensity = this.lamps ? 6 : 0;
     // Ruta y paradas (tareas.ts, sin el regreso)
     const lejos = this.tasks.lejosDeRuta; if (lejos && !this._lejos) this.stats.salidasRuta++; this._lejos = lejos;
+    if (v.tSalida != null) v.cieloAl?.(v.tSalida + this.s.t * 1000); // el Sol y la Tierra avanzan con el reloj del recorrido
     this.tasks.update();
     if (this.tasks.done && !this._informeVisto) { this._informeVisto = true; setTimeout(() => this.active && this._informe(), 2000); }
     this._camara(Math.min(0.05, dtReal));

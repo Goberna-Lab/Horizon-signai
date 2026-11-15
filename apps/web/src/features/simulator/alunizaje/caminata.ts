@@ -35,7 +35,9 @@ const PENDIENTE_LIMITE = 15; // grados: el límite de la ruta en el Planificador
 const CRATER_MIN_R = 2.5;  // cráteres que se avisan (radio, m): los más chicos se cruzan sin problema
 const CRATER_BORDE = 1.2;  // el borde levantado llega a ~1,2 radios del centro (detalle.ts)
 /** Límite de regreso (m) con el traje lleno, caminando a ~1 m/s: la mitad de lo que dura el consumible más escaso. */
-const WALKBACK_LLENO = Math.min((O2_KG - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J), WATER_KG / ((300 + 105) / SUBLIM_J_PER_KG), (BATT_WH * 3600) / 35, (LIOH_KJ * 1000) / 300) * 0.5;
+const PASO_MS = 1.3; // velocidad de marcha (m/s): la de la tecla W, más abajo
+// Límite de regreso con el traje lleno: la mitad de lo que dura el consumible más escaso (s), por la velocidad de marcha (m)
+const WALKBACK_LLENO = Math.min((O2_KG - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J), WATER_KG / ((300 + 105) / SUBLIM_J_PER_KG), (BATT_WH * 3600) / 35, (LIOH_KJ * 1000) / 300) * 0.5 * PASO_MS;
 const D2R = Math.PI / 180;
 const dir = (az, el) => new THREE.Vector3(Math.cos(el * D2R) * Math.sin(az * D2R), Math.sin(el * D2R), -Math.cos(el * D2R) * Math.cos(az * D2R));
 const fmt = (n, d = 0) => (Number.isFinite(n) ? n : 0).toLocaleString(tr('en-US', 'es-ES'), { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -168,7 +170,7 @@ export class Caminata {
     const vel = this.vel, want = new THREE.Vector3(), air = this.jumpY > 0;
     if (fwd || side) {
       const camDir = this.forward(), right = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0));
-      want.copy(camDir.multiplyScalar(fwd).add(right.multiplyScalar(side)).normalize()).multiplyScalar(lope ? 3.4 - 1.5 * this.fatigue : 1.3); // cansado se corre menos
+      want.copy(camDir.multiplyScalar(fwd).add(right.multiplyScalar(side)).normalize()).multiplyScalar(lope ? 3.4 - 1.5 * this.fatigue : PASO_MS); // cansado se corre menos
     }
     if (!air) vel.lerp(want, Math.min(1, dt0 / (want.lengthSq() > vel.lengthSq() ? 0.4 : 0.7))); // en el aire no hay con qué empujar
     if (vel.lengthSq() < 1e-4 && !want.lengthSq()) vel.set(0, 0, 0);
@@ -206,6 +208,7 @@ export class Caminata {
     this._mv = speed > 0.15;
     this._crater(speed);
     this._suit(dt0, speed, this._mv);
+    if (v.tSalida != null) v.cieloAl?.(v.tSalida + this.s.t * 1000); // el Sol y la Tierra avanzan con el reloj de la EVA
     this.tasks.update();
     if (this.tasks.done && !this._informeVisto) { // caminata completa: el informe de la misión, planificado frente a real
       this._informeVisto = true;
@@ -328,7 +331,8 @@ export class Caminata {
       h2o: s.water / (heatNow / SUBLIM_J_PER_KG), bat: (s.batt * 3600) / draw,
     };
     const o2Time = Math.max(0, (s.o2 - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J));
-    const walkback = Math.min(o2Time, s.water / ((300 + 105) / SUBLIM_J_PER_KG), (s.batt * 3600) / draw, ((LIOH_KJ - s.lioh) * 1000) / 300) * 0.5;
+    // Límite de regreso (m): la mitad del tiempo que queda del consumible más escaso, andando a la velocidad de marcha
+    const walkback = Math.min(o2Time, s.water / ((300 + 105) / SUBLIM_J_PER_KG), (s.batt * 3600) / draw, ((LIOH_KJ - s.lioh) * 1000) / 300) * 0.5 * PASO_MS;
     const dLM = this._dLM(), lm = this.lmPos;
     const bearingLM = lm ? ((Math.atan2(lm.x - this.pos.x, -(lm.z - this.pos.z)) * 180) / Math.PI + 360) % 360 : null;
     const yawDeg = ((((-this.yaw * 180) / Math.PI) % 360) + 360) % 360;
