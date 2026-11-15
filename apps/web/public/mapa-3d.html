@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--__MAP3D_BOOT__-->
 <link rel="modulepreload" href="/vendor/three-61adb2ba.js">
-<title>Horizon Signai · 3D Moon</title>
+<title>Horizon Signai · Mission Log</title>
 <meta name="description" content="Relieve lunar 3D con datos LOLA (NASA) y todos los sitios de alunizaje (NSSDCA), con luz solar real (JPL Horizons). Horizon Signai, NASA Space Apps 2026.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap">
@@ -30,6 +30,8 @@ button, input, select { font: inherit; color: inherit; }
 #panel { background: var(--paper); display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--mon-rule); }
 .cab { padding: 18px 20px 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
 .sol { width: 22px; height: 22px; border-radius: 50%; background: var(--red); }
+/* logo de Horizon Signai: el Sol sobre el horizonte */
+.cab .marca { display: block; width: 30px; height: auto; }
 .cab h1 { margin: 0; font: 600 var(--s-3)/1 var(--font-display); letter-spacing: -0.03em; }
 .cab small { display: block; color: var(--ink-2); font-size: var(--s--1); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
 .bloque { padding: 10px 20px; }
@@ -208,8 +210,8 @@ details.fuentes a { color: var(--ink); }
 <div id="app">
   <aside id="panel" aria-label="Filtros">
     <header class="cab">
-      <div class="sol" aria-hidden="true"></div>
-      <div><h1><a href="/" target="_top" style="color: inherit; text-decoration: none" title="Horizon Signai">Horizon Signai</a></h1><small data-t="subtitulo"></small></div>
+      <svg class="marca" viewBox="96 224 832 697" aria-hidden="true"><path d="M192 544a320 320 0 0 1 640 0z" fill="#C8102E"></path><path d="M96 614h832v51H96zM224 742h576v51H224zM352 870h320v51H352z" fill="#111111"></path></svg>
+      <div><h1><a href="/" target="_top" style="color: inherit; text-decoration: none" title="Horizon Signai" data-t="titulo">Mission Log</a></h1><small data-t="subtitulo"></small></div>
     </header>
     <div class="bloque">
       <p class="rotulo"><span data-t="vista"></span></p>
@@ -345,7 +347,7 @@ const RAD = Math.PI / 180
 // ---------------------------------------------------------------- textos
 const T = {
   es: {
-    titulo: 'Luna 3D', subtitulo: 'Luna 3D · relieve LOLA · alunizajes', planificar: 'Comparar en el planificador', planificarT: 'Abre este punto en el planificador, con la fecha del mapa: Sol, Tierra y veredicto frente a otras zonas y fechas', vista: 'Vista', globo: 'Globo', poloSur: 'Polo Sur',
+    titulo: 'Bitácora de misión', subtitulo: 'Luna 3D · relieve LOLA', planificar: 'Comparar en el planificador', planificarT: 'Abre este punto en el planificador, con la fecha del mapa: Sol, Tierra y veredicto frente a otras zonas y fechas', vista: 'Vista', globo: 'Globo', poloSur: 'Polo Sur',
     buscar: 'Buscar misión, agencia o región…', tipo: 'Tipo de sitio', agencia: 'Agencia', hasta: 'Hasta el año', todas: 'Todas',
     tripulada: 'Tripuladas', robotica: 'Robóticas', muestras: 'Retorno de muestras', rover: 'Rovers', impacto: 'Impactos y fallidos', candidata: 'Candidatos polo sur',
     tripulada1: 'Alunizaje tripulado', robotica1: 'Aterrizaje robótico', muestras1: 'Retorno de muestras', rover1: 'Rover (posición final)', impacto1: 'Impacto o intento fallido', candidata1: 'Sitio candidato (polo sur)',
@@ -367,7 +369,7 @@ const T = {
     nVis: (n) => `${n} a la vista`,
   },
   en: {
-    titulo: 'Moon 3D', subtitulo: 'Moon 3D · LOLA relief · landing sites', planificar: 'Compare in the planner', planificarT: 'Open this point in the planner, on the map date: Sun, Earth and verdict against other zones and dates', vista: 'View', globo: 'Globe', poloSur: 'South Pole',
+    titulo: 'Mission Log', subtitulo: 'Moon 3D · LOLA relief', planificar: 'Compare in the planner', planificarT: 'Open this point in the planner, on the map date: Sun, Earth and verdict against other zones and dates', vista: 'View', globo: 'Globe', poloSur: 'South Pole',
     buscar: 'Search mission, agency or region…', tipo: 'Site type', agencia: 'Agency', hasta: 'Up to year', todas: 'All',
     tripulada: 'Crewed', robotica: 'Robotic', muestras: 'Sample return', rover: 'Rovers', impacto: 'Impacts & failed', candidata: 'South-pole candidates',
     tripulada1: 'Crewed landing', robotica1: 'Robotic landing', muestras1: 'Sample return', rover1: 'Rover (final position)', impacto1: 'Impact or failed attempt', candidata1: 'Candidate site (south pole)',
