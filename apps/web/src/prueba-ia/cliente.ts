@@ -1,3 +1,5 @@
+import type { Oido } from "@horizon-signai/shared"
+
 export type Mensaje = { role: "user" | "assistant"; content: string }
 
 const pedir = async (ruta: string, init: RequestInit) => {
@@ -51,7 +53,14 @@ export const chatStream = async (
   }
 }
 
+/** Lo que oyó el API (primer evento de /voz/escuchar). */
+export type EventoOido = { t: "oido"; texto: string; ms: number; tipo: Oido }
+/** Qué quiso el usuario al hablar encima, según el 8B (etiqueta: add|correct|new|stop|ignore). */
+export type EventoIntencion = { t: "intencion"; intencion: string; acuse: string; ms: number; error?: string }
+
 export type EventoTurno =
+  | EventoOido
+  | EventoIntencion
   | { t: "texto"; d: string }
   | ({ t: "frase" } & import("./colaDeVoz").FraseDeVoz)
   | { t: "fin"; respuesta: string; modelo: string; ms: number; primeraVozMs: number }
@@ -59,6 +68,38 @@ export type EventoTurno =
 
 // Opus es ~15 veces más liviano que WAV; Safari antiguo no lo decodifica: ahí, MP3.
 const formatoDeVoz = () => (new Audio().canPlayType('audio/ogg; codecs="opus"') ? "opus" : "mp3")
+
+// Lee una respuesta NDJSON y llama a `alEvento` con cada línea, a medida que llegan.
+const leerEventos = async (r: Response, alEvento: (e: EventoTurno) => void) => {
+  const lector = r.body!.getReader()
+  const dec = new TextDecoder()
+  let resto = ""
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) break
+    resto += dec.decode(value, { stream: true })
+    const lineas = resto.split("\n")
+    resto = lineas.pop() ?? ""
+    for (const l of lineas) if (l.trim()) alEvento(JSON.parse(l) as EventoTurno)
+  }
+}
+
+/**
+ * Lo que el VAD cerró, en UN viaje al API (VPS2 está en Alemania: ~0,3 s por ida y vuelta): lo
+ * transcribe y decide. Con la IA callada y habla real, sigue con el turno en el mismo stream; con la
+ * IA en su turno, agrega la intención. Ver /voz/escuchar en apps/api/src/z6.ts.
+ */
+export const escuchar = async (
+  audio: Blob,
+  contexto: { iaHabla: boolean; dicho?: string; hablado?: string; pregunta?: string; messages?: Mensaje[] },
+  alEvento: (e: EventoTurno) => void,
+  signal?: AbortSignal,
+) => {
+  const form = new FormData()
+  form.append("audio", audio, "voz.wav")
+  form.append("contexto", JSON.stringify({ ...contexto, formato: formatoDeVoz() }))
+  await leerEventos(await pedir("/voz/escuchar", { method: "POST", body: form, signal }), alEvento)
+}
 
 // Turno de voz en streaming: la respuesta llega como líneas NDJSON (texto, audio por frase, fin).
 // Con `acuse` (del 8B): el API lo dice primero mientras el 27B piensa la respuesta.
@@ -74,17 +115,7 @@ export const turnoDeVoz = async (
     body: JSON.stringify({ messages, formato: formatoDeVoz(), acuse }),
     signal,
   })
-  const lector = r.body!.getReader()
-  const dec = new TextDecoder()
-  let resto = ""
-  for (;;) {
-    const { done, value } = await lector.read()
-    if (done) break
-    resto += dec.decode(value, { stream: true })
-    const lineas = resto.split("\n")
-    resto = lineas.pop() ?? ""
-    for (const l of lineas) if (l.trim()) alEvento(JSON.parse(l) as EventoTurno)
-  }
+  await leerEventos(r, alEvento)
 }
 
 export type InfoVoz ={ idioma: "en" | "es"; voz: string; motor: string; equipo: string }
@@ -107,16 +138,6 @@ export const enFrases = (texto: string) => {
     else frases.push(f)
   }
   return frases
-}
-
-// Qué quiso el usuario al hablar encima de la respuesta (qwen3:8b en Geografo, ~0,4 s).
-export const clasificar = async (pregunta: string, dicho: string, oido: string) => {
-  const r = await pedir("/voz/clasificar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pregunta, dicho, oido }),
-  })
-  return (await r.json()) as { tipo: string; acuse: string; ms: number }
 }
 
 export const transcribir = async (audio: Blob) => {

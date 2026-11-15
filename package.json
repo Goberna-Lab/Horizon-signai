@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "concurrently -n web,api -c cyan,magenta npm:dev:web npm:dev:api",
     "dev:web": "npm run dev -w @horizon-signai/web",
-    "dev:api": "npm run dev -w @horizon-signai/api"
+    "dev:api": "npm run dev -w @horizon-signai/api",
+    "test": "node --test 'apps/web/src/**/*.test.ts' 'packages/shared/src/**/*.test.ts'"
   },
   "devDependencies": {
     "concurrently": "^10.0.7"

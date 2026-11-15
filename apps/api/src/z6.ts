@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
-import type { Z6Respuesta } from "@horizon-signai/shared"
+import { clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
 
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
 const z6Url = () => process.env.Z6_URL ?? "http://100.82.117.21:11434"
@@ -22,7 +22,7 @@ const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz", "/voz/turno", "/voz/clasificar"])
+const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
 // Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
 const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
@@ -71,6 +71,19 @@ const SISTEMA_VOZ: Record<ServicioVoz["idioma"], string> = {
 }
 
 type Mensaje = { role: "user" | "assistant"; content: string }
+
+// Si la frase del 27B empieza repitiendo el acuse que ya dijo el 8B (a veces lo imita pese a la
+// nota), devuelve la frase sin esas palabras ("" si no queda nada). Si no lo repite, null.
+const soloLetras = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+export const quitarAcuse = (frase: string, acuse: string): string | null => {
+  const f = soloLetras(frase)
+  const a = soloLetras(acuse)
+  if (!f || !a) return null
+  if (a.startsWith(f)) return "" // la frase es el acuse o un pedazo
+  if (!f.startsWith(`${a} `)) return null
+  const n = a.split(" ").length
+  return frase.trim().split(/\s+/).slice(n).join(" ").replace(/^[,;:—-]\s*/, "")
+}
 
 // Clasificador de lo que el usuario dice ENCIMA de la respuesta de voz: qwen3:8b de Geografo, que no
 // toca la Z6 (pisaría la caché del 27B). 11/11 en casos de prueba; ~0,4 s con el modelo caliente.
@@ -185,7 +198,8 @@ export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], str
 // Con `acuse` (del 8B, ver /voz/clasificar): suena primero, mientras el 27B genera. El 27B no lo
 // recibe como prefill (en modo chat con think:false se corta o sale vacío: medido) sino como nota
 // al final del último mensaje, que no rompe la caché. La respuesta final incluye el acuse.
-const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse = ""): Response => {
+// `primero`: evento que sale antes que todo (lo usa /voz/escuchar para mandar lo que oyó).
+const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse = "", primero?: unknown): Response => {
   const voz = servicioVoz()
   const enc = new TextEncoder()
   const corte = new AbortController()
@@ -203,6 +217,7 @@ const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse
     const t0 = performance.now()
     let primeraVozMs = 0
     let n = 0
+    let repetida: [string, string] | null = null // [frase del 27B, la misma sin el acuse repetido]
     let cola: Promise<void> = Promise.resolve() // una frase a la vez y en orden
     const hablarFrase = (crudo: string) => {
       const i = n++
@@ -281,11 +296,20 @@ const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse
           emitir({ t: "texto", d: delta })
           const [listas, resto] = cortarFrases(buffer, n === 0)
           buffer = resto
-          listas.forEach(hablarFrase)
+          for (const f of listas) {
+            // Primera frase del 27B tras un acuse: si lo repite, se dice sin él (ya sonó).
+            const sin: string | null = acuse && n === 1 && !repetida ? quitarAcuse(f, acuse) : null
+            if (sin === null) hablarFrase(f)
+            else {
+              repetida = [f, sin]
+              if (sin) hablarFrase(sin)
+            }
+          }
         }
       }
       if (buffer.trim()) hablarFrase(buffer)
       await cola
+      if (repetida) respuesta = respuesta.replace(repetida[0], repetida[1])
       if (acuse) respuesta = `${acuse} ${respuesta.trim()}`
       emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs })
     } catch (e) {
@@ -302,6 +326,7 @@ const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse
   const stream = new ReadableStream<Uint8Array>({
     start(c) {
       ctl = c
+      if (primero) emitir(primero)
       void producir()
     },
     cancel() {
@@ -322,6 +347,60 @@ const igual = (a: string, b: string) => {
   const y = Buffer.from(b)
   return x.length === y.length && timingSafeEqual(x, y)
 }
+
+// Oído: audio → texto en el servicio de voz (Geografo).
+const transcribirAudio = async (audio: ArrayBuffer, tipo: string) => {
+  const voz = servicioVoz()
+  const r = await fetch(`${voz.url}/v1/transcribir`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": tipo, "X-Idioma": voz.idioma },
+    body: audio,
+    signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
+  })
+  if (!r.ok) throw new Error(`Voz respondió ${r.status}`)
+  const d = (await r.json()) as { texto?: string; ms?: number }
+  return { texto: (d.texto ?? "").trim(), ms: d.ms ?? 0 }
+}
+
+// Qué quiso el usuario al hablar encima de la respuesta, y el acuse que se le dice enseguida.
+const clasificarEncima = async (pregunta: string, dicho: string, oido: string) => {
+  const t = performance.now()
+  const r = await fetch(`${textoUrl()}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(TIMEOUT_CLASIFICAR_MS),
+    body: JSON.stringify({
+      model: textoModelo(),
+      stream: false,
+      think: false,
+      keep_alive: KEEP_ALIVE_CLASIFICAR,
+      options: { temperature: 0, num_predict: 40 },
+      format: {
+        type: "object",
+        properties: { tipo: { type: "string", enum: ETIQUETAS_CLASIFICAR }, acuse: { type: "string" } },
+        required: ["tipo", "acuse"],
+      },
+      messages: [
+        { role: "system", content: SISTEMA_CLASIFICAR },
+        {
+          role: "user",
+          content: `User's request: ${JSON.stringify(pregunta.slice(-1000))}\nAssistant was saying: ${JSON.stringify(dicho.slice(-1000))}\nUser just said: ${JSON.stringify(oido.slice(-1000))}`,
+        },
+      ],
+    }),
+  })
+  if (!r.ok) throw new Error(`Geografo respondió ${r.status}`)
+  const d = (await r.json()) as { message?: { content?: string } }
+  const salida = JSON.parse(d.message?.content ?? "{}") as { tipo?: string; acuse?: string }
+  const tipo = salida.tipo ?? ""
+  if (!ETIQUETAS_CLASIFICAR.includes(tipo)) throw new Error(`etiqueta rara: ${tipo}`)
+  return { tipo, acuse: limpiarAcuse(tipo, salida.acuse ?? ""), ms: Math.round(performance.now() - t) }
+}
+
+const ndjson = (eventos: unknown[]) =>
+  new Response(eventos.map((e) => `${JSON.stringify(e)}\n`).join(""), {
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache" },
+  })
 
 export const z6 = new Hono()
   // Rutas de la página /prueba-ia: abiertas, pero con tope por IP y de peticiones simultáneas.
@@ -516,69 +595,82 @@ export const z6 = new Hono()
   // Qué quiso decir el usuario al hablar encima de la respuesta: add | correct | new | stop | ignore.
   .post("/voz/clasificar", async (c) => {
     const cuerpo = (await c.req.json().catch(() => null)) as Record<string, unknown> | null
-    const campo = (k: string) => (typeof cuerpo?.[k] === "string" ? (cuerpo[k] as string).slice(-1000) : "")
+    const campo = (k: string) => (typeof cuerpo?.[k] === "string" ? (cuerpo[k] as string) : "")
     const oido = campo("oido").trim()
     if (!oido) return c.json({ ok: false, error: "oido vacío" }, 400)
-    const t = performance.now()
     try {
-      const r = await fetch(`${textoUrl()}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(TIMEOUT_CLASIFICAR_MS),
-        body: JSON.stringify({
-          model: textoModelo(),
-          stream: false,
-          think: false,
-          keep_alive: KEEP_ALIVE_CLASIFICAR,
-          options: { temperature: 0, num_predict: 40 },
-          format: {
-            type: "object",
-            properties: { tipo: { type: "string", enum: ETIQUETAS_CLASIFICAR }, acuse: { type: "string" } },
-            required: ["tipo", "acuse"],
-          },
-          messages: [
-            { role: "system", content: SISTEMA_CLASIFICAR },
-            {
-              role: "user",
-              content: `User's request: ${JSON.stringify(campo("pregunta"))}\nAssistant was saying: ${JSON.stringify(campo("dicho"))}\nUser just said: ${JSON.stringify(oido)}`,
-            },
-          ],
-        }),
-      })
-      if (!r.ok) return c.json({ ok: false, error: `Geografo respondió ${r.status}` }, 502)
-      const d = (await r.json()) as { message?: { content?: string } }
-      const salida = JSON.parse(d.message?.content ?? "{}") as { tipo?: string; acuse?: string }
-      const tipo = salida.tipo ?? ""
-      if (!ETIQUETAS_CLASIFICAR.includes(tipo)) return c.json({ ok: false, error: `etiqueta rara: ${tipo}` }, 502)
-      const acuse = limpiarAcuse(tipo, salida.acuse ?? "")
-      return c.json({ ok: true, tipo, acuse, ms: Math.round(performance.now() - t) })
+      return c.json({ ok: true, ...(await clasificarEncima(campo("pregunta"), campo("dicho"), oido)) })
     } catch (e) {
       return c.json({ ok: false, error: `No se pudo clasificar: ${String(e)}` }, 502)
     }
   })
+  // Lo que el VAD cerró, en UN solo viaje (VPS2 está en Alemania: cada ida y vuelta desde el navegador
+  // cuesta ~0,3 s). Multipart: `audio` (wav) y `contexto` (JSON). Responde NDJSON:
+  //   {t:"oido", texto, ms, tipo}                       siempre primero (tipo: ver clasificarOido)
+  //   {t:"intencion", intencion, acuse, ms}             después, si la IA estaba en su turno y fue habla real
+  //   + los eventos de /voz/turno                       si la IA estaba callada y fue habla real
+  // contexto: { iaHabla, dicho (lo que la IA pronunció en esos segundos), hablado (todo lo que lleva
+  //   dicho la respuesta), pregunta (la última del usuario), messages (historial, si iaHabla es false), formato }
+  .post("/voz/escuchar", async (c) => {
+    if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    const form = await c.req.raw.formData().catch(() => null)
+    const audio = form?.get("audio")
+    if (!(audio instanceof Blob) || !audio.size || audio.size > MAX_AUDIO)
+      return c.json({ ok: false, error: "Audio vacío o mayor a 5 MB" }, 413)
+    let ctx: Record<string, unknown> = {}
+    try {
+      ctx = JSON.parse(String(form?.get("contexto") ?? "{}")) as Record<string, unknown>
+    } catch {
+      return c.json({ ok: false, error: "contexto no es JSON" }, 400)
+    }
+    const texto = (k: string) => (typeof ctx[k] === "string" ? (ctx[k] as string) : "")
+    const iaHabla = ctx.iaHabla === true
+    const formato = FORMATOS_VOZ.has(texto("formato")) ? texto("formato") : "opus"
+
+    let oido: { texto: string; ms: number }
+    try {
+      oido = await transcribirAudio(await audio.arrayBuffer(), audio.type || "audio/wav")
+    } catch (e) {
+      return c.json({ ok: false, error: `No se pudo hablar con la voz: ${String(e)}` }, 502)
+    }
+    const tipo = clasificarOido(oido.texto, texto("dicho"), iaHabla)
+    const evento = { t: "oido", texto: oido.texto, ms: oido.ms, tipo }
+    if (tipo !== "habla") return ndjson([evento])
+
+    if (iaHabla) {
+      // Dos eventos: lo oído sale ya (la página muestra «entendiendo…») y la intención cuando el 8B decide.
+      const enc = new TextEncoder()
+      const linea = (o: unknown) => enc.encode(`${JSON.stringify(o)}\n`)
+      const stream = new ReadableStream<Uint8Array>({
+        async start(ctl) {
+          ctl.enqueue(linea(evento))
+          try {
+            const k = await clasificarEncima(texto("pregunta"), texto("hablado"), oido.texto)
+            ctl.enqueue(linea({ t: "intencion", intencion: k.tipo, acuse: k.acuse, ms: k.ms }))
+          } catch (e) {
+            ctl.enqueue(linea({ t: "intencion", intencion: "add", acuse: "", ms: 0, error: String(e) })) // ante la duda, adición
+          }
+          ctl.close()
+        },
+      })
+      return new Response(stream, {
+        headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" },
+      })
+    }
+    const historial = Array.isArray(ctx.messages) ? ctx.messages : []
+    const msgs = limpiarMensajes({ messages: [...historial, { role: "user", content: oido.texto }] })
+    return msgs ? turnoDeVoz(msgs, formato, c.req.raw.signal, "", evento) : ndjson([evento])
+  })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.
   .post("/transcribir", async (c) => {
-    const voz = servicioVoz()
-    if (!voz.token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const audio = await c.req.arrayBuffer()
     if (!audio.byteLength || audio.byteLength > MAX_AUDIO)
       return c.json({ ok: false, error: "Audio vacío o mayor a 5 MB" }, 413)
     try {
-      const r = await fetch(`${voz.url}/v1/transcribir`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${voz.token}`,
-          "Content-Type": c.req.header("content-type") ?? "audio/webm",
-          "X-Idioma": voz.idioma,
-        },
-        body: audio,
-        signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
-      })
-      if (!r.ok) return c.json({ ok: false, error: `Voz respondió ${r.status}` }, 502)
-      const d = (await r.json()) as { texto?: string; ms?: number }
-      return c.json({ ok: true, texto: (d.texto ?? "").trim(), ms: d.ms ?? 0 })
+      return c.json({ ok: true, ...(await transcribirAudio(audio, c.req.header("content-type") ?? "audio/webm")) })
     } catch (e) {
-      return c.json({ ok: false, error: `No se pudo hablar con la voz de la Z6: ${String(e)}` }, 502)
+      return c.json({ ok: false, error: `No se pudo hablar con la voz: ${String(e)}` }, 502)
     }
   })
   // Boca: texto → audio/wav.

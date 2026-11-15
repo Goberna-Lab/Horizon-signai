@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { MicVAD } from "@ricky0123/vad-web"
-import { clasificar, transcribir, turnoDeVoz, type Mensaje } from "./cliente"
+import { escuchar as escucharApi, turnoDeVoz, type EventoIntencion, type EventoOido, type EventoTurno, type Mensaje } from "./cliente"
 import { crearColaDeVoz } from "./colaDeVoz"
-import { aWav, clasificarOido, deEtiqueta, marcaDeCorte, type Encima, type Intencion } from "./eco"
+import { aWav, deEtiqueta, marcaDeCorte, type Encima, type Intencion } from "./eco"
 
 export type EstadoVoz = "reposo" | "escuchando" | "pensando" | "hablando"
 
@@ -109,11 +109,9 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     else hilo.current = [...hilo.current, { role: "assistant", content: marca }]
   }, [])
 
-  const responder = useCallback(
-    async (texto: string, t0: number, oidoMs: number, acuse?: string) => {
-      sumar({ role: "user", content: texto })
-      cambiar("pensando")
-      const corte = new AbortController()
+  // Crea el turno de la IA: su cola de voz y el corte del pedido que la alimenta.
+  const nuevoTurno = useCallback(
+    (corte: AbortController, t0: number, oidoMs: number): Turno => {
       const t: Turno = {
         corte,
         cortado: false,
@@ -132,19 +130,24 @@ export function useVoz({ historial, alMensaje }: Opciones) {
           },
         }),
       }
-      turno.current = t
+      return t
+    },
+    [cambiar, mostrarEncima],
+  )
+
+  // Eventos del turno → cola de voz. `guardar` recibe la respuesta completa al final.
+  const alimentar = (t: Turno, guardar: (r: string) => void) => (e: EventoTurno) => {
+    if (e.t === "frase") t.cola.agregar(e)
+    else if (e.t === "fin") guardar(e.respuesta)
+    else if (e.t === "error") throw new Error(e.msg)
+  }
+
+  // Sigue el turno hasta que termina de sonar. `flujo` resuelve con la respuesta cuando cierra el stream.
+  const seguirTurno = useCallback(
+    async (t: Turno, flujo: Promise<string>) => {
       let respuesta = ""
       try {
-        await turnoDeVoz(
-          hilo.current,
-          (e) => {
-            if (e.t === "frase") t.cola.agregar(e)
-            else if (e.t === "fin") respuesta = e.respuesta
-            else if (e.t === "error") throw new Error(e.msg)
-          },
-          corte.signal,
-          acuse,
-        )
+        respuesta = await flujo
         await t.cola.terminada()
       } catch (err) {
         if (t.cortado) return // lo cortó quien interrumpió, que ya ordenó el historial
@@ -165,71 +168,120 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       if (dicho) sumar({ role: "assistant", content: dicho })
       if (activa.current) escuchar()
     },
-    [cambiar, escuchar, mostrarEncima],
+    [escuchar, mostrarEncima],
   )
 
-  // Lo que el VAD cerró: transcribir y decidir según si la IA estaba en su turno.
+  // Turno nuevo a partir de un texto ya transcrito (después de cortar a la IA).
+  const responder = useCallback(
+    (texto: string, t0: number, oidoMs: number, acuse?: string) => {
+      sumar({ role: "user", content: texto })
+      cambiar("pensando")
+      const t = nuevoTurno(new AbortController(), t0, oidoMs)
+      turno.current = t
+      let respuesta = ""
+      const flujo = turnoDeVoz(hilo.current, alimentar(t, (r) => (respuesta = r)), t.corte.signal, acuse).then(
+        () => respuesta,
+      )
+      return seguirTurno(t, flujo)
+    },
+    [cambiar, nuevoTurno, seguirTurno],
+  )
+
+  // Lo que el VAD cerró. Un solo viaje al API (/voz/escuchar): transcribe, decide y, según el caso,
+  // clasifica (la IA estaba en su turno) o ya responde (estaba callada).
   const procesar = useCallback(
     async (audio: Float32Array, fin: number) => {
-      const oido = await transcribir(aWav(audio))
-      if (!activa.current) return
+      const wav = aWav(audio)
       const t = turno.current
-      // La ventana cubre lo que duró tu voz, la transcripción y un margen.
-      const ventana = audio.length / 16000 + (performance.now() - fin) / 1000 + 2
-      const tipo = clasificarOido(oido.texto, t ? t.cola.dichoDesde(ventana) : "", !!t)
-      console.debug(`[voz] oído «${oido.texto}» → ${tipo}`)
 
       if (!t) {
-        if (tipo === "habla") void responder(oido.texto, fin, oido.ms)
+        // La IA estaba callada: lo oído y la respuesta llegan en el mismo stream.
+        const corte = new AbortController()
+        const h: { turno: Turno | null; respuesta: string } = { turno: null, respuesta: "" }
+        let alOir!: (e: EventoOido) => void
+        let alFallar!: (e: unknown) => void
+        const oidoP = new Promise<EventoOido>((res, rej) => ((alOir = res), (alFallar = rej)))
+        const flujo = escucharApi(
+          wav,
+          { iaHabla: false, messages: hilo.current },
+          (e) => {
+            if (e.t === "oido") {
+              alOir(e)
+              if (e.tipo !== "habla" || !activa.current) return
+              sumar({ role: "user", content: e.texto })
+              cambiar("pensando")
+              h.turno = nuevoTurno(corte, fin, e.ms)
+              turno.current = h.turno
+            } else if (h.turno) alimentar(h.turno, (r) => (h.respuesta = r))(e)
+          },
+          corte.signal,
+        ).then(() => h.respuesta)
+        flujo.then(() => alFallar(new Error("El API no devolvió lo que oyó")), alFallar) // no-op si ya llegó
+        const oido = await oidoP
+        console.debug(`[voz] oído «${oido.texto}» → ${oido.tipo} (${oido.ms} ms)`)
+        if (h.turno) void seguirTurno(h.turno, flujo)
         else armarSinVoz()
         return
       }
-      if (tipo === "parada") {
-        mostrarEncima({ texto: oido.texto, estado: "parada" }, true)
+
+      // La IA estaba en su turno: ¿eco, «uh-huh», «stop» o habla real? Y si es habla, qué quiso.
+      const pregunta = [...hilo.current].reverse().find((m) => m.role === "user")?.content ?? ""
+      let oido: EventoOido | null = null
+      let decision: EventoIntencion | null = null
+      await escucharApi(
+        wav,
+        {
+          iaHabla: true,
+          dicho: t.cola.dichoDesde(audio.length / 16000 + 3), // tu voz + margen: lo que la IA dijo mientras
+          hablado: t.cola.hablado().slice(-400),
+          pregunta,
+        },
+        (e) => {
+          if (e.t === "oido") {
+            oido = e
+            if (e.tipo === "habla") mostrarEncima({ texto: e.texto, estado: "entendiendo" })
+          } else if (e.t === "intencion") decision = e
+        },
+      )
+      const o = oido as EventoOido | null
+      if (!o || !activa.current) return
+      console.debug(`[voz] oído «${o.texto}» → ${o.tipo} (${o.ms} ms)`)
+      if (o.tipo === "parada") {
+        mostrarEncima({ texto: o.texto, estado: "parada" }, true)
         cortar()
         escuchar()
         return
       }
-      if (tipo !== "habla") {
+      if (o.tipo !== "habla") {
         // Eco, ruido o «uh-huh»: sigue hablando como si nada, sin chip (Whisper suele transcribir
-        // el «uh-huh» como «y'all» o «YHWH», y verlo en pantalla parecería un error).
+        // el «uh-huh» como «y'all» o «It's home», y verlo en pantalla parecería un error).
         t.cola.volumen(1)
         return
       }
-      mostrarEncima({ texto: oido.texto, estado: "entendiendo" })
-      // Habla real: el 8B decide qué quiso (la voz sigue bajada mientras tanto). Si falla, adición.
-      const pregunta = [...hilo.current].reverse().find((m) => m.role === "user")?.content ?? ""
-      // El mismo 8B escribe el acuse que suena enseguida («Good point, adding Mars.»).
-      const { intencion, acuse } = await clasificar(pregunta, t.cola.hablado().slice(-400), oido.texto)
-        .then((r) => {
-          console.debug(`[voz] intención ${r.tipo} «${r.acuse}» (${r.ms} ms)`)
-          return { intencion: deEtiqueta(r.tipo), acuse: r.acuse }
-        })
-        .catch((e: unknown) => {
-          console.debug(`[voz] clasificador falló (${String(e)}): adición sin acuse`)
-          return { intencion: "adicion" as const, acuse: "" }
-        })
-      if (!activa.current) return
+      const d = decision as EventoIntencion | null
+      const intencion = deEtiqueta(d?.intencion ?? "add") // sin respuesta del 8B: adición
+      const acuse = d?.acuse ?? ""
+      console.debug(`[voz] intención ${d?.intencion ?? "?"} «${acuse}» (${d?.ms ?? 0} ms)${d?.error ? ` · ${d.error}` : ""}`)
       if (turno.current !== t) {
-        // La respuesta terminó mientras se clasificaba: lo dicho ya es un turno nuevo, sin corte.
+        // La respuesta terminó mientras se decidía: lo dicho ya es un turno nuevo, sin corte.
         mostrarEncima(null)
-        if (intencion !== "ignorar" && intencion !== "parada") void responder(oido.texto, fin, oido.ms, acuse)
+        if (intencion !== "ignorar" && intencion !== "parada") void responder(o.texto, fin, o.ms, acuse)
         return
       }
       if (intencion === "ignorar") {
         t.cola.volumen(1)
-        mostrarEncima({ texto: oido.texto, estado: "sigo" }, true)
+        mostrarEncima({ texto: o.texto, estado: "sigo" }, true)
       } else if (intencion === "parada") {
-        mostrarEncima({ texto: oido.texto, estado: "parada" }, true)
+        mostrarEncima({ texto: o.texto, estado: "parada" }, true)
         cortar(intencion)
         escuchar()
       } else {
-        mostrarEncima({ texto: oido.texto, estado: "integrando", intencion })
+        mostrarEncima({ texto: o.texto, estado: "integrando", intencion })
         cortar(intencion)
-        void responder(oido.texto, fin, oido.ms, acuse)
+        void responder(o.texto, fin, o.ms, acuse)
       }
     },
-    [responder, cortar, escuchar, armarSinVoz, mostrarEncima],
+    [responder, cortar, escuchar, armarSinVoz, mostrarEncima, cambiar, nuevoTurno, seguirTurno],
   )
 
   const terminar = useCallback(() => {

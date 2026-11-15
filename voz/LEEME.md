@@ -161,3 +161,28 @@ Lo que dices encima aparece como un chip bajo la respuesta: «entendiendo…» m
 respuesta» / «corrigiendo la respuesta» / «pregunta nueva» mientras el 27B regenera, con lo que la
 IA alcanzó a decir atenuado encima. Los «uh-huh» detectados por reglas no muestran chip (Whisper
 los transcribe como «y'all» o «YHWH»). El halo del orbe toma luz de Tierra mientras te oye encima.
+
+## Red: VPS2 está en Alemania y la voz en Perú (2026-11-14)
+
+La Z6 y Geografo están en la misma red de la oficina (1 ms entre ellas), pero el API corre en VPS2
+(Contabo, cerca de Frankfurt) y el dominio pasa por Cloudflare (que atiende desde Río, `GIG`).
+Medido desde Geografo:
+
+| Tramo | Ida y vuelta |
+|---|---|
+| Navegador ⇄ VPS2 (vía Cloudflare) | ~0,30 s, aun con la conexión abierta |
+| VPS2 ⇄ Geografo o Z6 (Tailscale, conexión directa) | ~0,18 s (igual que por internet: es la distancia) |
+| Geografo ⇄ Z6 | 0,001 s |
+
+Qué se hizo:
+- **Conexiones abiertas**: el API usa un agente de undici con keep-alive de 60 s (`apps/api/src/index.ts`)
+  y uvicorn acepta 120 s (`servidor.py`). Antes, tras 4-5 s sin uso, cada pedido pagaba otra ida y
+  vuelta para abrir la conexión. Transcribir tras una pausa: ~1,0 s → ~0,84 s.
+- **Un viaje por turno**: `POST /api/z6/voz/escuchar` recibe el audio (multipart) y transcribe,
+  decide (`clasificarOido`, en `packages/shared`) y, según el caso, responde en el mismo stream o
+  clasifica con el 8B. Turno normal: 2 viajes del navegador → 1. Interrupción: 3 → 2 (el turno va
+  aparte para cortar con lo que la IA de verdad alcanzó a decir).
+
+Lo que queda: cada paso del turno sigue cruzando el Atlántico desde VPS2 (primer token de la Z6,
+voz de cada frase en Geografo). Llevar la coordinación del turno a Perú (o un túnel de Cloudflare
+directo a Geografo) ahorraría ~0,3-0,5 s más, pero cambia la infraestructura.
