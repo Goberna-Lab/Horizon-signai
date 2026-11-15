@@ -19,11 +19,46 @@ export type FlightHandle = {
 
 export const STOP_COUNT = STOPS.length
 
+/** Pasos de la carga, para la pantalla de carga: el relieve se descarga, se monta la malla y se calculan las sombras. */
+export type LoadStep = "terrain" | "mesh" | "light"
+
+/** Descarga el relieve contando los bytes, para que la carga avance de verdad. */
+async function download(url: string, onProgress: (fraction: number) => void): Promise<Response> {
+  const response = await fetch(url)
+  const total = Number(response.headers.get("content-length")) || 0
+  if (!response.body || !total) return response
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let received = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+    received += value.length
+    onProgress(Math.min(received / total, 1))
+  }
+  return new Response(new Blob(chunks as BlobPart[]))
+}
+
+/** Deja pintar a la página antes de un trabajo largo y síncrono (la pantalla de carga se actualiza). */
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
+
 export async function createFlight(
   canvas: HTMLCanvasElement,
-  options: { palette: Palette; quality: "high" | "low"; antialias: boolean; onReady: () => void; onFrame: (flight: Flight) => void },
+  options: {
+    palette: Palette
+    quality: "high" | "low"
+    antialias: boolean
+    onReady: () => void
+    onFrame: (flight: Flight) => void
+    onProgress?: (step: LoadStep, fraction: number) => void
+  },
 ): Promise<FlightHandle> {
-  const heights = await decodeTerrain(await fetch(terrainUrl), plate.terrain.n)
+  const progress = options.onProgress ?? (() => {})
+  progress("terrain", 0)
+  const heights = await decodeTerrain(await download(terrainUrl, (f) => progress("terrain", f)), plate.terrain.n)
+  progress("mesh", 0)
+  await nextFrame()
   const grid = createGrid(heights, plate.terrain.n, plate.terrain.extentKm, plate.radiusKm)
   // La primera parada mira cerca del Sol del amanecer, sea cual sea su rumbo ese día, girada unos grados: con la luz
   // de lado el relieve se ve iluminado (de frente, todo lo que mira a la cámara queda a contraluz).
@@ -42,6 +77,7 @@ export async function createFlight(
     onReady: options.onReady,
     onFrame: options.onFrame,
   })
+  progress("light", 0)
   const points: FlightHandle["points"] = {}
   for (const site of plate.sites) {
     const [xs, ys] = project(site.lat, site.lon, plate.radiusKm)

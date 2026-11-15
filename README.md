@@ -168,7 +168,6 @@ Team **Hinomaru Signal**, Lima, Peru ([team page](https://www.spaceappschallenge
 - **Bennett (1972).** *Apollo Experience Report: Mission Planning for Lunar Module Descent and Ascent*, NASA TN D-6846. **Klumpp (1971).** *Apollo Lunar-Descent Guidance*, MIT Charles Stark Draper Laboratory, R-695.
 - **Wakker (2015).** *Fundamentals of Astrodynamics*, TU Delft (solar constant, lunar constants, libration). **Heiken, Vaniman and French, eds. (1991).** *Lunar Sourcebook*, Cambridge University Press.
 - **IAU/USGS Gazetteer of Planetary Nomenclature** (place names), https://planetarynames.wr.usgs.gov/
-- **"Astronaut" 3D model** by Javi_DaviYT (Sketchfab), CC BY 4.0, used on the landing page.
 
 Every dataset, paper, book, library and asset is listed in [docs/SUBMISSION.md](docs/SUBMISSION.md) (English) and [docs/08-datos-y-fuentes.md](docs/08-datos-y-fuentes.md) (Spanish, with file-level provenance).
 

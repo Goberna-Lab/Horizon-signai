@@ -393,51 +393,6 @@ export class Flight {
     this.dirty = true
   }
 
-  /**
-   * El perfil del suelo para que el astronauta camine sobre él: una línea sobre el terreno, de lado a lado de la
-   * vista, a la distancia que la deja cerca del borde de abajo (`atY`, fracción del alto). Devuelve puntos en
-   * píxeles CSS ordenados por x.
-   */
-  groundProfile(atY = 0.86, samples = 64): Array<[number, number]> {
-    this.update()
-    const { grid } = this.o
-    const R = grid.radiusKm
-    const cam = this.camera.position
-    // El rumbo horizontal de la cámara y su perpendicular.
-    const f = new Vector3()
-    this.camera.getWorldDirection(f)
-    f.z = 0
-    f.normalize()
-    const side = new Vector3(f.y, -f.x, 0)
-    const point: ScreenPoint = { x: 0, y: 0, visible: false }
-    const at = (d: number, s: number, out: number[]) => {
-      const x = cam.x + f.x * d + side.x * s
-      const y = cam.y + f.y * d + side.y * s
-      // El marco de la lámina es casi la proyección cerca del polo: la altura sale del dato.
-      toPlate(x, y, heightAt(grid, x, y), R, out)
-      return this.project(out, point)
-    }
-    const tmp = [0, 0, 0]
-    // Busca la distancia a la que el centro de la línea cae en atY.
-    let lo = 0.05
-    let hi = 30
-    for (let i = 0; i < 28; i++) {
-      const mid = Math.sqrt(lo * hi)
-      const y = at(mid, 0, tmp).y / this.height
-      if (y > atY) lo = mid
-      else hi = mid
-    }
-    const d = Math.sqrt(lo * hi)
-    // Ancho de la línea: lo que abarca la vista a esa distancia, con margen.
-    const half = d * Math.tan((this.camera.fov * DEG * this.camera.aspect) / 2) * 1.4
-    const out: Array<[number, number]> = []
-    for (let i = 0; i <= samples; i++) {
-      const p = at(d, -half + (2 * half * i) / samples, tmp)
-      out.push([p.x, p.y])
-    }
-    return out.sort((a, b) => a[0] - b[0])
-  }
-
   /** Opacidad de la tinta (0-1), para la entrada. */
   setInk(value: number): void {
     for (const material of [this.terrain, this.sphere]) material.uniforms.uInk.value = value
