@@ -12,7 +12,7 @@
 <!-- El flujo guiado pasa de aquí al planificador: sus archivos se piden ya, con la página en reposo, para que abra sin espera. -->
 <link rel="prefetch" href="index.html"><link rel="prefetch" href="data/efemerides-luna.js"><link rel="prefetch" href="data/zonas.js"><link rel="prefetch" href="engine.js"><link rel="prefetch" href="terrain.js"><link rel="prefetch" href="i18n-es.js">
 <style>
-/* Centro de misiones: dashboard de la campaña. Indicadores, calendario y bitácora al centro; misiones a la izquierda; firma, mapa y asistente a la derecha */
+/* Centro de misiones: dashboard de la campaña. A la izquierda, próximo hito y firma; a la derecha, indicadores, mapa y misiones a la par, calendario y bitácora */
 .app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
 .app::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5; background-image: var(--grano); background-size: 160px 160px; }
 .app::after { content: ""; position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(200,16,46,0.6), transparent); }
@@ -27,7 +27,9 @@
 .utc b { color: var(--tinta); font-weight: 600; }
 
 /* ---------- rejilla principal ---------- */
-.main { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+.main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+/* bajo los indicadores: sitios de misión y misiones, mitad y mitad */
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .panel { padding: 16px; border-radius: 20px; }
 .ph { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 8px; margin-bottom: 12px; }
@@ -145,7 +147,7 @@
 
 /* ---------- sitios de misión ---------- */
 .sites .screen { padding: 8px; border-radius: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 0 var(--borde), 0 16px 30px rgba(17,17,17,0.18); }
-.sites .glass-inner { height: 190px; border-radius: 12px; }
+.sites .glass-inner { height: auto; aspect-ratio: 740 / 484; border-radius: 12px; }
 .sites canvas, .sites svg.smap { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sites canvas { object-fit: cover; }
 .sites .tag { position: absolute; left: 8px; top: 8px; height: 26px; font-size: 11px; }
@@ -165,19 +167,16 @@
   .col > .pending:last-child { flex-grow: 0; } /* la firma pendiente no se estira: quedaría un hueco vacío dentro */
   .movs { display: flex; flex-direction: column; }
   .log { flex: 1 1 0; height: 0; min-height: 360px; max-height: none; }
+  /* la lista de misiones mide lo mismo que el mapa de al lado y se desplaza por dentro */
+  .upcoming { display: flex; flex-direction: column; min-height: 0; }
+  .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; }
 }
 
-/* ---------- pantallas medianas: la columna derecha baja ---------- */
-@media (max-width: 1380px) {
-  .main { grid-template-columns: 300px minmax(0, 1fr); }
-  .col.right { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
-  .col.right .sites .glass-inner { height: auto; aspect-ratio: 740 / 484; }
-}
 /* ---------- pantallas estrechas: una sola columna ---------- */
 @media (max-width: 1000px) {
   .app { padding: 14px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
   .main { display: flex; flex-direction: column; min-width: 0; }
-  .col, .col.right { display: contents; }
+  .col, .duo { display: contents; }
   .main > .col > * { min-width: 0; max-width: 100%; }
   .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .cal { order: 4; } .movs { order: 5; } .upcoming { order: 6; } .sites { order: 7; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -247,9 +246,30 @@
 
     </div>
 
-    <!-- centro: indicadores, calendario y bitácora -->
+    <!-- derecha: indicadores; sitios de misión y misiones a la par; calendario y bitácora -->
     <div class="col">
       <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
+
+      <div class="duo">
+        <section class="paper panel sites" aria-labelledby="sites-t">
+          <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
+          <div class="screen">
+            <div class="glass-inner">
+              <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
+              <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the south pole with the mission sites" id="smap"></svg>
+              <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
+              <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
+              <p class="caption">Sun at 8° · generated terrain · PGDA sites</p>
+            </div>
+            <span class="led" aria-hidden="true"></span>
+          </div>
+        </section>
+
+        <section class="paper panel upcoming" aria-labelledby="up-t">
+          <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
+          <div class="mlist" id="mlist"></div>
+        </section>
+      </div>
 
       <section class="paper panel cal" aria-labelledby="cal-t">
         <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
@@ -279,28 +299,6 @@
           <span class="mono count" id="logCount" aria-live="polite"></span>
         </div>
         <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
-      </section>
-    </div>
-
-    <!-- derecha: mapa y misiones -->
-    <div class="col right">
-      <section class="paper panel sites" aria-labelledby="sites-t">
-        <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">polar stereographic</span></div>
-        <div class="screen">
-          <div class="glass-inner">
-            <canvas id="polar" width="740" height="484" aria-hidden="true"></canvas>
-            <svg class="smap" viewBox="170 150 740 484" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the south pole with the mission sites" id="smap"></svg>
-            <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
-            <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
-            <p class="caption">Sun at 8° · generated terrain · PGDA sites</p>
-          </div>
-          <span class="led" aria-hidden="true"></span>
-        </div>
-      </section>
-
-      <section class="paper panel upcoming" aria-labelledby="up-t">
-        <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
-        <div class="mlist" id="mlist"></div>
       </section>
     </div>
   </div>
