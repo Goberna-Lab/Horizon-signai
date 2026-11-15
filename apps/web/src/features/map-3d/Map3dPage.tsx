@@ -5,8 +5,9 @@ import "./map3d.css"
  * los 8876 nombres IAU, el Sol y la Tierra reales por fecha (JPL Horizons) y horizontes de 5 m en el polo.
  *
  * Es una página autónoma (`public/mapa-3d.html`, generada por `scripts/mapa-3d/construir-mapa.py`) que lleva dentro
- * sus datos y su propio three.js, así que se muestra en un iframe a pantalla completa: no suma nada al bundle de la app
- * y solo se descarga al entrar a esta ruta. Se abre en inglés (`?lang=en`, la entrega lo pide); el botón ES/EN sigue.
+ * su propio three.js y pide los datos (relieve, efemérides, sitios, nombres IAU, horizontes) a `/api/map3d`, que los
+ * lee de PostgreSQL (esquema y carga en `db/`). Se muestra en un iframe a pantalla completa: no suma nada al bundle
+ * de la app y solo se descarga al entrar a esta ruta. Se abre en inglés (`?lang=en`, la entrega lo pide); el botón ES/EN sigue.
  */
 export function Map3dPage() {
   return (

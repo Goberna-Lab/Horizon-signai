@@ -200,7 +200,7 @@ details.fuentes a { color: var(--ink); }
 }
 </style>
 <script type="importmap">
-{ "imports": { "three": "__THREE_URL__", "three/addons/controls/OrbitControls.js": "__ORBIT_URL__" } }
+{ "imports": { "three": "__THREE_URL__" } }
 </script>
 </head>
 <body>
@@ -276,9 +276,56 @@ details.fuentes a { color: var(--ink); }
 
 <script type="module">
 import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { OrbitControls } from 'three' // el módulo empaquetado ya incluye OrbitControls
 
-const DATOS = /*__DATOS__*/null
+// Los datos viven en PostgreSQL (db/) y llegan por /api/map3d. Se reconstruye el mismo objeto que antes iba embebido.
+async function cargarDatos() {
+  const api = async (url) => {
+    const r = await fetch(url)
+    if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`)
+    return r
+  }
+  const meta = await (await api('/api/map3d/meta')).json()
+  const bin = async (k) => {
+    const a = meta.assets[k]
+    if (!a) throw new Error(`Falta el activo ${k}`)
+    return new Uint8Array(await (await api(a.url)).arrayBuffer())
+  }
+  const [alt, alb, polo, polo240, eph, sitios, iau, horizontes] = await Promise.all([
+    bin('global_elevation'), bin('global_albedo'), bin('pole_elevation_663'), bin('pole_elevation_240'), bin('ephemeris_de441'),
+    api('/api/map3d/sites').then((r) => r.json()), api('/api/map3d/iau').then((r) => r.json()), api('/api/map3d/horizons').then((r) => r.json()),
+  ])
+  const D = meta.datasets, m = (k) => D[k].meta || {}
+  const pick = (o, ...ks) => { for (const k of ks) if (o[k] != null) return o[k]; throw new Error('Falta ' + ks[0] + ' en /meta') }
+  const mp = m('pole_elevation_663'), m2 = m('pole_elevation_240'), me = m('ephemeris_de441'), ua = pick(m('global_albedo'), 'viewer_uint8')
+  const [fx, fy] = pick(m2, 'first_centre_xy')
+  const CAT = { crewed: 'tripulada', robotic: 'robotica', sample_return: 'muestras', rover: 'rover', impact: 'impacto', candidate: 'candidata' }
+  const cat = (c) => CAT[c] || c
+  return {
+    global: { w: D.global_elevation.width, h: D.global_elevation.height, alt, alb, albMin: ua.min, albRango: ua.range },
+    polo: { n: D.pole_elevation_663.width, ext: pick(mp, 'extent_m'), paso: pick(mp, 'pixel_m'), alt: polo },
+    polo240: { n: D.pole_elevation_240.width, paso: pick(m2, 'pixel_m'), x0: fx, y0: fy, alt: polo240 },
+    eph: { inicioUTC: pick(me, 'start_utc'), pasoS: pick(me, 'step_s'), filas: pick(me, 'rows'), d: eph },
+    fuentes: Object.keys(meta.provenance).filter((k) => /^sources\.\d+$/.test(k)).sort((a, b) => a.slice(8) - b.slice(8)).map((k) => meta.provenance[k]),
+    sitios: {
+      categorias: meta.categories.map((c) => cat(c.code)),
+      sitios: sitios.sites.map((x) => ({
+        id: x.slug, nombre: x.name, cat: cat(x.cat), agencia: x.agency, pais: x.country, fecha: x.date, lat: x.lat, lon: x.lon,
+        region: x.region, es: x.description, en: x.description, src: x.source, aprox: x.approx, artemis: x.artemis,
+        enlaces: (x.links || []).map((l) => ({ es: l.label, en: l.label, url: l.url })),
+        ...(x.elevation240 != null ? { h240: Math.round(x.elevation240), pend240: Math.round(x.slope240 * 10) / 10 } : {}),
+      })),
+    },
+    horizontes, iau,
+    g16: meta.assets.gradient16.url, tierra: meta.assets.earth_texture.url,
+  }
+}
+let DATOS
+try { DATOS = await cargarDatos() } catch (e) {
+  console.error(e)
+  document.querySelector('#carga > div').innerHTML = `<p style="max-width:32rem;padding:1rem;text-align:center">Could not load the 3D map data from the API (${String(e.message || e).replace(/[<&]/g, '')}). Check that the server and its database are running, then reload.</p>`
+  throw e
+}
 const R = 1737.4 // km, esfera de referencia de LOLA y Horizons
 const RAD = Math.PI / 180
 
@@ -349,13 +396,14 @@ const FUENTES = {
     'No lunar landings in 2026 as of 2026-11-14 (Chang\'e 7 postponed; Blue Moon MK1 and IM-3 moved to 2027).',
   ],
 }
+if (DATOS.fuentes.length) FUENTES.es = FUENTES.en = DATOS.fuentes // procedencia desde la base (inglés)
 const idiomaPedido = new URLSearchParams(location.search).get('lang')
 let idioma = idiomaPedido === 'es' || idiomaPedido === 'en' ? idiomaPedido : (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en'
 const t = (k) => T[idioma][k] ?? k
 
 // ---------------------------------------------------------------- datos
-async function inflar(b64) {
-  const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+async function inflar(datos) { // Uint8Array / ArrayBuffer (zlib) o, por compatibilidad, base64
+  const bin = typeof datos === 'string' ? Uint8Array.from(atob(datos), (c) => c.charCodeAt(0)) : new Uint8Array(datos)
   const s = new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate'))
   return new Uint8Array(await new Response(s).arrayBuffer())
 }
