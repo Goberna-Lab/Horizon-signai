@@ -41,6 +41,7 @@ y abrir `http://localhost:8765/inicio.html`. Los datos se cargan como scripts, a
 | `data/` | Datos del repo en forma de script (ver abajo) | Núcleo |
 | `terrain.js`, `mission.js` | Relieve generado para los mapas y cifras de las rutas de la caminata | — |
 | `shared.css` | Estilos comunes: paleta crema, botones, cabecera con la navegación centrada | — |
+| `estilo.css` | Missions con el estilo de la landing y del Planificador (`planificar-mision.html`): esquinas rectas, reglas de tinta, Archivo y rótulos en mono, botones de contorno y barras segmentadas. Solo lo carga `inicio.html`; quitar su `<link>` devuelve el estilo anterior | Dashboard |
 
 ### Para el Dashboard
 

@@ -1,0 +1,94 @@
+/*
+ * Missions (inicio.html) con el estilo de la landing y del Planificador (apps/web/public/planificar-mision.html).
+ *
+ * Los dos comparten la lámina de Horizon: papel, tinta y un solo rojo de señal; esquinas rectas; reglas de tinta de
+ * 1 px en vez de sombras; Archivo para el texto y los títulos, e IBM Plex Mono pequeña en mayúsculas para los rótulos y
+ * las cifras; botones de contorno de tinta y selectores como barras segmentadas (el «.seg» y los «.chips» del
+ * Planificador). Este archivo lleva ese lenguaje al Dashboard sin cambiar ningún texto.
+ *
+ * Se carga solo en inicio.html, al final del <head>, para ganar a sus estilos en los empates. Quitar el <link> devuelve
+ * el estilo anterior.
+ */
+
+:root {
+  --f-ui: "Archivo Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-disp: var(--f-ui);
+  --f-serif: var(--f-ui);
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r-sm: 0px; --r-md: 0px; --r-lg: 0px; --r-btn: 0px;
+  --rule: 1px solid var(--tinta);
+  --hair: 1px solid var(--borde);
+  --tint: rgba(17, 17, 17, 0.05);
+}
+body { font-family: var(--f-ui); }
+
+/* ---------- esquinas rectas, como en la lámina; solo lo que es redondo de verdad sigue redondo ---------- */
+:where(*):not(:is(.lamp, .led, .screw, .lg-dot, .ev .go, .rl, .dot)) { border-radius: 0 !important; }
+
+/* ---------- superficies: regla de tinta, sin sombras ni biseles ---------- */
+.paper { border: var(--rule); box-shadow: none !important; }
+:is(.btn, .chip, .chips, .tabs, .tab, .ftab, .fbody, .sel, .screen, .kpi, .mrow, .pillnav, .logbtn, .utc, .flap b) { box-shadow: none !important; }
+.screen { border: var(--rule); }
+.fbody { border: var(--rule); background: var(--crema); }
+
+/* ---------- tipografía: títulos en Archivo; rótulos y cifras en mono pequeña (el «.lbl» del Planificador) ---------- */
+:is(.ph h2, .who-m, .mrow .nm, .pending .t) { font-family: var(--f-ui); letter-spacing: -0.03em; }
+.ph h2 { font-weight: 800; }
+:is(.ph .aux, .kpi p, .flap span, .mrow .meta, .mrow .leg, .mrow .cnt, .next .sub, .pending .nums span, .cal .legend) {
+  font-family: var(--f-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(17, 17, 17, 0.68);
+}
+.pending .nums b { text-transform: none; letter-spacing: -0.01em; color: var(--tinta); }
+:is(.mono, .kpi b, .flap b, .utc, .pending .nums b, .log .tm) { font-variant-numeric: tabular-nums; }
+.kpi b { font-family: var(--f-ui); font-weight: 900; letter-spacing: -0.03em; }
+.flap b { font-family: var(--f-ui); font-weight: 800; }
+
+/* ---------- indicadores: como los KPI del Planificador, con barra de tinta arriba (roja si piden atención) ---------- */
+.kpi { border: var(--rule); border-top-width: 3px; }
+.kpi:has(b.warn) { border-top-color: var(--rojo); }
+
+/* ---------- botones: contorno de tinta; el principal, rojo de señal ---------- */
+.btn { border: var(--rule); background: none; color: var(--tinta); font-family: var(--f-ui); font-size: 14px; font-weight: 500; transition: background-color 140ms; }
+.btn:hover { background: var(--tint); color: var(--tinta); }
+.btn.red, .btn.dark, .btn.primary { border-color: var(--rojo); background: var(--rojo); color: #F4EFE6; background-image: none; }
+.btn.red:hover, .btn.dark:hover, .btn.primary:hover { background: var(--rojo); color: #F4EFE6; filter: brightness(1.08); }
+.btn[disabled], .btn[aria-disabled="true"] { border-color: var(--borde); background: none; color: var(--gris-2); filter: none; }
+.logbtn { border: var(--rule); background: none; font-family: var(--f-ui); font-weight: 500; transition: background-color 140ms; }
+.logbtn:hover { background: var(--tint); }
+
+/* ---------- navegación y selectores: barras segmentadas con regla de tinta (el «.seg» del Planificador) ---------- */
+.pillnav { gap: 0; padding: 0; border: var(--rule); background: none; }
+.pillnav > * + * { border-left: var(--rule); }
+.pillnav a, .pillnav span { font-family: var(--f-mono); font-size: 12.5px; font-weight: 500; }
+.pillnav a:hover { background: var(--tint); }
+.pillnav [aria-current] { background: var(--tinta); color: var(--crema); }
+.chips, .tabs { gap: 0; padding: 0; border: var(--rule); background: none; }
+.chips > * + *, .tabs > * + * { border-left: var(--rule); }
+.chip, .tab { font-family: var(--f-ui); font-size: 13px; font-weight: 500; }
+.chip.mono { font-family: var(--f-mono); font-size: 12px; }
+.chip:hover, .tab:hover { background: var(--tint); }
+.chip[aria-pressed="true"], .tab[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+.sel { border: var(--rule); background-color: var(--crema); font-family: var(--f-ui); font-weight: 500; }
+
+/* Carpeta «Details / Tracking»: pestañas rectas con regla de tinta */
+.ftab { border: var(--rule); border-bottom: 0; background: var(--crema-3); font-family: var(--f-ui); font-weight: 600; }
+.ftab[aria-selected="true"] { background: var(--crema); }
+.ftab[aria-selected="true"]::after { background: var(--crema); }
+
+/* ---------- tarjetas de misión: filete fino; al pasar, trama; la elegida, regla de tinta doble ---------- */
+.mrow { border: var(--hair); transition: background-color 140ms, border-color 140ms; }
+.mrow:hover { background: var(--tint); border-color: var(--tinta); }
+.mrow[aria-pressed="true"] { border-color: var(--tinta); background: var(--crema); box-shadow: inset 0 0 0 1px var(--tinta) !important; }
+
+/* Estados e identificadores: sellos rectos */
+.st, .idb { letter-spacing: 0.06em; }
+
+/* Bitácora y calendario: los filtros y la regla de «ahora» ya usan la paleta; solo se enderezan las esquinas (arriba) */
+
+/* ---------- foco visible en todo ---------- */
+:is(a, button, input, select, [role="tab"]):focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+/* ---------- teléfono: controles de 44 px ---------- */
+@media (max-width: 560px) {
+  :is(.chip, .tab, .ftab, .pillnav a, .pillnav span) { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { :is(.btn, .logbtn, .mrow, .chip, .tab) { transition: none; } }
