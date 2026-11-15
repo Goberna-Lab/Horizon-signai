@@ -115,6 +115,15 @@
 .fbody { flex: 1 1 auto; display: flex; flex-direction: column; padding: 14px; border: 1px solid var(--borde); border-radius: 20px; background: var(--crema-3); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 10px 24px rgba(17,17,17,0.06); }
 .fpane { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
 .fpane > .duo { flex: 1 1 auto; }
+/* En escritorio, Details y Tracking ocupan la misma celda de la carpeta: mide lo mismo con cualquiera de las dos. Manda
+   Details (el radar); Tracking se estira hasta ese alto y su bitácora llena el hueco. En el teléfono van apilados y la
+   oculta no ocupa sitio. */
+@media (min-width: 1001px) {
+  .fbody { display: grid; }
+  .fbody > .fpane { grid-area: 1 / 1; }
+  .fbody > .fpane[hidden] { display: flex !important; visibility: hidden; pointer-events: none; }
+  .fpane > .duo.track .log { min-height: 160px; }
+}
 .main [hidden] { display: none !important; }
 
 /* ---------- calendario de campaña ---------- */
