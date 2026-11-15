@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { MicVAD } from "@ricky0123/vad-web"
 import { clasificar, transcribir, turnoDeVoz, type Mensaje } from "./cliente"
 import { crearColaDeVoz } from "./colaDeVoz"
-import { aWav, clasificarOido, deEtiqueta, marcaDeCorte, type Intencion } from "./eco"
+import { aWav, clasificarOido, deEtiqueta, marcaDeCorte, type Encima, type Intencion } from "./eco"
 
 export type EstadoVoz = "reposo" | "escuchando" | "pensando" | "hablando"
 
+const CHIP_FUGAZ_MS = 1500 // «sigo» y «me callo» se ven un momento y se van
 const PAUSA_FIN_MS = 800 // silencio que cierra lo que dijiste (Silero; antes 1300 ms con volumen)
 const SIN_VOZ_MS = 20_000 // si no hablas en este tiempo, la conversación se pausa
 const VOLUMEN_ENCIMA = 0.3 // la IA baja a esto mientras hablas encima, hasta saber qué dijiste
@@ -40,6 +41,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   const [tiempos, setTiempos] = useState("")
   const [hablado, setHablado] = useState("") // lo que la IA va diciendo, palabra por palabra
   const [oyendo, setOyendo] = useState(false) // el VAD detecta voz ahora mismo
+  const [encima, setEncima] = useState<Encima | null>(null) // lo que dijiste encima de la IA
+  const [cortado, setCortado] = useState("") // lo que la IA alcanzó a decir antes de que la cortaras
 
   const estadoRef = useRef<EstadoVoz>("reposo")
   const activa = useRef(false)
@@ -52,6 +55,12 @@ export function useVoz({ historial, alMensaje }: Opciones) {
   const audioCtx = useRef<AudioContext | null>(null)
   const fila = useRef<Promise<void>>(Promise.resolve()) // lo oído se procesa en orden, de a uno
   const sinVoz = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const chipFugaz = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const mostrarEncima = useCallback((e: Encima | null, fugaz = false) => {
+    clearTimeout(chipFugaz.current)
+    setEncima(e)
+    if (e && fugaz) chipFugaz.current = setTimeout(() => setEncima(null), CHIP_FUGAZ_MS)
+  }, [])
   const opciones = useRef({ historial, alMensaje })
   opciones.current = { historial, alMensaje }
 
@@ -91,6 +100,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     const dicho = t.cola.detener().trim()
     t.corte.abort()
     setHablado("")
+    setCortado(dicho)
     // Para el 27B, la respuesta cortada termina en la marca; si no alcanzó a decir nada, queda solo
     // la marca. Así el pedido siguiente añade al final (user A, assistant, user B) y Ollama
     // reaprovecha la caché (~0,3 s); dos «user» seguidos la pierden (~1 s). Ver la investigación.
@@ -113,6 +123,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
           alNivel: setNivel,
           alEmpezar: () => {
             if (turno.current !== t) return
+            mostrarEncima(null) // ya responde: lo que agregaste pasa a ser tu mensaje
+            setCortado("")
             vad.current?.setOptions(VAD_ENCIMA)
             cambiar("hablando")
             const total = (performance.now() - t0 + PAUSA_FIN_MS) / 1000
@@ -139,6 +151,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
         t.cola.detener()
         turno.current = null
         setHablado("")
+        mostrarEncima(null)
+        setCortado("")
         setError(err instanceof Error ? err.message : String(err))
         if (activa.current) escuchar()
         return
@@ -151,7 +165,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       if (dicho) sumar({ role: "assistant", content: dicho })
       if (activa.current) escuchar()
     },
-    [cambiar, escuchar],
+    [cambiar, escuchar, mostrarEncima],
   )
 
   // Lo que el VAD cerró: transcribir y decidir según si la IA estaba en su turno.
@@ -171,14 +185,18 @@ export function useVoz({ historial, alMensaje }: Opciones) {
         return
       }
       if (tipo === "parada") {
+        mostrarEncima({ texto: oido.texto, estado: "parada" }, true)
         cortar()
         escuchar()
         return
       }
       if (tipo !== "habla") {
-        t.cola.volumen(1) // eco, ruido o «uh-huh»: sigue hablando como si nada
+        // Eco, ruido o «uh-huh»: sigue hablando como si nada, sin chip (Whisper suele transcribir
+        // el «uh-huh» como «y'all» o «YHWH», y verlo en pantalla parecería un error).
+        t.cola.volumen(1)
         return
       }
+      mostrarEncima({ texto: oido.texto, estado: "entendiendo" })
       // Habla real: el 8B decide qué quiso (la voz sigue bajada mientras tanto). Si falla, adición.
       const pregunta = [...hilo.current].reverse().find((m) => m.role === "user")?.content ?? ""
       // El mismo 8B escribe el acuse que suena enseguida («Good point, adding Mars.»).
@@ -194,19 +212,24 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       if (!activa.current) return
       if (turno.current !== t) {
         // La respuesta terminó mientras se clasificaba: lo dicho ya es un turno nuevo, sin corte.
+        mostrarEncima(null)
         if (intencion !== "ignorar" && intencion !== "parada") void responder(oido.texto, fin, oido.ms, acuse)
         return
       }
-      if (intencion === "ignorar") t.cola.volumen(1)
-      else if (intencion === "parada") {
+      if (intencion === "ignorar") {
+        t.cola.volumen(1)
+        mostrarEncima({ texto: oido.texto, estado: "sigo" }, true)
+      } else if (intencion === "parada") {
+        mostrarEncima({ texto: oido.texto, estado: "parada" }, true)
         cortar(intencion)
         escuchar()
       } else {
+        mostrarEncima({ texto: oido.texto, estado: "integrando", intencion })
         cortar(intencion)
         void responder(oido.texto, fin, oido.ms, acuse)
       }
     },
-    [responder, cortar, escuchar, armarSinVoz],
+    [responder, cortar, escuchar, armarSinVoz, mostrarEncima],
   )
 
   const terminar = useCallback(() => {
@@ -221,8 +244,10 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     audioCtx.current = null
     setNivel(0)
     setOyendo(false)
+    mostrarEncima(null)
+    setCortado("")
     cambiar("reposo")
-  }, [cortar, cambiar])
+  }, [cortar, cambiar, mostrarEncima])
   terminarRef.current = terminar
 
   useEffect(() => terminar, [terminar])
@@ -304,5 +329,5 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     }
   }, [estado, iniciar, cortar, escuchar])
 
-  return { estado, nivel, error, tiempos, hablado, oyendo, tocar, terminar }
+  return { estado, nivel, error, tiempos, hablado, oyendo, encima, cortado, tocar, terminar }
 }

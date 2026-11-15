@@ -131,3 +131,11 @@ nota al final del último mensaje («You already said out loud: … Continue rig
 - Medido en local: el acuse suena ~2,0 s después de que te callas (VAD 0,8 s + Whisper ~0,2 s +
   8B ~0,8 s + Kokoro ~0,15 s) y el contenido del 27B llega pegado detrás, sin silencio.
 - El 8B es ahora el tramo más largo: ~0,3 s son overhead de Ollama 0.31 en cada pedido.
+
+### En pantalla (etapa 4)
+
+Lo que dices encima aparece como un chip bajo la respuesta: «entendiendo…» mientras el 8B decide,
+«sigo» (se desvanece) si era un comentario, «me callo» si pediste parar, y «agregando a la
+respuesta» / «corrigiendo la respuesta» / «pregunta nueva» mientras el 27B regenera, con lo que la
+IA alcanzó a decir atenuado encima. Los «uh-huh» detectados por reglas no muestran chip (Whisper
+los transcribe como «y'all» o «YHWH»). El halo del orbe toma luz de Tierra mientras te oye encima.

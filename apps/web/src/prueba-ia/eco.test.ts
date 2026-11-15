@@ -1,7 +1,7 @@
 // Correr: node --test apps/web/src/prueba-ia/eco.test.ts (Node ≥ 22.18 entiende TypeScript)
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { aWav, clasificarOido, marcaDeCorte, deEtiqueta } from "./eco.ts"
+import { aWav, clasificarOido, marcaDeCorte, deEtiqueta, etiquetaEncima } from "./eco.ts"
 
 const DICHO = "Some craters there have floors that have not seen sunlight for billions of years."
 
@@ -80,4 +80,13 @@ test("las etiquetas del clasificador se traducen; lo desconocido cuenta como adi
   assert.equal(deEtiqueta("stop"), "parada")
   assert.equal(deEtiqueta("ignore"), "ignorar")
   assert.equal(deEtiqueta("¿?"), "adicion")
+})
+
+test("el chip de lo que dijiste encima dice qué está haciendo la IA con eso", () => {
+  assert.equal(etiquetaEncima({ texto: "and Mars", estado: "entendiendo" }), "entendiendo…")
+  assert.equal(etiquetaEncima({ texto: "yeah", estado: "sigo" }), "sigo")
+  assert.equal(etiquetaEncima({ texto: "stop", estado: "parada" }), "me callo")
+  assert.equal(etiquetaEncima({ texto: "and Mars", estado: "integrando", intencion: "adicion" }), "agregando a la respuesta")
+  assert.equal(etiquetaEncima({ texto: "I meant the north", estado: "integrando", intencion: "correccion" }), "corrigiendo la respuesta")
+  assert.equal(etiquetaEncima({ texto: "a joke", estado: "integrando", intencion: "pregunta" }), "pregunta nueva")
 })

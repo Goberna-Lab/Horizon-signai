@@ -324,6 +324,46 @@
 .voz-subtitulos { margin-top: 22px; max-width: 620px; display: flex; flex-direction: column; gap: 10px; min-height: 3em; }
 .sub-tuyo { color: var(--tenue); font-size: 0.92rem; font-style: italic; }
 .sub-ia { color: var(--texto); font-size: 1.02rem; line-height: 1.55; animation: aparecer 0.4s ease-out both; }
+/* Hablas encima de la IA: el halo toma algo de luz de Tierra. Sutil a propósito: con parlantes,
+   el eco de la propia IA también lo enciende un instante. */
+.voz-oyendo.voz-hablando .orbe-halo,
+.voz-oyendo.voz-pensando .orbe-halo {
+  background: radial-gradient(closest-side, rgba(143, 182, 255, 0.3), rgba(243, 213, 138, 0.08) 60%, transparent 72%);
+}
+/* Lo que la IA alcanzó a decir antes de que la cortaras. */
+.sub-cortada { color: var(--tenue); }
+/* Chip con lo que dijiste encima y qué hace la IA con eso. */
+.sub-encima {
+  align-self: center;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  max-width: 100%;
+  padding: 6px 14px;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 999px;
+  background: var(--superficie);
+  font-size: 0.88rem;
+  animation: aparecer 0.25s ease-out both;
+  transition: border-color 0.3s;
+}
+.encima-mas { color: var(--tierra); font-weight: 600; }
+.encima-texto { font-style: italic; overflow-wrap: anywhere; }
+.encima-estado { color: var(--tenue); font-size: 0.78rem; }
+.encima-entendiendo .encima-estado { animation: latir-texto 1.2s ease-in-out infinite; }
+.encima-integrando { border-color: rgba(243, 213, 138, 0.45); }
+.encima-integrando .encima-mas,
+.encima-integrando .encima-estado { color: var(--sol); }
+.encima-sigo,
+.encima-parada { animation: fugaz 1.5s ease-out forwards; }
+@keyframes latir-texto { 50% { opacity: 0.4; } }
+@keyframes fugaz {
+  0% { opacity: 0; transform: translateY(6px); }
+  15%, 65% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
 .voz-tiempos { margin-top: 14px; font-size: 0.74rem; color: var(--apagado); font-variant-numeric: tabular-nums; }
 .voz-terminar {
   position: absolute;

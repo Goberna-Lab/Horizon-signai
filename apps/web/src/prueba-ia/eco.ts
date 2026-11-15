@@ -93,3 +93,19 @@ export function marcaDeCorte(i?: Intencion): string {
   if (i === "pregunta") return "[interrupted: the user is asking something new]"
   return "[interrupted]"
 }
+
+// ── Lo que dijiste encima, en pantalla (chip bajo la respuesta) ─────────────────────────────
+export type Encima = {
+  texto: string
+  estado: "entendiendo" | "integrando" | "sigo" | "parada"
+  intencion?: Intencion
+}
+
+export function etiquetaEncima(e: Encima): string {
+  if (e.estado === "entendiendo") return "entendiendo…"
+  if (e.estado === "sigo") return "sigo"
+  if (e.estado === "parada") return "me callo"
+  if (e.intencion === "correccion") return "corrigiendo la respuesta"
+  if (e.intencion === "pregunta") return "pregunta nueva"
+  return "agregando a la respuesta"
+}
