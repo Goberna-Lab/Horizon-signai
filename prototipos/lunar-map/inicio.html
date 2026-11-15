@@ -572,7 +572,8 @@
     polarT = L.polarScene();
     var cv = $('polar'); M.drawCrop(L.renderRelief(polarT, { grain: 6 }), polarT, cv, { x: 170, y: 150, w: 740, h: 484 }); cv.classList.add('boot');
     var st = M.routeStats(local(), 'science');
-    $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°';
+    /* con la ruta ya aprobada, la tarjeta de firma no tiene estas cifras */
+    if ($('pDist')) { $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°'; }
     movs = C.movements(localT);
     renderKpis(); renderMissions(); renderCal(); renderLog(true);
   }, 60);
