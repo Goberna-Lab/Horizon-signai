@@ -14,7 +14,12 @@ let pantallaActual = ""
 export const usarPantalla = (p: string) => {
   pantallaActual = p
 }
-const persona = () => ({ asistente: asistenteActual, recuerdos: recuerdos(), pantalla: pantallaActual })
+// En qué idioma va la conversación. Por defecto inglés; EVA lo cambia cuando le hablan en español.
+let idiomaActual: "en" | "es" = "en"
+export const usarIdioma = (i: "en" | "es") => {
+  idiomaActual = i
+}
+const persona = () => ({ asistente: asistenteActual, recuerdos: recuerdos(), pantalla: pantallaActual, idioma: idiomaActual })
 
 const pedir = async (ruta: string, init: RequestInit) => {
   const r = await fetch(`/api/z6${ruta}`, init)

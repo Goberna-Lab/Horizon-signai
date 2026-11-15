@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, type RefObject } from "react"
 import * as THREE from "three"
 import { crearAnimacion, type AnimacionEva, type EntradaEva, type EstadoEva } from "./animacion"
 import {
+  BLANCO,
   crearMaterialAro,
   crearMaterialCuerpo,
   crearMaterialEstela,
@@ -12,6 +13,7 @@ import {
   estudioDeLuz,
   geometriasEva,
   LUZ,
+  PLOMO,
   type VisorEva,
 } from "./materiales"
 
@@ -25,6 +27,8 @@ type Props = {
   nivel: RefObject<number>
   /** Velocidad en pantalla (px por cuadro): se inclina y mira hacia donde vuela. */
   velocidad?: RefObject<{ x: number; y: number }>
+  /** Hacia dónde apunta con su rayo (−1..1; x a la derecha, y hacia arriba) o null. Mira hacia allá y da un destello al empezar. */
+  mirar?: RefObject<{ x: number; y: number } | null>
   /** Forma del visor. Por defecto `domo`, la de la referencia. */
   visor?: VisorEva
   /** Color de su luz. Por defecto LUZ («luz de Tierra»). */
@@ -46,7 +50,7 @@ export const CAMARA_EVA = { fov: 28, position: [0, 0.186, 6.3], rotation: [-0.04
  * Qué hace en cada estado y cómo pasa de uno a otro: animacion.ts. Cómo se pinta: materiales.ts.
  * Se dibuja dentro de un <Canvas> (ver EvaLienzo). No necesita luces: trae su estudio de reflejos.
  */
-export function EvaModelo({ estado, nivel, velocidad, visor = "domo", luz = LUZ, animacion }: Props) {
+export function EvaModelo({ estado, nivel, velocidad, mirar, visor = "domo", luz = LUZ, animacion }: Props) {
   const gl = useThree((s) => s.gl)
   const raiz = useRef<THREE.Group>(null!)
   const esfera = useRef<THREE.Group>(null!)
@@ -59,6 +63,8 @@ export function EvaModelo({ estado, nivel, velocidad, visor = "domo", luz = LUZ,
     return {
       u,
       color: new THREE.Color(luz),
+      blanco: new THREE.Color(BLANCO),
+      plomo: new THREE.Color(PLOMO),
       cuerpo: crearMaterialCuerpo(u, estudio),
       aro: crearMaterialAro(estudio),
       lente: crearMaterialLente(luz),
@@ -114,6 +120,7 @@ export function EvaModelo({ estado, nivel, velocidad, visor = "domo", luz = LUZ,
     e.vx = velocidad?.current?.x ?? 0
     e.vy = velocidad?.current?.y ?? 0
     e.sujeta = p.sujeta
+    e.apunta = mirar?.current ?? null
     e.puntero = null
     if (!animacion && performance.now() - p.cuando < 2800) {
       // Dónde está ella en la pantalla (se mueve con transform, así que se mide; uno de cada tres cuadros).
@@ -154,10 +161,17 @@ export function EvaModelo({ estado, nivel, velocidad, visor = "domo", luz = LUZ,
     u.uHud4.value.x = h[12]
     u.uPant.value.set(pose.luz, pose.falla, pose.lineas, pose.pulso)
     u.uCuerpo.value.x = pose.propulsor
+    // Sin energía: plomo oscuro, mate y con pocos reflejos; al cargarse vuelve la cerámica blanca.
+    const apagado = 1 - pose.energia
+    u.uCuerpo.value.y = apagado
+    piezas.cuerpo.envMapIntensity = piezas.aro.envMapIntensity = 1 - 0.6 * apagado
+    piezas.cuerpo.clearcoat = piezas.aro.clearcoat = 1 - 0.65 * apagado
+    piezas.aro.color.copy(piezas.blanco).lerp(piezas.plomo, apagado * 0.95)
     piezas.lente.color
       .copy(piezas.color)
       .multiplyScalar(0.5 + 0.8 * Math.min(pose.propulsor, 1.4))
       .addScalar(0.2 * pose.propulsor)
+      .lerp(piezas.plomo, apagado)
     piezas.estela.uniforms.uFuerza.value = pose.propulsor
     piezas.estela.uniforms.uTiempo.value = pose.tiempo
   })

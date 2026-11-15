@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
-import { clasificarOido, type AssistantMode, type Z6Respuesta } from "@horizon-signai/shared"
-import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Persona } from "./asistentes.js"
+import { clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
+import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
 
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
 const z6Url = () => process.env.Z6_URL ?? "http://100.82.117.21:11434"
@@ -19,6 +19,16 @@ const servicioVoz = (): ServicioVoz =>
   process.env.HVOZ_URL
     ? { url: process.env.HVOZ_URL, token: process.env.HVOZ_TOKEN, idioma: "en" }
     : { url: process.env.VOZ_URL ?? "http://100.82.117.21:8795", token: process.env.VOZ_TOKEN, idioma: "es" }
+// Español a pedido (EVA cambia de idioma si le hablan en español): horizon-voz solo oye y habla inglés, así
+// que el español sale de argus-voz, si su token sigue configurado junto al de horizon-voz. Si no lo está o
+// no contesta, se usa la voz de siempre (suena con acento, pero suena) y se deja de intentar un rato.
+let esCaidoHasta = 0
+const servicioPara = (idioma: Idioma): ServicioVoz => {
+  const base = servicioVoz()
+  if (idioma !== "es" || base.idioma === "es" || !process.env.VOZ_TOKEN || Date.now() < esCaidoHasta) return base
+  return { url: process.env.VOZ_URL ?? "http://100.82.117.21:8795", token: process.env.VOZ_TOKEN, idioma: "es" }
+}
+const TIMEOUT_ES_MS = 10_000
 const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
 // Voz en inglés: cada asistente (VERA, LUMA) tiene la suya de Kokoro (ver asistentes.ts). La entonación
@@ -89,9 +99,9 @@ Also write "acuse": for add, correct and new, two to six words the assistant say
 const ETIQUETAS_CLASIFICAR = ["add", "correct", "new", "stop", "ignore"]
 // El 8B es el «hablante rápido»: su acuse suena enseguida mientras el 27B piensa. Solo reconoce,
 // nunca afirma contenido (así no promete algo que el 27B no haga). Si viene vacío o largo, uno fijo.
-const limpiarAcuse = (tipo: string, acuse: string, asistente: AssistantMode) => {
+const limpiarAcuse = (tipo: string, acuse: string, persona: Persona) => {
   const a = acuse.replace(/[[\]{}<>*_#`"]/g, "").replace(/\s+/g, " ").trim()
-  const fijo = ACUSE_FIJO[asistente]
+  const fijo = ACUSE_FIJO[persona.idioma][persona.asistente]
   if (!(tipo in fijo)) return ""
   return a && a.length <= 60 && a.split(" ").length <= 8 ? a : fijo[tipo]
 }
@@ -189,16 +199,28 @@ export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], str
 // Voz de UNA frase con la voz de la asistente (si su voz no está en el servicio, con la segura):
 // audio en base64 y los tiempos de cada palabra. La usan el turno de voz y /decir.
 const vozDeFrase = async (texto: string, formato: string, persona: Persona, señal: AbortSignal) => {
-  const voz = servicioVoz()
-  const pedirVoz = (v: string) =>
+  const base = servicioVoz()
+  const pedirVoz = (voz: ServicioVoz, v: string, limite: number) =>
     fetch(`${voz.url}/v1/hablar`, {
       method: "POST",
       headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
       body: JSON.stringify(voz.idioma === "en" ? { texto, formato, palabras: true, voz: v } : { texto, voz: "es-ivi" }),
-      signal: AbortSignal.any([señal, AbortSignal.timeout(TIMEOUT_VOZ_MS)]),
+      signal: AbortSignal.any([señal, AbortSignal.timeout(limite)]),
     })
-  let r = await pedirVoz(vozDe(persona.asistente))
-  if (!r.ok && voz.idioma === "en" && vozDe(persona.asistente) !== VOZ_SEGURA) r = await pedirVoz(VOZ_SEGURA)
+  let r: Response | null = null
+  const es = servicioPara(persona.idioma)
+  if (es.idioma === "es" && base.idioma === "en") {
+    // Español por argus-voz, con poco margen: si falla, sigue con la voz de siempre.
+    r = await pedirVoz(es, "es-ivi", TIMEOUT_ES_MS).catch(() => null)
+    if (!r?.ok) {
+      r = null
+      if (!señal.aborted) esCaidoHasta = Date.now() + 5 * 60_000
+    }
+  }
+  if (!r) {
+    r = await pedirVoz(base, vozDe(persona.asistente), TIMEOUT_VOZ_MS)
+    if (!r.ok && base.idioma === "en" && vozDe(persona.asistente) !== VOZ_SEGURA) r = await pedirVoz(base, VOZ_SEGURA, TIMEOUT_VOZ_MS)
+  }
   if (!r.ok) throw new Error(`Voz respondió ${r.status}`)
   const audio = Buffer.from(await r.arrayBuffer()).toString("base64")
   const dur = Number(r.headers.get("x-duracion") ?? 0)
@@ -262,7 +284,7 @@ const turnoDeVoz = (
         {
           ...ultimo,
           content:
-            voz.idioma === "en"
+            voz.idioma === "en" && persona.idioma === "en"
               ? `${ultimo.content}\n[You already said out loud: "${acuse}" Continue right after it, without another acknowledgement.]`
               : `${ultimo.content}\n[Ya dijiste en voz alta: «${acuse}». Sigue justo después, sin otro acuse.]`,
         },
@@ -355,22 +377,33 @@ const igual = (a: string, b: string) => {
   return x.length === y.length && timingSafeEqual(x, y)
 }
 
-// Oído: audio → texto en el servicio de voz (Geografo).
-const transcribirAudio = async (audio: ArrayBuffer, tipo: string) => {
-  const voz = servicioVoz()
-  const r = await fetch(`${voz.url}/v1/transcribir`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": tipo, "X-Idioma": voz.idioma },
-    body: audio,
-    signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
-  })
+// Oído: audio → texto en el servicio de voz (Geografo; en español, argus-voz si está: ver servicioPara).
+const transcribirAudio = async (audio: ArrayBuffer, tipo: string, idioma: Idioma = "en") => {
+  const base = servicioVoz()
+  const pedir = (voz: ServicioVoz, limite: number) =>
+    fetch(`${voz.url}/v1/transcribir`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": tipo, "X-Idioma": voz.idioma },
+      body: audio,
+      signal: AbortSignal.timeout(limite),
+    })
+  let r: Response | null = null
+  const es = servicioPara(idioma)
+  if (es.idioma === "es" && base.idioma === "en") {
+    r = await pedir(es, TIMEOUT_ES_MS).catch(() => null)
+    if (!r?.ok) {
+      r = null
+      esCaidoHasta = Date.now() + 5 * 60_000
+    }
+  }
+  r ??= await pedir(base, TIMEOUT_VOZ_MS)
   if (!r.ok) throw new Error(`Voz respondió ${r.status}`)
   const d = (await r.json()) as { texto?: string; ms?: number }
   return { texto: (d.texto ?? "").trim(), ms: d.ms ?? 0 }
 }
 
 // Qué quiso el usuario al hablar encima de la respuesta, y el acuse que se le dice enseguida.
-const clasificarEncima = async (pregunta: string, dicho: string, oido: string, asistente: AssistantMode) => {
+const clasificarEncima = async (pregunta: string, dicho: string, oido: string, persona: Persona) => {
   const t = performance.now()
   const r = await fetch(`${textoUrl()}/api/chat`, {
     method: "POST",
@@ -388,7 +421,7 @@ const clasificarEncima = async (pregunta: string, dicho: string, oido: string, a
         required: ["tipo", "acuse"],
       },
       messages: [
-        { role: "system", content: `${SISTEMA_CLASIFICAR}\n${ESTILO_ACUSE[asistente]}` },
+        { role: "system", content: `${SISTEMA_CLASIFICAR}\n${ESTILO_ACUSE[persona.asistente]}${persona.idioma === "es" ? "\nWrite the acuse in Spanish." : ""}` },
         {
           role: "user",
           content: `User's request: ${JSON.stringify(pregunta.slice(-1000))}\nAssistant was saying: ${JSON.stringify(dicho.slice(-1000))}\nUser just said: ${JSON.stringify(oido.slice(-1000))}`,
@@ -401,7 +434,7 @@ const clasificarEncima = async (pregunta: string, dicho: string, oido: string, a
   const salida = JSON.parse(d.message?.content ?? "{}") as { tipo?: string; acuse?: string }
   const tipo = salida.tipo ?? ""
   if (!ETIQUETAS_CLASIFICAR.includes(tipo)) throw new Error(`etiqueta rara: ${tipo}`)
-  return { tipo, acuse: limpiarAcuse(tipo, salida.acuse ?? "", asistente), ms: Math.round(performance.now() - t) }
+  return { tipo, acuse: limpiarAcuse(tipo, salida.acuse ?? "", persona), ms: Math.round(performance.now() - t) }
 }
 
 const ndjson = (eventos: unknown[]) =>
@@ -607,7 +640,7 @@ export const z6 = new Hono()
     const oido = campo("oido").trim()
     if (!oido) return c.json({ ok: false, error: "oido vacío" }, 400)
     try {
-      return c.json({ ok: true, ...(await clasificarEncima(campo("pregunta"), campo("dicho"), oido, personaDe(cuerpo).asistente)) })
+      return c.json({ ok: true, ...(await clasificarEncima(campo("pregunta"), campo("dicho"), oido, personaDe(cuerpo))) })
     } catch (e) {
       return c.json({ ok: false, error: `No se pudo clasificar: ${String(e)}` }, 502)
     }
@@ -637,7 +670,7 @@ export const z6 = new Hono()
 
     let oido: { texto: string; ms: number }
     try {
-      oido = await transcribirAudio(await audio.arrayBuffer(), audio.type || "audio/wav")
+      oido = await transcribirAudio(await audio.arrayBuffer(), audio.type || "audio/wav", personaDe(ctx).idioma)
     } catch (e) {
       return c.json({ ok: false, error: `No se pudo hablar con la voz: ${String(e)}` }, 502)
     }
@@ -653,7 +686,7 @@ export const z6 = new Hono()
         async start(ctl) {
           ctl.enqueue(linea(evento))
           try {
-            const k = await clasificarEncima(texto("pregunta"), texto("hablado"), oido.texto, personaDe(ctx).asistente)
+            const k = await clasificarEncima(texto("pregunta"), texto("hablado"), oido.texto, personaDe(ctx))
             ctl.enqueue(linea({ t: "intencion", intencion: k.tipo, acuse: k.acuse, ms: k.ms }))
           } catch (e) {
             ctl.enqueue(linea({ t: "intencion", intencion: "add", acuse: "", ms: 0, error: String(e) })) // ante la duda, adición

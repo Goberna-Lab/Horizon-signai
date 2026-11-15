@@ -143,6 +143,36 @@ test("si la arrastran rápido se sobresalta y al soltarla vuelve a su estado", (
   assert.ok(q.ojos[ANILLO] < 0.05 && q.ojos[PARPADO] > 0.2, "vuelve a la cara seria")
 })
 
+test("apagada no tiene luz, ni propulsor, ni energía, y no flota", () => {
+  const a = fija()
+  const p = correr(a, quieta("apagada"), 5)
+  assert.ok(p.luz < 0.01 && p.propulsor < 0.01 && p.energia < 0.02, `luz ${p.luz}, propulsor ${p.propulsor}, energía ${p.energia}`)
+  const y = p.y
+  assert.ok(Math.abs(correr(a, quieta("apagada"), 0.7).y - y) < 0.004, "quieta")
+})
+
+test("si nace apagada, está apagada desde el primer cuadro", () => {
+  const p = crearAnimacion().paso(DT, quieta("apagada"))
+  assert.ok(p.energia < 0.02 && p.luz < 0.01, `energía ${p.energia}, luz ${p.luz}`)
+})
+
+test("al salir de apagada se enciende y se carga de a poco", () => {
+  const a = fija()
+  correr(a, quieta("apagada"), 4)
+  const p1 = correr(a, quieta("reposo"), 0.25)
+  assert.ok(p1.energia > 0.02 && p1.energia < 0.6, `a los 0,25 s la carga va a medias: ${p1.energia}`)
+  assert.ok(p1.ojos[ALTO] < 0.02, `los ojos aún no abren: ${p1.ojos[ALTO]}`)
+  assert.ok(p1.hud[3] < 0.1, `las marcas empiezan vacías: ${p1.hud[3]}`)
+  const p2 = correr(a, quieta("reposo"), 3)
+  assert.ok(p2.energia > 0.97 && p2.luz > 0.9 && p2.ojos[ALTO] > 0.06 && p2.hud[3] > 0.95, `carga ${p2.energia}, luz ${p2.luz}, marcas ${p2.hud[3]}`)
+})
+
+test("en alerta las marcas del visor siguen la voz", () => {
+  const callada = correr(fija(), quieta("alerta", 0), 2).hud[3]
+  const hablando = correr(fija(), quieta("alerta", 1), 2).hud[3]
+  assert.ok(callada < 0.5 && hablando > 0.9, `${callada} → ${hablando}`)
+})
+
 test("al encender empieza a oscuras y termina con los ojos abiertos", () => {
   const a = crearAnimacion({ vida: false })
   const p0 = a.paso(DT, quieta("reposo"))

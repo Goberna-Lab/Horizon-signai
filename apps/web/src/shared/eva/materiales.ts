@@ -7,7 +7,9 @@ import * as THREE from "three"
 export const LUZ = "#9AD7FF"
 /** Rojo de la marca: solo para avisos (marcas del visor en alerta y batería baja). */
 export const ROJO = "#C8102E"
-const BLANCO = "#FBFAF7" // cerámica blanca, apenas cálida
+export const BLANCO = "#FBFAF7" // cerámica blanca, apenas cálida
+/** Plomo oscuro: el color de la cerámica cuando está apagada. */
+export const PLOMO = "#3B3E44"
 
 /** Forma de la ventana del visor. `domo` es la de la referencia de Estephano; las demás son opciones. */
 export type VisorEva = "domo" | "ovalo" | "banda" | "ventana"
@@ -89,6 +91,7 @@ export function crearUniformes(visor: VisorEva, luz: THREE.ColorRepresentation =
     uTiempo: { value: 0 },
     uLuz: { value: new THREE.Color(luz) },
     uRojo: { value: new THREE.Color(ROJO) },
+    uPlomo: { value: new THREE.Color(PLOMO) },
     /** semiancho, alto arriba, alto abajo, exponente */
     uVisor: { value: new THREE.Vector4(v.semiancho, v.arriba, v.abajo, v.exponente) },
     /** latitud del centro, hondura, labio, escala de la pantalla */
@@ -107,7 +110,7 @@ export function crearUniformes(visor: VisorEva, luz: THREE.ColorRepresentation =
     uHud4: { value: new THREE.Vector4() },
     /** luz, falla, líneas, pulso */
     uPant: { value: new THREE.Vector4(1, 0, 0.35, 0.12) },
-    /** propulsor */
+    /** propulsor, apagado (1 = sin energía: cerámica en plomo y mate) */
     uCuerpo: { value: new THREE.Vector4(0.75, 0, 0, 0) },
     uOrbita: { value: o.planos },
     uOrbitaE: { value: o.ejes },
@@ -126,6 +129,7 @@ uniform mat3 normalMatrix;
 uniform float uTiempo;
 uniform vec3 uLuz;
 uniform vec3 uRojo;
+uniform vec3 uPlomo;
 uniform vec4 uVisor;
 uniform vec4 uCaja;
 uniform vec4 uCaja2;
@@ -330,6 +334,8 @@ evaMancha = clamp(evaMancha * uPant.w * uPant.z * 0.8, 0.0, 0.45) * evaCeramica;
 diffuseColor.rgb *= 1.0 - 0.22 * evaLabio * evaCeramica;
 diffuseColor.rgb = mix(diffuseColor.rgb, uLuz * 0.55 + 0.2, evaLinea * 0.8);
 diffuseColor.rgb = mix(diffuseColor.rgb, uLuz * 0.8, evaMancha);
+// Apagada: la cerámica se vuelve plomo oscuro (las líneas quedan apenas más claras).
+diffuseColor.rgb = mix(diffuseColor.rgb, uPlomo * (1.0 + 0.5 * evaLinea), uCuerpo.y * 0.95);
 diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.02), evaJunta);
 diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.0015), evaVidrio);
 // Luz propia sobre la cerámica: las líneas, el resplandor de la pantalla en el borde y el del propulsor abajo.
@@ -339,6 +345,7 @@ evaEmision += uLuz * uCuerpo.x * 0.34 * smoothstep(-0.66, -1.0, evaP.y) * evaCer
 `
 
 const RUGOSIDAD = /* glsl */ `
+roughnessFactor = mix(roughnessFactor, 0.58, uCuerpo.y);
 roughnessFactor = mix(roughnessFactor, 0.6, evaJunta);
 roughnessFactor = mix(roughnessFactor, 0.07, evaVidrio);
 `

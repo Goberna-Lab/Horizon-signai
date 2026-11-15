@@ -7,6 +7,8 @@ type Props = {
   estado: EstadoEva
   nivel: RefObject<number>
   velocidad?: RefObject<{ x: number; y: number }>
+  /** Hacia dónde apunta con su rayo (ver EvaModelo). */
+  mirar?: RefObject<{ x: number; y: number } | null>
   visor?: VisorEva
   className?: string
 }
@@ -16,7 +18,7 @@ type Props = {
  * No lleva luces: el modelo trae su propio estudio de reflejos, hecho con formas de luz (sin mapas de
  * entorno que bajar de la red). El tono «neutral» deja la cerámica blanca de verdad.
  */
-export default function EvaLienzo({ estado, nivel, velocidad, visor, className }: Props) {
+export default function EvaLienzo({ estado, nivel, velocidad, mirar, visor, className }: Props) {
   return (
     <Canvas
       className={className}
@@ -25,7 +27,7 @@ export default function EvaLienzo({ estado, nivel, velocidad, visor, className }
       dpr={[1, 2]}
       style={{ background: "transparent" }}
     >
-      <EvaModelo estado={estado} nivel={nivel} velocidad={velocidad} visor={visor} />
+      <EvaModelo estado={estado} nivel={nivel} velocidad={velocidad} mirar={mirar} visor={visor} />
     </Canvas>
   )
 }

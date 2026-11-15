@@ -46,6 +46,15 @@ export function recordar(texto: string) {
   guardar(r)
 }
 
+/** Guarda el nombre que la persona dio cuando EVA se lo preguntó (sin anotarlo como pregunta). */
+export function recordarNombre(nombre: string) {
+  const n = nombre.replace(/\s+/g, " ").trim().slice(0, 30)
+  if (!n) return
+  const r = recuerdos()
+  r.nombre = n
+  guardar(r)
+}
+
 /** Una visita más (una vez por carga de la página). */
 export function contarVisita() {
   const r = recuerdos()

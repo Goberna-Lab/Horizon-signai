@@ -4,4 +4,4 @@
  * pantalla y le da voz: features/assistant/eva.
  */
 export type { EstadoEva } from "./EvaModelo"
-export { avisarEva, EVENTO_EVA, type AvisoEva } from "./avisos"
+export { avisarEva, enfocarEva, EVENTO_EVA, type AvisoEva } from "./avisos"

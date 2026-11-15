@@ -153,6 +153,7 @@ function HojaTira() {
     cambio("reposo", "sorpresa", T),
     cambio("reposo", "cansada", [0, 0.15, 0.3, 0.6, 1, 1.6, 2.4, 3.6]),
     cambio("cansada", "reposo", [0, 0.1, 0.2, 0.35, 0.55, 0.8, 1.2, 2]),
+    cambio("apagada", "reposo", [0, 0.2, 0.45, 0.7, 1, 1.4, 2, 3]),
     {
       titulo: "encendido",
       cuadros: [0.05, 0.2, 0.32, 0.45, 0.6, 0.8, 1.05, 1.6].map((t) => ({

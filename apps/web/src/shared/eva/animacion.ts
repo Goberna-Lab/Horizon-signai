@@ -5,7 +5,10 @@
 // Carácter (Estephano, 2026-11-15): normalmente seria. La sonrisa de arcos se reserva para cuando bromea o
 // está contenta; en reposo mira con el párpado recto y la ceja nivelada.
 
-/** Lo que EVA está haciendo. Los seis primeros son los de siempre; los tres últimos son nuevos y opcionales. */
+/**
+ * Lo que EVA está haciendo. Los seis primeros son los de siempre. `alegre`, `sorpresa` y `alerta` son caras
+ * nuevas. `apagada` es sin energía (plomo oscuro, quieta): al salir de ahí se enciende y se carga.
+ */
 export type EstadoEva =
   | "reposo"
   | "escuchando"
@@ -16,8 +19,9 @@ export type EstadoEva =
   | "alegre"
   | "sorpresa"
   | "alerta"
+  | "apagada"
 
-export const ESTADOS: readonly EstadoEva[] = ["reposo", "escuchando", "pensando", "hablando", "bromeando", "cansada", "alegre", "sorpresa", "alerta"]
+export const ESTADOS: readonly EstadoEva[] = ["reposo", "escuchando", "pensando", "hablando", "bromeando", "cansada", "alegre", "sorpresa", "alerta", "apagada"]
 
 /** Lo que entra en cada cuadro. */
 export type EntradaEva = {
@@ -31,6 +35,8 @@ export type EntradaEva = {
   puntero?: { x: number; y: number } | null
   /** La tienen sujeta (puntero abajo sobre ella). */
   sujeta?: boolean
+  /** Hacia dónde apunta con su rayo, −1..1 (x a la derecha, y hacia arriba); null si no apunta. Manda sobre la mirada. */
+  apunta?: { x: number; y: number } | null
   /** Movimiento reducido (prefers-reduced-motion): flota menos y no mira alrededor. */
   calma?: boolean
 }
@@ -67,6 +73,8 @@ export type PoseEva = {
   lineas: number
   pulso: number
   propulsor: number
+  /** 0 = apagada (cerámica en plomo oscuro y mate), 1 = con energía. Sube de a poco al cargarse. */
+  energia: number
 }
 
 export type OpcionesAnimacion = {
@@ -131,6 +139,8 @@ type Gesto = {
   alerta: number
   /** 0..1: batería baja (una marca roja que parpadea y la luz titila). */
   bateria: number
+  /** 0 = apagada, 1 = con energía. */
+  energia: number
 }
 
 const OJO: Ojo = {
@@ -150,7 +160,7 @@ const OJO: Ojo = {
   cejaCurva: 0,
   cejaLuz: 0.75,
 }
-const CUERPO = { cabeceo: 0, guinada: 0, alabeo: 0, altura: 0, corchete: 0, corcheteLuz: 0.65, luz: 1, lineas: 0.35, pulso: 0.12, propulsor: 0.75, alerta: 0, bateria: 0 }
+const CUERPO = { cabeceo: 0, guinada: 0, alabeo: 0, altura: 0, corchete: 0, corcheteLuz: 0.65, luz: 1, lineas: 0.35, pulso: 0.12, propulsor: 0.75, alerta: 0, bateria: 0, energia: 1 }
 const ojo = (o: Partial<Ojo>): Ojo => ({ ...OJO, ...o })
 const iguales = (o: Partial<Ojo>): [Ojo, Ojo] => [ojo(o), ojo(o)]
 
@@ -249,6 +259,21 @@ const GESTOS: Record<NombreGesto, Gesto> = {
     lineas: 0.55,
     pulso: 0.8,
   },
+  // Sin energía: plomo oscuro, sin luz, hundida y con la cabeza caída. Al salir de aquí se enciende (la raya
+  // que se abre) y se carga (la cerámica aclara y las marcas se llenan): ver `alCambiar`.
+  apagada: {
+    ...CUERPO,
+    ojos: iguales({ ancho: 0.1, alto: 0.02, redondez: 1, cejaY: 0.1, cejaLuz: 0 }),
+    cabeceo: 0.24,
+    alabeo: -0.06,
+    altura: -0.12,
+    corcheteLuz: 0,
+    luz: 0,
+    lineas: 0,
+    pulso: 0,
+    propulsor: 0,
+    energia: 0,
+  },
   // Después de que la arrastran: párpados a medias y cejas rectas, un momento.
   molesta: {
     ...CUERPO,
@@ -288,16 +313,17 @@ const PULSO = 38
 const PROPULSOR = 39
 const ALERTA = 40
 const BATERIA = 41
-const N_GESTO = 42
-const MIRA_X = 42
-const MIRA_Y = 43
-const CABEZA_X = 44
-const CABEZA_Y = 45
-const LADEO_Z = 46
-const LADEO_X = 47
-const GIRO_VUELO = 48
-const ESTIRA = 49
-const N = 50
+const ENERGIA = 42
+const N_GESTO = 43
+const MIRA_X = 43
+const MIRA_Y = 44
+const CABEZA_X = 45
+const CABEZA_Y = 46
+const LADEO_Z = 47
+const LADEO_X = 48
+const GIRO_VUELO = 49
+const ESTIRA = 50
+const N = 51
 
 function aCanales(g: Gesto) {
   const c = new Float32Array(N_GESTO)
@@ -331,6 +357,7 @@ function aCanales(g: Gesto) {
   c[PROPULSOR] = g.propulsor
   c[ALERTA] = g.alerta
   c[BATERIA] = g.bateria
+  c[ENERGIA] = g.energia
   return c
 }
 const OBJETIVO = Object.fromEntries(Object.entries(GESTOS).map(([k, g]) => [k, aCanales(g)])) as Record<NombreGesto, Float32Array>
@@ -357,6 +384,7 @@ resorte(CABECEO, ALABEO, 1.5, 0.68)
 resorte(ALTURA, ALTURA, 1.9, 0.48)
 resorte(CORCHETE, CORCHETE, 2.8, 0.5)
 resorte(CORCHETE_LUZ, BATERIA, 2.2, 1)
+resorte(ENERGIA, ENERGIA, 0.55, 1) // la carga: tarda algo más de un segundo en llenarse
 resorte(MIRA_X, MIRA_Y, 5, 0.85)
 resorte(CABEZA_X, CABEZA_Y, 1.3, 0.9)
 resorte(LADEO_Z, LADEO_X, 1.6, 0.5)
@@ -432,6 +460,7 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
     lineas: 0,
     pulso: 0,
     propulsor: 0,
+    energia: 1,
   }
 
   let t = 0
@@ -448,6 +477,8 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
   let vxAntes = 0
   let vyAntes = 0
   let volando = false
+  let apuntaba = false
+  let nacida = false // ya recibió su primer cuadro de verdad
 
   let parpadeo: Parpadeo = PARPADEO
   let parpadeoInicio = -1
@@ -470,6 +501,8 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
   let falla = 0
   let destello = 0
   let titila = 1
+  let encDesde = encendido ? 0 : -100 // cuándo empezó el último encendido
+  let cargaDesde = -100 // cuándo empezó a cargarse (al salir de apagada)
 
   const parpadear = (p: Parpadeo) => {
     parpadeo = p
@@ -491,9 +524,14 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
     ritmo = ahora === "cansada" ? 0.42 : antes === "cansada" ? 0.8 : 1
     // Con parpadeo: los ojos cambian de forma mientras están cerrados. Las barras de la voz entran y salen
     // sin parpadear; el sobresalto abre de golpe; el cansancio cae despacio.
-    const directo = ahora === "hablando" || antes === "hablando" || ahora === "sorpresa" || ahora === "cansada"
+    const directo = ahora === "hablando" || antes === "hablando" || ahora === "sorpresa" || ahora === "cansada" || ahora === "apagada" || antes === "apagada"
     if (!directo) parpadear(PARPADEO_CAMBIO)
     if (antes === "cansada") falla = 1 // vuelve la corriente
+    if (antes === "apagada") {
+      // Le llega energía: repite el encendido y se carga.
+      encDesde = t
+      cargaDesde = t
+    }
     if (ahora === "sorpresa") {
       vel[ALTURA] += 1.5
       vel[ESTIRA] += 1.4
@@ -525,19 +563,21 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
 
     // ── Reacciones al tacto: al tocarla se hunde un poco y parpadea; si la arrastran rápido se sobresalta;
     //    al soltarla después de un paseo largo queda un momento con cara de pocos amigos.
-    if (sujeta && !sujetaAntes) {
+    const dormida = e.estado === "apagada"
+    if (dormida) reaccion = null
+    if (sujeta && !sujetaAntes && !dormida) {
       arrastre = 0
       vel[ALTURA] -= 0.55
       vel[ESTIRA] -= 0.9
       if (gesto !== "hablando") parpadear(PARPADEO_CAMBIO)
     }
-    if (sujeta) {
+    if (sujeta && !dormida) {
       arrastre += rapidez
       if (rapidez > 5) {
         reaccion = "sorpresa"
         reaccionHasta = t + 0.45
       }
-    } else {
+    } else if (!dormida) {
       if (sujetaAntes && arrastre > 240) {
         reaccion = "molesta"
         reaccionHasta = t + 1.1
@@ -563,8 +603,25 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
     vyAntes = vy
     if (reaccion && t > reaccionHasta) reaccion = null
 
+    // Al empezar a apuntar da un destello y un pequeño culatazo: «dispara» el rayo.
+    const apunta = e.apunta && !dormida ? e.apunta : null
+    if (apunta && !apuntaba) {
+      destello = Math.max(destello, 0.55)
+      vel[ALTURA] -= 0.3
+      vel[ESTIRA] -= 0.6
+    }
+    apuntaba = !!apunta
+
     estado = e.estado
     const g: NombreGesto = reaccion ?? estado
+    // Nace ya en el estado que le dan (si es apagada, apagada desde el primer cuadro), sin venir desde reposo.
+    if (!nacida) {
+      nacida = true
+      if (g !== gesto) {
+        val.set(OBJETIVO[g] ?? OBJETIVO.reposo)
+        gesto = g
+      }
+    }
     if (g !== gesto) {
       alCambiar(gesto, g)
       gesto = g
@@ -597,8 +654,11 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
       obj[CABECEO] += 0.13 * cae - 0.05 * suave(0.8, 0.86, f) * (1 - suave(0.9, 1, f))
       cierreExtra = 0.7 * cae
     } else if (g === "alerta") {
+      // Dice un aviso: los ojos se abren un poco con cada golpe de voz.
       obj[CEJA_Y] -= 0.012 * nivel
       obj[N_OJO + CEJA_Y] -= 0.012 * nivel
+      obj[PARPADO] -= 0.14 * nivel
+      obj[N_OJO + PARPADO] -= 0.14 * nivel
     }
     // Rebote de la broma: entra y sale con una envolvente para no dar saltos.
     saltoEnv += ((g === "bromeando" ? 1 : 0) - saltoEnv) * (1 - Math.exp(-dt / 0.1))
@@ -616,11 +676,14 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
     let gx = 0
     let gy = 0
     let cabeza = 1
-    if (g === "pensando") {
+    if (apunta && g !== "cansada") {
+      gx = acotar(apunta.x, -1, 1)
+      gy = acotar(apunta.y, -1, 1)
+    } else if (g === "pensando") {
       gx = 0.62
       gy = 0.7
       cabeza = 0 // la postura ya gira la cabeza
-    } else if (g === "cansada") {
+    } else if (g === "cansada" || g === "apagada") {
       gy = -0.55
       cabeza = 0
     } else if (rapidez > 2.5 && !sujeta) {
@@ -693,7 +756,7 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
     falla *= Math.exp(-dt / 0.09)
 
     // ── Encendido: una raya que se abre a lo ancho, luego a lo alto; después llegan cejas, corchetes y líneas.
-    const enc = encendido ? t : 10
+    const enc = t - encDesde
     const encLuz = suave(0.1, 0.3, enc)
     const encRaya = suave(0.12, 0.42, enc)
     const encAbre = suave(0.42, 0.8, enc)
@@ -739,9 +802,13 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
       hudGiro %= TAU
       const meta = hudGiro > Math.PI ? TAU : 0
       hudGiro += (meta - hudGiro) * (1 - Math.exp(-dt / 0.12))
-      const lleno = g === "hablando" || g === "escuchando" ? 0.2 + 0.8 * Math.min(1, nivel * 1.4) : g === "cansada" ? 0.34 : 1
+      const lleno =
+        g === "hablando" || g === "escuchando" ? 0.2 + 0.8 * Math.min(1, nivel * 1.4) : g === "alerta" ? 0.34 + 0.66 * Math.min(1, nivel * 1.6) : g === "cansada" ? 0.34 : 1
       hudNivel += (lleno - hudNivel) * (1 - Math.exp(-dt / 0.06))
     }
+    // Mientras se carga, las marcas se llenan de una en una, como un indicador de batería.
+    const cargando = t - cargaDesde
+    if (cargando < 1.9) hudNivel = acotar((cargando - 0.6) / 1.3, 0, 1)
     busca += ((g === "pensando" ? 1 : 0) - busca) * (1 - Math.exp(-dt / 0.15))
     pose.hud[12] = busca
     const luz = acotar(val[LUZ], 0, 1.2) * (1 - b * (1 - titila)) * (1 + destello) * encLuz
@@ -759,7 +826,8 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
     pose.hud[11] = my * 0.025
 
     // ── Pose: cuerpo y luces.
-    const flota = (Math.sin(t * 1.5) * 0.05 + Math.sin(t * 0.83 + 1.3) * 0.018) * (calma ? 0.3 : 1) * (1 - 0.4 * b)
+    const energia = acotar(val[ENERGIA], 0, 1)
+    const flota = (Math.sin(t * 1.5) * 0.05 + Math.sin(t * 0.83 + 1.3) * 0.018) * (calma ? 0.3 : 1) * (1 - 0.4 * b) * energia
     pose.tiempo = t
     pose.y = flota + val[ALTURA] + salto
     pose.cabeceo = val[CABECEO] - val[CABEZA_Y] * 0.16
@@ -776,12 +844,15 @@ export function crearAnimacion(opciones: OpcionesAnimacion = {}): AnimacionEva {
       acotar(val[PROPULSOR] * (1 + 0.12 * Math.sin(t * 3.1)) + (g === "hablando" ? nivel * 0.35 : 0) + acotar(-vy * 0.02, 0, 0.5) + Math.abs(vel[ALTURA]) * 0.25, 0, 1.6) *
       (1 - 0.5 * b * (1 - titila)) *
       suave(0.3, 1, enc) *
-      (1 + 0.5 * encOla)
+      (1 + 0.5 * encOla) *
+      energia
+    pose.energia = energia
     return pose
   }
 
   const api: AnimacionEva = { paso, pausa: false, pose }
   // Un primer paso sin tiempo deja la pose lista antes del primer cuadro.
   paso(0, { estado: "reposo", nivel: 0, vx: 0, vy: 0 })
+  nacida = false
   return api
 }

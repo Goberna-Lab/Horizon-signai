@@ -22,6 +22,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 .eva-cuerpo:active { cursor: grabbing; }
+/* Apagada: difuminada y sin color, hasta que sale el Sol y se carga (el plomo oscuro lo pone el modelo). */
+.eva-cuerpo { transition: filter 1.8s ease, opacity 1.8s ease; }
+.eva-caja[data-estado="apagada"] .eva-cuerpo { filter: blur(1.6px) saturate(0.3) brightness(0.85); opacity: 0.85; }
 .eva-cuerpo:focus-visible { outline: 2px solid var(--eva-rojo); outline-offset: -12px; }
 
 /* Globo: lo que va diciendo, palabra por palabra. Va hacia el lado con más espacio. */
@@ -43,6 +46,33 @@
   animation: eva-aparecer 0.25s ease-out both;
 }
 .eva-caja--derecha .eva-globo { right: auto; left: 78%; border-radius: 14px 14px 14px 4px; }
+
+/* Una pregunta de EVA: el globo con el campo o los botones para contestarle. */
+.eva-globo--pregunta { display: grid; gap: 8px; }
+.eva-globo--pregunta p { margin: 0; }
+.eva-pregunta { display: flex; gap: 6px; align-items: center; }
+.eva-pregunta input {
+  flex: 1;
+  min-width: 0;
+  width: 150px;
+  padding: 6px 9px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--eva-tinta);
+  font: inherit;
+}
+.eva-pregunta button {
+  padding: 6px 11px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 9px;
+  background: var(--eva-tinta);
+  color: var(--eva-papel);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.eva-pregunta .eva-pregunta__suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
 
 /* Panel: escribirle, hablarle por voz, silenciar, repetir consejos, olvidar. */
 .eva-panel {
@@ -106,19 +136,50 @@
 .eva-boton--suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
 .eva-panel__nota { margin: 0; color: #6b655c; font-size: 0.7rem; }
 
-/* La parte de la pantalla de la que EVA está hablando. */
-.eva-foco {
-  outline: 2px solid var(--eva-rojo, #c8102e) !important;
-  outline-offset: 4px;
-  border-radius: 6px;
-  transition: outline-color 0.3s;
-  animation: eva-foco 1.6s ease-in-out infinite;
+/*
+ * El rayo con el que EVA apunta a la parte de la pantalla de la que habla: una línea desde su visor hasta esa
+ * parte y cuatro esquinas que la encierran. Va en una capa aparte, encima de todo (también del Planificador
+ * incrustado), sin recibir clics. Rojo de la marca: se lee sobre papel y sobre noche, como un puntero láser.
+ */
+.eva-rayo {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 8999;
+  pointer-events: none;
+  overflow: visible;
+  animation: eva-rayo-sale 0.14s ease-out both;
+}
+.eva-rayo__halo { stroke: var(--eva-rojo, #c8102e); stroke-width: 8; stroke-linecap: round; opacity: 0.2; filter: blur(3px); }
+.eva-rayo__haz {
+  stroke: var(--eva-rojo, #c8102e);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 3 7;
+  animation: eva-rayo-corre 0.45s linear infinite;
+}
+.eva-rayo__punta { fill: var(--eva-rojo, #c8102e); animation: eva-rayo-late 0.9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.eva-rayo__cerco {
+  fill: none;
+  stroke: var(--eva-rojo, #c8102e);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eva-enfocar 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, eva-foco 1.6s ease-in-out 0.4s infinite;
 }
 
 @keyframes eva-aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes eva-foco { 50% { outline-color: rgba(200, 16, 46, 0.35); } }
+@keyframes eva-foco { 50% { stroke-opacity: 0.45; } }
+@keyframes eva-rayo-sale { from { opacity: 0; } }
+@keyframes eva-rayo-corre { to { stroke-dashoffset: -10; } }
+@keyframes eva-rayo-late { 50% { transform: scale(1.7); opacity: 0.55; } }
+@keyframes eva-enfocar { from { transform: scale(1.22); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .eva-globo, .eva-panel { animation: none; }
-  .eva-foco { animation: none; }
+  .eva-rayo, .eva-rayo__haz, .eva-rayo__punta, .eva-rayo__cerco { animation: none; }
+  .eva-cuerpo { transition: none; }
 }
