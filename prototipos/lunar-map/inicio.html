@@ -170,7 +170,7 @@
 .rtip .rt + .rt { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(155,255,228,0.18); }
 .rtip b { display: block; font-weight: 700; color: #9BFFE4; }
 .rtip span { display: block; font-family: var(--f-mono); font-size: 10px; color: rgba(244,239,230,0.75); }
-.rtip .v { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; font: 700 9.5px var(--f-mono); color: #05060A; }
+.rtip .v { display: inline-block; margin: 3px 0 0 4px; padding: 1px 7px; border-radius: 999px; font: 700 9px var(--f-mono); font-style: normal; color: #05060A; }
 .sites .caption .rl { display: inline-block; width: 7px; height: 7px; margin: 0 3px 0 6px; border-radius: 50%; vertical-align: 0; }
 
 
@@ -288,7 +288,7 @@
               <div class="rtip" id="rtip" hidden></div>
               <div class="fx" aria-hidden="true"><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
               <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
-              <p class="caption" id="rcap"><i class="rl" style="background:#F5F5F6"></i>GO <i class="rl" style="background:#F2C14E"></i>REVIEW <i class="rl" style="background:#FF5A4A"></i>NO GO · real distances</p>
+              <p class="caption" id="rcap"><i class="rl" style="background:#F5F5F6"></i>GO <i class="rl" style="background:#F2C14E"></i>REVIEW <i class="rl" style="background:#FF5A4A"></i>PENDING SIGN-OFF <i class="rl" style="background:#8C8C92"></i>DRAFT</p>
             </div>
             <span class="led" aria-hidden="true"></span>
           </div>
@@ -409,10 +409,9 @@
    * derecha, como el mapa del planificador). Fondo: relieve real de LOLA 240 m (data/radar-polo-sur.jpg, tools/mapa-polo.py).
    * Solo pasa el barrido (visual): los puntos no llevan rótulos y dan su detalle al pasar el ratón (o al tocarlos).
    * Solo aparecen los sitios donde la campaña tiene alguna misión: una candidata de data/candidatas.js sale en el radar
-   * cuando se crea una misión en ella. Color = veredicto del planificador (blanco GO, ámbar REVIEW, rojo NO GO)
-   * con el mismo escenario que él (el guardado en este navegador o, si no hay, su vista inicial): el motor, las efemérides y
-   * los horizontes (engine.js, data/efemerides-luna.js, data/zonas.js) se cargan después de pintar la página; hasta
-   * entonces los puntos van en menta. El sitio de la misión elegida lleva un aro. Tocar un punto elige su misión. */
+   * cuando se crea una misión en ella. Color = estado de la misión, el mismo de su chip en la lista: blanco GO o aprobada,
+   * ámbar REVIEW, rojo pendiente de firma, gris borrador. Si un sitio tiene varias misiones, manda la elegida si es de ese
+   * sitio y, si no, la que más atención pide. El sitio de la misión elegida lleva un aro. Tocar un punto elige su misión. */
   var RKM = 200, KMDEG = Math.PI / 180 * 1737.4, PHOS = '155,255,228';
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var CAND = (window.LunarData && window.LunarData.candidatas || []).map(function (c) { return { z: c.z, nombre: c.nombre, lat: c.lat, lon: c.lon, km: (90 + c.lat) * KMDEG, a: c.lon * Math.PI / 180 }; });
@@ -424,34 +423,12 @@
     rW = b.width; rH = b.height; radar.width = Math.round(rW * dpr); radar.height = Math.round(rH * dpr);
     rctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  var VCOL = { 'GO': '#F5F5F6', 'REVIEW': '#F2C14E', 'NO GO': '#FF5A4A' }, verdicts = null, vScn = null;
-  /* el escenario del planificador (index.html): el guardado (lunarmap.escenario) o su vista inicial, el plan de CR-01
-   * movido al 3 abr 2027 09:00 UTC; estadía 3 d, panel y antena a 2 m, batería 24 h, Tierra ≥ 40 % */
-  function plannerScenario() {
-    var d = { landingMs: Date.UTC(2027, 3, 3, 9), stayDays: 3, panelM: 2, antennaM: 2, requirements: { batteryH: 24, minEarthPct: 40, sunAtLanding: true, earthAtLanding: true } };
-    var s = null; try { s = JSON.parse(localStorage.getItem('lunarmap.escenario')); } catch (e) { /* sin almacenamiento */ }
-    if (!s || !isFinite(s.landingMs)) return d;
-    var num = function (v, a, b, def) { v = Number(v); return isFinite(v) ? Math.min(b, Math.max(a, v)) : def; }, r = s.requirements || {};
-    return { landingMs: s.landingMs, stayDays: Math.round(num(s.stayDays, 1, 60, 3)), panelM: num(s.panelM, 0, 30, 2), antennaM: num(s.antennaM, 0, 30, 2),
-      requirements: { batteryH: Math.round(num(r.batteryH, 0, 720, 24)), minEarthPct: Math.round(num(r.minEarthPct, 0, 100, 40)), sunAtLanding: r.sunAtLanding !== false, earthAtLanding: r.earthAtLanding !== false } };
-  }
-  /* la URL ya versionada del prefetch de la página (la API añade ?v=), para aprovechar la caché */
-  function srcOf(f) { var l = document.querySelector('link[rel="prefetch"][href^="' + f + '"]'); return l ? l.getAttribute('href') : f; }
-  function loadScript(f) { return new Promise(function (ok, ko) { var e = document.createElement('script'); e.src = srcOf(f); e.onload = ok; e.onerror = ko; document.head.appendChild(e); }); }
-  function loadVerdicts() {
-    loadScript('data/efemerides-luna.js').then(function () { return loadScript('data/zonas.js'); }).then(function () { return loadScript('engine.js'); }).then(function () {
-      var E = window.Lunar.Engine, Zs = window.LunarData.zonas, T = E.tabla(window.LunarData.efemerides), sc = plannerScenario(), out = {};
-      Object.keys(Zs).forEach(function (z) {
-        var e = E.evaluate(T, E.station(Zs[z], sc.panelM, sc.antennaM), sc), l = e.landing, rq = sc.requirements;
-        out[z] = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVIEW' : 'GO';   /* misma regla que el planificador */
-      });
-      verdicts = out; vScn = sc;
-      if (reduceMotion) drawRadar(0);
-    }).catch(function () { /* sin motor: los puntos se quedan en menta */ });
-  }
-  function scnText(sc) {
-    var t = new Date(sc.landingMs), M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return t.getUTCDate() + ' ' + M[t.getUTCMonth()] + ' ' + t.getUTCFullYear() + ', ' + sc.stayDays + ' d, gear ' + sc.panelM + ' m';
+  /* estado de la misión → color del punto (el mismo orden de atención: pendiente de firma, review, borrador, GO) */
+  var SCOL = { GO: '#F5F5F6', OK: '#F5F5F6', REV: '#F2C14E', PEND: '#FF5A4A', DRAFT: '#8C8C92' }, RANK = { PEND: 4, REV: 3, DRAFT: 2, GO: 1, OK: 1 };
+  function siteStatus(site) {
+    var ms = missions.filter(function (m) { return m.site === site; }), sel = current();
+    if (sel && sel.site === site) return sel.status;
+    return ms.reduce(function (a, m) { return !a || (RANK[m.status] || 0) > (RANK[a] || 0) ? m.status : a; }, null);
   }
   function sitesByZone() { var o = {}; missions.forEach(function (m) { (o[m.site] = o[m.site] || []).push(m.id); }); return o; }
   function drawRadar(theta) {
@@ -483,7 +460,7 @@
       if (!bySite[c.z]) return;   /* solo los sitios con alguna misión de la campaña */
       var r = c.km / RKM * R, x = cx + r * Math.sin(c.a), y = cy - r * Math.cos(c.a), ids = bySite[c.z] || null, hov = rHover.indexOf(c.z) >= 0;
       var since = ((theta - c.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), glow = reduceMotion ? 0.5 : Math.exp(-since / 1.2);
-      var col = verdicts && verdicts[c.z] ? VCOL[verdicts[c.z]] : 'rgb(' + PHOS + ')';
+      var col = SCOL[siteStatus(c.z)] || 'rgb(' + PHOS + ')';
       ctx.globalAlpha = 0.22 + 0.5 * glow; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.8, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = 'rgba(4,17,13,0.9)'; ctx.lineWidth = 1; ctx.stroke();
@@ -508,8 +485,9 @@
     rtip.innerHTML = u.pts.map(function (p) {
       var c = p.c;
       return '<div class="rt"><b>' + c.z + ' · ' + c.nombre + '</b><span>' + Math.round(c.km) + ' km from the pole · ' + Math.abs(c.lat).toFixed(2) + '° S ' + c.lon.toFixed(1) + '° E</span>' +
-        (p.ids ? '<span>Missions: ' + p.ids.join(', ') + '</span>' : '') +
-        (verdicts && verdicts[c.z] ? '<span class="v" style="background:' + VCOL[verdicts[c.z]] + '">' + verdicts[c.z] + '</span><span>Verdict for the planner scenario of ' + scnText(vScn) + '</span>' : '<span>Computing the verdict…</span>') + '</div>';
+        missions.filter(function (m) { return m.site === c.z; }).map(function (m) {
+          return '<span>' + m.id + ' <i class="v" style="background:' + SCOL[m.status] + '">' + C.STATUS_LABEL[m.status] + '</i></span>';
+        }).join('') + '</div>';
     }).join('');
     rtip.hidden = false;
     var bw = radar.clientWidth, bh = radar.clientHeight, tw = rtip.offsetWidth, th = rtip.offsetHeight;
@@ -531,7 +509,6 @@
     if (reduceMotion) drawRadar(0);
   }
   fitRadar();
-  setTimeout(loadVerdicts, 400);
   if (window.ResizeObserver) new ResizeObserver(function () { fitRadar(); if (reduceMotion) drawRadar(0); }).observe(radar);
   if (reduceMotion) drawRadar(0);
   else { var rT0 = performance.now(); (function loop(now) { drawRadar(((now - rT0) / 6000 * Math.PI * 2) % (Math.PI * 2)); requestAnimationFrame(loop); })(rT0); }

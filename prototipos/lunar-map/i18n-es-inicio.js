@@ -194,8 +194,6 @@
     'Mission sites': 'Sitios de misión',
     'radar · 200 km': 'radar · 200 km',
     'Radar of the lunar south pole, 200 km: the campaign mission sites at their real distance': 'Radar del polo sur lunar, 200 km: los sitios de las misiones de la campaña a su distancia real',
-    'NO GO · real distances': 'NO GO · distancias reales',
-    'Computing the verdict…': 'Calculando el veredicto…',
     'Peak near Shackleton · RoI 2': 'Pico cerca de Shackleton · RoI 2',
     'Shackleton rim · RoI 4': 'Borde de Shackleton · RoI 4',
     'de Gerlache rim': 'Borde de de Gerlache',
@@ -256,7 +254,6 @@
       /* ficha de un punto del radar de Mission sites */
       [/^(\d+) km from the pole · (.+)$/, '$1 km del polo · $2'],
       [/^Missions: (.+)$/, 'Misiones: $1'],
-      [/^Verdict for the planner scenario of (.+), (\d+) d, gear (.+)$/, 'Veredicto con el escenario del planificador: $1, $2 d, equipo $3'],
 
       /* ---------- trozos: «ahora», rol antes de una fecha, día de la semana y mes ---------- */
       [/\bPeak near Shackleton\b/, 'Pico cerca de Shackleton'],
