@@ -484,15 +484,26 @@
     for (var g = 0; g < 360; g += 30) { var ag = g * Math.PI / 180; ctx.fillText(g + '°', cx + (R + fs + 2) * Math.sin(ag), cy - (R + fs + 2) * Math.cos(ag)); }
     ctx.textBaseline = 'alphabetic';
     if (!reduceMotion) { ctx.strokeStyle = 'rgba(' + PHOS + ',0.9)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(theta), cy - R * Math.cos(theta)); ctx.stroke(); }
-    /* los puntos: brillan al pasar el barrido */
+    /* los puntos: un pulso de luz continuo (un aro que crece y se apaga, del color del punto, desfasado entre puntos) y un
+     * destello cuando pasa el barrido. Con «reducir movimiento», quietos. */
     rPts = [];
+    var tNow = performance.now() / 1000, nPt = 0;
     CAND.forEach(function (c) {
       if (!bySite[c.z]) return;   /* solo los sitios con alguna misión de la campaña */
       var r = c.km / RKM * R, x = cx + r * Math.sin(c.a), y = cy - r * Math.cos(c.a), ids = bySite[c.z] || null, hov = rHover.indexOf(c.z) >= 0;
       var since = ((theta - c.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2), glow = reduceMotion ? 0.5 : Math.exp(-since / 1.2);
       var col = SCOL[siteStatus(c.z)] || 'rgb(' + PHOS + ')';
-      ctx.globalAlpha = 0.22 + 0.5 * glow; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.8, 0, Math.PI * 2); ctx.fill();
+      if (!reduceMotion) for (var w = 0; w < 2; w++) {   /* dos aros, medio ciclo de diferencia */
+        var ph = ((tNow / 1.8) + nPt * 0.27 + w * 0.5) % 1;
+        ctx.globalAlpha = 0.75 * (1 - ph) * (1 - ph); ctx.strokeStyle = col; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(x, y, 3.5 + ph * 13, 0, Math.PI * 2); ctx.stroke();
+      }
+      var breathe = reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(tNow * 3.2 + nPt);
+      var halo = ctx.createRadialGradient(x, y, 0, x, y, 9 + 5 * glow);
+      halo.addColorStop(0, col); halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.35 + 0.25 * breathe + 0.4 * glow; ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, 9 + 5 * glow, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3 + 0.8 * glow, 0, Math.PI * 2); ctx.fill();
+      nPt++;
       ctx.strokeStyle = 'rgba(4,17,13,0.9)'; ctx.lineWidth = 1; ctx.stroke();
       if (hov) { ctx.strokeStyle = '#F5F5F6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.stroke(); }
       rPts.push({ c: c, x: x, y: y, ids: ids });
