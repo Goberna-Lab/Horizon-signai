@@ -1,25 +1,42 @@
+# La app corre en dos copias de la misma imagen para desplegar sin cortes (deploy/README.md):
+# nginx manda todo a app-a (:7083) y usa app-b (:7084) solo cuando app-a no atiende. El deploy
+# actualiza primero app-b y después app-a, así siempre hay una copia sana detrás de nginx.
+x-app: &app
+  image: horizon-signai:latest
+  restart: unless-stopped
+  # tini como PID 1: le pasa el SIGTERM a node y recoge procesos huérfanos.
+  init: true
+  # La app termina lo que tiene en curso hasta 125 s antes de salir (apps/api/src/index.ts).
+  stop_grace_period: 130s
+  # Z6_URL, Z6_MODELO y API_TOKEN viven en /srv/horizon-signai/.env (no versionado)
+  env_file:
+    - path: .env
+      required: false
+  # Base del mapa 3D (PostGIS): la API entra con el rol de solo lectura map_api (lo crea db-loader).
+  # POSTGRES_DB y MAP_API_PASSWORD salen del .env (contraseñas URL-safe).
+  environment:
+    DATABASE_URL: postgres://map_api:${MAP_API_PASSWORD}@db:5432/${POSTGRES_DB}
+  depends_on:
+    db:
+      condition: service_healthy
+    db-loader:
+      condition: service_completed_successfully
+
 services:
-  app:
+  # Solo app-a construye la imagen; app-b usa la misma etiqueta.
+  app-a:
+    <<: *app
     build: .
-    image: horizon-signai:latest
-    container_name: horizon_signai_app
-    restart: unless-stopped
-    # Z6_URL, Z6_MODELO y API_TOKEN viven en /srv/horizon-signai/.env (no versionado)
-    env_file:
-      - path: .env
-        required: false
-    # Solo loopback: el vhost de Hestia (signal-horizon.goberna.us) hace proxy a :7083
+    container_name: horizon_signai_app_a
+    # Solo loopback: el upstream `horizon_signai` del nginx de Hestia apunta a :7083 y :7084 (backup)
     ports:
       - "127.0.0.1:7083:3000"
-    # Base del mapa 3D (PostGIS): la API entra con el rol de solo lectura map_api (lo crea db-loader).
-    # POSTGRES_DB y MAP_API_PASSWORD salen del .env (contraseñas URL-safe).
-    environment:
-      DATABASE_URL: postgres://map_api:${MAP_API_PASSWORD}@db:5432/${POSTGRES_DB}
-    depends_on:
-      db:
-        condition: service_healthy
-      db-loader:
-        condition: service_completed_successfully
+
+  app-b:
+    <<: *app
+    container_name: horizon_signai_app_b
+    ports:
+      - "127.0.0.1:7084:3000"
 
   db:
     image: postgis/postgis:17-3.5
