@@ -148,11 +148,11 @@ export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?:
   // La simulación espera una "vista" con estas piezas (en nuestro navegador las da la escena 3D completa)
   // Efectos del descenso (alarma, impacto, estática). La voz es la de EVA, la de toda la aplicación (avisarEva).
   const sonido = new Sonido();
-  const sfx = { radio() {}, static: (d) => sonido.staticNoise(d), boom: () => sonido.boom(), programAlarm: () => sonido.programAlarm() };
+  const sfx = { radio: (abre) => sonido.radio(abre), static: (d) => sonido.staticNoise(d), boom: () => sonido.boom(), programAlarm: () => sonido.programAlarm() };
   const view = {
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
-    eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 },
+    eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 }, sonido,
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
     astro: createAstronaut(), // procedural: baja la escalera y camina (en primera persona casi no se ve)
     pos: new THREE.Vector3(), heading: 0, quality: 0,

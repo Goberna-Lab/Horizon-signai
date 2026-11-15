@@ -473,6 +473,12 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     es: { texto: "Tu traje va a la izquierda: oxígeno, filtro de dióxido de carbono, agua de refrigeración y batería. Si algo se pone rojo, te aviso." },
     guia: true,
   },
+  "pulso-alto": {
+    texto: "Your heart rate is over one hundred fifty. Slow down: walk instead of loping, and you will spend less oxygen.",
+    es: { texto: "Tu pulso pasa de ciento cincuenta. Baja el ritmo: camina en vez de galopar y gastarás menos oxígeno." },
+    guia: true,
+    repetible: true,
+  },
   "muestra-cerca": {
     texto: "The sample is within reach. Press E to collect it.",
     es: { texto: "La muestra está a tu alcance. Pulsa E para recogerla." },

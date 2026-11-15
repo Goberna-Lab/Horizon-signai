@@ -353,7 +353,7 @@ export class LandingSim {
     this.flag = null;
     if (this.pathG) { v.scene.remove(this.pathG); this.pathG = null; }
     if (this.lfp) this.lfp.hidden = true;
-    v.caminata?.stop();
+    v.caminata?.stop(); v.sonido?.motor(0);
     this._clearBoom();
     if (this.fp && v.eva) v.eva.root.style.visibility = '';
     this.fp = false; this.distant = false;
@@ -715,6 +715,7 @@ export class LandingSim {
   }
 
   _engine(throttle) {
+    this.view.sonido?.motor(this.state === 'descent' ? throttle : 0); // el motor se oye por la estructura
     this.throttle = throttle;
     this.glow.visible = throttle > 0;
     this.glow.scale.setScalar(1.6 + 2.2 * throttle);
@@ -799,6 +800,7 @@ export class LandingSim {
     if (this.pos.y <= ground) {
       this.pos.y = ground;
       this.touchV = -this.vel.y; this.touchH = Math.hypot(this.vel.x, this.vel.z);
+      this.view.sonido?.golpe(Math.min(1, this.touchV / 3)); this.view.sonido?.motor(0);
       this.shake = 0.7; // sacudida de cámara en el contacto
       this.vel.set(0, 0, 0);
       this.state = 'settle'; this.settleT = 0;

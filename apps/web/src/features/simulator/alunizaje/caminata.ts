@@ -86,10 +86,11 @@ export class Caminata {
     if (e.code === 'Space' && once) { this._jumpReq = true; e.preventDefault(); }
     if (/^(Arrow|Key[WASD]$)/.test(e.code)) e.preventDefault();
     if (!once) return;
-    if (e.code === 'KeyG') { this.visor.visor = this.visor.visor === 2 ? 1 : 2; if (this.visor.visor !== 2) avisarEva('visor-solar'); } // visor solar: arriba ↔ abajo
+    if (e.code === 'KeyG') { this.visor.visor = this.visor.visor === 2 ? 1 : 2; this.sonido?.visor(); if (this.visor.visor !== 2) avisarEva('visor-solar'); } // visor solar: arriba ↔ abajo
     if (e.code === 'KeyL') { this.lamps = !this.lamps; if (this.lamps) avisarEva('luces'); }
     if (e.code === 'KeyE') this.tasks.interact();
     if (e.code === 'KeyR') this.recharge();
+    if (e.code === 'KeyM') this.notice = this.sonido?.toggleMute() ? tr('Sound off (M)', 'Sonido apagado (M)') : tr('Sound on (M)', 'Sonido encendido (M)');
     if (e.code === 'KeyT') { this.timeScale = this.timeScale === 1 ? 10 : this.timeScale === 10 ? 60 : 1; if (this.timeScale > 1) avisarEva('tiempo'); }
   }
 
@@ -111,7 +112,8 @@ export class Caminata {
     v.astro.object.visible = false; v.astro.dust.visible = true; // en primera persona el cuerpo no se ve; el polvo de los pasos sí
     v.camera.fov = 70; v.camera.updateProjectionMatrix();
     this.tasks.reset(); this.tasks.start(lm);
-    this.hud.lost(null); this.hud.tunnel(0); this.hud.root.hidden = false; this.hud.boot();
+    this.hud.lost(null); this.hud.tunnel(0); this.hud.root.hidden = false; this.hud.root.classList.remove('nopower'); this.hud.boot();
+    this._sinBateria = false; this.sonido?.casco(true); // ventilador del traje
     if (result?.kind === 'hard') this.notice = tr('The hard landing ruptured a lander tank: only half the O₂ and water are left to recharge the suit', 'El aterrizaje duro rompió un tanque del módulo: solo queda la mitad de O₂ y agua para recargar el traje');
   }
 
@@ -119,6 +121,7 @@ export class Caminata {
     if (this.active || this._evaEn) { evaEnCasco(null); this._evaEn = null; } // EVA sale del casco y vuelve a volar
     this.active = false; this.keys.clear();
     this.hud.root.hidden = true;
+    this.sonido?.casco(false);
     for (const o of this.lampGroup.children) if (o.isSpotLight) o.intensity = 0;
     this.sonido?.alarma(false);
     if (document.pointerLockElement === this.el) document.exitPointerLock?.();
@@ -167,7 +170,7 @@ export class Caminata {
     this._jumpReq = false;
     if (this.jumpY > 0) {
       this.jumpV -= G * dt0; this.jumpY += this.jumpV * dt0;
-      if (this.jumpY <= 0) { const v0 = -this.jumpV; this.jumpY = 0; this.jumpV = 0; if (v0 > 1.4) avisarEva('salto'); }
+      if (this.jumpY <= 0) { const v0 = -this.jumpV; this.jumpY = 0; this.jumpV = 0; this.sonido?.golpe(Math.min(1, v0 / 2)); if (v0 > 1.4) avisarEva('salto'); }
     }
     const speed = vel.length();
     if (speed > 0) {
@@ -187,7 +190,7 @@ export class Caminata {
     const ground = !air, ph0 = this.fpPhase;
     const run = Math.max(0, Math.min(1, (speed - 1.5) / 1.6)), sps = 1.55 - 0.5 * run; // apoyos por segundo
     this.fpPhase = ph0 + dt0 * Math.PI * sps * (speed > 0.15 && ground ? 1 : 0);
-    if (Math.floor(this.fpPhase / Math.PI) !== Math.floor(ph0 / Math.PI)) this.tasks.print(); // una huella por apoyo
+    if (Math.floor(this.fpPhase / Math.PI) !== Math.floor(ph0 / Math.PI)) { this.tasks.print(); this.sonido?.paso(Math.min(1, speed / 3.4)); } // una huella y un paso por apoyo
     const u = (this.fpPhase / Math.PI) % 1, hop = speed > 0.15 && ground ? 4 * u * (1 - u) : 0;
     this.fpHop += (hop - this.fpHop) * Math.min(1, dt0 * 18); this.fpRun = run;
     const cam = v.camera;
@@ -253,6 +256,13 @@ export class Caminata {
     s.temp += (tTarget - s.temp) * Math.min(1, dt / 600);
     s.press = s.o2 > 0 ? 25.9 : Math.max(0, s.press - dt * 0.05);
     s.dose += (57 / 3600) * dt; // µSv/h en la superficie lunar (Chang'e 4, LND)
+    // Respiración: en reposo no se oye; aparece con el galope, el cansancio y la falta de aire. Empaña el vidrio al exhalar.
+    const o2f = s.o2 / O2_KG, aire = Math.max(o2f < 0.25 ? 1 - o2f / 0.25 : 0, s.lioh / LIOH_KJ > 0.85 ? 0.7 : 0, this.hypo);
+    const esfuerzo = this.lost ? 0 : Math.max(speed > 2 ? 0.55 : 0, this.fatigue * 0.95, aire);
+    this.aliento = this.sonido?.respiracion(dtReal, esfuerzo, Math.min(46, 14 + 12 * (speed > 2 ? 1 : 0) + 16 * this.fatigue + 14 * aire), aire) ?? 0;
+    // Sin batería el HUD se apaga (y queda así hasta recargar junto al módulo)
+    const sinBat = s.batt <= 0;
+    if (sinBat !== this._sinBateria) { this._sinBateria = sinBat; this.hud.root.classList.toggle('nopower', sinBat); if (sinBat) { this.sonido?.apagado(); this.sonido?.alarma(false); } }
     for (const o of this.lampGroup.children) if (o.isSpotLight) o.intensity = this.lamps && s.batt > 0 ? 30 : 0;
     // Fallos: sin O₂ o con el CO₂ saturado la vista se cierra en unos 9 s y la misión se pierde
     const cause = s.o2 <= 0 ? 'o2' : s.lioh >= LIOH_KJ ? 'co2' : null;
@@ -319,7 +329,7 @@ export class Caminata {
     const v = this.view, now = v.now;
     this.visor.render(v.renderer, v.scene, v.camera, dt, {
       giro: this.yaw, incl: this.pitch, dirSol: now ? dir(now.sun.az, now.sun.el) : null, solVisible: now ? now.sun.frac * (this._lit === false ? 0 : 1) : 0,
-      fase: this.fpPhase, salto: this.fpHop, carrera: this.fpRun, aliento: Math.min(1, 0.15 + this.fatigue * 0.8 + this.hypo), calidad: 1,
+      fase: this.fpPhase, salto: this.fpHop, carrera: this.fpRun, aliento: Math.min(1, 0.15 + 0.85 * (this.aliento ?? 0) + this.hypo), calidad: 1,
     });
   }
 
@@ -350,7 +360,11 @@ export class Caminata {
     const ppr = H / 2 / THETA_V; // píxeles por radián en el centro (ojo de pez equidistante)
     this.hud.frame({ yawDeg: d.yawDeg, pitch: this.pitch, ppr, marks, compass, moving: !!this._mv, shift: [vz.desp.x * (H / 2), -vz.desp.y * (H / 2), vz.giroCasco] });
     // Latido del HUD al ritmo del pulso
-    this._hb = (this._hb ?? 1) - dt; if (!this.lost && this._hb <= 0) { this.hud.beat(); this._hb = 60 / Math.max(45, s.hr); }
+    // Latido: el corazón del HUD late siempre al ritmo del pulso; el sonido, solo con esfuerzo, susto o falta de aire
+    const tension = Math.max(this.hypo, this._crit ? 0.55 : 0, Math.max(0, (s.hr - 95) / 70), this.fatigue > 0.4 ? this.fatigue - 0.4 : 0);
+    this._hb = (this._hb ?? 1) - dt; if (!this.lost && this._hb <= 0) { this.hud.beat(); if (tension > 0.08) this.sonido?.latido(Math.min(1, 0.25 + tension)); this._hb = 60 / Math.max(45, s.hr); }
+    // Pulso alto: EVA lo dice apuntando a tu pulso en el HUD (no mata, pero cansa y gasta más oxígeno)
+    if (s.hr > 150 && !this.lost) { const t = performance.now(); if (!this._pulsoT || t - this._pulsoT > 60000) { this._pulsoT = t; avisarEva('pulso-alto', undefined, '.sim-vh-rows [data-r="hr"]'); } }
     this._tickT -= dt; if (this._tickT > 0) return; this._tickT = 1 / 12;
     this._tick(d);
   }
@@ -418,7 +432,11 @@ export class Caminata {
     if (this.notice) { alerts.push(['info', this.notice, '']); clearTimeout(this.nT); this.nT = setTimeout(() => { this.notice = null; }, 4500); }
     const rank = { crit: 0, warn: 1, info: 2, ok: 3 }; alerts.sort((a, b) => rank[a[0]] - rank[b[0]]);
     const crit = alerts.find((a) => a[0] === 'crit'), warn = alerts.some((a) => a[0] === 'warn');
-    if (!!crit !== this._crit) { this._crit = !!crit; this.sonido?.alarma(!!crit && !this.lost); }
+    if (!!crit !== this._crit) { this._crit = !!crit; this.sonido?.alarma(!!crit && !this.lost && !this._sinBateria); }
+    // Pitido por cada aviso nuevo del tablero
+    const titulos = alerts.filter((a) => a[0] === 'warn' || a[0] === 'crit').map((a) => a[1]);
+    if (this._titulos && titulos.some((t) => !this._titulos.includes(t))) this.sonido?.blip(!!crit);
+    this._titulos = titulos;
     // Lo crítico, a EVA (la de toda la app), como aviso crítico; cada uno como mucho una vez cada 40 s
     if (crit && !this.lost && crit[3] !== 'crater') { // el cráter lo dice EVA con su voz grabada (en _crater)
       const k = 'crit:' + crit[1], t = performance.now(); this._critT ??= {};
