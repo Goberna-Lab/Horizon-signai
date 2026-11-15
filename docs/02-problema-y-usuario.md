@@ -82,7 +82,7 @@ Esto sale del código y del SPEC del prototipo; no es una prueba en pantalla.
 | 1 | Rapidez | Por comprobar | La primera vez se abre solo un asistente de 6 pasos para simular un descenso (`interfaz-referencia/App.tsx:163`) |
 | 2 | Comparar | Cubierto | Hasta 6 escenarios y vista mes a mes (`interfaz-referencia/ui/Planificador.tsx:179`). Fechas de 2026 a 2030 |
 | 3 | Horizonte real | Cubierto | SPEC E22 a E24; ver [04-planificador.md](04-planificador.md) |
-| 4 | Energía | Cubierto, con un supuesto | La energía se calcula sobre un panel vertical que gira hacia el Sol; esa disposición es un **supuesto** (`calculos/motor/planificador.ts:8`) |
+| 4 | Energía | Cubierto | La energía se calcula sobre un panel vertical que gira en azimut hacia el Sol, el diseño de NASA VSAT para el polo sur (`calculos/motor/planificador.ts:8`; fuentes en `docs/referencias.md`) |
 | 5 | Comunicación | Cubierto | "Tierra visible" y "Silencio más largo" (`interfaz-referencia/ui/Comparacion.tsx:39` y `:42`) |
 | 6 | Tiempo restante | Cubierto | Cuenta regresiva del Sol y de la Tierra (`calculos/motor/planificador.ts:154`) |
 | 7 | Viabilidad | Parcial | El "Cumple / No cumple" solo existe en la simulación de aterrizaje (`interfaz-referencia/ui/SeccionRequisitos.tsx:28`). La comparación solo resalta la mejor cifra (`interfaz-referencia/ui/Comparacion.tsx:104`) |

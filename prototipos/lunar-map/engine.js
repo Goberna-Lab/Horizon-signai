@@ -5,13 +5,14 @@
  *   cuerpo − posición del sitio en la esfera de 1737,4 km (paralaje), en ejes este-norte-arriba.
  * - Horizonte desde una altura H: máx atan2(y − H, x) sobre la envolvente de cada azimut (ojo a 1 cm como mínimo).
  * - Sol visible: alguna parte del disco (semidiámetro fijo 0,266°); Tierra visible: su centro.
- * - Panel: 1361 W/m² × fracción visible del disco × cos(elevación); panel vertical que sigue al Sol (supuesto).
+ * - Panel: 1361 W/m² / r² × fracción visible del disco × cos(elevación), con r la distancia real al Sol (UA); panel vertical
+ *   que gira en azimut para mirar al Sol, como los de NASA VSAT (seguimiento en un eje, 360°; docs/referencias.md).
  * - Barrido cada 10 min (STEP_MS), como el planificador del equipo. El Sol se mide desde el panel y la Tierra desde la
  *   antena, en el mismo punto del terreno (simplificación declarada del equipo).
  * Datos: data/efemerides-luna.js y data/zonas.js. */
 (function (root) {
   'use strict';
-  var RAD = Math.PI / 180, R_LUNA = 1737.4, SEMI_SOL = 0.266, SOLAR = 1361;
+  var RAD = Math.PI / 180, R_LUNA = 1737.4, SEMI_SOL = 0.266, SOLAR = 1361, UA_KM = 149597870.7;
   var STEP_MS = 600000, HOUR_MS = 3600000, DAY_MS = 86400000, STEPS_PER_DAY = DAY_MS / STEP_MS;
   var RAISE_TO_M = [2, 5, 10, 15, 20, 30];   /* alturas que se prueban al proponer subir el equipo (supuesto del equipo) */
 
@@ -34,13 +35,14 @@
     var f = lat * RAD, l = lon * RAD, up = [Math.cos(f) * Math.cos(l), Math.cos(f) * Math.sin(l), Math.sin(f)];
     return { pos: [up[0] * R_LUNA, up[1] * R_LUNA, up[2] * R_LUNA], e: [-Math.sin(l), Math.cos(l), 0], n: [-Math.sin(f) * Math.cos(l), -Math.sin(f) * Math.sin(l), Math.cos(f)], u: up };
   }
-  /* out = [azSol, elSol, azTierra, elTierra] (grados) */
+  /* out = [azSol, elSol, azTierra, elTierra] (grados) y, si cabe, out[4] = distancia al Sol (km) */
   function elevaciones(t, st, ms, out) {
     for (var k = 0; k < 2; k++) {
       var c = cuerpoKm(t, ms, k * 4), rx = c[0] - st.pos[0], ry = c[1] - st.pos[1], rz = c[2] - st.pos[2], L = Math.hypot(rx, ry, rz);
       var e = rx * st.e[0] + ry * st.e[1] + rz * st.e[2], n = rx * st.n[0] + ry * st.n[1] + rz * st.n[2], u = rx * st.u[0] + ry * st.u[1] + rz * st.u[2];
       out[k * 2] = (Math.atan2(e, n) / RAD + 360) % 360;
       out[k * 2 + 1] = Math.asin(u / L) / RAD;
+      if (k === 0 && out.length > 4) out[4] = L;
     }
   }
 
@@ -65,7 +67,7 @@
   var margenSol = function (x) { return x + SEMI_SOL; }, margenTierra = function (x) { return x; };
 
   /* ---------- barrido y cifras ---------- */
-  var s4 = new Float64Array(4);
+  var s4 = new Float64Array(5);
   function barrer(t, st, perfSol, perfTierra, desde, hasta, paso) {
     var n = Math.max(2, Math.floor((hasta - desde) / paso) + 1);
     var b = { desdeMs: desde, pasoMs: paso, n: n, solAz: new Float32Array(n), solEl: new Float32Array(n), solSobre: new Float32Array(n), tierraAz: new Float32Array(n), tierraEl: new Float32Array(n), tierraSobre: new Float32Array(n), panel: new Float32Array(n) };
@@ -74,7 +76,8 @@
       var sobre = s4[1] - horizonteEn(perfSol, s4[0]), f = fraccionDisco(sobre);
       b.solAz[k] = s4[0]; b.solEl[k] = s4[1]; b.solSobre[k] = sobre;
       b.tierraAz[k] = s4[2]; b.tierraEl[k] = s4[3]; b.tierraSobre[k] = s4[3] - horizonteEn(perfTierra, s4[2]);
-      b.panel[k] = SOLAR * f * Math.max(0, Math.cos(s4[1] * RAD));
+      var rAu = s4[4] / UA_KM;
+      b.panel[k] = SOLAR / (rAu * rAu) * f * Math.max(0, Math.cos(s4[1] * RAD));
     }
     return b;
   }

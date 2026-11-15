@@ -146,7 +146,7 @@ LunarI18n.add({
     'Sun and Earth at the same time': 'Sol y Tierra a la vez',
     'Longest night: longest run without the Sun visible; it is what the battery must last': 'Noche más larga: mayor racha sin Sol visible; es lo que debe aguantar la batería',
     'Longest silence: longest run without Earth in view (no direct link)': 'Silencio más largo: mayor racha sin la Tierra a la vista (sin enlace directo)',
-    'Vertical panel that tracks the Sun (assumed): 1361 W/m² × visible disc × cos(elevation), period average': 'Panel vertical que sigue al Sol (supuesto): 1361 W/m² × disco visible × cos(elevación), promedio del período',
+    'Vertical panel turning in azimuth to face the Sun (as in NASA VSAT: single-axis tracking, 360°): 1361 W/m² / r² × visible disc × cos(elevation), r = real Sun distance; period average': 'Panel vertical que gira en azimut para mirar al Sol (como NASA VSAT: seguimiento en un eje, 360°): 1361 W/m² / r² × disco visible × cos(elevación), r = distancia real al Sol; promedio del período',
 
     /* ---------- diálogo: comparar escenarios ---------- */
     'Compare scenarios': 'Comparar escenarios',
@@ -185,15 +185,22 @@ LunarI18n.add({
 
     /* ---------- diálogo: escenario de alunizaje ---------- */
     'Landing scenario': 'Escenario de alunizaje',
-    'The equipment and requirements apply to all three zones, so they can be compared.': 'El equipo y los requisitos valen para las tres zonas; así se pueden comparar.',
+    'The equipment and requirements apply to every zone, so they can be compared.': 'El equipo y los requisitos valen para todas las zonas; así se pueden comparar.',
     'Stay (days)': 'Estadía (días)',
     'Battery: hours without Sun': 'Batería: horas sin Sol',
     'Panel height (m)': 'Altura del panel (m)',
+    'Panel mount': 'Montaje del panel',
+    'Lander · 2 m': 'Módulo · 2 m',
+    'VSAT minimum · 5 m': 'VSAT mínimo · 5 m',
+    'VSAT goal · 10 m': 'VSAT objetivo · 10 m',
+    'Panel on the lander deck': 'Panel sobre el módulo',
+    'NASA VSAT threshold: mast height to the bottom of the array': 'Mínimo de NASA VSAT: altura del mástil hasta el borde inferior del panel',
+    'NASA VSAT goal: mast height to the bottom of the array': 'Objetivo de NASA VSAT: altura del mástil hasta el borde inferior del panel',
     'Antenna height (m)': 'Altura de la antena (m)',
     'Minimum Earth during the stay (%)': 'Tierra mínima en la estadía (%)',
     'Sun in view at landing': 'Sol a la vista al aterrizar',
     'Earth in view at landing': 'Tierra a la vista al aterrizar',
-    'Assumptions of the team planner: the Sun is measured from the panel and Earth from the antenna, at the same terrain point; vertical panel that tracks the Sun. Dates from 2026 to 2030, in UTC.': 'Supuestos del planificador del equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno; panel vertical que sigue al Sol. Fechas de 2026 a 2030, en UTC.',
+    'Team decisions: the Sun is measured from the panel and Earth from the antenna, at the same terrain point. The panel is vertical and turns in azimuth to face the Sun, as in NASA VSAT (single-axis tracking, 360°); 5 m and 10 m are the VSAT minimum and goal mast heights, measured to the bottom of the array. Dates from 2026 to 2030, in UTC.': 'Decisiones del equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno. El panel es vertical y gira en azimut para mirar al Sol, como en NASA VSAT (seguimiento en un eje, 360°); 5 m y 10 m son las alturas de mástil mínima y objetivo de VSAT, medidas hasta el borde inferior del panel. Fechas de 2026 a 2030, en UTC.',
     'CR-01 plan': 'Plan de CR-01'
   },
   patterns: [

@@ -7,6 +7,7 @@ docker compose -f db/docker-compose.yml up -d          # host port 5433 (overrid
 pip install -r db/requirements.txt                     # psycopg 3, numpy (Pillow for the ETL image sizes)
 python db/migrate.py                                   # applies db/migrations/*.sql, tracked in public.schema_migration
 python db/etl/load_map3d.py                            # idempotent load from luna-recursos/datos + apps/web/scripts/mapa-3d
+python db/etl/load_zones.py                            # the planner's 13 candidate zones (needs load_map3d first)
 python -c "..."  # or psql: CALL moon.refresh_site_illumination();   (~1 min, set-based, 62 sites x 14609 times)
 python db/etl/verify.py                                # counts, asset equality, elevation_at and sun_at spot checks
 ```
@@ -17,7 +18,8 @@ HTML that still embedded the data (`git show HEAD:apps/web/public/mapa-3d.html`,
 ## Schemas
 `ref` (country, agency, site_category, feature_type, data_source, dataset, provenance_note), `moon` (iau_feature,
 site, site_link, site_terrain, horizon_profile, v_horizon_sample, site_illumination), `eph` (body, series, sample),
-`terrain` (raster_tile, asset). English content only. Category codes: `crewed, robotic, sample_return, rover,
+`terrain` (raster_tile, asset). Planner (0009): `moon.candidate_zone`, `moon.horizon_envelope`, `moon.v_candidate_zone`,
+`ref.illumination_reference`, `ref.power_system`. English content only. Category codes: `crewed, robotic, sample_return, rover,
 candidate, impact` (the old viewer used Spanish codes). Role `map_api_ro` (NOLOGIN): SELECT + EXECUTE only.
 
 ## SRIDs (registered in `spatial_ref_sys`)
@@ -50,6 +52,14 @@ azimuth (0 = north, clockwise), elevation and `above_horizon` against the site's
 azimuth; 0 when the site has none). Surface parallax is ignored (Earth: up to ~0.26 deg), as in the viewer;
 `eph.sample.dist_km` is kept so it can be added later.
 
+Planner candidate zones (migration 0009, `db/etl/load_zones.py`, source `prototipos/lunar-map/data/zonas.js`, the file the
+planner reads): `moon.horizon_envelope` stores, per zone and azimuth (0.5 deg), the upper convex envelope of the terrain
+(x, y in metres from the foot), so `moon.horizon_at(code, azimuth_deg, height_m)` gives the horizon from any height
+(panel, antenna, raised gear) exactly as the planner engine does; the loader checks it against the engine to 1e-4 deg.
+A-J have the detailed PGDA 5 m + LOLA horizon, K-M an approximate one on LOLA 240 m. `ref.illumination_reference` keeps
+the Mazarico et al. (2011) mean visibility per zone (validation, not a verdict input); `ref.power_system` the panel
+presets (lander 2 m, NASA VSAT 5 m and 10 m, vertical, single-axis tracking). Sources: `docs/referencias.md`.
+
 ## Production
 `docker-compose.prod.yml` runs three services: `db` (PostGIS, volume `horizon_pgdata`, no published port), `db-loader`
 (built from `db/Dockerfile`, build context = repo root, whitelist in `db/Dockerfile.dockerignore`) and `app`.
@@ -60,7 +70,7 @@ Server `/srv/horizon-signai/.env` must define (use URL-safe passwords: letters, 
 
 On every deploy (`docker compose up -d --build`): `db` starts -> `db-loader` waits for it, runs `migrate.py`, computes a
 sha256 fingerprint of the ETL code, migrations and source data files, and compares it with `public.etl_run`. If it
-changed (or the table is empty) it runs `load_map3d.py` + `CALL moon.refresh_site_illumination()` and records the new
+changed (or the table is empty) it runs `load_map3d.py` + `load_zones.py` + `CALL moon.refresh_site_illumination()` and records the new
 fingerprint; otherwise it skips both. It then creates/updates the login role `map_api` (member of `map_api_ro`, SELECT +
 EXECUTE only; password from `MAP_API_PASSWORD`, set idempotently, never stored in SQL files). `app` starts only after the
 loader exits 0 and connects as `map_api`. A loader failure makes `up -d` fail and the deploy rolls back.
