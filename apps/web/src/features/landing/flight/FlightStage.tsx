@@ -737,6 +737,12 @@ export function FlightStage() {
     let lastWheel = 0
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || event.deltaY === 0) return
+      // Dentro de un panel con más contenido del que cabe, la rueda lo recorre a él (Lenis lo deja con `data-lenis-prevent`).
+      const panel = event.target instanceof Element ? event.target.closest<HTMLElement>(".fl-scene--panel") : null
+      if (panel && panel.scrollHeight > panel.clientHeight + 2) {
+        const room = event.deltaY > 0 ? panel.scrollHeight - panel.clientHeight - panel.scrollTop : panel.scrollTop
+        if (room > 1) return
+      }
       const top = root.offsetTop
       const span = root.offsetHeight - window.innerHeight
       const y = window.scrollY
@@ -1218,7 +1224,7 @@ export function FlightStage() {
           </article>
 
           {rest.map((scene, i) => (
-            <article key={scene.id} className="fl-scene fl-scene--panel" data-scene={scene.id} id={`scene-${scene.id}`} ref={(el) => void (sceneEls.current[i + 1] = el)}>
+            <article key={scene.id} className="fl-scene fl-scene--panel" data-lenis-prevent data-scene={scene.id} id={`scene-${scene.id}`} ref={(el) => void (sceneEls.current[i + 1] = el)}>
               {scene.id === "missions" ? (
                 <MissionLog scene={scene} selected={selectedMission} onFocus={setFocusMission} onSelect={(id) => selectMission(id, true)} />
               ) : scene.id === "points" ? (

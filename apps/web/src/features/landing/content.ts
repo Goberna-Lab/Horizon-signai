@@ -6,7 +6,7 @@
  * `apps/web/scripts/build-landing-data.ts` con el motor validado y los datos de la NASA. Las demás cifras citan su
  * documento en `docs/`.
  */
-import { routes } from "@/app/routes"
+import { plannerPath, routes } from "@/app/routes"
 import { tr } from "@/shared/i18n"
 import facts from "./flight/data/facts.json"
 
@@ -175,6 +175,31 @@ export const missionPoints = {
     "A ras de suelo, día lunar desde el 1 de diciembre de 2026. Calculado con el motor del proyecto: JPL Horizons DE441 y relieve LOLA.",
   ),
   back: tr("All three points", "Los tres puntos"),
+  /**
+   * El punto de cerca explicado para quien no sabe del tema: un veredicto en una frase y, por cada cifra, qué
+   * significa en la práctica. `{n}` es la cifra ya escrita (porcentaje o días).
+   */
+  lunarDay: tr(
+    `A day on the Moon lasts ${facts.lunarDayDays.toFixed(1)} Earth days. This is how this spot does over one of them.`,
+    `Un día en la Luna dura ${facts.lunarDayDays.toFixed(1)} días terrestres. Así le va a este lugar durante uno.`,
+  ),
+  verdict: {
+    viable: { label: tr("Good spot", "Buen sitio"), say: tr("Plenty of sunlight and regular contact with Earth.", "Mucha luz solar y contacto frecuente con la Tierra.") },
+    limited: { label: tr("Usable, with limits", "Usable, con límites"), say: tr("It works, but the mission has to plan around the dark or the silences.", "Sirve, pero la misión tiene que organizarse alrededor de la oscuridad o de los silencios.") },
+    no: { label: tr("Not a good spot", "Mal sitio"), say: tr("Too little sunlight or almost no contact with Earth.", "Muy poca luz solar o casi ningún contacto con la Tierra.") },
+  },
+  explain: {
+    sun: tr("Of the lunar day, the solar panels get sunlight {n} of the time.", "Del día lunar, los paneles solares reciben luz el {n} del tiempo."),
+    earth: tr("Earth is above the horizon {n} of the time: that is when the lander can talk to mission control directly.", "La Tierra está sobre el horizonte el {n} del tiempo: es cuando el módulo puede hablar directamente con el control de misión."),
+    both: tr("Power and radio at the same time {n} of the time: the best hours to work.", "Energía y radio a la vez el {n} del tiempo: las mejores horas para trabajar."),
+    night: tr("The longest stretch in the dark: {n}. The batteries must last that long.", "El tramo más largo a oscuras: {n}. Las baterías tienen que aguantar todo ese tiempo."),
+    nightNone: tr("It never gets dark here during this lunar day: no long night for the batteries.", "Aquí no oscurece en todo este día lunar: las baterías no pasan una noche larga."),
+    silence: tr("The longest time without seeing Earth: {n} with no direct radio contact.", "El tiempo más largo sin ver la Tierra: {n} sin contacto directo por radio."),
+    panel: tr("Average sunlight on the panel: {n} of the strongest sunlight there is (1361 W/m²).", "Luz media sobre el panel: el {n} de la luz solar más fuerte que existe (1361 W/m²)."),
+  },
+  day: tr("day", "día"),
+  days: tr("days", "días"),
+  hoursWord: tr("hours", "horas"),
 }
 
 /** Las escenas del vuelo, en orden. La primera es el inicio de la página. */
@@ -519,6 +544,11 @@ export const validation = {
       result: tr("The engine gives 88.0%, 85.0% and 90.3%.", "El motor da 88.0%, 85.0% y 90.3%."),
     },
     {
+      claim: tr("Sunlight at Connecting Ridge", "Luz solar en Connecting Ridge"),
+      against: tr("Mazarico et al. (2011), ground level, 18.6 years", "Mazarico et al. (2011), a ras de suelo, 18.6 años"),
+      result: tr("The engine gives 36.6%; the published maps give 38.5%. The test allows 5 points.", "El motor da 36.6%; los mapas publicados dan 38.5%. La prueba admite 5 puntos."),
+    },
+    {
       claim: tr("Earth visibility", "Visibilidad de la Tierra"),
       against: tr("Mazarico et al. (2011), 26 points, 18.6 years", "Mazarico et al. (2011), 26 puntos, 18.6 años"),
       result: tr("Mean error 4.3 points. The test allows 5.", "Error medio: 4.3 puntos. La prueba admite 5."),
@@ -619,6 +649,26 @@ export const sources = {
       ],
     },
     {
+      name: tr("Sites and names of the 3D Moon", "Sitios y nombres de la Luna 3D"),
+      items: [
+        {
+          name: tr("NSSDCA lunar landing records", "Registros de alunizajes del NSSDCA"),
+          detail: tr("NASA Space Science Data Coordinated Archive. The landing sites of the 3D Moon, checked by a script.", "Archivo coordinado de datos de ciencia espacial de la NASA. Los sitios de la Luna 3D, comprobados con un script."),
+          href: "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+        },
+        {
+          name: tr("Gazetteer of Planetary Nomenclature", "Nomenclátor de nombres planetarios"),
+          detail: tr("IAU / USGS. The 8,876 official place names of the 3D Moon.", "UAI / USGS. Los 8876 nombres oficiales de lugares de la Luna 3D."),
+          href: "https://planetarynames.wr.usgs.gov/",
+        },
+        {
+          name: "NASA Blue Marble",
+          detail: tr("The Earth seen from the 3D Moon.", "La Tierra que se ve desde la Luna 3D."),
+          href: "https://visibleearth.nasa.gov/collection/1484/blue-marble",
+        },
+      ],
+    },
+    {
       name: tr("Checks", "Comprobaciones"),
       items: [
         {
@@ -633,6 +683,142 @@ export const sources = {
         },
       ],
     },
+  ],
+}
+
+/**
+ * El problema, en tres cifras (diapositiva 2 de la presentación, `apps/web/public/demo.html`): el Sol más alto sobre
+ * el polo, dos puntos de una misma cresta y las herramientas con las que hoy se responde.
+ */
+export const problem = {
+  label: tr("The problem", "El problema"),
+  title: tr("The launch slipped.", "El lanzamiento se retrasó."),
+  ask: tr("Is the site still viable?", "¿El sitio sigue siendo viable?"),
+  body: tr(
+    "A lander at the Moon's south pole needs the Sun for power and Earth for a direct radio link. There, both sit at the horizon, so a ridge can hide either one for days.",
+    "Un módulo en el polo sur de la Luna necesita el Sol para tener energía y la Tierra para un enlace de radio directo. Allí los dos están a ras del horizonte, así que una cresta puede tapar cualquiera de ellos durante días.",
+  ),
+  stats: [
+    {
+      value: `${pole.sunMaxElevationDeg.toFixed(2)}°`,
+      label: tr("Highest the Sun climbs over the pole between 2026 and 2030", "Lo más alto que sube el Sol sobre el polo entre 2026 y 2030"),
+    },
+    {
+      value: `${pairDistanceM} m`,
+      label: tr(
+        `Between two points on one ridge: one has sunlight ${pct(featured.ground.sunPct)} of the lunar day, the other never loses it`,
+        `Entre dos puntos de una misma cresta: uno tiene luz solar el ${pct(featured.ground.sunPct)} del día lunar y el otro nunca la pierde`,
+      ),
+    },
+    {
+      value: tr("3 tools", "3 herramientas"),
+      label: tr(
+        "Quickmap, Moon Trek and JPL Horizons hold the answer today, as raw data, one site and date at a time",
+        "Quickmap, Moon Trek y JPL Horizons tienen hoy la respuesta, como datos en bruto, un sitio y una fecha cada vez",
+      ),
+    },
+  ],
+  close: tr("Mission planners have to answer this again every time a schedule moves.", "Quien planifica la misión tiene que responder esto otra vez cada vez que el calendario se mueve."),
+  closeStrong: tr("We made it one screen.", "Lo hicimos una sola pantalla."),
+  note: tr(
+    "Figures: our engine on JPL Horizons DE441 and LOLA terrain, lunar day from 1 Dec 2026, ground level.",
+    "Cifras: nuestro motor con JPL Horizons DE441 y el relieve de LOLA, día lunar desde el 1 dic 2026, a ras de suelo.",
+  ),
+}
+
+/**
+ * El planificador con el caso del reto (diapositivas 3 a 5): el plan de ejemplo, el retraso de 106 días y qué zonas
+ * siguen aterrizando, lo que hace cada herramienta y la Luna 3D. Los veredictos son los del planificador
+ * (`prototipos/lunar-map/index.html`, escenario SLIP); el resto, de docs/SUBMISSION.md.
+ */
+export const plannerDemo = {
+  label: tr("The planner", "El planificador"),
+  title: tr("Move the date.", "Mueve la fecha."),
+  accent: tr("See who still lands.", "Mira quién sigue aterrizando."),
+  plan: tr("The example plan lands on 18 Dec 2026: all three candidate zones pass.", "El plan de ejemplo aterriza el 18 dic 2026: las tres zonas candidatas cumplen."),
+  slip: tr("Slip it 106 days, same lander, same requirements:", "Retrásalo 106 días, mismo módulo, mismos requisitos:"),
+  zones: [
+    { zone: tr("Zone A", "Zona A"), place: "Connecting Ridge · RoI 6", go: false },
+    { zone: tr("Zone B", "Zona B"), place: "Peak near Shackleton · RoI 2", go: true },
+    { zone: tr("Zone C", "Zona C"), place: "Shackleton rim · RoI 4", go: false },
+  ],
+  verdictWhy: tr(
+    "The verdict checks the mission's own needs: Sun and Earth at landing, a night the battery survives, enough Earth contact.",
+    "El veredicto comprueba lo que necesita la misión: Sol y Tierra al aterrizar, una noche que la batería aguante y suficiente contacto con la Tierra.",
+  ),
+  open: tr("Try it in the planner", "Pruébalo en el planificador"),
+  openTo: plannerPath(),
+  featuresTitle: tr("Where they are, and for how long.", "Dónde están, y por cuánto tiempo."),
+  features: [
+    { strong: tr("Sun and Earth against the real horizon", "El Sol y la Tierra contra el horizonte real"), rest: tr("of the site, for any date and time from 2026 to 2030.", "del sitio, para cualquier fecha y hora de 2026 a 2030.") },
+    { strong: tr("Time left", "El tiempo que queda"), rest: tr("until sunset or Earthset, or until they rise again.", "hasta que se ponen el Sol o la Tierra, o hasta que vuelven a salir.") },
+    { strong: tr("When a plan fails, three ways out,", "Cuando un plan falla, tres salidas,"), rest: tr("each one click: another date, another zone, taller equipment.", "cada una a un clic: otra fecha, otra zona, equipo más alto.") },
+    { strong: tr("Compare up to six scenarios", "Compara hasta seis escenarios"), rest: tr("side by side, on a 90-day timeline of sunlight and Earth contact.", "lado a lado, en una línea de tiempo de 90 días de luz solar y contacto con la Tierra.") },
+    { strong: tr("Share a scenario with a link,", "Comparte un escenario con un enlace,"), rest: tr("so science and engineering look at the same numbers.", "para que ciencia e ingeniería miren los mismos números.") },
+  ],
+  moonTitle: tr("Every landing site, on real relief.", "Cada sitio de aterrizaje, sobre relieve real."),
+  moon: [
+    {
+      strong: tr("62 sites:", "62 sitios:"),
+      rest: tr(
+        "Apollo, Luna, Surveyor, Chang'e, Chandrayaan, commercial deliveries and south pole candidate regions, each with its source.",
+        "Apollo, Luna, Surveyor, Chang'e, Chandrayaan, entregas comerciales y regiones candidatas del polo sur, cada uno con su fuente.",
+      ),
+    },
+    { strong: tr("LOLA relief", "Relieve de LOLA"), rest: tr("for the globe and the south pole, with 8,876 official place names (IAU).", "para todo el globo y el polo sur, con 8876 nombres oficiales de lugares (UAI).") },
+    { strong: tr("Pick a date:", "Elige una fecha:"), rest: tr("the real Sun, Earth and shadows, and each site's Sun and Earth against its horizon.", "el Sol, la Tierra y las sombras reales, y el Sol y la Tierra de cada sitio contra su horizonte.") },
+    { strong: tr("A polar point opens in the planner", "Un punto polar se abre en el planificador"), rest: tr("with one click.", "con un clic.") },
+  ],
+  definitions: tr(
+    "How it counts: the Sun is in view if any part of its disc is above the terrain; Earth, by its centre. The solar panel is assumed vertical and Sun-tracking. The Moon has no atmosphere, so there is no refraction to add.",
+    "Cómo cuenta: el Sol está a la vista si cualquier parte de su disco está sobre el terreno; la Tierra, por su centro. Se supone el panel solar vertical y siguiendo al Sol. La Luna no tiene atmósfera, así que no hay refracción que sumar.",
+  ),
+}
+
+/** Para quién es (diapositiva 7): tres públicos, cada uno con lo que gana. */
+export const audienceGroups = {
+  title: tr("A replan in minutes,", "Replanificar en minutos,"),
+  accent: tr("for more than specialists.", "para más que especialistas."),
+  groups: [
+    {
+      name: tr("Mission planners", "Quien planifica misiones"),
+      detail: tr(
+        "Re-check a site and date the moment the schedule moves, and send the scenario to the team as a link.",
+        "Vuelve a comprobar un sitio y una fecha en cuanto se mueve el calendario, y manda el escenario al equipo con un enlace.",
+      ),
+    },
+    {
+      name: tr("Science and engineering", "Ciencia e ingeniería"),
+      detail: tr("One set of figures and definitions for both: light, link, longest night, longest silence.", "Un mismo juego de cifras y definiciones para los dos: luz, enlace, noche más larga, silencio más largo."),
+    },
+    {
+      name: tr("Educators and the public", "Docentes y público"),
+      detail: tr(
+        "EVA, a guide robot, gives each visitor a guided tour, answers from the project's own notes and can run the planner when asked. In English or Spanish.",
+        "EVA, un robot guía, le da a cada visitante un recorrido guiado, responde con las notas del propio proyecto y puede manejar el planificador cuando se lo piden. En inglés o en español.",
+      ),
+    },
+  ],
+}
+
+/** El equipo y lo que sigue (diapositivas 1 y 7). Los nombres propios no se traducen. */
+export const team = {
+  label: tr("The team", "El equipo"),
+  name: "Team Hinomaru Signal",
+  place: tr("Lima, Peru", "Lima, Perú"),
+  members: [
+    "Estephano Orbegoso Franceschi",
+    "Francisco Daniel Gonzales Vargas",
+    "Manuel Antonio Espinoza Melgarejo",
+    "Jean Pierre Alcantara Mestanza",
+    "Angel Baldeon",
+    "Jefferson Erick Abendaño Cordova",
+  ],
+  nextTitle: tr("Next", "Lo que sigue"),
+  next: [
+    tr("5 m horizons for every candidate region", "Horizontes de 5 m para cada región candidata"),
+    tr("Real LOLA relief inside the planner map", "Relieve real de LOLA dentro del mapa del planificador"),
+    tr("A 3D rehearsal of the days on the surface", "Un ensayo en 3D de los días en la superficie"),
   ],
 }
 
@@ -653,6 +839,10 @@ export const footer = {
   ai: tr(
     "Built with AI assistance: the code and the copy were drafted with an AI coding assistant (Claude Code) and reviewed by the team. Every figure is computed from the cited data.",
     "Hecho con ayuda de IA: el código y los textos se redactaron con un asistente de programación con IA (Claude Code) y los revisó el equipo. Cada cifra se calcula a partir de los datos citados.",
+  ),
+  eva: tr(
+    "EVA's answers are generated by AI and her voice is synthesized; the figures on screen are the reference.",
+    "Las respuestas de EVA las genera una IA y su voz es sintetizada; las cifras en pantalla son la referencia.",
   ),
   plate: tr(
     "The relief on this page is LOLA elevation drawn live in your browser. Its shadows follow the real Sun direction for the date shown; they are a preview, and the figures come from the validated engine.",

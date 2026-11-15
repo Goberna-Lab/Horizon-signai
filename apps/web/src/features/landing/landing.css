@@ -824,3 +824,257 @@
     transition: none;
   }
 }
+
+/* --- Lo que añade la presentación del proyecto (demo.html): problema, planificador, públicos y equipo ---------- */
+
+/* El rótulo pequeño sobre un titular y la parte en rojo de un titular. */
+.ln-kicker {
+  margin-bottom: 14px;
+  color: var(--ink-soft);
+}
+
+.ln-accent {
+  color: var(--signal);
+}
+
+/* Notas de fuente al pie de una sección. */
+.ln-note {
+  margin-top: clamp(20px, 2.4vw, 32px);
+  max-width: 90ch;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* El problema: tres cifras en una rejilla con borde de tinta. */
+.ln-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: clamp(32px, 5vw, 64px);
+  background: var(--ink);
+  border: var(--rule);
+}
+
+.ln-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(20px, 3vw, 44px);
+  min-height: clamp(170px, 18vw, 240px);
+  padding: clamp(18px, 2.2vw, 30px);
+  background: var(--paper);
+}
+
+.ln-stat:first-child {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.ln-stat__value {
+  font-weight: 900;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+.ln-stat__label {
+  max-width: 34ch;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.ln-stats__close {
+  margin-top: clamp(18px, 2vw, 26px);
+  font-size: clamp(1rem, 1.3vw, 1.1875rem);
+}
+
+/* El planificador: el caso del retraso, con las zonas que cumplen y las que no. */
+.ln-slip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(20px, 3vw, 48px);
+  align-items: end;
+  margin-top: clamp(24px, 3vw, 40px);
+}
+
+.ln-slip__steps {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: slip;
+  max-width: 64ch;
+}
+
+.ln-slip__steps li {
+  counter-increment: slip;
+  position: relative;
+  padding-left: 40px;
+  font-size: clamp(1rem, 1.3vw, 1.1875rem);
+  line-height: 1.45;
+}
+
+.ln-slip__steps li::before {
+  content: counter(slip);
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--signal);
+  color: var(--paper-day);
+  font: 700 12px/1 var(--font-mono);
+}
+
+.ln-zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ln-zone {
+  padding: 7px 12px 6px;
+  border-radius: 999px;
+  background: var(--signal);
+  color: var(--paper-day);
+  font: 700 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ln-zone[data-go] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Dos columnas de viñetas: lo que hace el planificador y la Luna 3D. */
+.ln-feature-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 4vw, 64px);
+  margin-top: clamp(40px, 5vw, 72px);
+  padding-top: clamp(24px, 3vw, 40px);
+  border-top: var(--rule);
+}
+
+.ln-feature-cols__title {
+  font-weight: 900;
+  font-size: clamp(1.375rem, 2.2vw, 2rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.ln-bullets {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ln-bullets li {
+  position: relative;
+  padding-left: 20px;
+  line-height: 1.45;
+}
+
+.ln-bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+/* Para quién es: tres públicos con una línea gruesa encima. */
+.ln-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(18px, 2.4vw, 36px);
+  margin-top: clamp(28px, 4vw, 52px);
+}
+
+.ln-group {
+  padding-top: 16px;
+  border-top: 4px solid var(--ink);
+}
+
+.ln-group h3 {
+  font-weight: 800;
+  font-size: 1.125rem;
+}
+
+.ln-group p {
+  margin-top: 8px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* El equipo y lo que sigue. */
+.ln-team {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: clamp(28px, 5vw, 80px);
+}
+
+.ln-team__name {
+  font-weight: 900;
+  font-size: clamp(2rem, 4.4vw, 4rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.ln-team__place {
+  margin-top: 10px;
+  color: var(--ink-soft);
+}
+
+.ln-team__members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--rule);
+}
+
+.ln-team__members li {
+  padding: 11px 0;
+  border-bottom: var(--hairline);
+  font-weight: 600;
+}
+
+.ln-team__next {
+  margin: 18px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 759px) {
+  .ln-stats,
+  .ln-groups,
+  .ln-feature-cols,
+  .ln-team,
+  .ln-team__members {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ln-slip {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}

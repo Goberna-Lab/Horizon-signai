@@ -3,9 +3,12 @@ import { Audience } from "./sections/Audience"
 import { Closing } from "./sections/Closing"
 import { Footer } from "./sections/Footer"
 import { Header } from "./sections/Header"
+import { PlannerDemo } from "./sections/PlannerDemo"
+import { Problem } from "./sections/Problem"
 import { Product } from "./sections/Product"
 import { ProductWindow } from "./sections/product/ProductWindow"
 import { Sources } from "./sections/Sources"
+import { Team } from "./sections/Team"
 import { Validation } from "./sections/Validation"
 import "./landing.css"
 
@@ -18,11 +21,14 @@ export function LandingPage() {
     <div className="ln">
       <Header />
       <FlightStage />
+      <Problem />
       <ProductWindow />
+      <PlannerDemo />
       <Product />
       <Audience />
       <Validation />
       <Sources />
+      <Team />
       <Closing />
       <Footer />
     </div>

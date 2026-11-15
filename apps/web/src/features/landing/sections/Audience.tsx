@@ -1,4 +1,4 @@
-import { audience } from "../content"
+import { audience, audienceGroups } from "../content"
 import { Reveal } from "./Reveal"
 
 export function Audience() {
@@ -22,6 +22,20 @@ export function Audience() {
             ))}
           </dl>
         </Reveal>
+      </div>
+      {/* Para quién es: tres públicos, cada uno con lo que gana. */}
+      <div className="ln-wrap">
+        <Reveal as="h2" className="ln-title" wipe>
+          {audienceGroups.title} <span className="ln-accent">{audienceGroups.accent}</span>
+        </Reveal>
+        <div className="ln-groups">
+          {audienceGroups.groups.map((group, i) => (
+            <Reveal as="article" key={group.name} className="ln-group" delay={i * 80}>
+              <h3>{group.name}</h3>
+              <p>{group.detail}</p>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   )

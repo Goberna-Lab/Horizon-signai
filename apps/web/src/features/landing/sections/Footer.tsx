@@ -8,6 +8,7 @@ export function Footer() {
         <p>{footer.disclaimer}</p>
         <p>{footer.plate}</p>
         <p>{footer.ai}</p>
+        <p>{footer.eva}</p>
         <div className="ln-foot__links ln-mono">
           <a href={brand.repository} target="_blank" rel="noreferrer">
             {tr("Source code", "Código fuente")}
