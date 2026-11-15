@@ -42,6 +42,7 @@ try {
     ["/prueba-ia", ".prueba h1"],
     ["/planificador", "section.screen"],
     ["/simulador", "section.screen"],
+    ["/3d-map", "section.screen"],
   ]) {
     await page.goto(base + path, { waitUntil: "domcontentloaded" })
     // Las pantallas se cargan de forma diferida: se espera a que aparezcan.

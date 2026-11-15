@@ -15,14 +15,26 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import("@/features/landing")).LandingPage }),
       },
       {
-        path: routes.missionPlanner,
-        lazy: async () => ({
-          Component: (await import("@/features/mission-planner")).MissionPlannerPage,
-        }),
+        // El escritorio de misiones: el Dashboard y el Planificador comparten pantalla (mapa, aviso y transición),
+        // por eso son una sola ruta de diseño con dos direcciones. `Workspace` lee cuál está abierta.
+        lazy: async () => ({ Component: (await import("./workspace/Workspace")).Workspace }),
+        children: [
+          { path: routes.dashboard, element: null },
+          { path: `${routes.missionPlanner}/:missionId`, element: null },
+        ],
       },
+      { path: routes.missionPlanner, element: <Navigate to={routes.dashboard} replace /> },
       {
         path: routes.simulator,
         lazy: async () => ({ Component: (await import("@/features/simulator")).SimulatorPage }),
+      },
+      {
+        path: routes.lunarMap,
+        lazy: async () => ({ Component: (await import("@/features/lunar-map")).LunarMapPage }),
+      },
+      {
+        path: routes.map3d,
+        lazy: async () => ({ Component: (await import("@/features/map-3d")).Map3dPage }),
       },
       {
         path: routes.aiTest,

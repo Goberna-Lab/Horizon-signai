@@ -132,6 +132,23 @@
 
 /* --- Barra superior ----------------------------------------------------------------------------------------- */
 
+/* En la entrada de la portada (pantalla negra) la barra espera a que el negro se retire. */
+@media (prefers-reduced-motion: no-preference) {
+  .ln:has(.fl__limb) .ln-bar {
+    animation: ln-bar-in 800ms var(--ease) 6200ms both;
+  }
+
+  :root:not([data-intro]) .ln:has(.fl__limb) .ln-bar {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes ln-bar-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .ln-bar {
   position: fixed;
   top: 0;
@@ -140,10 +157,31 @@
   z-index: var(--z-bar);
   height: var(--bar);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  /* Marca a la izquierda, enlaces en el centro exacto y acción a la derecha. */
+  grid-template-columns: 1fr auto 1fr;
   align-items: stretch;
+  /* En pantallas anchas la marca y la acción se acercan al centro en vez de pegarse a los bordes. */
+  padding-inline: clamp(0px, 9vw - 70px, 240px);
   background: var(--paper);
   border-bottom: var(--rule);
+}
+
+/*
+ * Con las lecturas del inicio a los lados (FlightStage.tsx mide sus columnas), la marca se pone justo encima de la
+ * columna izquierda y la acción encima de la derecha: mismos bordes y mismo ancho.
+ */
+:root[data-bar-aligned] .ln-bar {
+  padding-inline: var(--bar-left) var(--bar-right);
+}
+
+:root[data-bar-aligned] .ln-bar__brand {
+  width: var(--bar-left-w);
+  padding-left: 0;
+}
+
+:root[data-bar-aligned] .ln-bar__cta {
+  width: var(--bar-right-w);
+  justify-content: center;
 }
 
 .ln-bar__brand {
@@ -159,10 +197,43 @@
   white-space: nowrap;
 }
 
+.ln-bar__brand {
+  justify-self: start;
+}
+
+/* El final de la barra: el selector de idioma y, pegada al borde, la acción. */
+.ln-bar__end {
+  justify-self: end;
+  display: flex;
+  align-items: stretch;
+}
+
+/*
+ * El selector EN / ES (`@/shared/i18n/LangToggle`), con el trazo de la landing: esquinas a 90 grados y la tinta de
+ * la página, que también cambia de noche. La tecla pulsada va en tinta con la letra del color del papel.
+ */
+.ln-bar .ln-bar__lang {
+  --ui-lang-on: var(--paper);
+  flex: none;
+  align-self: center;
+  margin: 0 clamp(8px, 1.2vw, 16px) 0 8px;
+  border-radius: 0;
+}
+
+.ln-bar .ln-bar__lang button {
+  padding: 9px;
+}
+
+/* La etiqueta corta de la acción solo sale en un teléfono (más abajo). */
+.ln-bar__cta-short {
+  display: none;
+}
+
 .ln-bar__nav {
   display: flex;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: clamp(4px, 1vw, 16px);
 }
 
 .ln-bar__nav a {
@@ -214,6 +285,74 @@
   .ln-bar__nav {
     display: none;
   }
+}
+
+/* Con el selector de idioma en la barra, los enlaces se aprietan en las tabletas estrechas para que quepa todo. */
+@media (min-width: 720px) and (max-width: 799px) {
+  .ln-bar__nav a {
+    padding-inline: 8px;
+  }
+}
+
+/*
+ * En español los enlaces y la acción son más largos ("Planificador", "Abrir el planificador"): los enlaces se
+ * ocultan antes, y sobre las lecturas del inicio la acción crece hacia la izquierda en vez de desbordar su caja.
+ */
+@media (max-width: 919px) {
+  .ln-bar:lang(es) {
+    grid-template-columns: 1fr auto;
+  }
+  .ln-bar__brand:lang(es) {
+    border-right: 0;
+  }
+  .ln-bar__nav:lang(es) {
+    display: none;
+  }
+}
+
+:root[data-bar-aligned] .ln-bar__cta:lang(es) {
+  width: auto;
+  min-width: var(--bar-right-w);
+  padding-inline: 14px;
+}
+
+/* Teléfonos: la acción lleva su etiqueta corta y el selector se aprieta, para que quepan junto a la marca. */
+@media (max-width: 559px) {
+  .ln-bar__cta-full {
+    display: none;
+  }
+  .ln-bar__cta-short {
+    display: inline;
+  }
+  .ln-bar .ln-bar__lang {
+    margin: 0 6px 0 0;
+  }
+  .ln-bar .ln-bar__lang button {
+    padding: 9px 6px;
+  }
+}
+
+@media (max-width: 359px) {
+  .ln-bar__cta::after {
+    content: none;
+  }
+}
+
+/*
+ * En español hay mayúsculas con tilde ("MISIÓN"): la tilde sobresale por arriba de la primera línea de un título,
+ * así que el recorte de la pasada de tinta deja más margen arriba.
+ */
+.ln-wipe:lang(es) {
+  clip-path: inset(-16% 0 -14% 0);
+}
+
+[data-reveal="armed"] > .ln-wipe:lang(es) {
+  clip-path: inset(-16% 100% -14% 0);
+}
+
+/* El titular del cierre es más largo en español: baja un punto el cuerpo para que cada frase siga en una línea. */
+.ln-closing__title:lang(es) {
+  font-size: clamp(2.5rem, 8.3vw, 8.4rem);
 }
 
 /* --- Secciones ---------------------------------------------------------------------------------------------- */

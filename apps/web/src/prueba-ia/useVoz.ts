@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import type { AssistantMode } from "@horizon-signai/shared"
 import type { MicVAD } from "@ricky0123/vad-web"
 import { escuchar as escucharApi, turnoDeVoz, type EventoIntencion, type EventoOido, type EventoTurno, type Mensaje } from "./cliente"
 import { crearColaDeVoz } from "./colaDeVoz"
@@ -20,6 +21,8 @@ const VAD_CDN = "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.31/dist/"
 const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/"
 
 type Opciones = {
+  /** Quién responde: VERA (misión) o EVA (guía). Decide cómo suena (personajes.ts). */
+  asistente: AssistantMode
   /** Historial con el que arranca la conversación (el del chat de texto). */
   historial: () => Mensaje[]
   /** Se llama con cada mensaje nuevo (tuyo o de la IA) para sumarlo al hilo. */
@@ -34,7 +37,7 @@ type Turno = { corte: AbortController; cola: ReturnType<typeof crearColaDeVoz>; 
  * la IA vuelve a responder con lo que agregaste (lo que alcanzó a decir queda en el historial).
  * Expone el volumen del micrófono o de la voz (`nivel`, 0..1) para animar el orbe.
  */
-export function useVoz({ historial, alMensaje }: Opciones) {
+export function useVoz({ asistente, historial, alMensaje }: Opciones) {
   const [estado, setEstado] = useState<EstadoVoz>("reposo")
   const [nivel, setNivel] = useState(0)
   const [error, setError] = useState("")
@@ -61,8 +64,8 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     setEncima(e)
     if (e && fugaz) chipFugaz.current = setTimeout(() => setEncima(null), CHIP_FUGAZ_MS)
   }, [])
-  const opciones = useRef({ historial, alMensaje })
-  opciones.current = { historial, alMensaje }
+  const opciones = useRef({ asistente, historial, alMensaje })
+  opciones.current = { asistente, historial, alMensaje }
 
   const cambiar = useCallback((e: EstadoVoz) => {
     estadoRef.current = e
@@ -117,6 +120,7 @@ export function useVoz({ historial, alMensaje }: Opciones) {
         cortado: false,
         cola: crearColaDeVoz({
           ctx: audioCtx.current,
+          asistente: opciones.current.asistente,
           alHablar: setHablado,
           alNivel: setNivel,
           alEmpezar: () => {

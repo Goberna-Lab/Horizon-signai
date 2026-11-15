@@ -9,16 +9,25 @@ export type Rgb = [number, number, number]
 export const HORIZON_LINE = 0.73
 
 /**
- * El Sol, como se ve de verdad desde la Luna: un disco pequeño (medio grado, igual que desde la Tierra) y blanco,
- * sin atmósfera que lo tiña. Lo que lo hace enorme en pantalla es el destello de la cámara, no el disco.
+ * El Sol, con el tamaño y el color que tiene de verdad desde la Luna: un disco pequeño (medio grado, igual que
+ * desde la Tierra) y blanco, sin atmósfera que lo tiña. Lo que lo hace enorme en pantalla es el destello de la
+ * cámara, no el disco. El recorrido, en cambio, es de puesta en escena: baja desde arriba por la derecha.
  */
 export const SUN = {
-  /** Radio real del disco, en grados. De aquí sale cuándo queda tapado por la cresta. */
+  /** Radio real del disco, en grados. */
   radiusDeg: 0.265,
   /** Cuánto se agranda el disco al dibujarlo (1 = tamaño real a la escala vertical de la escena). */
   scale: 1.5,
-  /** Recorrido lateral del Sol en pantalla durante el cambio, como fracción del ancho. La cámara lo sigue. */
-  drift: 0.07,
+  /**
+   * El recorrido en pantalla, como fracciones del ancho: entra por arriba (`enterX`) y baja hacia la derecha
+   * hasta perderse tras la cresta, cerca del borde (`setX`). Al amanecer hace el camino contrario.
+   */
+  enterX: 0.74,
+  setX: 0.9,
+  /** Al entrar, el disco queda a esta cantidad de radios por encima del borde superior de la pantalla. */
+  enterAbove: 3,
+  /** Radios que sigue bajando tras ocultarse, por cada tramo de noche: la corona se esconde poco a poco. */
+  sinkAfter: 6,
   /** Tamaño del destello de cámara, como fracción del lado menor de la pantalla. */
   flareSize: 1,
 }
@@ -98,7 +107,7 @@ export type Quality = {
 }
 export const QUALITY: { small: Quality; large: Quality } = {
   small: { sunPixels: 420_000, octaves: 3, fine: false, starAreaFar: 2600, starAreaMid: 9000, rocks: 12, craters: 6 },
-  large: { sunPixels: 1_100_000, octaves: 4, fine: true, starAreaFar: 3400, starAreaMid: 11000, rocks: 24, craters: 12 },
+  large: { sunPixels: 700_000, octaves: 4, fine: true, starAreaFar: 3400, starAreaMid: 11000, rocks: 24, craters: 12 },
 }
 /** Por debajo de este lado menor (px) la pantalla cuenta como pequeña. */
 export const SMALL_SCREEN = 700

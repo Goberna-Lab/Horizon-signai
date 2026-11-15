@@ -1,3 +1,4 @@
+import { tr } from "@/shared/i18n"
 import { brand, footer } from "../content"
 
 export function Footer() {
@@ -9,7 +10,7 @@ export function Footer() {
         <p>{footer.ai}</p>
         <div className="ln-foot__links ln-mono">
           <a href={brand.repository} target="_blank" rel="noreferrer">
-            Source code
+            {tr("Source code", "Código fuente")}
           </a>
           <a href={brand.challengeUrl} target="_blank" rel="noreferrer">
             {brand.challenge}, {brand.event}

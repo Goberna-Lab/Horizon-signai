@@ -1,0 +1,12 @@
+{
+ "inicioUTC": "2026-01-01T00:00:00.000Z",
+ "finUTC": "2031-01-01T00:00:00.000Z",
+ "pasoS": 10800,
+ "filas": 14609,
+ "provenance": {
+  "product": "NASA/JPL Horizons On-Line Ephemeris System, DE441 (J. D. Giorgini and the JPL Solar System Dynamics Group)",
+  "url": "https://ssd.jpl.nasa.gov/api/horizons.api",
+  "retrievedUTC": "2026-11-07T07:51:20.146Z",
+  "method": "Sub-solar and sub-Earth points in the Moon-fixed MOON_ME frame, light-time corrected, every 3 h."
+ }
+}

@@ -10,6 +10,7 @@
  * - Las sombras siguen a la cámara con un mapa rápido (mitad de resolución) y se afinan cuando se detiene.
  */
 import {
+  AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
   ClampToEdgeWrapping,
@@ -22,6 +23,7 @@ import {
   Mesh,
   PerspectiveCamera,
   PlaneGeometry,
+  Points,
   RedFormat,
   RGBAFormat,
   Scene,
@@ -35,7 +37,7 @@ import { type Ephemeris, type Sky, skyAt, SUN_RADIUS_RAD } from "./ephemeris"
 import { buildMesh, type MeshData } from "./mesh"
 import { type Grid, heightAt, toPlate } from "./plate"
 import type { Sweep } from "./shadow"
-import { BODY_FRAGMENT, BODY_VERTEX, SPHERE_FRAGMENT, SPHERE_VERTEX, TERRAIN_FRAGMENT, TERRAIN_VERTEX } from "./shaders"
+import { BODY_FRAGMENT, BODY_VERTEX, SPHERE_FRAGMENT, SPHERE_VERTEX, STAR_FRAGMENT, STAR_VERTEX, TERRAIN_FRAGMENT, TERRAIN_VERTEX } from "./shaders"
 import { emptyPose, type Frame, type Pose, poseAt, type Stop } from "./story"
 
 export type Palette = { paper: string; shade: string; ink: string; signal: string }
@@ -74,6 +76,10 @@ const EARTH_RADIUS_RAD = 0.95 * DEG
 const CARTO_ELEVATION = 35 * DEG
 /** El cuadro del Sol y de la Tierra mide 1,25 radios, para que el borde suavizado no se corte. */
 const BODY_MARGIN = 1.25
+/** En el modo realista el cuadro del Sol mide estos radios: deja sitio a su resplandor. */
+const SUN_GLOW_MARGIN = 46
+/** Altura mínima de la cámara sobre el relieve (km): en la lámina y a ras de suelo (modo realista). */
+const MIN_ALTITUDE = { print: 1.5, real: 0.12 }
 /** Por debajo de esta distancia (km) la cámara usa la malla de detalle. */
 const NEAR_KM = 560
 /** Tope de píxeles del lienzo. */
@@ -117,6 +123,12 @@ export class Flight {
   private readonly far: Mesh
   private readonly sun: Mesh
   private readonly earth: Mesh
+  private readonly stars: Points
+  private readonly starMaterial: ShaderMaterial
+  private readonly clear = new Color()
+  private readonly clearPrint: Color
+  /** Día que manda en la primera parada mientras dura la entrada (el amanecer); null: el del recorrido. */
+  private introDay: number | null = null
   private readonly maps: { sun: DataTexture; earth: DataTexture; fine: DataTexture }
   private readonly worker: Worker
   private readonly disposables: Array<{ dispose: () => void }> = []
@@ -186,6 +198,8 @@ export class Flight {
       uPixel: { value: 1 },
       uInk: { value: 1 },
       uRadius: { value: grid.radiusKm },
+      uReal: { value: 0 },
+      uSunDir: { value: new Vector3(1, 0, 0) },
     }
 
     // --- Texturas ---------------------------------------------------------------------------------------
@@ -226,7 +240,11 @@ export class Flight {
     // --- Relieve: dos mallas con el mismo material ---------------------------------------------------------
     // La de detalle es fina alrededor del polo, donde vuela la cámara; la otra es gruesa, para las vistas desde arriba.
     const [a, b, c] = quality === "high" ? [2, 4, 8] : [4, 8, 16]
-    const nearGeometry = geometryOf(buildMesh(grid, SLAB_KM, (x, y) => (Math.hypot(x, y) < 110 ? a : Math.hypot(x, y) < 170 ? b : c)))
+    // Alrededor del sitio destacado la malla va a resolución completa: ahí empieza el vuelo, a ras de suelo.
+    const [siteX, siteY] = options.site
+    const nearGeometry = geometryOf(
+      buildMesh(grid, SLAB_KM, (x, y) => (Math.hypot(x - siteX, y - siteY) < 24 ? 1 : Math.hypot(x, y) < 110 ? a : Math.hypot(x, y) < 170 ? b : c)),
+    )
     const farGeometry = geometryOf(buildMesh(grid, SLAB_KM, () => c))
 
     this.terrain = new ShaderMaterial({
@@ -270,23 +288,60 @@ export class Flight {
 
     // --- Sol y Tierra, a su tamaño angular real -----------------------------------------------------------
     const quad = new PlaneGeometry(2, 2)
-    const body = (inner: number) =>
+    const body = (inner: number, glow: number) =>
       new ShaderMaterial({
         vertexShader: BODY_VERTEX,
         fragmentShader: BODY_FRAGMENT,
         transparent: true,
         depthWrite: false,
-        uniforms: { uColor: { value: rgb(palette.signal) }, uFill: { value: rgb(palette.paper) }, uInner: { value: inner } },
+        uniforms: {
+          uColor: { value: rgb(palette.signal) },
+          uFill: { value: rgb(palette.paper) },
+          uInner: { value: inner },
+          uMargin: { value: BODY_MARGIN },
+          uReal: colors.uReal,
+          uGlow: { value: glow },
+        },
       })
-    const sunMaterial = body(-1)
-    const earthMaterial = body(0.84)
+    const sunMaterial = body(-1, 1)
+    const earthMaterial = body(0.84, 0)
     this.sun = new Mesh(quad, sunMaterial)
     this.earth = new Mesh(quad, earthMaterial)
     this.sun.frustumCulled = this.earth.frustumCulled = false
     this.sun.renderOrder = this.earth.renderOrder = 2
 
-    this.scene.add(this.near, this.far, sphereMesh, this.sun, this.earth)
-    this.disposables.push(nearGeometry, farGeometry, sphereGeometry, quad, this.terrain, this.sphere, sunMaterial, earthMaterial, detailMap, this.maps.sun, this.maps.earth, this.maps.fine, this.renderer)
+    // --- Estrellas (solo en el modo realista) ----------------------------------------------------------------
+    // Direcciones fijas al azar (con semilla); la nube va pegada a la cámara, lejos, y el relieve las tapa.
+    const starCount = 2600
+    const starPositions = new Float32Array(starCount * 3)
+    const starSizes = new Float32Array(starCount)
+    let seed = 11
+    const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
+    for (let i = 0; i < starCount; i++) {
+      const u = random() * 2 - 1
+      const t = random() * Math.PI * 2
+      const k = Math.sqrt(1 - u * u)
+      starPositions.set([k * Math.cos(t), k * Math.sin(t), u], i * 3)
+      starSizes[i] = Math.pow(random(), 3)
+    }
+    const starGeometry = new BufferGeometry()
+    starGeometry.setAttribute("position", new BufferAttribute(starPositions, 3))
+    starGeometry.setAttribute("aSize", new BufferAttribute(starSizes, 1))
+    this.starMaterial = new ShaderMaterial({
+      vertexShader: STAR_VERTEX,
+      fragmentShader: STAR_FRAGMENT,
+      transparent: true,
+      depthWrite: false,
+      blending: AdditiveBlending,
+      uniforms: { uPixel: colors.uPixel, uReal: colors.uReal },
+    })
+    this.stars = new Points(starGeometry, this.starMaterial)
+    this.stars.frustumCulled = false
+    this.stars.renderOrder = 1.5
+    this.clearPrint = new Color(palette.shade)
+
+    this.scene.add(this.near, this.far, sphereMesh, this.stars, this.sun, this.earth)
+    this.disposables.push(nearGeometry, farGeometry, sphereGeometry, quad, starGeometry, this.starMaterial, this.terrain, this.sphere, sunMaterial, earthMaterial, detailMap, this.maps.sun, this.maps.earth, this.maps.fine, this.renderer)
 
     const [sx, sy] = options.site
     const site = [0, 0, 0]
@@ -326,6 +381,61 @@ export class Flight {
     if (p === this.progress) return
     this.progress = p
     this.dirty = true
+  }
+
+  /**
+   * El día de la primera parada mientras dura la entrada: la página lo avanza para que el Sol salga de verdad por
+   * detrás del horizonte. Con null vuelve el día del recorrido. Al bajar con el scroll se funde con el recorrido.
+   */
+  setIntroDay(day: number | null): void {
+    if (day === this.introDay) return
+    this.introDay = day
+    this.dirty = true
+  }
+
+  /**
+   * El perfil del suelo para que el astronauta camine sobre él: una línea sobre el terreno, de lado a lado de la
+   * vista, a la distancia que la deja cerca del borde de abajo (`atY`, fracción del alto). Devuelve puntos en
+   * píxeles CSS ordenados por x.
+   */
+  groundProfile(atY = 0.86, samples = 64): Array<[number, number]> {
+    this.update()
+    const { grid } = this.o
+    const R = grid.radiusKm
+    const cam = this.camera.position
+    // El rumbo horizontal de la cámara y su perpendicular.
+    const f = new Vector3()
+    this.camera.getWorldDirection(f)
+    f.z = 0
+    f.normalize()
+    const side = new Vector3(f.y, -f.x, 0)
+    const point: ScreenPoint = { x: 0, y: 0, visible: false }
+    const at = (d: number, s: number, out: number[]) => {
+      const x = cam.x + f.x * d + side.x * s
+      const y = cam.y + f.y * d + side.y * s
+      // El marco de la lámina es casi la proyección cerca del polo: la altura sale del dato.
+      toPlate(x, y, heightAt(grid, x, y), R, out)
+      return this.project(out, point)
+    }
+    const tmp = [0, 0, 0]
+    // Busca la distancia a la que el centro de la línea cae en atY.
+    let lo = 0.05
+    let hi = 30
+    for (let i = 0; i < 28; i++) {
+      const mid = Math.sqrt(lo * hi)
+      const y = at(mid, 0, tmp).y / this.height
+      if (y > atY) lo = mid
+      else hi = mid
+    }
+    const d = Math.sqrt(lo * hi)
+    // Ancho de la línea: lo que abarca la vista a esa distancia, con margen.
+    const half = d * Math.tan((this.camera.fov * DEG * this.camera.aspect) / 2) * 1.4
+    const out: Array<[number, number]> = []
+    for (let i = 0; i <= samples; i++) {
+      const p = at(d, -half + (2 * half * i) / samples, tmp)
+      out.push([p.x, p.y])
+    }
+    return out.sort((a, b) => a[0] - b[0])
   }
 
   /** Opacidad de la tinta (0-1), para la entrada. */
@@ -512,9 +622,16 @@ export class Flight {
     const R = grid.radiusKm
     const aspect = this.width / this.height
 
+    // Durante la entrada el día lo pone la página (el amanecer); al bajar se funde con el del recorrido.
+    if (this.introDay !== null) pose.day += (this.introDay - pose.day) * Math.max(1 - this.progress, 0)
     this.timeMs = startMs + pose.day * DAY_MS
     skyAt(ephemeris, this.timeMs, this.sky)
     const { sun, earth } = this.sky
+    const real = pose.real
+    this.terrain.uniforms.uReal.value = real
+    ;(this.terrain.uniforms.uSunDir.value as Vector3).set(sun[0], sun[1], sun[2])
+    this.clear.copy(this.clearPrint).lerp(new Color(0, 0, 0), real)
+    this.renderer.setClearColor(this.clear, 1)
 
     // --- Cámara -------------------------------------------------------------------------------------------
     const t = [0, 0, 0]
@@ -533,10 +650,11 @@ export class Flight {
 
     // La cámara no entra en el terreno.
     let altitude = this.altitude(camera.position)
-    if (altitude < 1.5) {
+    const floor = MIN_ALTITUDE.print + (MIN_ALTITUDE.real - MIN_ALTITUDE.print) * real
+    if (altitude < floor) {
       this.tmp.set(camera.position.x, camera.position.y, camera.position.z + R).normalize()
-      camera.position.addScaledVector(this.tmp, 1.5 - altitude)
-      altitude = 1.5
+      camera.position.addScaledVector(this.tmp, floor - altitude)
+      altitude = floor
     }
     camera.up.copy(this.up)
     camera.lookAt(this.target)
@@ -565,8 +683,13 @@ export class Flight {
 
     // --- Sol y Tierra -------------------------------------------------------------------------------------
     const far = camera.far * 0.9
-    this.place(this.sun, sun, far, SUN_RADIUS_RAD)
+    const sunMargin = BODY_MARGIN + (SUN_GLOW_MARGIN - BODY_MARGIN) * real
+    ;(this.sun.material as ShaderMaterial).uniforms.uMargin.value = sunMargin
+    this.place(this.sun, sun, far, SUN_RADIUS_RAD, sunMargin)
     this.place(this.earth, earth, far, EARTH_RADIUS_RAD)
+    this.stars.visible = real > 0.001
+    this.stars.position.copy(camera.position)
+    this.stars.scale.setScalar(far * 0.98)
     this.sunHidden = this.blocked(sun)
     this.earthHidden = this.blocked(earth)
 
@@ -589,13 +712,13 @@ export class Flight {
     this.pump()
   }
 
-  private place(mesh: Mesh, direction: readonly number[], distance: number, radius: number): void {
+  private place(mesh: Mesh, direction: readonly number[], distance: number, radius: number, margin = BODY_MARGIN): void {
     mesh.position.copy(this.camera.position)
     mesh.position.x += direction[0] * distance
     mesh.position.y += direction[1] * distance
     mesh.position.z += direction[2] * distance
     mesh.quaternion.copy(this.camera.quaternion)
-    mesh.scale.setScalar(distance * Math.tan(radius) * BODY_MARGIN)
+    mesh.scale.setScalar(distance * Math.tan(radius) * margin)
   }
 
   /** Altura de un punto sobre el relieve (km). Fuera de la lámina, sobre la esfera de referencia. */

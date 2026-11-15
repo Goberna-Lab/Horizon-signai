@@ -1,3 +1,4 @@
+import { tr } from "@/shared/i18n"
 import { software } from "../../content"
 import product from "../data/product.json"
 import { type Figures, percent, verdictOf } from "./sky"
@@ -6,13 +7,13 @@ const copy = software.planb
 const plan = product.planB
 const verdicts = software.compare.verdicts
 
-const date = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+const date = (iso: string) => new Date(iso).toLocaleDateString(tr("en-GB", "es-ES"), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
 const signed = (value: number, unit: string) => `${value > 0 ? "+" : value < 0 ? "-" : ""}${Math.abs(value) % 1 === 0 ? Math.abs(value).toFixed(0) : Math.abs(value).toFixed(1)}${unit}`
 
 const ROWS: Array<{ name: string; detail: string; figures: Figures }> = [
-  { name: copy.move, detail: `${plan.move.distanceM} m, to ${plan.move.to}`, figures: plan.move.figures },
-  { name: copy.wait, detail: `Same site, from ${date(plan.wait.startUTC)}`, figures: plan.wait.figures },
-  { name: copy.mast, detail: "Same site, same date", figures: plan.mast.figures },
+  { name: copy.move, detail: tr(`${plan.move.distanceM} m, to ${plan.move.to}`, `${plan.move.distanceM} m, hasta ${plan.move.to}`), figures: plan.move.figures },
+  { name: copy.wait, detail: tr(`Same site, from ${date(plan.wait.startUTC)}`, `Mismo sitio, desde el ${date(plan.wait.startUTC)}`), figures: plan.wait.figures },
+  { name: copy.mast, detail: tr("Same site, same date", "Mismo sitio, misma fecha"), figures: plan.mast.figures },
 ]
 
 /** La pantalla "Plan B": lo que cambia cada salida frente al plan original, con las cifras del motor. */

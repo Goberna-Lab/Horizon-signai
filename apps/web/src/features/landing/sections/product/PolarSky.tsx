@@ -1,4 +1,5 @@
 import { useId, useMemo } from "react"
+import { tr } from "@/shared/i18n"
 import { at, type Body, inside } from "./sky"
 
 /**
@@ -48,7 +49,8 @@ function track(body: Body, step: number, windows?: number[][]): { seen: string; 
 }
 
 const AZIMUTHS = [0, 45, 90, 135, 180, 225, 270, 315]
-const COMPASS: Record<number, string> = { 0: "N", 90: "E", 180: "S", 270: "W" }
+/** Los puntos cardinales: en español el oeste es "O". */
+const COMPASS: Record<number, string> = { 0: "N", 90: "E", 180: "S", 270: tr("W", "O") }
 const RINGS = [0, 5, 10]
 
 type PolarSkyProps = {
@@ -157,8 +159,8 @@ export function PolarSky({ horizon, other, sun, earth, step = 1, windows, t, var
           )
         })}
 
-      {marker(earth, !windows || t === undefined || inside(windows.earth, t), "Earth", "earth")}
-      {marker(sun, !windows || t === undefined || inside(windows.sun, t), "Sun", "sun")}
+      {marker(earth, !windows || t === undefined || inside(windows.earth, t), tr("Earth", "Tierra"), "earth")}
+      {marker(sun, !windows || t === undefined || inside(windows.sun, t), tr("Sun", "Sol"), "sun")}
     </svg>
   )
 }

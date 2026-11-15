@@ -1,0 +1,201 @@
+/* EVA, la robot guía, flotando encima de toda la app. Prefijo eva-. Colores de la marca: papel, tinta, rojo. */
+.eva-caja {
+  --eva-papel: #f4efe6;
+  --eva-tinta: #111111;
+  --eva-rojo: #c8102e;
+  --eva-gris: #c9c1b6;
+  --eva-luz: #9ad7ff;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9000;
+  pointer-events: none; /* solo EVA, su globo y su panel reciben clics */
+  will-change: transform;
+}
+.eva-cuerpo {
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+.eva-cuerpo:active { cursor: grabbing; }
+/* Apagada: difuminada y sin color, hasta que sale el Sol y se carga (el plomo oscuro lo pone el modelo). */
+.eva-cuerpo { transition: filter 1.8s ease, opacity 1.8s ease; }
+.eva-caja[data-estado="apagada"] .eva-cuerpo { filter: blur(1.6px) saturate(0.3) brightness(0.85); opacity: 0.85; }
+.eva-cuerpo:focus-visible { outline: 2px solid var(--eva-rojo); outline-offset: -12px; }
+
+/* Globo: lo que va diciendo, palabra por palabra. Va hacia el lado con más espacio. */
+.eva-globo {
+  position: absolute;
+  bottom: 72%;
+  right: 78%;
+  width: max-content;
+  max-width: min(320px, 70vw);
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 14px 14px 4px 14px;
+  background: var(--eva-papel);
+  color: var(--eva-tinta);
+  font: 500 0.88rem/1.45 "IBM Plex Mono", ui-monospace, monospace;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  pointer-events: auto;
+  animation: eva-aparecer 0.25s ease-out both;
+}
+.eva-caja--derecha .eva-globo { right: auto; left: 78%; border-radius: 14px 14px 14px 4px; }
+
+/* Una pregunta de EVA: el globo con el campo o los botones para contestarle. */
+.eva-globo--pregunta { display: grid; gap: 8px; }
+.eva-globo--pregunta p { margin: 0; }
+.eva-pregunta { display: flex; gap: 6px; align-items: center; }
+.eva-pregunta input {
+  flex: 1;
+  min-width: 0;
+  width: 150px;
+  padding: 6px 9px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--eva-tinta);
+  font: inherit;
+}
+.eva-pregunta button {
+  padding: 6px 11px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 9px;
+  background: var(--eva-tinta);
+  color: var(--eva-papel);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* «¿Quién nos visita?»: tres recorridos y «ahora no», en dos filas si no caben. */
+.eva-pregunta--quien { flex-wrap: wrap; }
+.eva-pregunta .eva-pregunta__suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
+
+/* Panel: escribirle, hablarle por voz, silenciar, repetir consejos, olvidar. */
+.eva-panel {
+  position: absolute;
+  bottom: 40%;
+  right: 92%;
+  width: min(340px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 16px;
+  background: var(--eva-papel);
+  color: var(--eva-tinta);
+  font: 0.86rem/1.45 "IBM Plex Mono", ui-monospace, monospace;
+  box-shadow: 0 12px 32px rgba(17, 17, 17, 0.22);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: eva-aparecer 0.2s ease-out both;
+}
+.eva-caja--derecha .eva-panel { right: auto; left: 92%; }
+.eva-panel__cabeza { display: flex; align-items: center; gap: 8px; }
+.eva-panel__nombre { flex: 1; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.76rem; }
+.eva-panel__icono {
+  border: 1px solid var(--eva-gris);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.eva-panel__icono[aria-pressed="true"] { background: var(--eva-tinta); color: var(--eva-papel); }
+.eva-panel__respuesta { margin: 0; max-height: 40vh; overflow: auto; white-space: pre-wrap; }
+.eva-panel__error { margin: 0; color: var(--eva-rojo); }
+/* Preguntas sugeridas: píldoras pequeñas, en varias filas. */
+.eva-panel__sugerencias { display: flex; flex-wrap: wrap; gap: 5px; }
+.eva-panel__sugerencias button {
+  padding: 4px 9px;
+  border: 1px solid var(--eva-gris);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--eva-tinta);
+  font: inherit;
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+}
+.eva-panel__sugerencias button:hover { border-color: var(--eva-tinta); }
+.eva-panel__form { display: flex; gap: 6px; }
+.eva-panel__form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--eva-tinta);
+  font: inherit;
+}
+.eva-panel__form button,
+.eva-boton {
+  padding: 8px 12px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 10px;
+  background: var(--eva-tinta);
+  color: var(--eva-papel);
+  font: inherit;
+  cursor: pointer;
+}
+.eva-panel__form button:disabled { opacity: 0.4; cursor: not-allowed; }
+.eva-panel__acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.eva-boton--activo { background: var(--eva-rojo); border-color: var(--eva-rojo); }
+.eva-boton--suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
+.eva-panel__nota { margin: 0; color: #6b655c; font-size: 0.7rem; }
+
+/*
+ * El rayo con el que EVA apunta a la parte de la pantalla de la que habla: una línea desde su visor hasta esa
+ * parte y cuatro esquinas que la encierran. Va en una capa aparte, encima de todo (también del Planificador
+ * incrustado), sin recibir clics. Rojo de la marca: se lee sobre papel y sobre noche, como un puntero láser.
+ */
+.eva-rayo {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 8999;
+  pointer-events: none;
+  overflow: visible;
+  animation: eva-rayo-sale 0.14s ease-out both;
+}
+.eva-rayo__halo { stroke: var(--eva-rojo, #c8102e); stroke-width: 8; stroke-linecap: round; opacity: 0.2; filter: blur(3px); }
+.eva-rayo__haz {
+  stroke: var(--eva-rojo, #c8102e);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 3 7;
+  animation: eva-rayo-corre 0.45s linear infinite;
+}
+.eva-rayo__punta { fill: var(--eva-rojo, #c8102e); animation: eva-rayo-late 0.9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.eva-rayo__cerco {
+  fill: none;
+  stroke: var(--eva-rojo, #c8102e);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eva-enfocar 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, eva-foco 1.6s ease-in-out 0.4s infinite;
+}
+
+@keyframes eva-aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes eva-foco { 50% { stroke-opacity: 0.45; } }
+@keyframes eva-rayo-sale { from { opacity: 0; } }
+@keyframes eva-rayo-corre { to { stroke-dashoffset: -10; } }
+@keyframes eva-rayo-late { 50% { transform: scale(1.7); opacity: 0.55; } }
+@keyframes eva-enfocar { from { transform: scale(1.22); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .eva-globo, .eva-panel { animation: none; }
+  .eva-rayo, .eva-rayo__haz, .eva-rayo__punta, .eva-rayo__cerco { animation: none; }
+  .eva-cuerpo { transition: none; }
+}

@@ -1,0 +1,1473 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--__MAP3D_BOOT__-->
+<link rel="modulepreload" href="__THREE_URL__">
+<title>Horizon Signai · 3D Moon</title>
+<meta name="description" content="Relieve lunar 3D con datos LOLA (NASA) y todos los sitios de alunizaje (NSSDCA), con luz solar real (JPL Horizons). Horizon Signai, NASA Space Apps 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Jost:wght@400;500;600&display=swap">
+<style>
+:root {
+  --paper: #F4EFE6; --paper-2: #ECE5D9; --ink: #161412; --ink-2: #5E574E; --rule: #D8D0C3;
+  --red: #C8102E; --mon: #0E0D0C; --mon-2: #1C1B19; --mon-rule: #36322D; --mon-fg: #F4EFE6; --mon-fg-2: #A39B8F;
+  --c-tripulada: #E0263F; --c-robotica: #F4EFE6; --c-muestras: #E3B24F; --c-rover: #86BFA9; --c-impacto: #8C857B; --c-candidata: #E8893A;
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-body: "Jost", "Avenir Next", "Century Gothic", system-ui, sans-serif;
+  --s--1: clamp(0.74rem, 0.72rem + 0.1vw, 0.8rem); --s-0: clamp(0.86rem, 0.84rem + 0.12vw, 0.94rem);
+  --s-1: clamp(1rem, 0.96rem + 0.2vw, 1.12rem); --s-3: clamp(1.5rem, 1.3rem + 0.9vw, 2rem);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--mon); color: var(--ink); font: 400 var(--s-0)/1.45 var(--font-body); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+#app { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; height: 100%; }
+
+/* ---------- Panel (papel) ---------- */
+#panel { background: var(--paper); display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--mon-rule); }
+.cab { padding: 18px 20px 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+.sol { width: 22px; height: 22px; border-radius: 50%; background: var(--red); }
+.cab h1 { margin: 0; font: 600 var(--s-3)/1 var(--font-display); letter-spacing: 0.01em; }
+.cab small { display: block; color: var(--ink-2); font-size: var(--s--1); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+.idioma { display: flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.idioma button { border: 0; background: none; padding: 3px 9px; font-size: var(--s--1); cursor: pointer; color: var(--ink-2); }
+.idioma button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.bloque { padding: 10px 20px; }
+.bloque + .bloque { border-top: 1px solid var(--rule); }
+.rotulo { font-size: var(--s--1); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); margin: 0 0 6px; display: flex; justify-content: space-between; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--paper-2); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: none; padding: 6px 4px; border-radius: 6px; cursor: pointer; font-weight: 500; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+#buscar { width: 100%; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: #FBF8F2; }
+#buscar:focus-visible, select:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: #FBF8F2; padding: 4px 9px 4px 7px; border-radius: 999px; cursor: pointer; font-size: var(--s--1); color: var(--ink); }
+.chip[aria-pressed="false"] { opacity: 0.45; background: transparent; }
+.chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset; }
+.chip b { font-weight: 600; color: var(--ink-2); }
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+select { width: 100%; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 8px; background: #FBF8F2; }
+input[type=range] { width: 100%; accent-color: var(--red); }
+#lista { flex: 1; overflow: auto; min-height: 120px; padding: 4px 8px 8px; margin: 0; list-style: none; border-top: 1px solid var(--rule); }
+#lista li button { width: 100%; display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: baseline; text-align: left; border: 0; background: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; }
+#lista li button:hover { background: var(--paper-2); }
+#lista li button[aria-current="true"] { background: var(--ink); color: var(--paper); }
+#lista li button[aria-current="true"] .meta { color: var(--mon-fg-2); }
+#lista .punto { width: 10px; height: 10px; border-radius: 50%; align-self: center; box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset; }
+#lista .nom { font-weight: 500; }
+#lista .meta { color: var(--ink-2); font-size: var(--s--1); white-space: nowrap; }
+#lista .vacio { padding: 16px 12px; color: var(--ink-2); }
+details.fuentes { padding: 10px 20px 14px; border-top: 1px solid var(--rule); font-size: var(--s--1); color: var(--ink-2); }
+details.fuentes summary { cursor: pointer; color: var(--ink); }
+details.fuentes ul { padding-left: 16px; margin: 8px 0 0; }
+details.fuentes a { color: var(--ink); }
+
+/* ---------- Escena ---------- */
+#escena { position: relative; min-width: 0; min-height: 0; background: radial-gradient(ellipse at 60% 40%, #1a1816 0%, var(--mon) 70%); }
+#lienzo { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+#marcas { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.m { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; transform: translate(-50%, -50%); width: 18px; height: 18px; display: grid; place-items: center; }
+.m::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px rgba(14,13,12,0.85); }
+.m.impacto::before { width: 9px; height: 9px; border-radius: 0; background: none; box-shadow: none;
+  background: linear-gradient(45deg, transparent 42%, var(--c) 42%, var(--c) 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, var(--c) 42%, var(--c) 58%, transparent 58%); }
+.m.candidata::before { border-radius: 2px; transform: rotate(45deg); background: transparent; box-shadow: 0 0 0 2px var(--c), 0 0 0 3.5px rgba(14,13,12,0.85); width: 7px; height: 7px; }
+.m.sel::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--red); animation: pulso 1.8s ease-out infinite; }
+@keyframes pulso { from { transform: scale(0.7); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+.m span { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); white-space: nowrap; color: var(--mon-fg); font-size: var(--s--1); font-weight: 500;
+  text-shadow: 0 0 3px #000, 0 0 6px #000; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+.m.rot span, .m:hover span, .m.sel span { opacity: 1; }
+.m.propio::before { background: var(--red); border-radius: 0; width: 2px; height: 14px; box-shadow: none; }
+.m.propio::after { content: ""; position: absolute; width: 14px; height: 2px; background: var(--red); }
+
+.hud { position: absolute; color: var(--mon-fg); font-size: var(--s--1); }
+.vista-sup { top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; pointer-events: none; }
+.vista-sup > * { pointer-events: auto; }
+.estado { background: rgba(14,13,12,0.72); border: 1px solid var(--mon-rule); border-radius: 10px; padding: 8px 12px; max-width: 46ch; }
+.estado strong { font-weight: 600; }
+.estado .gris { color: var(--mon-fg-2); }
+.ctrl { background: rgba(14,13,12,0.78); border: 1px solid var(--mon-rule); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; min-width: 230px; }
+.ctrl label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; color: var(--mon-fg-2); }
+.ctrl label input { grid-column: 1 / -1; }
+.ctrl output { color: var(--mon-fg); font-variant-numeric: tabular-nums; }
+.seg.osc { background: var(--mon-2); }
+.seg.osc button { color: var(--mon-fg-2); padding: 4px 6px; font-size: var(--s--1); }
+.seg.osc button[aria-pressed="true"] { background: var(--mon-fg); color: var(--ink); }
+.leyenda { display: grid; gap: 4px; }
+.barra { height: 8px; border-radius: 4px; }
+.leyenda .esc { display: flex; justify-content: space-between; color: var(--mon-fg-2); font-variant-numeric: tabular-nums; }
+
+.tiempo { left: 16px; right: 16px; bottom: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: rgba(14,13,12,0.78); border: 1px solid var(--mon-rule); border-radius: 12px; padding: 8px 12px; }
+.tiempo input[type=datetime-local] { background: var(--mon-2); border: 1px solid var(--mon-rule); border-radius: 8px; padding: 4px 8px; color: var(--mon-fg); color-scheme: dark; }
+.tiempo .play { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--red); color: var(--paper); cursor: pointer; font-size: 14px; }
+.tiempo .gris { color: var(--mon-fg-2); }
+.tiempo .num { font-variant-numeric: tabular-nums; }
+.tiempo .esp { flex: 1; }
+
+#ficha { position: absolute; right: 16px; bottom: 76px; width: min(360px, calc(100% - 32px)); background: var(--paper); color: var(--ink); border-radius: 12px; padding: 16px 18px 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45); display: none; max-height: calc(100% - 290px); min-height: 0; overflow: auto; }
+#ficha.vis { display: block; animation: entra 0.22s ease-out; }
+@keyframes entra { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+#ficha h2 { margin: 0 28px 2px 0; font: 600 var(--s-3)/1.05 var(--font-display); }
+#ficha .sub { color: var(--ink-2); font-size: var(--s--1); text-transform: uppercase; letter-spacing: 0.07em; display: flex; gap: 8px; align-items: center; }
+#ficha .sub i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset; }
+#ficha dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 12px 0 10px; }
+#ficha dt { color: var(--ink-2); }
+#ficha dd { margin: 0; font-variant-numeric: tabular-nums; }
+#ficha dd small { color: var(--ink-2); }
+#ficha p { margin: 8px 0; }
+#ficha .nota { font-size: var(--s--1); color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 8px; }
+#ficha .cerrar { position: absolute; right: 10px; top: 10px; border: 0; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink-2); padding: 4px 6px; }
+#ficha .acciones { display: flex; gap: 8px; margin-top: 10px; }
+#ficha .acciones button { border: 1px solid var(--ink); background: none; border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: var(--s--1); }
+#ficha .acciones button.prim { background: var(--ink); color: var(--paper); }
+.si { color: #1f7a4d; font-weight: 600; } .no { color: var(--red); font-weight: 600; }
+.aprox { display: inline-block; font-size: 0.72rem; border: 1px solid var(--ink-2); color: var(--ink-2); border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
+
+#carga { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mon-fg-2); font-size: var(--s-1); background: var(--mon); z-index: 5; }
+#carga .sol { width: 46px; height: 46px; margin: 0 auto 14px; animation: late 1.4s ease-in-out infinite; }
+@keyframes late { 50% { transform: scale(0.82); opacity: 0.6; } }
+#abrirPanel { display: none; }
+.iau { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; white-space: nowrap; transform: translate(-50%, -50%);
+  font-family: var(--font-display); font-style: italic; font-weight: 600; color: #EFE6D3; letter-spacing: 0.01em;
+  text-shadow: 0 0 2px #0E0D0C, 0 0 5px #0E0D0C, 0 0 9px rgba(14,13,12,0.8); line-height: 1; }
+.iau.sat { font-weight: 500; color: #CFC5B3; }
+.iau.mar { font-style: normal; font-family: var(--font-body); font-weight: 500; text-transform: uppercase; letter-spacing: 0.22em; color: #E8C98F; }
+.iau:hover, .iau.sel { color: #FFFDF8; text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
+.tog { border: 1px solid var(--mon-rule); background: var(--mon-2); color: var(--mon-fg-2); border-radius: 8px; padding: 5px 8px; cursor: pointer; font-size: var(--s--1);
+  display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.tog[aria-pressed="true"] { color: var(--mon-fg); border-color: #8a7f6c; }
+.tog[aria-pressed="true"] em { color: #E8C98F; }
+.tog em { font-style: normal; font-variant-numeric: tabular-nums; }
+#ficha a { color: var(--ink); }
+
+/* ---------- Tooltips: estrella fugaz ---------- */
+#tip { position: fixed; z-index: 20; left: 0; top: 0; width: min(290px, calc(100vw - 24px)); pointer-events: none;
+  color: var(--mon-fg); font-size: var(--s--1); line-height: 1.45; opacity: 0; visibility: hidden; }
+#tip .carta { position: relative; border-radius: 12px; padding: 12px 14px 12px; border: 1px solid rgba(232,201,143,0.32);
+  background:
+    radial-gradient(1px 1px at 18% 22%, rgba(255,250,235,0.85), transparent 60%),
+    radial-gradient(1px 1px at 72% 14%, rgba(255,250,235,0.6), transparent 60%),
+    radial-gradient(1.2px 1.2px at 88% 64%, rgba(255,250,235,0.7), transparent 60%),
+    radial-gradient(1px 1px at 41% 82%, rgba(255,250,235,0.5), transparent 60%),
+    radial-gradient(0.8px 0.8px at 60% 48%, rgba(255,250,235,0.45), transparent 60%),
+    linear-gradient(160deg, #1B1915 0%, #0F0E0C 100%);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
+#tip strong { display: block; font: italic 600 1.18rem/1.1 var(--font-display); color: #E8C98F; margin-bottom: 4px; letter-spacing: 0.01em; }
+#tip p { margin: 0; color: #DCD3C3; }
+#tip .mejor { margin-top: 8px; padding-top: 7px; border-top: 1px dashed rgba(232,201,143,0.28); color: var(--mon-fg); }
+#tip .mejor b { color: #E8C98F; font-weight: 600; }
+#tip .ahora { margin-top: 6px; color: var(--mon-fg-2); font-variant-numeric: tabular-nums; }
+/* la estela cruza en diagonal y la cabeza se queda como estrella en la esquina */
+#tip .estela { position: absolute; left: 2px; top: 2px; width: 150px; height: 2px; transform-origin: 100% 50%;
+  background: linear-gradient(90deg, transparent, rgba(232,201,143,0.15) 30%, rgba(255,246,222,0.95)); border-radius: 2px;
+  transform: translate(-100%, -50%) rotate(28deg); opacity: 0; filter: drop-shadow(0 0 4px rgba(255,236,190,0.7)); }
+#tip .astro { position: absolute; left: 2px; top: 2px; width: 7px; height: 7px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: #FFF8E6; box-shadow: 0 0 6px 2px rgba(255,236,190,0.85), 0 0 16px 4px rgba(232,201,143,0.35); opacity: 0; }
+#tip .astro::before, #tip .astro::after { content: ""; position: absolute; left: 50%; top: 50%; background: linear-gradient(90deg, transparent, #FFF8E6, transparent);
+  width: 22px; height: 1px; transform: translate(-50%, -50%); }
+#tip .astro::after { transform: translate(-50%, -50%) rotate(90deg); }
+#tip.vis { visibility: visible; animation: tipEntra 0.32s 0.34s ease-out both; }
+#tip.vis .estela { animation: estela 0.62s cubic-bezier(.2,.7,.3,1) both; }
+#tip.vis .astro { animation: llega 0.62s cubic-bezier(.2,.7,.3,1) both, titila 2.4s 0.9s ease-in-out infinite; }
+@keyframes estela {
+  0% { opacity: 0; transform: translate(-100%, -50%) rotate(28deg) translateX(-150px); }
+  25% { opacity: 1; }
+  70% { opacity: 1; transform: translate(-100%, -50%) rotate(28deg) translateX(0); }
+  100% { opacity: 0; transform: translate(-100%, -50%) rotate(28deg) translateX(0) scaleX(0.2); }
+}
+@keyframes llega { 0% { opacity: 0; } 60% { opacity: 0; } 72% { opacity: 1; transform: translate(-50%, -50%) scale(1.6); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes titila { 50% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.8) rotate(45deg); } }
+@keyframes tipEntra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+[data-tip] { position: relative; }
+.ctrl label[data-tip] > span::after, .tog[data-tip] > span::after { content: "✦"; margin-left: 5px; font-size: 0.7em; color: rgba(232,201,143,0.7); }
+@media (prefers-reduced-motion: reduce) {
+  #tip.vis, #tip.vis .estela, #tip.vis .astro { animation: none; }
+  #tip.vis { opacity: 1; } #tip.vis .astro { opacity: 1; } #tip .estela { display: none; }
+}
+.estrecha #ficha { left: 12px; right: 12px; width: auto; max-height: 42%; padding: 12px 14px 10px; }
+.estrecha #ficha dl { margin: 8px 0 6px; gap: 3px 12px; }
+.estrecha .tiempo { padding: 6px 10px; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) { .m.sel::after, #carga .sol, #ficha.vis { animation: none; } }
+@media (max-width: 820px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  #panel { position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; max-height: 62%; border-radius: 14px 14px 0 0; transform: translateY(105%); transition: transform 0.25s; }
+  #panel.abierto { transform: none; }
+  #abrirPanel { display: block; position: absolute; z-index: 3; left: 16px; bottom: 76px; border: 0; background: var(--paper); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-weight: 500; }
+  .vista-sup { flex-direction: column; }
+  .ctrl { min-width: 0; }
+  #ficha { top: auto; bottom: 120px; max-height: 45%; }
+  .tiempo { left: 8px; right: 8px; bottom: 8px; }
+}
+</style>
+<script type="importmap">
+{ "imports": { "three": "__THREE_URL__" } }
+</script>
+</head>
+<body>
+<div id="app">
+  <aside id="panel" aria-label="Filtros">
+    <header class="cab">
+      <div class="sol" aria-hidden="true"></div>
+      <div><h1><a href="/" target="_top" style="color: inherit; text-decoration: none" title="Horizon Signai">Horizon Signai</a></h1><small data-t="subtitulo"></small></div>
+      <div class="idioma" role="group" aria-label="Idioma / Language">
+        <button data-idioma="en">EN</button><button data-idioma="es">ES</button>
+      </div>
+    </header>
+    <div class="bloque">
+      <p class="rotulo"><span data-t="vista"></span></p>
+      <div class="seg" role="group" id="vistas">
+        <button data-vista="globo" data-t="globo"></button>
+        <button data-vista="polo" data-t="poloSur"></button>
+      </div>
+    </div>
+    <div class="bloque">
+      <input id="buscar" type="search" autocomplete="off" data-tp="buscar">
+    </div>
+    <div class="bloque">
+      <p class="rotulo"><span data-t="tipo"></span></p>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="bloque fila">
+      <div><p class="rotulo"><span data-t="agencia"></span></p><select id="agencia"></select></div>
+      <div><p class="rotulo"><span data-t="hasta"></span><output id="anioV"></output></p><input id="anio" type="range" min="1959" max="2026" step="1" value="2026"></div>
+    </div>
+    <ul id="lista" aria-label="Misiones"></ul>
+    <details class="fuentes">
+      <summary data-t="fuentesT"></summary>
+      <ul id="fuentes"></ul>
+    </details>
+  </aside>
+
+  <main id="escena">
+    <canvas id="lienzo" aria-label="Luna 3D"></canvas>
+    <div id="marcas"></div>
+    <div class="hud vista-sup">
+      <div class="estado" id="estado"></div>
+      <div class="ctrl">
+        <div class="seg osc" role="group" id="colores">
+          <button data-color="albedo" data-t="cAlbedo"></button>
+          <button data-color="altura" data-t="cAltura"></button>
+          <button data-color="pendiente" data-t="cPendiente"></button>
+        </div>
+        <div class="leyenda" id="leyenda"></div>
+        <label><span data-t="exag"></span><output id="exagV"></output><input id="exag" type="range" min="1" max="20" step="1" value="6"></label>
+        <button class="tog" id="iau" aria-pressed="true"><span data-t="capaIAU"></span><em id="iauN"></em></button>
+        <div class="seg osc" role="group" id="luces">
+          <button data-luz="sol" data-t="luzSol"></button>
+          <button data-luz="camara" data-t="luzCam"></button>
+        </div>
+      </div>
+    </div>
+    <div class="hud tiempo">
+      <button class="play" id="play" aria-label="Play">▶</button>
+      <input type="datetime-local" id="fecha" step="3600">
+      <span class="gris">UTC</span>
+      <div class="seg osc" role="group" id="velocidad" style="width:auto">
+        <button data-vel="3600">1 h/s</button><button data-vel="21600">6 h/s</button><button data-vel="86400" data-t="diaS"></button>
+      </div>
+      <span class="esp"></span>
+      <span class="num" id="subsolar"></span>
+    </div>
+    <article id="ficha" aria-live="polite"></article>
+    <button id="abrirPanel" data-t="filtros"></button>
+    <div id="carga"><div><div class="sol"></div><span data-t="cargando"></span></div></div>
+  </main>
+</div>
+
+<script type="module">
+import * as THREE from 'three'
+import { OrbitControls } from 'three' // el módulo empaquetado ya incluye OrbitControls
+
+// Los datos viven en PostgreSQL (db/) y llegan por /api/map3d. Se reconstruye el mismo objeto que antes iba embebido.
+// La API incrusta el manifiesto (el mismo objeto que /api/map3d/meta, con las URLs versionadas) en el HTML y precarga los
+// archivos del primer dibujo; sin manifiesto (base caída, plantilla estática) se pide /meta como antes.
+async function cargarDatos() {
+  const api = async (url, opts) => {
+    const r = await fetch(url, opts)
+    if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`)
+    return r
+  }
+  let meta = null
+  try { meta = JSON.parse(document.getElementById('map3d-manifest')?.textContent || 'null') } catch (e) { console.warn(e) }
+  meta ??= await (await api('/api/map3d/meta')).json()
+  const url = (k) => { const a = meta.assets[k]; if (!a) throw new Error(`Falta el activo ${k}`); return a.url }
+  const bin = async (k, opts) => new Uint8Array(await (await api(url(k), opts)).arrayBuffer())
+  // Las texturas empiezan a bajarse y decodificarse ya, en paralelo con el relieve (se esperan donde se usan).
+  const imagen = (u) => {
+    const p = (async () => { const img = new Image(); img.src = u; await img.decode(); return img })()
+    p.catch(() => {}) // el error se informa donde se espera
+    return p
+  }
+  const g16 = imagen(url('gradient16')), tierra = imagen(url('earth_texture'))
+  const sueltos = () => Promise.all(['sites', 'iau', 'horizons'].map((k) => api('/api/map3d/' + k).then((r) => r.json())))
+    .then(([sites, iau, horizons]) => ({ sites, iau, horizons }))
+  // Sitios + IAU + horizontes: un solo archivo gzip (octet-stream, sin Content-Encoding) que se descomprime aquí.
+  const paquete = meta.dataUrl
+    ? api(meta.dataUrl).then((r) => new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()).catch((e) => { console.warn(e); return sueltos() })
+    : sueltos()
+  const [alt, alb, eph, { sites: sitios, iau, horizons: horizontes }] = await Promise.all([
+    bin('global_elevation'), bin('global_albedo'), bin('ephemeris_de441'), paquete,
+  ])
+  const D = meta.datasets, m = (k) => D[k].meta || {}
+  const pick = (o, ...ks) => { for (const k of ks) if (o[k] != null) return o[k]; throw new Error('Falta ' + ks[0] + ' en /meta') }
+  const mp = m('pole_elevation_663'), m2 = m('pole_elevation_240'), me = m('ephemeris_de441'), ua = pick(m('global_albedo'), 'viewer_uint8')
+  const [fx, fy] = pick(m2, 'first_centre_xy')
+  const CAT = { crewed: 'tripulada', robotic: 'robotica', sample_return: 'muestras', rover: 'rover', impact: 'impacto', candidate: 'candidata' }
+  const cat = (c) => CAT[c] || c
+  url('pole_elevation_663'); url('pole_elevation_240') // fallan pronto si faltan
+  return {
+    global: { w: D.global_elevation.width, h: D.global_elevation.height, alt, alb, albMin: ua.min, albRango: ua.range },
+    // El polo sur (~4 MB) se baja después del primer dibujo, con prioridad baja: `cargar()` devuelve los bytes comprimidos.
+    polo: { n: D.pole_elevation_663.width, ext: pick(mp, 'extent_m'), paso: pick(mp, 'pixel_m'), cargar: () => bin('pole_elevation_663', { priority: 'low' }) },
+    polo240: { n: D.pole_elevation_240.width, paso: pick(m2, 'pixel_m'), x0: fx, y0: fy, cargar: () => bin('pole_elevation_240', { priority: 'low' }) },
+    eph: { inicioUTC: pick(me, 'start_utc'), pasoS: pick(me, 'step_s'), filas: pick(me, 'rows'), d: eph },
+    fuentes: Object.keys(meta.provenance).filter((k) => /^sources\.\d+$/.test(k)).sort((a, b) => a.slice(8) - b.slice(8)).map((k) => meta.provenance[k]),
+    sitios: {
+      categorias: meta.categories.map((c) => cat(c.code)),
+      sitios: sitios.sites.map((x) => ({
+        id: x.slug, nombre: x.name, cat: cat(x.cat), agencia: x.agency, pais: x.country, fecha: x.date, lat: x.lat, lon: x.lon,
+        region: x.region, es: x.description, en: x.description, src: x.source, aprox: x.approx, artemis: x.artemis,
+        enlaces: (x.links || []).map((l) => ({ es: l.label, en: l.label, url: l.url })),
+        ...(x.elevation240 != null ? { h240: Math.round(x.elevation240), pend240: Math.round(x.slope240 * 10) / 10 } : {}),
+      })),
+    },
+    horizontes, iau,
+    g16, tierra, // promesas de HTMLImageElement ya decodificado
+  }
+}
+let DATOS
+try { DATOS = await cargarDatos() } catch (e) {
+  console.error(e)
+  document.querySelector('#carga > div').innerHTML = `<p style="max-width:32rem;padding:1rem;text-align:center">Could not load the 3D map data from the API (${String(e.message || e).replace(/[<&]/g, '')}). Check that the server and its database are running, then reload.</p>`
+  throw e
+}
+const R = 1737.4 // km, esfera de referencia de LOLA y Horizons
+const RAD = Math.PI / 180
+
+// ---------------------------------------------------------------- textos
+const T = {
+  es: {
+    titulo: 'Luna 3D', subtitulo: 'Luna 3D · relieve LOLA · alunizajes', planificar: 'Comparar en el planificador', planificarT: 'Abre este punto en el planificador, con la fecha del mapa: Sol, Tierra y veredicto frente a otras zonas y fechas', vista: 'Vista', globo: 'Globo', poloSur: 'Polo Sur',
+    buscar: 'Buscar misión, agencia o región…', tipo: 'Tipo de sitio', agencia: 'Agencia', hasta: 'Hasta el año', todas: 'Todas',
+    tripulada: 'Tripuladas', robotica: 'Robóticas', muestras: 'Retorno de muestras', rover: 'Rovers', impacto: 'Impactos y fallidos', candidata: 'Candidatos polo sur',
+    tripulada1: 'Alunizaje tripulado', robotica1: 'Aterrizaje robótico', muestras1: 'Retorno de muestras', rover1: 'Rover (posición final)', impacto1: 'Impacto o intento fallido', candidata1: 'Sitio candidato (polo sur)',
+    fuentesT: 'Fuentes de datos y supuestos', cAlbedo: 'Albedo', cAltura: 'Altura', cPendiente: 'Pendiente', exag: 'Exageración vertical',
+    luzSol: 'Sol real', luzCam: 'Luz de estudio', diaS: '1 día/s', filtros: 'Filtros y misiones', cargando: 'Descomprimiendo datos LOLA…',
+    sinRes: 'Ninguna misión con estos filtros.', fecha: 'Fecha', region: 'Región', coords: 'Coordenadas', elev: 'Elevación', pend: 'Pendiente',
+    solAhora: 'Sol en esta fecha', tierraAhora: 'Tierra en esta fecha', fuente: 'Fuente', ir: 'Acercar', verPolo: 'Ver en el polo sur', quitar: 'Cerrar',
+    tuPunto: 'Punto elegido', clicHint: 'Clic en el relieve para medir un punto.', iluminado: 'iluminado', sombra: 'en sombra del relieve', bajoHz: 'bajo el horizonte',
+    visible: 'visible', oculta: 'oculta por el relieve', sobre: 'sobre el horizonte matemático', aprox: 'aprox.',
+    horizonte: 'Horizonte', hz_hz5: 'medido con el DTM LOLA de 5 m (PGDA, Barker 2021)', hz_dem240: 'relieve LOLA de 240 m, aprox.: sale ~1,2° más bajo que el real y da algo más de luz', hz_dem663: 'relieve LOLA de 663 m, aprox.', hz_demG: 'relieve LOLA de 7,6 km, aprox.: no ve el relieve cercano',
+    rejillaF: 'rejilla LOLA de 240 m', rejillaP: 'rejilla LOLA de 663 m', base480: 'base 480 m', rejillaG: 'rejilla LOLA de 7,6 km', baseP: 'base 1,3 km', baseG: 'base 15 km (regional)',
+    sinFecha: 'sin fecha (candidato)', exagNota: 'Con exageración > ×1 las sombras se alargan: para la geometría real usa ×1.',
+    estGlobo: (n, t) => `<strong>${n}</strong> sitios a la vista de ${t}. <span class="gris">Arrastra para girar · rueda para acercar · clic en el relieve para medir.</span>`,
+    estPolo: (n) => `<strong>Polo sur</strong>, LOLA a 663 m hasta 339 km del polo, sombreado a 240 m hasta 195 km. <span class="gris">${n} sitios. Pendientes extremas, cráteres en sombra permanente.</span>`,
+    subsol: (la, lo) => `Punto subsolar ${la}, ${lo}`, fueraTabla: 'Fecha fuera de la tabla JPL (2026–2030)',
+    centroSol: 'Centro del disco solar frente al relieve LOLA (sin la refracción, que no existe en la Luna).',
+    capaIAU: 'Nombres IAU', diam: 'Diámetro', origen: 'Origen del nombre', aprobado: 'Aprobado', fichaIAU: 'Ficha en el Gazetteer',
+    tAA: 'Cráter (nombre IAU)', tSF: 'Cráter satélite (letra IAU)', tME: 'Mare', tOC: 'Oceanus', tLC: 'Lacus', tSI: 'Sinus', tPA: 'Palus', tMO: 'Mons / Montes', tLF: 'Accidente nombrado por astronautas',
+    nVis: (n) => `${n} a la vista`,
+  },
+  en: {
+    titulo: 'Moon 3D', subtitulo: 'Moon 3D · LOLA relief · landing sites', planificar: 'Compare in the planner', planificarT: 'Open this point in the planner, on the map date: Sun, Earth and verdict against other zones and dates', vista: 'View', globo: 'Globe', poloSur: 'South Pole',
+    buscar: 'Search mission, agency or region…', tipo: 'Site type', agencia: 'Agency', hasta: 'Up to year', todas: 'All',
+    tripulada: 'Crewed', robotica: 'Robotic', muestras: 'Sample return', rover: 'Rovers', impacto: 'Impacts & failed', candidata: 'South-pole candidates',
+    tripulada1: 'Crewed landing', robotica1: 'Robotic landing', muestras1: 'Sample return', rover1: 'Rover (final position)', impacto1: 'Impact or failed attempt', candidata1: 'Candidate site (south pole)',
+    fuentesT: 'Data sources and assumptions', cAlbedo: 'Albedo', cAltura: 'Elevation', cPendiente: 'Slope', exag: 'Vertical exaggeration',
+    luzSol: 'Real Sun', luzCam: 'Studio light', diaS: '1 day/s', filtros: 'Filters & missions', cargando: 'Unpacking LOLA data…',
+    sinRes: 'No missions match these filters.', fecha: 'Date', region: 'Region', coords: 'Coordinates', elev: 'Elevation', pend: 'Slope',
+    solAhora: 'Sun on this date', tierraAhora: 'Earth on this date', fuente: 'Source', ir: 'Zoom in', verPolo: 'Show at south pole', quitar: 'Close',
+    tuPunto: 'Picked point', clicHint: 'Click the terrain to measure a point.', iluminado: 'lit', sombra: 'shadowed by terrain', bajoHz: 'below the horizon',
+    visible: 'visible', oculta: 'hidden by terrain', sobre: 'above the mathematical horizon', aprox: 'approx.',
+    horizonte: 'Horizon', hz_hz5: 'measured with the LOLA 5 m DTM (PGDA, Barker 2021)', hz_dem240: 'LOLA 240 m relief, approx.: ~1.2° lower than the real horizon, slightly more light', hz_dem663: 'LOLA 663 m relief, approx.', hz_demG: 'LOLA 7.6 km relief, approx.: misses nearby relief',
+    rejillaF: 'LOLA 240 m grid', rejillaP: 'LOLA 663 m grid', base480: '480 m baseline', rejillaG: 'LOLA 7.6 km grid', baseP: '1.3 km baseline', baseG: '15 km baseline (regional)',
+    sinFecha: 'no date (candidate)', exagNota: 'Exaggeration above ×1 lengthens shadows: use ×1 for true geometry.',
+    estGlobo: (n, t) => `<strong>${n}</strong> of ${t} sites shown. <span class="gris">Drag to rotate · scroll to zoom · click the terrain to measure.</span>`,
+    estPolo: (n) => `<strong>South pole</strong>, LOLA at 663 m out to 339 km from the pole, shaded at 240 m out to 195 km. <span class="gris">${n} sites. Extreme slopes, permanently shadowed craters.</span>`,
+    subsol: (la, lo) => `Subsolar point ${la}, ${lo}`, fueraTabla: 'Date outside the JPL table (2026–2030)',
+    centroSol: 'Center of the solar disk against LOLA terrain (no refraction: the Moon has no atmosphere).',
+    capaIAU: 'IAU names', diam: 'Diameter', origen: 'Name origin', aprobado: 'Approved', fichaIAU: 'Gazetteer entry',
+    tAA: 'Crater (IAU name)', tSF: 'Satellite crater (IAU letter)', tME: 'Mare', tOC: 'Oceanus', tLC: 'Lacus', tSI: 'Sinus', tPA: 'Palus', tMO: 'Mons / Montes', tLF: 'Astronaut-named feature',
+    nVis: (n) => `${n} shown`,
+  },
+}
+const FUENTES = {
+  es: [
+    'Relieve global: LOLA LDEM_4 y albedo LDAM_4 (NASA PDS Geosciences Node), 4 px/° ≈ 7,6 km. Altura sobre la esfera de 1737,4 km. El sombreado del globo usa normales de LOLA LDEM_16 (16 px/° ≈ 1,9 km); las cifras de la ficha siguen a 7,6 km fuera del polo.',
+    'Polo sur: LOLA LDEM_75S a 240 m y 960 m (PDS), fundidos y remuestreados a ~663 m hasta 339 km del polo (≈ 78,8° S). Hasta 195 km (≈ 83,6° S) el sombreado usa normales de la rejilla original de 240 m, y la ficha mide elevación, pendiente y sombras a 240 m.',
+    'Sitios: NASA NSSDCA «Lunar Artifact Impacts and Landings» (DE421, actualizada 2025-08-13). Candidatos: PGDA (Barker et al. 2021) y mosaicos LROC NAC; las regiones Artemis III no tienen centro oficial publicado (aprox.). Slater Plain se omite por no tener coordenadas publicadas.',
+    'Sol y Tierra: JPL Horizons DE441 (MOON_ME), cada 3 h de 2026 a 2030, interpolado. La Tierra se dibuja con la Blue Marble de la NASA (SVS 2915, sin nubes) y su tamaño angular real (~1,9°); su giro e inclinación se calculan con fórmulas abreviadas (Meeus), con precisión de ~1°.',
+    'Supuestos: luz lambertiana (no Hapke); sin luz reflejada por el relieve ni de la Tierra; la sombra usa el centro del Sol, no su disco de 0,53°. La pendiente depende de la rejilla: a 663 m o 7,6 km no ve rocas ni cráteres pequeños. Esto no evalúa la seguridad de un aterrizaje.',
+    'Nombres: IAU/USGS Gazetteer of Planetary Nomenclature, puntos centrales (planetarynames.wr.usgs.gov, descargado 2026-11-14). Se muestran cráteres con nombre, cráteres satélite con letra, mares, lagos, bahías y montes. Cada nombre aparece cuando su diámetro ocupa suficientes píxeles en pantalla.',
+    'Sin alunizajes en 2026 hasta el 14-nov-2026 (Chang\'e 7 pospuesto; Blue Moon MK1 e IM-3 pasaron a 2027).',
+  ],
+  en: [
+    'Global relief: LOLA LDEM_4 and LDAM_4 albedo (NASA PDS Geosciences Node), 4 px/° ≈ 7.6 km. Heights above the 1737.4 km sphere. Globe shading uses normals from LOLA LDEM_16 (16 px/° ≈ 1.9 km); card figures stay at 7.6 km outside the pole.',
+    'South pole: LOLA LDEM_75S at 240 m and 960 m (PDS), merged and resampled to ~663 m out to 339 km from the pole (≈ 78.8° S). Out to 195 km (≈ 83.6° S) shading uses normals from the original 240 m grid, and the card measures elevation, slope and shadows at 240 m.',
+    'Sites: NASA NSSDCA "Lunar Artifact Impacts and Landings" (DE421, updated 2025-08-13). Candidates: PGDA (Barker et al. 2021) and LROC NAC mosaics; Artemis III regions have no published official center (approx.). Slater Plain is omitted for lack of published coordinates.',
+    'Sun and Earth: JPL Horizons DE441 (MOON_ME), every 3 h from 2026 to 2030, interpolated. Earth is drawn with NASA\'s Blue Marble (SVS 2915, cloud-free) at its true angular size (~1.9°); its spin and tilt use abbreviated formulas (Meeus), accurate to ~1°.',
+    'Assumptions: Lambertian shading (not Hapke); no light scattered by terrain or Earth; shadows use the Sun\'s center, not its 0.53° disk. Slope depends on the grid: at 663 m or 7.6 km it cannot see boulders or small craters. This does not assess landing safety.',
+    'Names: IAU/USGS Gazetteer of Planetary Nomenclature, center points (planetarynames.wr.usgs.gov, downloaded 2026-11-14). Shown: named craters, lettered satellite craters, maria, lacus, sinus and montes. Each name appears once its diameter covers enough pixels on screen.',
+    'No lunar landings in 2026 as of 2026-11-14 (Chang\'e 7 postponed; Blue Moon MK1 and IM-3 moved to 2027).',
+  ],
+}
+if (DATOS.fuentes.length) FUENTES.es = FUENTES.en = DATOS.fuentes // procedencia desde la base (inglés)
+// El idioma es el de toda la app: «?lang=» si viene en la dirección; si no, la preferencia compartida
+// (localStorage «horizon-signai.lang», la misma de la landing y el planificador); si no hay ninguna, inglés.
+const CLAVE_IDIOMA = 'horizon-signai.lang'
+const idiomaPedido = new URLSearchParams(location.search).get('lang')
+let idiomaGuardado = null
+try { idiomaGuardado = localStorage.getItem(CLAVE_IDIOMA) } catch { /* sin almacenamiento: inglés */ }
+let idioma = idiomaPedido === 'es' || idiomaPedido === 'en' ? idiomaPedido : idiomaGuardado === 'es' ? 'es' : 'en'
+const t = (k) => T[idioma][k] ?? k
+
+// ---------------------------------------------------------------- datos
+async function inflar(datos) { // Uint8Array / ArrayBuffer (zlib) o, por compatibilidad, base64
+  const bin = typeof datos === 'string' ? Uint8Array.from(atob(datos), (c) => c.charCodeAt(0)) : new Uint8Array(datos)
+  const s = new Blob([bin]).stream().pipeThrough(new DecompressionStream('deflate'))
+  return new Uint8Array(await new Response(s).arrayBuffer())
+}
+function desdelta(bytes, w, h) {
+  const d = new Int16Array(bytes.buffer, bytes.byteOffset, w * h)
+  const out = new Float32Array(w * h)
+  for (let f = 0; f < h; f++) {
+    let acc = 0
+    for (let c = 0; c < w; c++) { acc += d[f * w + c]; out[f * w + c] = acc / 1000 } // km
+  }
+  return out
+}
+performance.mark('datos-descargados')
+const G = DATOS.global, P = DATOS.polo
+const [altG, albG, ephB] = await Promise.all([inflar(G.alt), inflar(G.alb), inflar(DATOS.eph.d)])
+const HG = desdelta(altG, G.w, G.h)   // km, fila 0 = 90° N, columna 0 = 0° E
+const AG = albG                       // uint8
+const P2 = DATOS.polo240
+// Polo sur: HP (663 m, estereográfica) y HP2 (240 m, LDEM_75S_240M sin remuestrear) llegan DESPUÉS del primer dibujo
+// (cargarPolo). Hasta entonces valen null: altura()/alturaFina() caen a la rejilla global, y lo que de verdad necesita
+// el polo (vista Polo Sur, ficha o clic dentro de 339 km del polo) espera con esperarPolo().
+let HP = null, HP2 = null, poloListo = false
+performance.mark('datos-inflados')
+const PASO2 = P2.paso / 1000, X02 = P2.x0 / 1000, Y02 = P2.y0 / 1000, BORDE2 = -X02 - 0.5
+const EPH = (() => {                  // Sol (x,y,z) y Tierra (x,y,z) unitarios, MOON_ME
+  const n = DATOS.eph.filas, d = new Int16Array(ephB.buffer, ephB.byteOffset, n * 6), o = new Float32Array(n * 6)
+  const acc = [0, 0, 0, 0, 0, 0]
+  for (let i = 0; i < n; i++) for (let k = 0; k < 6; k++) { acc[k] += d[i * 6 + k]; o[i * 6 + k] = acc[k] / 32767 }
+  return o
+})()
+const EPH0 = Date.parse(DATOS.eph.inicioUTC), EPHPASO = DATOS.eph.pasoS * 1000, EPHN = DATOS.eph.filas
+const PASO_P = P.paso / 1000, EXT_P = P.ext / 1000 // km
+const RHO_CASQUETE = 337 // km: borde del casquete polar fino
+
+// ---------------------------------------------------------------- geometría
+// Marco selenográfico (x → 0°N 0°E, y → 0°N 90°E, z → norte) a three: X = x, Y = z, Z = −y.
+const unit = (lat, lon) => { const f = lat * RAD, l = lon * RAD; return new THREE.Vector3(Math.cos(f) * Math.cos(l), Math.sin(f), -Math.cos(f) * Math.sin(l)) }
+const deVector = (v) => { const n = v.clone().normalize(); return [Math.asin(Math.max(-1, Math.min(1, n.y))) / RAD, ((Math.atan2(-n.z, n.x) / RAD) + 360) % 360] }
+const estereo = (lat, lon) => { const rho = 2 * R * Math.tan(((90 + lat) * RAD) / 2); return [rho * Math.sin(lon * RAD), rho * Math.cos(lon * RAD), rho] }
+
+function bilG(arr, lat, lon) {
+  const fy = Math.min(Math.max((90 - lat) * 4 - 0.5, 0), G.h - 1.001)
+  let fx = (((lon % 360) + 360) % 360) * 4 - 0.5
+  const f0 = Math.floor(fy), ty = fy - f0
+  const x0 = Math.floor(fx), tx = fx - x0
+  const c0 = (x0 + G.w) % G.w, c1 = (x0 + 1) % G.w
+  const a = arr[f0 * G.w + c0], b = arr[f0 * G.w + c1], c = arr[(f0 + 1) * G.w + c0], d = arr[(f0 + 1) * G.w + c1]
+  return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty
+}
+function bilP(x, y) {
+  const c = Math.min(Math.max((x + EXT_P) / PASO_P, 0), P.n - 1.001), f = Math.min(Math.max((EXT_P - y) / PASO_P, 0), P.n - 1.001)
+  const c0 = Math.floor(c), f0 = Math.floor(f), tc = c - c0, tf = f - f0, n = P.n, i = f0 * n + c0
+  return (HP[i] * (1 - tc) + HP[i + 1] * tc) * (1 - tf) + (HP[i + n] * (1 - tc) + HP[i + n + 1] * tc) * tf
+}
+function bilP2(x, y) {
+  const c = Math.min(Math.max((x - X02) / PASO2, 0), P2.n - 1.001), f = Math.min(Math.max((Y02 - y) / PASO2, 0), P2.n - 1.001)
+  const c0 = Math.floor(c), f0 = Math.floor(f), tc = c - c0, tf = f - f0, n = P2.n, i = f0 * n + c0
+  return (HP2[i] * (1 - tc) + HP2[i + 1] * tc) * (1 - tf) + (HP2[i + n] * (1 - tc) + HP2[i + n + 1] * tc) * tf
+}
+/** Altura con el dato más fino disponible (240 m hasta 195 km del polo): para cifras, no para dibujar. */
+function alturaFina(lat, lon) {
+  if (HP2 && lat < -82) { const [x, y] = estereo(lat, lon); if (Math.abs(x) < BORDE2 && Math.abs(y) < BORDE2) return { h: bilP2(x, y), polo: true, fino: true } }
+  return altura(lat, lon)
+}
+function pendienteFina(lat, lon) {
+  const a = alturaFina(lat, lon)
+  if (!a.fino) return pendiente(lat, lon)
+  const [x, y, rho] = estereo(lat, lon), d = PASO2, k = 1 / Math.cos(Math.atan(rho / (2 * R))) ** 2
+  const gx = (bilP2(x + d, y) - bilP2(x - d, y)) / (2 * d / k), gy = (bilP2(x, y + d) - bilP2(x, y - d)) / (2 * d / k)
+  return { s: Math.atan(Math.hypot(gx, gy)) / RAD, polo: true, fino: true }
+}
+/** Altura (km) sobre 1737,4 km y de qué rejilla sale. */
+function altura(lat, lon) {
+  if (HP && lat < -78) { const [x, y, rho] = estereo(lat, lon); if (rho <= RHO_CASQUETE) return { h: bilP(x, y), polo: true } }
+  return { h: bilG(HG, lat, lon), polo: false }
+}
+/** Pendiente (°) por diferencias centradas. */
+function pendiente(lat, lon) {
+  const { polo } = altura(lat, lon)
+  if (polo) {
+    const [x, y, rho] = estereo(lat, lon), d = PASO_P, k = 1 / Math.cos(Math.atan(rho / (2 * R))) ** 2 // escala estereográfica sec²(c/2)
+    const gx = (bilP(x + d, y) - bilP(x - d, y)) / (2 * d / k), gy = (bilP(x, y + d) - bilP(x, y - d)) / (2 * d / k)
+    return { s: Math.atan(Math.hypot(gx, gy)) / RAD, polo }
+  }
+  const d = 0.25, dy = R * d * RAD, dx = Math.max(R * Math.cos(lat * RAD) * d * RAD, 1e-3)
+  const gx = (bilG(HG, lat, lon + d) - bilG(HG, lat, lon - d)) / (2 * dx), gy = (bilG(HG, lat + d, lon) - bilG(HG, lat - d, lon)) / (2 * dy)
+  return { s: Math.atan(Math.hypot(gx, gy)) / RAD, polo }
+}
+const albedoEn = (lat, lon) => G.albMin + bilG(AG, lat, lon) / 255 * G.albRango
+
+// ---------------------------------------------------------------- colores
+const lin = (c) => Math.pow(c, 2.2)
+function rampa(stops, v) {
+  v = Math.min(Math.max(v, 0), 1)
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) {
+    const [a, ca] = stops[i - 1], [b, cb] = stops[i], u = (v - a) / (b - a)
+    return [0, 1, 2].map((k) => ca[k] + (cb[k] - ca[k]) * u)
+  }
+  return stops[stops.length - 1][1]
+}
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+const RAMPA_ALT = [[0, hex('#1E2340')], [0.25, hex('#3B4F7A')], [0.45, hex('#6F8C8A')], [0.62, hex('#B7AE7E')], [0.8, hex('#D9A86C')], [1, hex('#F6EEDC')]]
+const ALT_MIN = -9, ALT_MAX = 10.5
+const RAMPA_PEN = [[0, hex('#E9E3D6')], [0.2, hex('#E9E3D6')], [0.2001, hex('#EAD27A')], [0.4, hex('#EAD27A')], [0.4001, hex('#E39A45')], [0.6, hex('#E39A45')], [0.6001, hex('#C8102E')], [1, hex('#5A0A16')]]
+const PEN_MAX = 25 // °
+function colorDe(modo, lat, lon, h, s) {
+  if (modo === 'altura') return rampa(RAMPA_ALT, (h - ALT_MIN) / (ALT_MAX - ALT_MIN))
+  if (modo === 'pendiente') return rampa(RAMPA_PEN, s / PEN_MAX)
+  const a = albedoEn(lat, lon), g = Math.min(1, 0.16 + (a - 0.13) * 1.75)
+  return [g * 1.0, g * 0.975, g * 0.94]
+}
+
+// ---------------------------------------------------------------- escena
+const lienzo = document.getElementById('lienzo'), escenaEl = document.getElementById('escena')
+const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, logarithmicDepthBuffer: true })
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.shadowMap.autoUpdate = false
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.1
+const scene = new THREE.Scene()
+const camera = new THREE.PerspectiveCamera(40, 1, 0.005, 40000)
+camera.position.set(R * 3.4, R * 0.6, -R * 0.6)
+const controls = new OrbitControls(camera, lienzo)
+controls.enableDamping = true
+controls.dampingFactor = 0.08
+controls.rotateSpeed = 0.5
+controls.minDistance = 3
+controls.maxDistance = R * 8
+
+const sol = new THREE.DirectionalLight(0xfff6ea, 2.6)
+sol.castShadow = true
+const TAM_SOMBRA = Math.min(4096, renderer.capabilities.maxTextureSize)
+sol.shadow.mapSize.set(TAM_SOMBRA, TAM_SOMBRA)
+sol.shadow.bias = -0.0004
+scene.add(sol, sol.target)
+const ambiente = new THREE.HemisphereLight(0xdfe6f0, 0x2a2622, 0.03)
+scene.add(ambiente)
+
+const material = new THREE.MeshLambertMaterial({ vertexColors: true })
+
+// Globo: rejilla lat-lon. Se corta al sur de −79° (ahí manda el casquete polar fino).
+const NLON = 1024, NLAT = 512
+const globoGeo = new THREE.BufferGeometry()
+const gPos = new Float32Array((NLON + 1) * (NLAT + 1) * 3), gCol = new Float32Array(gPos.length), gU = new Float32Array(gPos.length)
+const gH = new Float32Array((NLON + 1) * (NLAT + 1)), gS = new Float32Array(gH.length), gLL = new Float32Array(gH.length * 2)
+{
+  let k = 0
+  for (let i = 0; i <= NLAT; i++) {
+    const lat = 90 - (i / NLAT) * 180
+    for (let j = 0; j <= NLON; j++, k++) {
+      const lon = (j / NLON) * 360, u = unit(lat, lon)
+      gU.set([u.x, u.y, u.z], k * 3); gLL[k * 2] = lat; gLL[k * 2 + 1] = lon
+      gH[k] = bilG(HG, lat, lon); gS[k] = lat < -78.5 ? 0 : pendiente(lat, lon).s
+    }
+  }
+  const idx = []
+  for (let i = 0; i < NLAT; i++) {
+    const lat1 = 90 - ((i + 1) / NLAT) * 180
+    if (lat1 < -79.2) break
+    for (let j = 0; j < NLON; j++) {
+      const a = i * (NLON + 1) + j, b = a + NLON + 1
+      idx.push(a, b, a + 1, b, b + 1, a + 1)
+    }
+  }
+  globoGeo.setIndex(idx)
+  globoGeo.setAttribute('position', new THREE.BufferAttribute(gPos, 3))
+  globoGeo.setAttribute('color', new THREE.BufferAttribute(gCol, 3))
+}
+const globo = new THREE.Mesh(globoGeo, material)
+globo.castShadow = globo.receiveShadow = true
+scene.add(globo)
+
+// Casquete polar sur: la rejilla estereográfica de ~663 m, en 3D sobre la esfera (sin aplanar).
+// Sus arrays y el gradiente de 240 m se construyen en construirPolo(), cuando llegan HP y HP2 (después del primer dibujo).
+const NP = P.n
+const cGeo = new THREE.BufferGeometry()
+let cPos, cCol, cU, cS, cLL, cST
+function construirPolo() {
+  cPos = new Float32Array(NP * NP * 3); cCol = new Float32Array(cPos.length); cU = new Float32Array(cPos.length)
+  cS = new Float32Array(NP * NP); cLL = new Float32Array(NP * NP * 2); cST = new Float32Array(NP * NP * 2)
+  for (let f = 0; f < NP; f++) for (let c = 0; c < NP; c++) {
+    const k = f * NP + c, x = -EXT_P + c * PASO_P, y = EXT_P - f * PASO_P, rho = Math.hypot(x, y)
+    const lat = -90 + 2 * Math.atan(rho / (2 * R)) / RAD, lon = ((Math.atan2(x, y) / RAD) + 360) % 360
+    const u = unit(lat, lon); cU.set([u.x, u.y, u.z], k * 3); cLL[k * 2] = lat; cLL[k * 2 + 1] = lon; cST[k * 2] = x; cST[k * 2 + 1] = y
+    if (f > 0 && c > 0 && f < NP - 1 && c < NP - 1) {
+      const kk = 1 / Math.cos(Math.atan(rho / (2 * R))) ** 2
+      const gx = (HP[k + 1] - HP[k - 1]) / (2 * PASO_P / kk), gy = (HP[k - NP] - HP[k + NP]) / (2 * PASO_P / kk)
+      cS[k] = Math.atan(Math.hypot(gx, gy)) / RAD
+    }
+  }
+  const idx = []
+  const dentro = (f, c) => Math.hypot(-EXT_P + c * PASO_P, EXT_P - f * PASO_P) <= RHO_CASQUETE + 2
+  for (let f = 0; f < NP - 1; f++) for (let c = 0; c < NP - 1; c++) {
+    if (!dentro(f, c) || !dentro(f + 1, c + 1) || !dentro(f + 1, c) || !dentro(f, c + 1)) continue
+    const a = f * NP + c, b = a + NP
+    idx.push(a, b, a + 1, b, b + 1, a + 1)
+  }
+  cGeo.setIndex(new THREE.Uint32BufferAttribute(idx, 1))
+  cGeo.setAttribute('position', new THREE.BufferAttribute(cPos, 3))
+  cGeo.setAttribute('color', new THREE.BufferAttribute(cCol, 3))
+  cGeo.setAttribute('st', new THREE.BufferAttribute(cST, 2))
+  // Gradiente del relieve a 240 m (dh/dx, dh/dy en el plano estereográfico), en media precisión.
+  const n = P2.n, g = new Uint16Array(n * n * 2), aH = THREE.DataUtils.toHalfFloat
+  for (let f = 0; f < n; f++) for (let c = 0; c < n; c++) {
+    const i = f * n + c
+    const cm = c > 0 ? i - 1 : i, cp = c < n - 1 ? i + 1 : i, fm = f > 0 ? i - n : i, fp = f < n - 1 ? i + n : i
+    g[i * 2] = aH((HP2[cp] - HP2[cm]) / (((cp - cm) || 1) * PASO2))
+    g[i * 2 + 1] = aH((HP2[fm] - HP2[fp]) / ((((fp - fm) / n) || 1) * PASO2))
+  }
+  const gradTex = new THREE.DataTexture(g, n, n, THREE.RGFormat, THREE.HalfFloatType)
+  gradTex.magFilter = gradTex.minFilter = THREE.LinearFilter; gradTex.needsUpdate = true
+  uniCasq.uGrad.value = gradTex
+  scene.add(casquete)
+}
+const uniCasq = { uGrad: { value: null }, uExag: { value: 1 }, uN: { value: P2.n }, uPaso: { value: PASO2 }, uX0: { value: X02 }, uY0: { value: Y02 }, uBorde: { value: BORDE2 }, uR: { value: R } }
+const materialCasquete = material.clone()
+materialCasquete.onBeforeCompile = (sh) => {
+  Object.assign(sh.uniforms, uniCasq)
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nattribute vec2 st;\nvarying vec2 vSt;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSt = st;')
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', `#include <common>
+uniform sampler2D uGrad; uniform float uExag, uN, uPaso, uX0, uY0, uBorde, uR;
+varying vec2 vSt;
+vec3 estUnit(vec2 p) {
+  float c = 2.0 * atan(length(p) / (2.0 * uR)); float la = -1.5707963 + c; float lo = atan(p.x, p.y);
+  return vec3(cos(la) * cos(lo), sin(la), -cos(la) * sin(lo));
+}`)
+    .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
+{
+  float w = clamp((uBorde - max(abs(vSt.x), abs(vSt.y))) / 8.0, 0.0, 1.0);
+  if (w > 0.0) {
+    vec2 g = texture2D(uGrad, vec2((vSt.x - uX0) / uPaso + 0.5, (uY0 - vSt.y) / uPaso + 0.5) / uN).rg;
+    const float e = 0.25;
+    vec3 u0 = estUnit(vSt);
+    vec3 tx = (estUnit(vSt + vec2(e, 0.0)) - estUnit(vSt - vec2(e, 0.0))) * (uR / (2.0 * e));
+    vec3 ty = (estUnit(vSt + vec2(0.0, e)) - estUnit(vSt - vec2(0.0, e))) * (uR / (2.0 * e));
+    vec3 nw = normalize(cross(tx + uExag * g.x * u0, ty + uExag * g.y * u0));
+    if (dot(nw, u0) < 0.0) nw = -nw;
+    normal = normalize(mix(normal, normalize((viewMatrix * vec4(nw, 0.0)).xyz), w));
+  }
+}`)
+}
+const casquete = new THREE.Mesh(cGeo, materialCasquete)
+
+// Globo: normales del gradiente LDEM_16 (WebP gris de 5760 x 5760; arriba pendiente al este, abajo al norte, ±30°).
+const tex16 = await (async () => {
+  const img = await DATOS.g16
+  const t = new THREE.Texture(img)
+  t.flipY = false; t.format = THREE.RedFormat; t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping
+  t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true
+  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.needsUpdate = true
+  return t
+})()
+performance.mark('textura-g16')
+const materialGlobo = material.clone()
+materialGlobo.onBeforeCompile = (sh) => {
+  Object.assign(sh.uniforms, { uG16: { value: tex16 }, uExag: uniCasq.uExag })
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vPosG;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPosG = position;')
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', '#include <common>\nuniform sampler2D uG16; uniform float uExag;\nvarying vec3 vPosG;')
+    .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
+{
+  vec3 u0 = normalize(vPosG);
+  float la = asin(clamp(u0.y, -1.0, 1.0)), lo = atan(-u0.z, u0.x);
+  vec2 uv = vec2(fract(lo / 6.2831853), (1.5707963 - la) / 6.2831853);
+  vec2 dX = dFdx(uv), dY = dFdy(uv); dX.x -= round(dX.x); dY.x -= round(dY.x);
+  float gE = tan(radians((textureGrad(uG16, uv, dX, dY).r - 0.5) * 60.0));
+  float gN = tan(radians((textureGrad(uG16, uv + vec2(0.0, 0.5), dX, dY).r - 0.5) * 60.0));
+  vec3 E = vec3(-sin(lo), 0.0, -cos(lo)), N = vec3(-sin(la) * cos(lo), cos(la), sin(la) * sin(lo));
+  vec3 nw = normalize(u0 - uExag * (gE * E + gN * N));
+  normal = normalize((viewMatrix * vec4(nw, 0.0)).xyz);
+}`)
+}
+globo.material = materialGlobo
+casquete.castShadow = casquete.receiveShadow = true // se añade a la escena en construirPolo()
+
+// Sol y Tierra en su dirección real y con su tamaño angular real (0,533° y ~1,9°).
+const DIST_CIELO = 20000
+const RADIO_TIERRA_VISTA = DIST_CIELO * Math.tan(0.95 * RAD) // ~1,9° de diámetro, como se ve desde la Luna
+const texTierra = await (async () => {
+  const img = await DATOS.tierra
+  const t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.needsUpdate = true
+  return t
+})()
+// Océanos con brillo especular del Sol (máscara: píxeles azules oscuros de la Blue Marble).
+const matTierra = new THREE.MeshPhongMaterial({ map: texTierra, shininess: 90, specular: 0x3a4652 })
+matTierra.onBeforeCompile = (sh) => {
+  sh.fragmentShader = sh.fragmentShader.replace('#include <specularmap_fragment>', `#include <specularmap_fragment>
+  { vec3 c = diffuseColor.rgb; specularStrength = smoothstep(0.06, 0.0, max(c.r, c.g) - c.b * 0.55); }`)
+}
+const tierra = new THREE.Mesh(new THREE.SphereGeometry(RADIO_TIERRA_VISTA, 64, 32), matTierra)
+// Atmósfera: halo azul en el borde, más fuerte en el lado iluminado.
+const atmosfera = new THREE.Mesh(new THREE.SphereGeometry(RADIO_TIERRA_VISTA * 1.035, 64, 32), new THREE.ShaderMaterial({
+  uniforms: { uSol: { value: new THREE.Vector3(1, 0, 0) } },
+  vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW;
+    void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = normalize(mat3(modelMatrix) * normal);
+      vV = normalize(cameraPosition - w.xyz); vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `uniform vec3 uSol; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+    void main() { float borde = pow(1.0 - max(dot(vW, vV), 0.0), 2.6); float dia = smoothstep(-0.25, 0.35, dot(vW, uSol));
+      gl_FragColor = vec4(vec3(0.42, 0.62, 1.0) * borde * dia * 1.4, 1.0); }`,
+  blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.FrontSide,
+}))
+tierra.add(atmosfera)
+
+// Orientación de la Tierra en el instante (precisión de ~1°, suficiente para el dibujo):
+// Luna geocéntrica con la teoría abreviada de Meeus, tiempo sidéreo medio de Greenwich y oblicuidad de 23,44°.
+const _e1 = new THREE.Vector3(), _e2 = new THREE.Vector3(), _e3 = new THREE.Vector3(), _f1 = new THREE.Vector3(), _f2 = new THREE.Vector3(), _f3 = new THREE.Vector3()
+const _mE = new THREE.Matrix4(), _mF = new THREE.Matrix4()
+function orientarTierra(ms) {
+  const d = ms / 86400000 + 2440587.5 - 2451545.0
+  const Lp = 218.316 + 13.176396 * d, Mp = 134.963 + 13.064993 * d, F = 93.272 + 13.229350 * d
+  const lam = (Lp + 6.289 * Math.sin(Mp * RAD)) * RAD, bet = 5.128 * Math.sin(F * RAD) * RAD, eps = 23.439 * RAD
+  const ra = Math.atan2(Math.sin(lam) * Math.cos(eps) - Math.tan(bet) * Math.sin(eps), Math.cos(lam))
+  const dec = Math.asin(Math.sin(bet) * Math.cos(eps) + Math.cos(bet) * Math.sin(eps) * Math.sin(lam))
+  const gmst = (280.46061837 + 360.98564736629 * d) * RAD
+  // Punto sublunar en la Tierra (la cara que mira a la Luna) y eje de la Tierra en el marco de la escena.
+  const sub = unit(dec / RAD, (ra - gmst) / RAD)
+  const [, lonT] = deVector(dirTierra)
+  const a = (lonT * RAD) - (lam + Math.PI) // eclíptica -> marco lunar (giro en torno al polo)
+  const px = 0, py = -Math.sin(eps), pz = Math.cos(eps)
+  const mx = px * Math.cos(a) - py * Math.sin(a), my = px * Math.sin(a) + py * Math.cos(a)
+  _f3.set(mx, pz, -my).normalize()
+  _e3.set(0, 1, 0)
+  _e1.copy(sub).addScaledVector(_e3, -sub.dot(_e3)).normalize(); _e2.crossVectors(_e3, _e1)
+  const m = dirTierra.clone().negate()
+  _f1.copy(m).addScaledVector(_f3, -m.dot(_f3)).normalize(); _f2.crossVectors(_f3, _f1)
+  _mF.makeBasis(_f1, _f2, _f3); _mE.makeBasis(_e1, _e2, _e3).transpose()
+  tierra.quaternion.setFromRotationMatrix(_mF.multiply(_mE))
+  atmosfera.material.uniforms.uSol.value.copy(dirSol)
+}
+const discoSol = new THREE.Mesh(new THREE.SphereGeometry(DIST_CIELO * Math.tan(0.2665 * RAD), 24, 12), new THREE.MeshBasicMaterial({ color: 0xfff3d6 }))
+scene.add(tierra, discoSol)
+
+let exag = 6, modoColor = 'albedo', vista = 'globo', modoLuz = 'camara'
+
+function construirRelieve() {
+  const e = exag
+  uniCasq.uExag.value = exag
+  for (let k = 0; k < gH.length; k++) {
+    const r = R + gH[k] * e
+    gPos[k * 3] = gU[k * 3] * r; gPos[k * 3 + 1] = gU[k * 3 + 1] * r; gPos[k * 3 + 2] = gU[k * 3 + 2] * r
+  }
+  globoGeo.attributes.position.needsUpdate = true
+  globoGeo.computeVertexNormals()
+  globoGeo.computeBoundingSphere()
+  relievePolo()
+  colocarMarcas()
+  pedir(true)
+}
+function relievePolo() {
+  if (!HP) return
+  for (let k = 0; k < HP.length; k++) {
+    const r = R + HP[k] * exag
+    cPos[k * 3] = cU[k * 3] * r; cPos[k * 3 + 1] = cU[k * 3 + 1] * r; cPos[k * 3 + 2] = cU[k * 3 + 2] * r
+  }
+  cGeo.attributes.position.needsUpdate = true
+  cGeo.computeVertexNormals()
+  cGeo.computeBoundingSphere()
+}
+const fijarColor = (arr, k, c) => { arr[k * 3] = lin(c[0]); arr[k * 3 + 1] = lin(c[1]); arr[k * 3 + 2] = lin(c[2]) }
+function pintarPolo() {
+  if (!HP) return
+  for (let k = 0; k < HP.length; k++) fijarColor(cCol, k, colorDe(modoColor, cLL[k * 2], cLL[k * 2 + 1], HP[k], cS[k]))
+  cGeo.attributes.color.needsUpdate = true
+}
+function pintar() {
+  for (let k = 0; k < gH.length; k++) fijarColor(gCol, k, colorDe(modoColor, gLL[k * 2], gLL[k * 2 + 1], gH[k], gS[k]))
+  globoGeo.attributes.color.needsUpdate = true
+  pintarPolo()
+  leyenda()
+  pedir(true)
+}
+
+// ---------------------------------------------------------------- polo sur diferido
+// HP/HP2 se piden tras el primer dibujo (cargarPolo). Quien los necesita de verdad espera con esperarPolo().
+let poloPromesa = null
+const cargaEl = document.getElementById('carga'), cargaPadre = cargaEl.parentNode
+function cargarPolo() {
+  poloPromesa ??= (async () => {
+    const [a, b] = await Promise.all([P.cargar().then(inflar), P2.cargar().then(inflar)])
+    HP = desdelta(a, P.n, P.n); HP2 = desdelta(b, P2.n, P2.n)
+    construirPolo()
+    poloListo = true
+    // Todo lo que se calculó con la rejilla global mientras tanto se rehace con la fina.
+    relievePolo(); pintarPolo()
+    for (const s of SITIOS) s.h = altura(s.lat, s.lon).h
+    colocarMarcas(); claveAnillos = ''
+    if (propio) propio.pos = unit(propio.lat, propio.lon).multiplyScalar(R + altura(propio.lat, propio.lon).h * exag + 0.05)
+    if (fichaActual) mostrarFicha(fichaActual, true)
+    performance.mark('polo-listo')
+    pedir(true)
+  })().catch((e) => { poloPromesa = null; throw e })
+  return poloPromesa
+}
+/** Ejecuta fn cuando el polo esté listo; si aún no lo está, muestra el texto de carga hasta entonces. */
+function esperarPolo(fn) {
+  if (poloListo) return fn()
+  cargaEl.querySelector('span').textContent = t('cargando')
+  cargaPadre.appendChild(cargaEl)
+  cargarPolo().then(() => { cargaEl.remove(); fn() }, (e) => {
+    console.error(e)
+    cargaEl.querySelector('div').innerHTML = '<p style="max-width:32rem;padding:1rem;text-align:center">Could not load the south pole data. Reload to retry.</p>'
+    cargaEl.addEventListener('click', () => cargaEl.remove(), { once: true })
+  })
+}
+
+// ---------------------------------------------------------------- tiempo y luz
+let ahoraMs = Math.min(Math.max(Date.now(), EPH0), EPH0 + (EPHN - 1) * EPHPASO)
+ahoraMs = Math.round(ahoraMs / 3600000) * 3600000
+function ephEn(ms) {
+  const x = (ms - EPH0) / EPHPASO
+  if (x < 0 || x > EPHN - 1) return null
+  const i = Math.min(Math.floor(x), EPHN - 2), u = x - i
+  const v = (o) => {
+    const a = (k) => EPH[i * 6 + o + k] * (1 - u) + EPH[(i + 1) * 6 + o + k] * u
+    const sx = a(0), sy = a(1), sz = a(2)
+    return new THREE.Vector3(sx, sz, -sy).normalize() // a three
+  }
+  return { sol: v(0), tierra: v(3) }
+}
+let dirSol = new THREE.Vector3(1, 0, 0), dirTierra = new THREE.Vector3(1, 0, 0)
+const fmtLat = (v) => `${Math.abs(v).toFixed(2)}° ${v >= 0 ? 'N' : 'S'}`
+const fmtLon = (v) => { const w = ((v + 540) % 360) - 180; return `${Math.abs(w).toFixed(2)}° ${w >= 0 ? 'E' : (idioma === 'es' ? 'O' : 'W')}` }
+function actualizarTiempo() {
+  const e = ephEn(ahoraMs)
+  const iso = new Date(ahoraMs).toISOString().slice(0, 16)
+  if (document.activeElement !== fechaEl) fechaEl.value = iso
+  if (!e) { document.getElementById('subsolar').textContent = t('fueraTabla'); return }
+  dirSol = e.sol; dirTierra = e.tierra
+  const [la, lo] = deVector(dirSol)
+  document.getElementById('subsolar').textContent = T[idioma].subsol(fmtLat(la), fmtLon(lo))
+  if (fichaActual) mostrarFicha(fichaActual, true)
+  pedir(true)
+}
+const _v = new THREE.Vector3(), _c = new THREE.Vector3()
+function ajustarLuz() {
+  // Centro y radio de la sombra según dónde mira la cámara: más nítida al acercarse.
+  const dist = camera.position.distanceTo(controls.target)
+  let radio = Math.min(Math.max(dist * 1.4, 40), R + 25)
+  if (radio > R * 0.7) { radio = R + 25; _c.set(0, 0, 0) } else _c.copy(controls.target)
+  let dir
+  if (modoLuz === 'sol') dir = dirSol
+  else { // luz de estudio: desde arriba a la izquierda de la cámara
+    _v.copy(camera.position).sub(controls.target).normalize()
+    const der = new THREE.Vector3().crossVectors(camera.up, _v).normalize()
+    dir = _v.clone().multiplyScalar(0.55).addScaledVector(der, -0.65).addScaledVector(camera.up, 0.5).normalize()
+  }
+  sol.position.copy(_c).addScaledVector(dir, radio * 2)
+  sol.target.position.copy(_c)
+  const sc = sol.shadow.camera
+  sc.left = sc.bottom = -radio; sc.right = sc.top = radio; sc.near = radio * 0.2; sc.far = radio * 3.8
+  sc.updateProjectionMatrix()
+  sol.shadow.normalBias = radio / TAM_SOMBRA * 1.2
+  ambiente.intensity = modoLuz === 'sol' ? 0.05 : 0.22
+  tierra.visible = discoSol.visible = modoLuz === 'sol'
+  tierra.position.copy(camera.position).addScaledVector(dirTierra, DIST_CIELO)
+  if (tierra.visible) orientarTierra(ahoraMs)
+  discoSol.position.copy(camera.position).addScaledVector(dirSol, DIST_CIELO)
+}
+
+// Sombra del relieve: marcha desde el punto hacia el cuerpo con alturas reales (sin exageración).
+function bloqueado(lat, lon, dir) {
+  const h0 = alturaFina(lat, lon).h
+  const p = unit(lat, lon).multiplyScalar(R + h0 + 0.002)
+  const q = new THREE.Vector3()
+  for (let s = 0.12; s < 400; s *= 1.035) {
+    q.copy(p).addScaledVector(dir, s)
+    const r = q.length()
+    if (r - R > 11) return false
+    const [la, lo] = deVector(q)
+    if (r < R + alturaFina(la, lo).h) return true
+  }
+  return false
+}
+/**
+ * Sol y Tierra vistos desde (lat, lon). Desde un punto alto el horizonte baja: con altura h sobre la esfera de referencia,
+ * se ve hasta acos(R / (R + h)) bajo la horizontal (4,4° en la cumbre de Malapert, a 5,2 km). Por encima de ese límite
+ * decide el relieve (marcha del rayo con alturas reales).
+ */
+const HZ5 = DATOS.horizontes // horizontes de 5 m por sitio candidato (720 azimuts)
+function cielo(lat, lon, idSitio) {
+  const up = unit(lat, lon)
+  const elS = Math.asin(up.dot(dirSol)) / RAD, elT = Math.asin(up.dot(dirTierra)) / RAD
+  const hz = idSitio && HZ5[idSitio]
+  if (hz) {
+    // Horizonte medido con el DTM de 5 m: visible si el centro del cuerpo está por encima del horizonte en su azimut.
+    const este = new THREE.Vector3(-Math.sin(lon * RAD), 0, -Math.cos(lon * RAD))
+    const norte = new THREE.Vector3(-Math.sin(lat * RAD) * Math.cos(lon * RAD), Math.cos(lat * RAD), Math.sin(lat * RAD) * Math.sin(lon * RAD))
+    const enHz = (d) => { const az = ((Math.atan2(d.dot(este), d.dot(norte)) / RAD) + 360) % 360, x = az / 0.5, i = Math.floor(x) % 720, u = x - Math.floor(x); return hz[i] * (1 - u) + hz[(i + 1) % 720] * u }
+    return { elS, elT, metodo: 'hz5', solBajo: false, tierraBajo: false, solTapado: elS <= enHz(dirSol), tierraTapada: elT <= enHz(dirTierra) }
+  }
+  const dip = Math.acos(R / (R + Math.max(alturaFina(lat, lon).h, 0))) / RAD
+  const solBajo = elS < -dip, tierraBajo = elT < -dip
+  const a = alturaFina(lat, lon)
+  return { elS, elT, dip, solBajo, tierraBajo, metodo: a.fino ? 'dem240' : a.polo ? 'dem663' : 'demG',
+    solTapado: !solBajo && bloqueado(lat, lon, dirSol), tierraTapada: !tierraBajo && bloqueado(lat, lon, dirTierra) }
+}
+
+// ---------------------------------------------------------------- sitios y marcas
+const SITIOS = DATOS.sitios.sitios.map((s) => ({ ...s, anio: s.fecha ? +s.fecha.slice(0, 4) : null }))
+const CATS = DATOS.sitios.categorias
+const colorCat = (c) => getComputedStyle(document.documentElement).getPropertyValue('--c-' + c).trim()
+const filtro = { cats: new Set(['tripulada', 'robotica', 'muestras', 'rover', 'candidata']), agencia: '', anio: 2026, texto: '' }
+let seleccion = null, propio = null, fichaActual = null
+const marcasEl = document.getElementById('marcas')
+for (const s of SITIOS) {
+  const el = document.createElement('div')
+  el.className = 'm ' + s.cat
+  el.style.setProperty('--c', colorCat(s.cat))
+  el.innerHTML = `<span>${s.nombre}</span>`
+  el.title = s.nombre
+  el.addEventListener('pointerdown', (ev) => { if (ev.button !== 0) return; ev.stopPropagation(); seleccionar(s, true) })
+  marcasEl.appendChild(el)
+  s.el = el
+  s.h = altura(s.lat, s.lon).h
+}
+const marcaPropia = document.createElement('div')
+marcaPropia.className = 'm propio'; marcaPropia.style.display = 'none'
+
+// ---------------------------------------------------------------- capa de nombres IAU
+const IAU = DATOS.iau.map(([n, lat, lon, d, c, o, id, a]) => ({ n, lat, lon, d, c, o, id, a }))
+  .sort((x, y) => (x.c === 'SF') - (y.c === 'SF') || y.d - x.d) // primero los nombres propios y los grandes
+let capaIAU = true, iauSel = null
+const poolIAU = [], capaIAUEl = document.createElement('div')
+capaIAUEl.style.cssText = 'position:absolute;inset:0;pointer-events:none'
+marcasEl.prepend(capaIAUEl)
+function etiquetaIAU(i) {
+  while (poolIAU.length <= i) {
+    const el = document.createElement('div'); el.className = 'iau'
+    el.addEventListener('pointerdown', (ev) => { if (ev.button !== 0) return; ev.stopPropagation(); if (el._f) mostrarFicha({ iau: el._f }) })
+    capaIAUEl.appendChild(el); poolIAU.push(el)
+  }
+  return poolIAU[i]
+}
+function colocarIAU() { for (const f of IAU) f.pos = unit(f.lat, f.lon).multiplyScalar(R + altura(f.lat, f.lon).h * exag + 0.05) }
+const anillosGeo = new THREE.BufferGeometry()
+const anillos = new THREE.LineSegments(anillosGeo, new THREE.LineBasicMaterial({ color: 0xE8C98F, transparent: true, opacity: 0.55 }))
+anillos.frustumCulled = false
+scene.add(anillos)
+let claveAnillos = ''
+function dibujarAnillos(lista) {
+  const clave = lista.map((f) => f.id).join(',') + '|' + exag
+  if (clave === claveAnillos) return
+  claveAnillos = clave
+  const SEG = 64, pos = new Float32Array(lista.length * SEG * 6)
+  let k = 0
+  for (const f of lista) {
+    const c = unit(f.lat, f.lon), ang = (f.d / 2) / R
+    const e1 = new THREE.Vector3(0, 1, 0).cross(c); if (e1.lengthSq() < 1e-8) e1.set(1, 0, 0); e1.normalize()
+    const e2 = new THREE.Vector3().crossVectors(c, e1)
+    const pt = (i) => {
+      const th = (i / SEG) * Math.PI * 2
+      const v = c.clone().multiplyScalar(Math.cos(ang)).addScaledVector(e1, Math.sin(ang) * Math.cos(th)).addScaledVector(e2, Math.sin(ang) * Math.sin(th))
+      const [la, lo] = deVector(v)
+      return v.multiplyScalar(R + altura(la, lo).h * exag + 0.08 + 0.004 * f.d)
+    }
+    let prev = pt(0)
+    for (let i = 1; i <= SEG; i++) { const cur = pt(i); pos.set([prev.x, prev.y, prev.z, cur.x, cur.y, cur.z], k); k += 6; prev = cur }
+  }
+  anillosGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  pedir()
+}
+const _q = new THREE.Vector3()
+function etiquetarIAU(cajas, w, h) {
+  let usados = 0
+  const foco = (h / 2) / Math.tan((camera.fov * RAD) / 2), conAnillo = []
+  if (capaIAU) {
+    for (const f of IAU) {
+      if (usados >= 140) break
+      _q.copy(camera.position).sub(f.pos)
+      const dist = _q.length()
+      if (_q.dot(f.pos) < 0.02 * dist * f.pos.length()) continue // al otro lado del globo
+      const dpx = (f.d / dist) * foco
+      const umbral = f.c === 'SF' ? 70 : (f.c === 'ME' || f.c === 'OC') ? 16 : 28
+      if (dpx < umbral && f !== iauSel) continue
+      _p.copy(f.pos).project(camera)
+      if (_p.z > 1 || Math.abs(_p.x) > 1 || Math.abs(_p.y) > 1) continue
+      const x = (_p.x * 0.5 + 0.5) * w, y = (-_p.y * 0.5 + 0.5) * h
+      const mar = f.c === 'ME' || f.c === 'OC' || f.c === 'LC' || f.c === 'SI' || f.c === 'PA'
+      const fs = mar ? Math.min(Math.max(9 + dpx / 60, 10), 15) : f.c === 'SF' ? Math.min(Math.max(9 + dpx / 60, 10), 13) : Math.min(Math.max(10 + dpx / 22, 11), 19)
+      const ancho = f.n.length * fs * (mar ? 0.82 : 0.47), alto = fs * 1.1
+      const caja = [x - ancho / 2 - 3, y - alto / 2, x + ancho / 2 + 3, y + alto / 2]
+      if (cajas.some((o) => caja[0] < o[2] && caja[2] > o[0] && caja[1] < o[3] && caja[3] > o[1]) && f !== iauSel) continue
+      cajas.push(caja)
+      const el = etiquetaIAU(usados++)
+      if (el._f !== f) { el._f = f; el.textContent = f.n; el.className = 'iau' + (f.c === 'SF' ? ' sat' : mar ? ' mar' : '') }
+      el.classList.toggle('sel', f === iauSel)
+      el.style.display = ''
+      el.style.fontSize = fs.toFixed(1) + 'px'
+      el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
+      if (!mar && f.c !== 'MO' && dpx > 40 && conAnillo.length < 60) conAnillo.push(f)
+    }
+  }
+  for (let i = usados; i < poolIAU.length; i++) { poolIAU[i].style.display = 'none'; poolIAU[i]._f = null }
+  if (iauSel && !conAnillo.includes(iauSel)) conAnillo.push(iauSel)
+  dibujarAnillos(capaIAU ? conAnillo : [])
+  const n = $('iauN'); if (n) n.textContent = capaIAU ? T[idioma].nVis(usados) : ''
+}
+marcasEl.appendChild(marcaPropia)
+
+const visibleS = (s) => filtro.cats.has(s.cat) && (!filtro.agencia || s.agencia === filtro.agencia) && (s.anio === null || s.anio <= filtro.anio) &&
+  (!filtro.texto || `${s.nombre} ${s.agencia} ${s.region} ${s.anio ?? ''}`.toLowerCase().includes(filtro.texto))
+function colocarMarcas() { for (const s of SITIOS) s.pos = unit(s.lat, s.lon).multiplyScalar(R + s.h * exag + 0.05); colocarIAU() }
+const _p = new THREE.Vector3(), _n = new THREE.Vector3()
+function proyectarMarcas() {
+  const w = lienzo.clientWidth, h = lienzo.clientHeight
+  const visibles = []
+  const proyectar = (pos, el) => {
+    _n.copy(pos).normalize()
+    _p.copy(camera.position).sub(pos)
+    const frente = _n.dot(_p) > -0.02 * _p.length()
+    _p.copy(pos).project(camera)
+    if (!frente || _p.z > 1 || Math.abs(_p.x) > 1.05 || Math.abs(_p.y) > 1.05) { el.style.display = 'none'; return false }
+    el.style.display = ''
+    el.style.transform = `translate(${(_p.x * 0.5 + 0.5) * w}px, ${(-_p.y * 0.5 + 0.5) * h}px) translate(-50%, -50%)`
+    return true
+  }
+  for (const s of SITIOS) {
+    if (!visibleS(s)) { s.el.style.display = 'none'; continue }
+    if (proyectar(s.pos, s.el)) { s.sx = (_p.x * 0.5 + 0.5) * w; s.sy = (-_p.y * 0.5 + 0.5) * h; visibles.push(s) }
+  }
+  // Puntos encimados en pantalla (p. ej., Apollo 12 y Surveyor 3, a 160 m): se abren en abanico para que cada uno
+  // reciba su propio clic. Al acercarse se separan solos y vuelven a su posición real.
+  // Grupos por cercanía; si al abrir un abanico un punto cae sobre otro grupo, los dos se funden y se reparte de nuevo.
+  const n = visibles.length, ox = visibles.map((v) => v.sx), oy = visibles.map((v) => v.sy)
+  const grupo = visibles.map((_, i) => i)
+  const raiz = (i) => (grupo[i] === i ? i : (grupo[i] = raiz(grupo[i])))
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (Math.hypot(ox[i] - ox[j], oy[i] - oy[j]) < 14) grupo[raiz(j)] = raiz(i)
+  for (let pasada = 0; pasada < 4; pasada++) {
+    const miembros = new Map()
+    for (let i = 0; i < n; i++) { const r = raiz(i); if (!miembros.has(r)) miembros.set(r, []); miembros.get(r).push(i) }
+    for (const g of miembros.values()) {
+      if (g.length < 2) { visibles[g[0]].sx = ox[g[0]]; visibles[g[0]].sy = oy[g[0]]; continue }
+      const cx = g.reduce((a, i) => a + ox[i], 0) / g.length, cy = g.reduce((a, i) => a + oy[i], 0) / g.length, r = 8 + 2.5 * g.length
+      g.forEach((i, k) => { const a = -Math.PI / 2 + (k / g.length) * 2 * Math.PI; visibles[i].sx = cx + r * Math.cos(a); visibles[i].sy = cy + r * Math.sin(a) })
+    }
+    let fundio = false
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      if (raiz(i) !== raiz(j) && Math.hypot(visibles[i].sx - visibles[j].sx, visibles[i].sy - visibles[j].sy) < 13) { grupo[raiz(j)] = raiz(i); fundio = true }
+    }
+    if (!fundio) break
+  }
+  for (const v of visibles) v.el.style.transform = `translate(${v.sx}px, ${v.sy}px) translate(-50%, -50%)`
+  // Rótulos sin choques: primero el seleccionado y luego por tipo; si un rótulo pisa a otro, se oculta.
+  const orden = ['tripulada', 'robotica', 'muestras', 'rover', 'candidata', 'impacto']
+  visibles.sort((a, b) => (b === seleccion) - (a === seleccion) || orden.indexOf(a.cat) - orden.indexOf(b.cat))
+  const cajas = []
+  for (const s of visibles) {
+    const c = [s.sx - 7, s.sy - 9, s.sx + 16 + s.nombre.length * 6.8, s.sy + 9]
+    const libre = visibles.length <= 40 && !cajas.some((o) => c[0] < o[2] && c[2] > o[0] && c[1] < o[3] && c[3] > o[1])
+    s.el.classList.toggle('rot', libre)
+    if (libre || s === seleccion) cajas.push(c)
+  }
+  etiquetarIAU(cajas, w, h)
+  if (propio) proyectar(propio.pos, marcaPropia); else marcaPropia.style.display = 'none'
+}
+
+// ---------------------------------------------------------------- cámara
+let vuelo = null
+function fijarArriba(up) {
+  camera.up.copy(up)
+  controls._quat.setFromUnitVectors(camera.up, new THREE.Vector3(0, 1, 0))
+  controls._quatInverse.copy(controls._quat).invert()
+}
+function volarA(objetivo, posicion, up, ms = 1400) {
+  controls._sphericalDelta?.set(0, 0, 0); controls._panOffset?.set(0, 0, 0); controls._scale = 1
+  vuelo = { t0: performance.now(), ms, o0: controls.target.clone(), p0: camera.position.clone(), o1: objetivo, p1: posicion, up }
+  fijarArriba(up)
+  pedir()
+}
+function irGlobo(dir) {
+  const d = (dir ?? camera.position.clone().normalize())
+  volarA(new THREE.Vector3(), d.clone().multiplyScalar(R * 4), new THREE.Vector3(0, 1, 0))
+  controls.maxPolarAngle = Math.PI
+}
+function irSitio(lat, lon, dist, inclin = [0.75, 0.66]) {
+  if (lat < -78 && !poloListo) return esperarPolo(() => { if (vista === 'polo') irSitio(lat, lon, dist, inclin) })
+  const up = unit(lat, lon), h = altura(lat, lon).h
+  const o = up.clone().multiplyScalar(R + h * exag)
+  // Norte arriba en pantalla; en el polo sur, 0° E arriba (como los mapas polares de LROC).
+  const ref = lat < -78 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
+  const adelante = ref.addScaledVector(up, -ref.dot(up)).normalize()
+  const p = o.clone().addScaledVector(up, dist * inclin[0]).addScaledVector(adelante, -dist * inclin[1])
+  volarA(o, p, up)
+  controls.maxPolarAngle = Math.PI * 0.47
+}
+function irPolo() { irSitio(-89.999, 0, 560, [0.94, 0.34]) }
+/** «Acercar»: la primera vez va a la distancia base; si la cámara ya mira ese punto, cada pulsación acerca más. */
+function acercarProgresivo(lat, lon, base) {
+  const o = unit(lat, lon)
+  const yaAhi = controls.target.lengthSq() > 1 && controls.target.clone().normalize().dot(o) > Math.cos(0.3 * RAD)
+  const minimo = lat < -78 ? 4 : 40
+  acercarA(lat, lon, yaAhi ? Math.max(camera.position.distanceTo(controls.target) * 0.45, minimo) : base)
+}
+/** Acercar a cualquier punto; en el casquete polar pasa a la vista Polo Sur. */
+function acercarA(lat, lon, dist) {
+  if (lat < -78 && vista !== 'polo') { vista = 'polo'; seg('vistas', 'vista', 'polo'); estado() }
+  irSitio(lat, lon, dist)
+}
+
+// ---------------------------------------------------------------- interfaz
+const $ = (id) => document.getElementById(id)
+const fechaEl = $('fecha')
+function textos() {
+  document.documentElement.lang = idioma
+  document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t(el.dataset.t) })
+  document.querySelectorAll('[data-tp]').forEach((el) => { el.placeholder = t(el.dataset.tp) })
+  document.querySelectorAll('[data-idioma]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.idioma === idioma))
+  $('fuentes').innerHTML = FUENTES[idioma].map((f) => `<li>${f}</li>`).join('')
+  chips(); agencias(); lista(); leyenda(); actualizarTiempo(); estado()
+  if (fichaActual) mostrarFicha(fichaActual, true)
+}
+function chips() {
+  $('chips').innerHTML = CATS.map((c) => {
+    const n = SITIOS.filter((s) => s.cat === c).length
+    return `<button class="chip" data-cat="${c}" aria-pressed="${filtro.cats.has(c)}"><i style="background:${colorCat(c)}"></i>${t(c)} <b>${n}</b></button>`
+  }).join('')
+}
+function agencias() {
+  const ags = [...new Set(SITIOS.map((s) => s.agencia))].sort()
+  $('agencia').innerHTML = `<option value="">${t('todas')}</option>` + ags.map((a) => `<option ${a === filtro.agencia ? 'selected' : ''}>${a}</option>`).join('')
+}
+function lista() {
+  const vis = SITIOS.filter(visibleS).sort((a, b) => (a.anio ?? 9999) - (b.anio ?? 9999) || a.nombre.localeCompare(b.nombre))
+  $('lista').innerHTML = vis.length ? vis.map((s) => `<li><button data-id="${s.id}" aria-current="${seleccion === s}">
+    <span class="punto" style="background:${colorCat(s.cat)}"></span><span class="nom">${s.nombre}</span>
+    <span class="meta">${s.anio ?? '—'} · ${s.agencia}</span></button></li>`).join('') : `<li class="vacio">${t('sinRes')}</li>`
+  estado()
+  pedir()
+  if (typeof proyectarMarcas === 'function' && SITIOS[0]?.pos) proyectarMarcas()
+}
+function estado() {
+  const n = SITIOS.filter(visibleS).length
+  $('estado').innerHTML = vista === 'polo' ? T[idioma].estPolo(SITIOS.filter((s) => visibleS(s) && s.lat < -78).length) : T[idioma].estGlobo(n, SITIOS.length)
+}
+function leyenda() {
+  const L = $('leyenda')
+  if (modoColor === 'altura') {
+    const g = RAMPA_ALT.map(([p, c]) => `rgb(${c.map((v) => Math.round(v * 255))}) ${p * 100}%`).join(',')
+    L.innerHTML = `<div class="barra" style="background:linear-gradient(90deg,${g})"></div><div class="esc"><span>${ALT_MIN} km</span><span>0</span><span>+${ALT_MAX} km</span></div>`
+  } else if (modoColor === 'pendiente') {
+    L.innerHTML = `<div class="barra" style="background:linear-gradient(90deg,#E9E3D6 0 20%,#EAD27A 20% 40%,#E39A45 40% 60%,#C8102E 60%,#5A0A16)"></div><div class="esc"><span>0°</span><span>5°</span><span>10°</span><span>15°</span><span>25°+</span></div>`
+  } else L.innerHTML = `<div class="esc"><span>LOLA LDAM 1064 nm</span></div>`
+}
+function seg(id, attr, valor) { $(id).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset[attr] === String(valor))) }
+
+function seleccionar(s, volar) {
+  seleccion = s; propio = null
+  SITIOS.forEach((x) => x.el.classList.toggle('sel', x === s))
+  mostrarFicha({ sitio: s })
+  lista()
+  if (volar) {
+    const polar = s.lat < -78
+    if (polar && vista !== 'polo') { vista = 'polo'; seg('vistas', 'vista', 'polo'); estado() }
+    irSitio(s.lat, s.lon, polar ? 70 : 520)
+  }
+  $('panel').classList.remove('abierto')
+}
+function filasCielo(lat, lon, idSitio) {
+  if (!ephEn(ahoraMs)) return ''
+  const c = cielo(lat, lon, idSitio)
+  const est = (bajo, tapado, a, b) => bajo ? `<span class="no">${t('bajoHz')}</span>` : tapado ? `<span class="no">${b}</span>` : `<span class="si">${a}</span>`
+  return `<dt>${t('solAhora')}</dt><dd>${c.elS.toFixed(2)}° · ${est(c.solBajo, c.solTapado, t('iluminado'), t('sombra'))}</dd>
+    <dt>${t('tierraAhora')}</dt><dd>${c.elT.toFixed(2)}° · ${est(c.tierraBajo, c.tierraTapada, t('visible'), t('oculta'))}</dd>
+    <dt>${t('horizonte')}</dt><dd><small>${t('hz_' + c.metodo)}</small></dd>`
+}
+function mostrarFicha(f, refrescar) {
+  fichaActual = f
+  if (!f.iau) iauSel = null
+  const F = $('ficha')
+  let lat, lon, cab, extra = '', nota = '', acciones = ''
+  if (f.sitio) {
+    const s = f.sitio; lat = s.lat; lon = s.lon
+    const fecha = s.fecha ? new Date(s.fecha + 'T00:00Z').toLocaleDateString(idioma, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : t('sinFecha')
+    cab = `<div class="sub"><i style="background:${colorCat(s.cat)}"></i>${t(s.cat + '1')} · ${s.agencia}</div><h2>${s.nombre}</h2>`
+    extra = `<dt>${t('fecha')}</dt><dd>${fecha}</dd><dt>${t('region')}</dt><dd>${s.region}</dd>`
+    const enlaces = (s.enlaces || []).map((e) => ` · <a href="${e.url}" target="_blank" rel="noopener">${e[idioma]}</a>`).join('')
+    nota = `<p>${s[idioma]}</p><p class="nota">${t('fuente')}: ${s.src}${s.aprox ? ` <span class="aprox">${t('aprox')}</span>` : ''}${enlaces}</p><p class="nota">${t('centroSol')}</p>`
+    acciones = `<div class="acciones"><button class="prim" data-acc="ir">${t('ir')}</button></div>`
+  } else if (f.iau) {
+    const c = f.iau; lat = c.lat; lon = c.lon; iauSel = c
+    cab = `<div class="sub"><i style="background:#E8C98F"></i>${t('t' + c.c)}</div><h2>${c.n}</h2>`
+    extra = `<dt>${t('diam')}</dt><dd>${c.d >= 10 ? Math.round(c.d) : c.d.toFixed(1)} km</dd>${c.a ? `<dt>${t('aprobado')}</dt><dd>${c.a}</dd>` : ''}`
+    nota = `${c.o ? `<p><small style="color:var(--ink-2)">${t('origen')}:</small> ${c.o}</p>` : ''}<p class="nota">IAU/USGS Gazetteer of Planetary Nomenclature · <a href="https://planetarynames.wr.usgs.gov/Feature/${c.id}" target="_blank" rel="noopener">${t('fichaIAU')} #${c.id}</a></p>`
+    acciones = `<div class="acciones"><button class="prim" data-acc="ir">${t('ir')}</button></div>`
+  } else {
+    lat = f.lat; lon = f.lon
+    cab = `<div class="sub"><i style="background:var(--red)"></i>${t('clicHint')}</div><h2>${t('tuPunto')}</h2>`
+    nota = `<p class="nota">${t('centroSol')}</p>`
+    acciones = `<div class="acciones"><button class="prim" data-acc="ir">${t('ir')}</button></div>`
+  }
+  // El planificador cubre hasta 190 km del polo sur (latitud ≤ −83,74°): ahí la ficha ofrece abrir el punto en él.
+  if (lat <= LAT_PLANIFICADOR) acciones = acciones.replace('</div>', `<button data-acc="plan" title="${t('planificarT')}">${t('planificar')}</button></div>`)
+  if (lat < -78 && !poloListo) { esperarPolo(() => { if (fichaActual === f) mostrarFicha(f, refrescar) }); return } // elevación y pendiente polares piden el polo
+  const a = alturaFina(lat, lon), p = pendienteFina(lat, lon)
+  F.innerHTML = `<button class="cerrar" aria-label="${t('quitar')}" data-acc="cerrar">×</button>${cab}
+    <dl>${extra}<dt>${t('coords')}</dt><dd>${fmtLat(lat)}, ${fmtLon(lon)}</dd>
+    <dt>${t('elev')}</dt><dd>${Math.round(a.h * 1000).toLocaleString(idioma)} m <small>· ${a.fino ? t('rejillaF') : a.polo ? t('rejillaP') : t('rejillaG')}</small></dd>
+    <dt>${t('pend')}</dt><dd>${p.s.toFixed(1)}° <small>· ${p.fino ? t('base480') : p.polo ? t('baseP') : t('baseG')}</small></dd>
+    ${f.sitio && f.sitio.h240 != null ? `<dt>LOLA 240 m</dt><dd>${f.sitio.h240.toLocaleString(idioma)} m · ${f.sitio.pend240}° <small>· ${t('base480')}</small></dd>` : ''}
+    ${filasCielo(lat, lon, f.sitio?.id)}</dl>${nota}${acciones}`
+  F.classList.add('vis')
+  if (!refrescar) tamano()
+}
+/** 190 km sobre la estereográfica polar (2·R·tan(c/2), R = 1737,4 km) son 6,26° de colatitud. */
+const LAT_PLANIFICADOR = -83.74
+/** Abre el punto de la ficha en el planificador (`/planner#…`, ver prototipos/lunar-map/index.html): el lugar por su id del catálogo si lo tiene, sus coordenadas y la fecha del mapa. */
+function abrirEnPlanificador(f) {
+  const lat = f.sitio ? f.sitio.lat : f.iau ? f.iau.lat : f.lat, lon = f.sitio ? f.sitio.lon : f.iau ? f.iau.lon : f.lon
+  const q = new URLSearchParams({ lat: lat.toFixed(5), lon: (((lon % 360) + 360) % 360).toFixed(5), t: new Date(ahoraMs).toISOString().slice(0, 16) })
+  if (f.sitio?.id) q.set('site', f.sitio.id)
+  const url = '/planner#' + q
+  try { window.top.location.href = url } catch { window.location.href = url }
+}
+$('ficha').addEventListener('click', (e) => {
+  const acc = e.target.closest('[data-acc]')?.dataset.acc
+  if (acc === 'plan' && fichaActual) abrirEnPlanificador(fichaActual)
+  if (acc === 'cerrar') { $('ficha').classList.remove('vis'); iauSel = null; tamano(); fichaActual = null; seleccion = null; propio = null; SITIOS.forEach((x) => x.el.classList.remove('sel')); lista() }
+  if (acc === 'ir') {
+    if (fichaActual?.sitio) acercarProgresivo(fichaActual.sitio.lat, fichaActual.sitio.lon, fichaActual.sitio.lat < -78 ? 70 : 520)
+    else if (fichaActual?.iau) acercarProgresivo(fichaActual.iau.lat, fichaActual.iau.lon, Math.min(Math.max(fichaActual.iau.d * 2.4, 25), 900))
+    else if (fichaActual) acercarProgresivo(fichaActual.lat, fichaActual.lon, fichaActual.lat < -78 ? 45 : 260)
+  }
+})
+
+// Clic sobre el relieve: rayo contra la superficie exagerada (iterando la altura).
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
+function picar(ev) {
+  const r = lienzo.getBoundingClientRect()
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1)
+  ray.setFromCamera(ndc, camera)
+  const o = ray.ray.origin, d = ray.ray.direction
+  let rad = R, punto = null
+  for (let it = 0; it < 8; it++) {
+    const b = o.dot(d), c = o.dot(o) - rad * rad, disc = b * b - c
+    if (disc < 0) return null
+    const tt = -b - Math.sqrt(disc)
+    if (tt < 0) return null
+    punto = o.clone().addScaledVector(d, tt)
+    const [la, lo] = deVector(punto)
+    rad = R + altura(la, lo).h * exag
+  }
+  return deVector(punto)
+}
+let abajo = null
+lienzo.addEventListener('pointerdown', (e) => { abajo = [e.clientX, e.clientY] })
+lienzo.addEventListener('pointerup', (e) => {
+  if (!abajo || Math.hypot(e.clientX - abajo[0], e.clientY - abajo[1]) > 5) return
+  const ll = picar(e)
+  if (!ll) return
+  seleccion = null; SITIOS.forEach((x) => x.el.classList.remove('sel'))
+  propio = { lat: ll[0], lon: ll[1], pos: unit(ll[0], ll[1]).multiplyScalar(R + altura(ll[0], ll[1]).h * exag + 0.05) }
+  mostrarFicha({ lat: ll[0], lon: ll[1] })
+  lista()
+})
+
+// Cambiar de idioma aquí lo cambia en toda la app: se guarda la preferencia compartida y la pantalla que envuelve al mapa
+// (aviso «storage») se recarga con ese idioma. Suelto, el mapa cambia en el acto.
+document.querySelectorAll('[data-idioma]').forEach((b) => b.addEventListener('click', () => {
+  idioma = b.dataset.idioma; textos()
+  try { localStorage.setItem(CLAVE_IDIOMA, idioma) } catch { /* sin almacenamiento */ }
+}))
+$('vistas').addEventListener('click', (e) => {
+  const v = e.target.closest('button')?.dataset.vista
+  if (!v) return
+  vista = v; seg('vistas', 'vista', v); estado()
+  if (v === 'polo') { modoLuz = 'sol'; seg('luces', 'luz', 'sol'); fijarExag(2); irPolo() }
+  else { fijarExag(6); irGlobo() }
+})
+$('chips').addEventListener('click', (e) => {
+  const c = e.target.closest('[data-cat]')?.dataset.cat
+  if (!c) return
+  filtro.cats.has(c) ? filtro.cats.delete(c) : filtro.cats.add(c)
+  chips(); lista()
+})
+$('agencia').addEventListener('change', (e) => { filtro.agencia = e.target.value; lista() })
+$('anio').addEventListener('input', (e) => { filtro.anio = +e.target.value; $('anioV').textContent = filtro.anio; lista() })
+$('buscar').addEventListener('input', (e) => { filtro.texto = e.target.value.trim().toLowerCase(); lista() })
+$('lista').addEventListener('click', (e) => { const id = e.target.closest('[data-id]')?.dataset.id; if (id) seleccionar(SITIOS.find((s) => s.id === id), true) })
+$('colores').addEventListener('click', (e) => { const c = e.target.closest('button')?.dataset.color; if (c) { modoColor = c; seg('colores', 'color', c); pintar() } })
+$('luces').addEventListener('click', (e) => { const l = e.target.closest('button')?.dataset.luz; if (l) { modoLuz = l; seg('luces', 'luz', l); pedir(true) } })
+function fijarExag(v) { exag = v; $('exag').value = v; $('exagV').textContent = '×' + v; $('exag').title = t('exagNota'); construirRelieve() }
+$('exag').addEventListener('input', (e) => { $('exagV').textContent = '×' + e.target.value })
+$('exag').addEventListener('change', (e) => {
+  const prev = exag; fijarExag(+e.target.value)
+  // Mantener el objetivo sobre la superficie al cambiar la exageración.
+  if (controls.target.lengthSq() > 1) {
+    const [la, lo] = deVector(controls.target), h = altura(la, lo).h, delta = h * (exag - prev)
+    const up = controls.target.clone().normalize()
+    controls.target.addScaledVector(up, delta); camera.position.addScaledVector(up, delta)
+  }
+  if (propio) propio.pos = unit(propio.lat, propio.lon).multiplyScalar(R + altura(propio.lat, propio.lon).h * exag + 0.05)
+})
+// ---------------------------------------------------------------- tooltips
+const TIPS = {
+  es: {
+    albedo: ['Albedo', 'Colorea el suelo según su brillo real, medido por el láser LOLA a 1064 nm. Los mares oscuros son basalto; las tierras altas claras, anortosita.'],
+    altura: ['Altura', 'Colorea por elevación sobre la esfera de 1737,4 km: azul en las depresiones (hasta −9 km) y crema en las cumbres (hasta +10,5 km).'],
+    pendiente: ['Pendiente', 'Inclinación del terreno en grados: crema por debajo de 5°, amarillo y naranja hasta 15°, rojo por encima. El color usa 663 m en el polo y 7,6 km en el resto; la ficha mide a 240 m cerca del polo. Ninguna escala ve rocas ni cráteres pequeños.'],
+    iau: ['Nombres IAU', '8876 nombres oficiales de la Unión Astronómica Internacional: cráteres, mares y montes. Cada uno aparece cuando su tamaño en pantalla es suficiente; acércate para ver más. Clic en un nombre para conocer su origen.'],
+    exag: ['Exageración vertical', 'Multiplica solo las alturas del dibujo. La Luna es muy lisa: la montaña más alta mide el 0,6 % del radio, y a ×1 el globo entero parece una bola pulida.',
+      '<b>×1 es la escala real</b>: úsalo de cerca y siempre que mires sombras, porque exagerar las alarga. <b>×5 a ×8</b> para ver el globo entero. Las cifras de la ficha usan siempre alturas reales.'],
+    sol: ['Sol real', 'Ilumina con la posición verdadera del Sol en la fecha elegida (JPL Horizons). Muestra el día, la noche y las sombras reales: en el polo, el Sol roza el horizonte y el fondo de Shackleton queda negro.'],
+    camara: ['Luz de estudio', 'Luz fija que sale junto a la cámara, para leer el relieve en cualquier lugar, de día o de noche. No corresponde a ninguna fecha: no sirve para juzgar la iluminación.'],
+  },
+  en: {
+    albedo: ['Albedo', 'Colors the ground by its real brightness, measured by the LOLA laser at 1064 nm. Dark maria are basalt; bright highlands are anorthosite.'],
+    altura: ['Elevation', 'Colors by height above the 1737.4 km sphere: blue in depressions (down to −9 km), cream on peaks (up to +10.5 km).'],
+    pendiente: ['Slope', 'Terrain tilt in degrees: cream below 5°, yellow and orange up to 15°, red above. Colors use 663 m near the pole and 7.6 km elsewhere; the card measures at 240 m near the pole. No scale resolves boulders or small craters.'],
+    iau: ['IAU names', '8,876 official names from the International Astronomical Union: craters, maria and montes. Each appears once it is large enough on screen; zoom in to see more. Click a name to read its origin.'],
+    exag: ['Vertical exaggeration', 'Multiplies only the drawn heights. The Moon is very smooth: its highest mountain is 0.6 % of the radius, so at ×1 the whole globe looks polished.',
+      '<b>×1 is true scale</b>: use it up close and whenever you read shadows, because exaggeration lengthens them. <b>×5 to ×8</b> to view the whole globe. Card figures always use real heights.'],
+    sol: ['Real Sun', 'Lights the Moon with the true Sun position on the chosen date (JPL Horizons). Shows day, night and real shadows: at the pole the Sun grazes the horizon and Shackleton\'s floor stays black.'],
+    camara: ['Studio light', 'A fixed light next to the camera, to read the relief anywhere, day or night. It matches no date, so it cannot be used to judge lighting.'],
+  },
+}
+function estadoExag(v = exag) {
+  const alt = camera.position.length() - R
+  const es = idioma === 'es'
+  if (v === 1) return es ? 'Ahora ×1: escala real.' : 'Now ×1: true scale.'
+  if (alt < 400 && v > 2) return es ? `Ahora ×${v}, y estás cerca: conviene ×1 o ×2.` : `Now ×${v} and you are close: ×1 or ×2 works better.`
+  return es ? `Ahora ×${v}: bien para leer la forma del terreno desde lejos.` : `Now ×${v}: good for reading terrain shape from afar.`
+}
+const tip = document.createElement('div')
+tip.id = 'tip'; tip.setAttribute('role', 'tooltip')
+tip.innerHTML = '<span class="estela"></span><span class="astro"></span><div class="carta"></div>'
+document.body.appendChild(tip)
+document.querySelector('[data-color=albedo]').dataset.tip = 'albedo'
+document.querySelector('[data-color=altura]').dataset.tip = 'altura'
+document.querySelector('[data-color=pendiente]').dataset.tip = 'pendiente'
+document.querySelector('#exag').closest('label').dataset.tip = 'exag'
+document.querySelector('#iau').dataset.tip = 'iau'
+document.querySelector('[data-luz=sol]').dataset.tip = 'sol'
+document.querySelector('[data-luz=camara]').dataset.tip = 'camara'
+let tipDe = null, tipTimer = 0
+function mostrarTip(el) {
+  const k = el.dataset.tip, [titulo, texto, mejor] = TIPS[idioma][k]
+  tip.querySelector('.carta').innerHTML = `<strong>${titulo}</strong><p>${texto}</p>${mejor ? `<p class="mejor">${mejor}</p>` : ''}${k === 'exag' ? `<p class="ahora">${estadoExag()}</p>` : ''}`
+  if (tipDe !== el) { tip.classList.remove('vis'); void tip.offsetWidth }
+  tipDe = el
+  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight, m = 14
+  const borde = (el.closest(".ctrl") ?? el).getBoundingClientRect()
+  let x = borde.left - tw - m, y = r.top
+  if (x < 12) { x = Math.min(Math.max(12, r.left + r.width / 2 - tw / 2), innerWidth - tw - 12); y = r.bottom + m }
+  y = Math.min(Math.max(12, y), innerHeight - th - 12)
+  tip.style.left = x + "px"; tip.style.top = y + "px"
+  tip.classList.add('vis')
+  el.setAttribute('aria-describedby', 'tip')
+}
+function ocultarTip() { clearTimeout(tipTimer); tip.classList.remove('vis'); tipDe?.removeAttribute('aria-describedby'); tipDe = null }
+document.querySelectorAll('[data-tip]').forEach((el) => {
+  el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { clearTimeout(tipTimer); tipTimer = setTimeout(() => mostrarTip(el), 120) } })
+  el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') ocultarTip() })
+  el.addEventListener('focusin', () => { if (el.matches(':focus-visible') || el.querySelector(':focus-visible')) mostrarTip(el) })
+  el.addEventListener('focusout', ocultarTip)
+  // En pantallas táctiles: al tocar, la explicación se queda 4 s.
+  el.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') { mostrarTip(el); clearTimeout(tipTimer); tipTimer = setTimeout(ocultarTip, 4000) } })
+})
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ocultarTip() })
+$('exag').addEventListener('input', () => { const a = tip.querySelector('.ahora'); if (tipDe?.dataset.tip === 'exag' && a) a.textContent = estadoExag(+$('exag').value) })
+$('iau').addEventListener('click', () => { capaIAU = !capaIAU; $('iau').setAttribute('aria-pressed', capaIAU); pedir() })
+$('abrirPanel').addEventListener('click', () => $('panel').classList.toggle('abierto'))
+
+let velocidad = 21600, jugando = false, ultimo = 0
+$('velocidad').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.vel; if (v) { velocidad = +v; seg('velocidad', 'vel', v) } })
+$('play').addEventListener('click', () => { jugando = !jugando; $('play').textContent = jugando ? '❚❚' : '▶'; if (jugando && modoLuz !== 'sol') { modoLuz = 'sol'; seg('luces', 'luz', 'sol') } ultimo = performance.now(); pedir() })
+fechaEl.min = new Date(EPH0).toISOString().slice(0, 16)
+fechaEl.max = new Date(EPH0 + (EPHN - 1) * EPHPASO).toISOString().slice(0, 16)
+fechaEl.addEventListener('change', () => { const ms = Date.parse(fechaEl.value + ':00Z'); if (!isNaN(ms)) { ahoraMs = ms; actualizarTiempo() } })
+
+// ---------------------------------------------------------------- bucle (render bajo demanda)
+let pendiente_ = true, sombraSucia = true, fichaTick = 0
+function pedir(sombra) { pendiente_ = true; if (sombra) sombraSucia = true }
+controls.addEventListener('change', () => pedir(true))
+function tamano() {
+  const w = escenaEl.clientWidth, h = escenaEl.clientHeight
+  renderer.setSize(w, h, false); camera.aspect = w / h
+  // Con la ficha abierta a la derecha, el objetivo se centra en el espacio libre (no debajo de la ficha).
+  escenaEl.classList.toggle('estrecha', w < 760)
+  const F = $('ficha'), vis = F.classList.contains('vis'), barra = document.querySelector('.tiempo'), sup = document.querySelector('.vista-sup')
+  F.style.bottom = (barra.offsetHeight + 24) + 'px'
+  if (vis && w >= 760) camera.setViewOffset(w, h, (F.offsetWidth + 16) / 2, 0, w, h)
+  else if (vis) { // centrar el objetivo entre los controles de arriba y la ficha
+    const libreArriba = sup.offsetTop + sup.offsetHeight, libreAbajo = h - barra.offsetHeight - 24 - F.offsetHeight
+    camera.setViewOffset(w, h, 0, Math.max(0, h / 2 - (libreArriba + libreAbajo) / 2), w, h)
+  } else camera.clearViewOffset()
+  camera.updateProjectionMatrix(); pedir()
+}
+new ResizeObserver(tamano).observe(escenaEl)
+function cuadro(now) {
+  requestAnimationFrame(cuadro)
+  if (vuelo) {
+    const u = Math.min(1, (now - vuelo.t0) / vuelo.ms), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2
+    controls.target.lerpVectors(vuelo.o0, vuelo.o1, e)
+    // Camino por fuera de la esfera: interpolar dirección y distancia por separado.
+    const d0 = vuelo.p0.length(), d1 = vuelo.p1.length(), n0 = vuelo.p0.clone().normalize(), n1 = vuelo.p1.clone().normalize()
+    const n = n0.lerp(n1, e).normalize(), dist = d0 + (d1 - d0) * e
+    const sube = Math.sin(Math.PI * e) * Math.min(R * 0.6, vuelo.p0.distanceTo(vuelo.p1) * 0.25)
+    camera.position.copy(n.multiplyScalar(Math.max(dist + sube, R + 1)))
+    if (u >= 1) { camera.position.copy(vuelo.p1); vuelo = null }
+    pedir(true)
+  }
+  if (jugando) {
+    const dt = (now - ultimo) / 1000; ultimo = now
+    ahoraMs += dt * velocidad * 1000
+    if (ahoraMs > EPH0 + (EPHN - 1) * EPHPASO) ahoraMs = EPH0
+    const e = ephEn(ahoraMs); if (e) { dirSol = e.sol; dirTierra = e.tierra }
+    if (now - fichaTick > 400) { fichaTick = now; actualizarTiempo() }
+    pedir(true)
+  }
+  const mov = controls.update()
+  if (!pendiente_ && !mov) return
+  pendiente_ = false
+  // Planos de recorte según la distancia a la superficie.
+  const alt = Math.max(camera.position.length() - R - 11 * exag, 0.5)
+  camera.near = Math.max(0.005, alt * 0.02); camera.far = DIST_CIELO * 1.6; camera.updateProjectionMatrix()
+  ajustarLuz()
+  if (sombraSucia || modoLuz === 'camara') { renderer.shadowMap.needsUpdate = true; sombraSucia = false }
+  renderer.render(scene, camera)
+  proyectarMarcas()
+}
+
+// ---------------------------------------------------------------- inicio
+seg('vistas', 'vista', vista); seg('colores', 'color', modoColor); seg('luces', 'luz', modoLuz); seg('velocidad', 'vel', velocidad)
+$('anioV').textContent = filtro.anio
+performance.mark('ui-lista')
+fijarExag(6)
+pintar()
+textos()
+tamano()
+irGlobo(unit(10, 20))
+cargaEl.remove()
+requestAnimationFrame(cuadro)
+// Tras el primer dibujo se baja el polo sur (~4 MB, prioridad baja).
+requestAnimationFrame(() => requestAnimationFrame(() => { performance.mark('primer-dibujo'); cargarPolo().catch((e) => console.error(e)) }))
+window.__mapa = { cargarPolo, get poloListo() { return poloListo }, THREE, renderer, ajustarLuz, proyectarMarcas, camera, controls, scene, SITIOS, IAU, altura, pendiente, alturaFina, pendienteFina, cielo, estereo, seleccionar, irPolo, irGlobo, set fecha(ms) { ahoraMs = ms; actualizarTiempo() } }
+</script>
+</body>
+</html>

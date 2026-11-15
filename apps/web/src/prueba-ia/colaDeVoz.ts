@@ -1,15 +1,22 @@
+import type { AssistantMode } from "@horizon-signai/shared"
+import { entonarBuffer } from "./entonacion"
+import { PERSONAJES } from "./personajes"
+import { crearVozRobot } from "./vozRobot"
+
 // Reproduce, una detrás de otra y sin cortes, las frases que llegan del turno de voz en streaming,
 // y va revelando el texto palabra por palabra en el instante en que se pronuncia (tipo karaoke).
 //
 // Con un AudioContext corriendo: cada frase se decodifica y se agenda en la línea de tiempo del
 // contexto (sin huecos entre frases). Si el navegador lo dejó suspendido, cae a <audio> en fila:
-// suena igual, pero cada frase aparece entera al empezar a sonar.
+// cada frase aparece entera al empezar a sonar, y sin la entonación ni el timbre robóticos (van por Web Audio).
 
 export type Palabra = [texto: string, espacio: string, inicio: number, fin: number]
 export type FraseDeVoz = { i: number; texto: string; mime: string; audio: string; palabras: Palabra[]; dur: number }
 
 type Opciones = {
   ctx: AudioContext | null
+  /** Quién habla: decide la entonación y el timbre (personajes.ts). */
+  asistente: AssistantMode
   /** Texto pronunciado hasta ahora (crece palabra a palabra). */
   alHablar: (texto: string) => void
   /** Volumen de la voz, 0..1, para animar la Luna. */
@@ -20,7 +27,8 @@ type Opciones = {
 
 const aBytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
 
-export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) {
+export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar }: Opciones) {
+  const personaje = PERSONAJES[asistente]
   const conWebAudio = !!ctx && ctx.state === "running"
   const fuentes: AudioScheduledSourceNode[] = []
   const linea: { t: number; texto: string }[] = [] // cada palabra con su instante absoluto
@@ -35,11 +43,13 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
   let fallbackCola: Promise<void> = Promise.resolve()
   let hablado = ""
 
-  // fuente → analizador (mide el volumen de la voz) → ganancia (baja la voz si hablas encima) → parlantes
+  // fuente → robot (timbre de la asistente) → analizador (mide el volumen) → ganancia (baja la voz si hablas encima) → parlantes
+  const robot = conWebAudio ? crearVozRobot(ctx!, personaje.timbre) : null
   const analizador = conWebAudio ? ctx!.createAnalyser() : null
   const ganancia = conWebAudio ? ctx!.createGain() : null
-  if (analizador && ganancia) {
+  if (robot && analizador && ganancia) {
     analizador.fftSize = 512
+    robot.salida.connect(analizador)
     analizador.connect(ganancia)
     ganancia.connect(ctx!.destination)
   }
@@ -73,13 +83,20 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
 
   const agendar = async (f: FraseDeVoz) => {
     const bytes = aBytes(f.audio)
-    const buffer = await ctx!.decodeAudioData(bytes.buffer.slice(0) as ArrayBuffer)
+    const crudo = await ctx!.decodeAudioData(bytes.buffer.slice(0) as ArrayBuffer)
     if (detenida) return
+    // La melodía robótica de la asistente (una nota por palabra); misma duración: los tiempos no cambian.
+    let buffer = crudo
+    try {
+      buffer = entonarBuffer(ctx!, crudo, personaje.entonacion, f.palabras.map(([, , ini, fin]) => [ini, fin]))
+    } catch (e) {
+      console.warn("[voz] sin entonación:", e)
+    }
     const inicio = Math.max(ctx!.currentTime + 0.05, siguiente)
     siguiente = inicio + buffer.duration
     const fuente = ctx!.createBufferSource()
     fuente.buffer = buffer
-    fuente.connect(analizador!)
+    fuente.connect(robot!.entrada)
     pendientes++
     fuente.onended = () => {
       pendientes--
@@ -153,6 +170,7 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
         }
       }
       fallbackAudio?.pause()
+      robot?.cerrar()
       analizador?.disconnect()
       ganancia?.disconnect()
       pendientes = 0
@@ -175,6 +193,7 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
     },
     cerrar() {
       cancelAnimationFrame(raf)
+      robot?.cerrar()
       analizador?.disconnect()
       ganancia?.disconnect()
       alNivel(0)

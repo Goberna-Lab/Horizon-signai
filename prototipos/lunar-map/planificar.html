@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Horizon Signai · Planner · Walk (concept)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+/* Mapa a sangre con paneles de papel flotando encima */
+body { background: #141418; }
+.scene { position: relative; height: 100vh; min-height: 640px; overflow: hidden; background: #0A0A0D; }
+.mapzoom { position: absolute; inset: 0; transform-origin: 50% 50%; transition: transform .35s cubic-bezier(.3, 0, .2, 1); }
+.mapzoom canvas, .mapzoom svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mapzoom canvas { object-fit: cover; transition: opacity .3s ease; }
+.mapzoom .boot { animation: boot 1.2s ease-out both; }
+.rad { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s ease; background-image: radial-gradient(rgba(255,120,200,0.35) 0.7px, transparent 1px); background-size: 9px 9px; mix-blend-mode: screen; }
+.vig { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(7,8,11,0.5) 0%, rgba(7,8,11,0) 22%, rgba(7,8,11,0) 70%, rgba(7,8,11,0.65) 100%); }
+.hud { position: absolute; }
+.top { left: max(24px, env(safe-area-inset-left, 0px)); right: max(24px, env(safe-area-inset-right, 0px)); top: 20px; display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; column-gap: 16px; }
+.actions { display: flex; align-items: center; gap: 10px; }
+/* con cinco secciones en la píldora, la cabecera no parte líneas: el subtítulo cede primero */
+.top .topl > *, .top .actions > * { white-space: nowrap; flex: none; }
+.date { display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 18px; border-radius: 999px; font-size: 13px; color: var(--gris); }
+.date .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rojo); box-shadow: 0 0 0 3px rgba(200,16,46,0.18); }
+.btn.tall { height: 52px; }
+
+.layers { left: max(24px, env(safe-area-inset-left, 0px)); top: 96px; width: 296px; padding: 18px; border-radius: 22px; }
+.layers h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.layer { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid rgba(17,17,17,0.08); border-radius: 14px; background: transparent; text-align: left; cursor: pointer; transition: transform .18s ease, background-color .18s ease, border-color .18s ease; }
+.layer:hover { transform: translateY(-1px); background: rgba(17,17,17,0.05); }
+.layer .abbr { flex: none; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: .02em; color: var(--gris); background: rgba(17,17,17,0.05); border: 1px solid rgba(17,17,17,0.12); }
+.layer[aria-pressed="true"] .abbr { color: var(--crema); background: var(--tinta); border-color: var(--tinta); }
+.layer .txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.layer .nm { font-size: 14px; font-weight: 600; } .layer .src { font-size: 11.5px; color: var(--gris); } .layer .src b { font-weight: 600; }
+.sw { flex: none; display: flex; align-items: center; justify-content: flex-start; width: 38px; height: 22px; padding: 3px; border-radius: 999px; background: var(--borde); box-shadow: inset 0 1px 2px rgba(17,17,17,0.25); transition: background-color .2s ease; }
+.sw i { width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(17,17,17,0.35); transition: transform .2s ease; }
+.layer[aria-pressed="true"] .sw { background: var(--rojo); } .layer[aria-pressed="true"] .sw i { transform: translateX(16px); }
+
+.aside { right: max(24px, env(safe-area-inset-right, 0px)); top: 96px; bottom: 24px; width: 340px; display: flex; flex-direction: column; gap: 14px; pointer-events: none; }
+.aside > * { pointer-events: auto; }
+/* Supervivencia baja al borde inferior, alineada con el perfil y la leyenda */
+.aside > :last-child { margin-top: auto; }
+.aside section { padding: 20px; border-radius: 22px; }
+.aside h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: rgba(17,17,17,0.06); box-shadow: inset 0 1px 2px rgba(17,17,17,0.08); }
+.seg button { height: 38px; border: 0; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--gris); background: transparent; transition: background-color .2s ease, color .2s ease; }
+.seg button[aria-checked="true"] { font-weight: 700; color: var(--crema); background: var(--tinta); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.45); }
+.hint { margin: 12px 2px 16px; font-size: 13px; line-height: 1.45; color: var(--gris); min-height: 38px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+.stats p { font-size: 12px; color: var(--gris); } .stats b { display: block; margin-top: 2px; font-size: 28px; font-weight: 600; letter-spacing: -.02em; } .stats b small { font-size: 14px; color: var(--gris); margin-left: 4px; font-weight: 500; }
+.status { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.rings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center; }
+.rings div { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: var(--gris); }
+.rings svg { filter: drop-shadow(0 1px 0 rgba(255,255,255,0.8)); }
+.note { margin-top: 14px; font-size: 11.5px; color: var(--gris); text-align: center; }
+
+.warn { left: 50%; top: 96px; transform: translateX(-50%); display: none; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px; background: var(--rojo); border: 1px solid var(--rojo-2); font-size: 13px; font-weight: 600; color: var(--crema); box-shadow: 0 4px 0 var(--rojo-2), 0 10px 30px rgba(200,16,46,0.3); white-space: nowrap; }
+.warn.on { display: flex; }
+/* zoom: en la columna derecha, alineado al borde de las tarjetas, 14 px sobre Supervivencia */
+.ctrls { right: max(24px, env(safe-area-inset-right, 0px)); bottom: 238px; display: flex; flex-direction: column; gap: 2px; padding: 5px; border-radius: 999px; }
+.ctrls button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; transition: background-color .15s ease; }
+.ctrls button:hover { background: rgba(17,17,17,0.06); }
+.profile { left: 344px; right: 388px; bottom: 24px; display: flex; flex-direction: column; gap: 8px; padding: 16px 20px 14px; border-radius: 22px; }
+.profile h2 { font-size: 16px; font-weight: 600; } .profile .meta { font-size: 12px; color: var(--gris); }
+.profile svg { width: 100%; height: 118px; display: block; }
+.legend { left: max(24px, env(safe-area-inset-left, 0px)); bottom: 24px; width: 296px; padding: 14px 16px; border-radius: 18px; }
+.legend .bar { height: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(249,112,102,0.05), rgba(249,112,102,0.55), #F04438); box-shadow: inset 0 1px 1px rgba(0,0,0,0.15); }
+.legend p { font-size: 11px; color: var(--gris); }
+/* las tres tarjetas del borde inferior (leyenda, perfil, supervivencia) con el mismo alto */
+@media (min-width: 1101px) {
+  .legend, .profile, .aside > :last-child { height: 200px; }
+  .legend { display: flex; flex-direction: column; gap: 8px; } .legend p { margin-top: auto; }
+  .profile svg { flex: 1; height: auto; min-height: 0; }
+  .aside > :last-child { display: flex; flex-direction: column; padding: 16px 20px; } .aside > :last-child .note { margin-top: auto; }
+}
+.marker text { font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: .02em; fill: #E6F4F7; }
+/* ruta: trazo fino con funda oscura, marcas de distancia y rótulos en mono, como una pantalla de navegación */
+#routeTicks line { stroke: #E6F4F7; stroke-width: 1.2; opacity: .75; }
+#routeTicks text, #stops text { font-family: var(--f-mono); font-size: 11px; fill: #E6F4F7; paint-order: stroke; stroke: rgba(7,8,11,0.85); stroke-width: 3px; stroke-linejoin: round; }
+
+@media (max-width: 1100px) {
+  .scene { height: auto; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); background: #141418; }
+  .mapwrap { position: relative; aspect-ratio: 16 / 10; max-width: 100%; border-radius: 18px; overflow: hidden; order: 2; }
+  .mapwrap .mapzoom, .mapwrap .vig { position: absolute; }
+  .hud { position: static; transform: none; width: auto; left: auto; right: auto; }
+  .top { order: 1; flex-wrap: wrap; } .warn { order: 3; justify-content: center; } .layers { order: 4; } .aside { order: 5; } .profile { order: 6; } .legend { order: 7; } .ctrls { display: none; }
+}
+@media (min-width: 1101px) { .mapwrap { position: absolute; inset: 0; } }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="mapwrap">
+    <div class="mapzoom" id="mapzoom">
+      <canvas id="relief" width="720" height="450" class="boot" aria-hidden="true"></canvas>
+      <canvas id="ovThermal" width="720" height="450" aria-hidden="true" style="opacity:0"></canvas>
+      <canvas id="ovSlope" width="720" height="450" aria-hidden="true"></canvas>
+      <canvas id="ovIce" width="720" height="450" aria-hidden="true"></canvas>
+      <canvas id="ovContours" width="720" height="450" aria-hidden="true" style="opacity:0"></canvas>
+      <div class="rad" id="ovRad" aria-hidden="true"></div>
+      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Connecting Ridge, at the lunar south pole, with the planned route to the Shackleton rim">
+        <defs>
+        </defs>
+        <!-- retícula real: escala 4,7 m/px con el módulo en la RoI 6; paralelos = arcos centrados en el polo (15,95 km al
+             sur), meridianos = rectas que salen del polo, cada 0,02° de latitud y cada 5° de longitud -->
+        <g stroke="rgba(255,255,255,0.07)" stroke-width="1" fill="none">
+          <path d="M0.0 316.9 A 3742.0 3742.0 0 0 1 1440.0 431.0" fill="none"></path><path d="M0.0 446.8 A 3613.0 3613.0 0 0 1 1440.0 565.2" fill="none"></path><path d="M0.0 576.8 A 3484.0 3484.0 0 0 1 1440.0 699.8" fill="none"></path><path d="M0.0 706.9 A 3354.9 3354.9 0 0 1 1440.0 834.9" fill="none"></path><line x1="245.8" y1="0" x2="286.9" y2="900"></line><line x1="598.1" y1="0" x2="560.6" y2="900"></line><line x1="952.9" y1="0" x2="836.2" y2="900"></line><line x1="1315.9" y1="0" x2="1118.3" y2="900"></line>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#FFFFFF" opacity="0.5">
+          <text x="330" y="287">89.42°S</text><text x="330" y="417">89.44°S</text><text x="330" y="546">89.46°S</text><text x="330" y="675">89.48°S</text><text x="262" y="216">220°E</text><text x="595" y="216">225°E</text><text x="931" y="216">230°E</text><text x="1274" y="216">235°E</text>
+        </g>
+        <g font-family="IBM Plex Mono, monospace">
+          <line x1="1160" y1="846" x2="1266" y2="846" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2"></line><line x1="1160" y1="840" x2="1160" y2="852" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2"></line><line x1="1266" y1="840" x2="1266" y2="852" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2"></line>
+          <text x="1213" y="834" text-anchor="middle" font-size="11" fill="#FFFFFF" opacity="0.75">500 m</text>
+         <g id="sunrose" transform="translate(70 790)"><circle r="26" fill="none" stroke="rgba(244,239,230,0.35)"></circle><line x1="0" y1="0" x2="-15.6" y2="20.8" stroke="#FDE68A" stroke-width="2.5"></line><circle cx="-15.6" cy="20.8" r="4" fill="#FDE68A"></circle><text y="-32" text-anchor="middle" font-size="10" fill="rgba(244,239,230,0.7)">N</text><text y="44" text-anchor="middle" font-size="9" fill="#FDE68A">Sun 5°</text></g>
+        </g>
+        <path id="routeGlow" d="" fill="none" stroke="rgba(7,8,11,0.6)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path id="route" d="" fill="none" stroke="#9FE4F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="route"></path>
+        <path id="warnCase" d="" fill="none" stroke="rgba(7,8,11,0.85)" stroke-width="7" stroke-linecap="butt"></path>
+        <path id="warnPath" d="" fill="none" stroke="#FF5A4A" stroke-width="3.2" stroke-linecap="butt" stroke-dasharray="6 4"></path>
+        <g id="routeTicks"></g>
+        <!-- módulo: cuadro; destino: retícula -->
+        <rect x="424" y="634" width="12" height="12" fill="#07080B" stroke="#E6F4F7" stroke-width="1.6"></rect>
+        <g class="marker"><rect x="444" y="650" width="70" height="22" rx="3" fill="rgba(7,8,11,0.82)" stroke="rgba(230,244,247,0.22)"></rect><text x="479" y="665" text-anchor="middle">Lander</text></g>
+        <g fill="none" stroke="#E6F4F7" stroke-width="1.6"><circle cx="1000" cy="300" r="9"></circle><path d="M1000 284 V 291 M1000 309 V 316 M984 300 H 991 M1009 300 H 1016"></path></g>
+        <circle cx="1000" cy="300" r="2.5" fill="#9FE4F2"></circle>
+        <g class="marker"><rect x="822" y="250" width="160" height="22" rx="3" fill="rgba(7,8,11,0.82)" stroke="rgba(230,244,247,0.22)"></rect><text x="902" y="265" text-anchor="middle">Shackleton rim</text></g>
+        <g id="stops"></g>
+      </svg>
+    </div>
+    <div class="vig" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+  </div>
+
+  <header class="hud top">
+    <div class="topl"><a class="paper glass brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><span class="moon" aria-hidden="true"></span><h1 class="disp">Horizon Signai</h1></a><nav class="psteps" aria-label="Planner steps"><a href="index.html"><b>1</b>Landing</a><span aria-current="step" title="Concept: what comes after the landing. Illustrative data."><b>2</b>Walk · concept</span></nav></div>
+    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Missions</a><span aria-current="page">Planner</span><a href="/3d-map" target="_top">3D Map</a></nav>
+    <div class="actions">
+      <span class="paper glass flat langsw mono" data-lang-toggle></span>
+      <span class="paper glass flat date mono"><span class="dot"></span>19 Dec 2026 · 10:00 UTC</span>
+    </div>
+  </header>
+
+  <section class="hud paper glass layers" aria-labelledby="v2-capas">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px"><h2 id="v2-capas" class="disp">Layers</h2><span style="font-size: 12px; color: var(--gris)"><span id="activeCount">4</span> active</span></div>
+    <div style="display: flex; flex-direction: column; gap: 6px" id="layerList"></div>
+  </section>
+
+  <aside class="hud aside">
+    <section class="paper glass" aria-labelledby="v2-plan">
+      <h2 id="v2-plan" class="disp" style="margin-bottom: 14px">Walk plan</h2>
+      <div class="seg" role="radiogroup" aria-label="Route goal" id="objectives"></div>
+      <p class="hint" id="hint"></p>
+      <div class="stats">
+        <div><p>Distance</p><b class="disp" id="sDist">—</b></div>
+        <div><p>Round-trip time</p><b class="disp" id="sTime">—</b></div>
+        <div><p>Elevation gain</p><b class="disp" id="sDz">—</b></div>
+        <div><p>Max slope</p><b class="disp" id="sPmax">—</b></div>
+      </div>
+    </section>
+    <section class="paper glass" aria-labelledby="v2-sup">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px"><h2 id="v2-sup" class="disp">Survival</h2><span class="status" id="status"></span></div>
+      <div class="rings" id="rings"></div>
+      <p class="note" id="supplyNote"></p>
+    </section>
+  </aside>
+
+  <div class="hud warn" role="status" id="warn">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3z"></path><path d="M12 10v4M12 17h.01"></path></svg>
+    One stretch crosses a slope beyond the limit
+  </div>
+
+  <div class="hud paper glass flat ctrls" role="group" aria-label="Map controls">
+    <button type="button" aria-label="Zoom in" id="zIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+    <button type="button" aria-label="Zoom out" id="zOut"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+    <button type="button" aria-label="North up and initial view" id="zReset"><svg width="18" height="18" viewBox="0 0 24 24" fill="#111111" aria-hidden="true"><path d="M12 2l6 18-6-4-6 4z"></path></svg></button>
+  </div>
+
+  <section class="hud paper glass profile" aria-labelledby="v2-perfil">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><h2 id="v2-perfil" class="disp">Elevation profile</h2><span class="mono meta" id="profMeta"></span></div>
+    <svg viewBox="0 0 800 118" preserveAspectRatio="none" role="img" aria-label="Elevation profile of the route" id="profSvg">
+      <defs><linearGradient id="v2area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C8102E" stop-opacity="0.28"></stop><stop offset="100%" stop-color="#C8102E" stop-opacity="0"></stop></linearGradient></defs>
+      <g id="profGrid" stroke="rgba(17,17,17,0.10)"></g>
+      <path id="profArea" d="" fill="url(#v2area)"></path>
+      <path id="profLine" d="" fill="none" stroke="#C8102E" stroke-width="2.5" vector-effect="non-scaling-stroke"></path>
+      <path id="profWarn" d="" fill="none" stroke="#F04438" stroke-width="6" vector-effect="non-scaling-stroke" stroke-linecap="round" opacity="0.7"></path>
+      <g id="profStops"></g>
+      <g id="profLabels" font-family="IBM Plex Mono, monospace" font-size="10" fill="#857D72"></g>
+    </svg>
+  </section>
+
+  <div class="hud paper glass flat legend">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px"><span style="font-size: 13px; font-weight: 600">Slope</span><span style="font-size: 11.5px; color: var(--gris)">Computed over the generated terrain</span></div>
+    <div class="bar"></div>
+    <div class="mono" style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--gris)"><span>0°</span><span>15° limit</span></div>
+    <p style="margin-top: 10px"><b>Concept preview.</b> The terrain, layers, routes and survival figures on this screen are generated to illustrate; they are not NASA data. The landing step uses the real data.</p>
+  </div>
+</div>
+
+<script src="i18n.js"></script>
+<script src="i18n-es-planificar.js"></script>
+<script src="terrain.js"></script>
+<script src="mission.js"></script>
+<script>
+(function () {
+  'use strict';
+  var L = window.Lunar, M = L.Mission, $ = function (id) { return document.getElementById(id); };
+  var state = { objective: 'science', on: { ctx: true, mola: false, slope: true, minerals: true, thermal: false, rad: false }, zoom: 1 };
+
+  /* ---------- terreno y capas ---------- */
+  var t = L.localScene();
+  var relief = L.renderRelief(t, { grain: 7 });
+  $('relief').getContext('2d').drawImage(relief, 0, 0);
+  var slope = t.slope, tone = t.tone, lam = t.lam, sh = t.shadow;
+  $('ovSlope').getContext('2d').drawImage(L.renderMask(t, function (i) { var s = slope[i] * 57.3; return s < 15 ? 0 : Math.min(0.42, (s - 15) / 12); }, [240, 68, 56]), 0, 0);
+  $('ovIce').getContext('2d').drawImage(L.renderMask(t, function (i) { var lit = lam[i] * sh[i]; return lit > 0.01 ? 0 : 0.2 * (1 - lit / 0.01); }, [125, 211, 252]), 0, 0);
+  $('ovContours').getContext('2d').drawImage(L.renderContours(t, 10, [255, 255, 255, 110], 5), 0, 0);
+  (function thermal() {
+    var cv = document.createElement('canvas'); cv.width = t.cols; cv.height = t.rows;
+    var ctx = cv.getContext('2d'), img = ctx.createImageData(t.cols, t.rows), d = img.data;
+    for (var i = 0; i < t.cols * t.rows; i++) {
+      var v = Math.min(1, lam[i] * sh[i] * 9), o = i * 4;      /* frío: violeta · caliente: ámbar */
+      d[o] = 90 + 160 * v; d[o + 1] = 40 + 110 * v; d[o + 2] = 170 - 150 * v; d[o + 3] = 115;
+    }
+    ctx.putImageData(img, 0, 0); $('ovThermal').getContext('2d').drawImage(cv, 0, 0);
+  })();
+
+  var layerDefs = [
+    { id: 'ctx', abbr: 'IMG', name: 'Base image', source: 'Generated relief', kind: 'Illustrative' },
+    { id: 'mola', abbr: 'CNT', name: 'Terrain · 10 m contours', source: 'Generated relief', kind: 'Illustrative' },
+    { id: 'slope', abbr: 'SLP', name: 'Slope', source: 'Generated relief', kind: 'Computed' },
+    { id: 'minerals', abbr: 'ICE', name: 'Possible ice', source: 'Placeholder layer', kind: 'Illustrative' },
+    { id: 'thermal', abbr: 'TMP', name: 'Temperature', source: 'Placeholder layer', kind: 'Illustrative' },
+    { id: 'rad', abbr: 'RAD', name: 'Radiation', source: 'Placeholder layer', kind: 'Illustrative' }
+  ];
+  var list = $('layerList');
+  layerDefs.forEach(function (d) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'layer'; b.dataset.id = d.id;
+    b.innerHTML = '<span class="abbr">' + d.abbr + '</span><span class="txt"><span class="nm">' + d.name + '</span><span class="src">' + d.source + ' · <b>' + d.kind + '</b></span></span><span class="sw"><i></i></span>';
+    b.addEventListener('click', function () { state.on[d.id] = !state.on[d.id]; render(); });
+    list.appendChild(b);
+  });
+
+  var objWrap = $('objectives');
+  M.ORDER.forEach(function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.key = k; b.textContent = M.META[k].label;
+    b.addEventListener('click', function () { state.objective = k; render(); });
+    objWrap.appendChild(b);
+  });
+
+  /* ---------- zoom ---------- */
+  $('zIn').addEventListener('click', function () { state.zoom = Math.min(2.4, state.zoom * 1.3); render(); });
+  $('zOut').addEventListener('click', function () { state.zoom = Math.max(1, state.zoom / 1.3); render(); });
+  $('zReset').addEventListener('click', function () { state.zoom = 1; render(); });
+
+  /* ---------- render ---------- */
+  function render() {
+    var count = 0;
+    list.querySelectorAll('.layer').forEach(function (b) { var on = !!state.on[b.dataset.id]; b.setAttribute('aria-pressed', on); if (on) count++; });
+    $('activeCount').textContent = count;
+    $('relief').style.opacity = state.on.ctx ? 1 : 0.22;
+    $('ovContours').style.opacity = state.on.mola ? 1 : 0;
+    $('ovSlope').style.opacity = state.on.slope ? 1 : 0;
+    $('ovIce').style.opacity = state.on.minerals ? 1 : 0;
+    $('ovThermal').style.opacity = state.on.thermal ? 1 : 0;
+    $('ovRad').style.opacity = state.on.rad ? 1 : 0;
+    $('mapzoom').style.transform = 'scale(' + state.zoom + ')';
+
+    var st = M.routeStats(t, state.objective), meta = st.meta;
+    objWrap.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.key === state.objective); });
+    $('hint').textContent = meta.hint;
+    $('sDist').innerHTML = M.num(st.distKm, 1) + '<small>km</small>';
+    $('sTime').innerHTML = M.num(st.timeH, 1) + '<small>h</small>';
+    $('sDz').innerHTML = M.num(st.dz) + '<small>m</small>';
+    $('sPmax').innerHTML = M.num(st.pmax) + '<small>°</small>';
+
+    var route = $('route'); route.setAttribute('d', st.d); $('routeGlow').setAttribute('d', st.d);
+    route.classList.remove('route'); void route.getBoundingClientRect(); route.classList.add('route');
+    var wd = '', pen = false;
+    st.prof.forEach(function (p, i) { if (st.warn[i]) { wd += (pen ? ' L ' : ' M ') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); pen = true; } else pen = false; });
+    $('warnPath').setAttribute('d', wd); $('warnCase').setAttribute('d', wd);
+    /* paradas: círculo hueco y rótulo P1, P2 al lado */
+    $('stops').innerHTML = st.stops.map(function (s, i) {
+      return '<circle cx="' + s.x + '" cy="' + s.y + '" r="6" fill="#07080B" stroke="#9FE4F2" stroke-width="1.6"></circle><circle cx="' + s.x + '" cy="' + s.y + '" r="1.8" fill="#9FE4F2"></circle>' +
+        '<text x="' + (s.x + 11) + '" y="' + (s.y - 9) + '">P' + (i + 1) + '</text>';
+    }).join('');
+    /* marcas de distancia cada 250 m, perpendiculares a la ruta; rótulo en cada kilómetro */
+    var tk = '', P = st.prof;
+    for (var m = 250, j = 1; m < st.distM; m += 250) {
+      while (j < P.length - 1 && P[j].s < m) j++;
+      var a = P[j - 1], b = P[j], f = (m - a.s) / ((b.s - a.s) || 1), x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f;
+      var dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, km = m % 1000 === 0, L = km ? 7 : 4;
+      tk += '<line x1="' + (x - nx * L).toFixed(1) + '" y1="' + (y - ny * L).toFixed(1) + '" x2="' + (x + nx * L).toFixed(1) + '" y2="' + (y + ny * L).toFixed(1) + '"></line>';
+      if (km && st.distM - m > 200) tk += '<text x="' + (x + nx * 16).toFixed(1) + '" y="' + (y + ny * 16 + 4).toFixed(1) + '" text-anchor="middle">' + (m / 1000) + ' km</text>';
+    }
+    $('routeTicks').innerHTML = tk;
+    $('warn').classList.toggle('on', st.anyWarn);
+
+    var S = M.STATUS[meta.status];
+    var stt = $('status'); stt.textContent = S.label; stt.style.background = S.bg; stt.style.color = S.fg;
+    $('supplyNote').textContent = S.note;
+    $('rings').innerHTML = M.supplies(meta.status, 30).map(function (r) {
+      return '<div><svg width="72" height="72" viewBox="0 0 72 72" role="img" aria-label="' + r.aria + '"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(17,17,17,0.10)" stroke-width="7"></circle><circle cx="36" cy="36" r="30" fill="none" stroke="' + r.color + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + r.dash + '" transform="rotate(-90 36 36)"></circle><text x="36" y="41" text-anchor="middle" font-size="14" font-weight="600" fill="#111111" font-family="Space Grotesk, Inter, sans-serif">' + r.short + '</text></svg><span>' + r.name + '</span></div>';
+    }).join('');
+
+    /* perfil real a lo largo de la ruta */
+    var W = 800, H = 118, pad = 12, hmin = Math.floor(st.hmin / 10) * 10, hmax = Math.ceil(st.hmax / 10) * 10 + 10, span = Math.max(40, hmax - hmin);
+    var X = function (s) { return pad + (W - 2 * pad) * s / st.distM; }, Y = function (h) { return 14 + (H - 30) * (1 - (h - hmin) / span); };
+    var line = st.prof.map(function (p, i) { return (i ? 'L' : 'M') + X(p.s).toFixed(1) + ' ' + Y(p.h).toFixed(1); }).join(' ');
+    $('profLine').setAttribute('d', line);
+    $('profArea').setAttribute('d', line + ' L ' + X(st.distM).toFixed(1) + ' ' + (H - 2) + ' L ' + pad + ' ' + (H - 2) + ' Z');
+    var wl = '', pen2 = false;
+    st.prof.forEach(function (p, i) { if (st.warn[i]) { wl += (pen2 ? ' L ' : ' M ') + X(p.s).toFixed(1) + ' ' + Y(p.h).toFixed(1); pen2 = true; } else pen2 = false; });
+    $('profWarn').setAttribute('d', wl);
+    var grid = ''; for (var g = hmin; g <= hmax; g += 50) grid += '<line x1="' + pad + '" y1="' + Y(g).toFixed(1) + '" x2="' + (W - pad) + '" y2="' + Y(g).toFixed(1) + '"></line>';
+    $('profGrid').innerHTML = grid;
+    $('profStops').innerHTML = st.stops.map(function (s) {
+      var best = 1e9, k = 0; st.prof.forEach(function (p, i) { var d = Math.hypot(p.x - s.x, p.y - s.y); if (d < best) { best = d; k = i; } });
+      return '<line x1="' + X(st.prof[k].s).toFixed(1) + '" y1="8" x2="' + X(st.prof[k].s).toFixed(1) + '" y2="' + (H - 2) + '" stroke="rgba(17,17,17,0.55)" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"></line><circle cx="' + X(st.prof[k].s).toFixed(1) + '" cy="' + Y(st.prof[k].h).toFixed(1) + '" r="4" fill="#7DD3FC" stroke="#111111" stroke-width="1.5"></circle>';
+    }).join('');
+    $('profLabels').innerHTML = '<text x="' + pad + '" y="' + (Y(hmax) + 9) + '">' + M.num(hmax) + ' m</text><text x="' + pad + '" y="' + (H - 5) + '">' + M.num(hmin) + ' m</text><text x="' + (W - pad) + '" y="' + (H - 5) + '" text-anchor="end">' + M.num(st.distKm, 1) + ' km</text>';
+    $('profMeta').textContent = '0–' + M.num(st.distKm, 1) + ' km · lander in RoI 6 · 89.47° S · 222.61° E';
+  }
+  render();
+})();
+</script>
+</body>
+</html>

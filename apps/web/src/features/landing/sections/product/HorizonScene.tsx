@@ -1,28 +1,31 @@
 import { type RefObject, useEffect, useMemo, useRef } from "react"
+import { tr } from "@/shared/i18n"
 import layersData from "../data/horizon.json"
 import { paintDust, paintEarth, paintRays, paintStars } from "./horizon/backdrop"
 import { DEPTH, GLOW, HORIZON_LINE, PARALLAX, QUALITY, SMALL_SCREEN, SUN } from "./horizon/config"
 import { createSun, type Sun } from "./horizon/sun"
-import { type Geometry, groundAt, type Layer, type Lighting, paintLayer, type Profile, topOf, yOf } from "./horizon/terrain"
-import { AFTERGLOW_H, at, DUSK_H, horizonAt, inside, sky, turnOf } from "./sky"
+import { type Geometry, groundAt, type Layer, type Lighting, paintLayer, type Profile, topOf, xOf, yOf } from "./horizon/terrain"
+import { AFTERGLOW_H, at, DUSK_H, horizonAt, inside, sky, stamp, turnOf } from "./sky"
 
 /**
- * El fondo de la vista Lander: la puesta y la salida del Sol como se verían de verdad desde el suelo del sitio,
- * filmadas con una cámara de cine.
+ * El fondo de la vista Lander: la puesta y la salida del Sol vistas desde el suelo del sitio, filmadas con una
+ * cámara de cine. Solo existe en el cambio: de día la página queda limpia, sin relieve ni Sol.
  *
  * Qué es real:
  *   - El Sol es pequeño (medio grado, como desde la Tierra) y blanco: no hay atmósfera que lo agrande ni lo tiña.
- *   - Su trayectoria: en el polo no baja, resbala casi a ras del horizonte hasta que una ladera lo tapa. La posición
- *     sale de las efemérides (`sky.json`) y el relieve es el horizonte real de Connecting Ridge, así que el disco
- *     desaparece tras la cresta justo cuando la cuenta pasa a "Sunrise in".
- *   - La cámara mira siempre hacia el Sol y lo sigue alrededor del horizonte: el paisaje gira despacio.
+ *   - Dónde y cuándo se oculta: durante el cambio la cámara mira al rumbo por el que el Sol se pone o sale (de las
+ *     efemérides, `sky.json`) y el relieve es el horizonte real de Connecting Ridge, así que el disco desaparece
+ *     tras esa cresta justo cuando la cuenta pasa a "Sunrise in". La marca de la cresta da ese rumbo y esa hora.
  *   - El cielo es negro con el Sol arriba, y con el Sol en cuadro no se ven estrellas (la exposición no da). Salen
  *     cuando se oculta, junto con la corona y la luz zodiacal, que asoman un rato tras la cresta.
  *   - La Tierra aparece solo cuando está sobre el horizonte del sitio, con su fase real.
- * Qué es de cine: el destello de la cámara (velo de luz, rayos de difracción, línea anamórfica y reflejos), que es
- * lo que hace grande al Sol en pantalla; el disco se dibuja un poco mayor que el real (`SUN.scale`); la escala
- * vertical va exagerada respecto a la horizontal; la Tierra va en una esquina y no en su rumbo; y el primer plano
- * (suelo, rocas y cráteres) es decorativo.
+ * Qué es puesta en escena:
+ *   - El recorrido: el Sol entra por arriba a la derecha y baja hasta perderse tras la cresta, a la derecha (al
+ *     amanecer, al revés). En el polo el Sol real no baja: resbala casi a ras del horizonte hasta que una ladera lo
+ *     tapa. Los mandos del recorrido están en `SUN` (`horizon/config.ts`).
+ *   - El destello de la cámara (velo de luz, rayos de difracción, línea anamórfica y reflejos), que es lo que hace
+ *     grande al Sol en pantalla; el disco se dibuja un poco mayor que el real (`SUN.scale`); la escala vertical va
+ *     exagerada; la Tierra va en una esquina y no en su rumbo; y el primer plano es decorativo.
  *
  * Capas, de atrás hacia delante, cada una con su profundidad (parallax con el puntero, el scroll y la inclinación
  * del teléfono):
@@ -33,6 +36,7 @@ import { AFTERGLOW_H, at, DUSK_H, horizonAt, inside, sky, turnOf } from "./sky"
  *   5. Montañas lejanas y 6. cresta cercana con cráteres.
  *   7. Primer plano: regolito con grano, rocas y sombras larguísimas hacia la cámara.
  *   8. El destello de la cámara, por delante de todo el relieve.
+ *   9. La marca de la cresta, solo en el momento de la puesta (cuando la ventana se aparta).
  *
  * Cómo se dibuja: un solo bucle. El parallax, el giro de la cámara y los fundidos son solo `transform` y `opacity`;
  * el relieve se repinta únicamente cuando cambia la luz o la cámara ha girado más que su margen, y el shader
@@ -50,6 +54,8 @@ type HorizonSceneProps = {
   earthWindows: number[][]
   /** Oscuridad que se está mostrando ahora, de 0 a 1 (la escribe ProductWindow cuadro a cuadro). */
   level: RefObject<{ shown: number }>
+  /** Cuánto se ha apartado la ventana para dejar ver la puesta, de 0 a 1: con ella aparecen los rótulos. */
+  cinema: RefObject<number>
   /** La vista está en pantalla: la escena se dibuja. */
   active: boolean
 }
@@ -76,7 +82,7 @@ function split(real: number[]): { back: number[]; front: number[] } {
   return { back, front }
 }
 
-export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, active }: HorizonSceneProps) {
+export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, cinema, active }: HorizonSceneProps) {
   const root = useRef<HTMLDivElement>(null)
   const wanted = useRef(active)
   wanted.current = active
@@ -104,12 +110,12 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       rays: pick<HTMLCanvasElement>("rays"),
       streak: pick<HTMLElement>("streak"),
       ghosts: [0, 1, 2].map((i) => pick<HTMLElement>(`ghost-${i}`)),
+      mark: pick<HTMLElement>("mark"),
+      markLines: [0, 1].map((i) => pick<HTMLElement>(`mark-${i}`)),
     }
     const landContexts = parts.land.map((canvas) => canvas.getContext("2d"))
     const earthContext = parts.earth.getContext("2d")
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    /** Dónde se anotan `--glare` (para el velo de la ventana): la sección entera. */
-    const host = el.closest<HTMLElement>("section")
 
     let geo: Geometry = { width: 0, height: 0, centre: 0, zero: 0, sx: 1, sy: 1, pad: LAND_PAD }
     let quality = QUALITY.large
@@ -126,6 +132,7 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
     let landAt = 0
     let landCentre = 0
     let starsShown = 0
+    let spot = 0
     let earthKey = ""
     let sunKey = ""
     let laid = ""
@@ -255,19 +262,26 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       const on = turn !== null && u > 0 && u < 1 + AFTER
       const presence = on ? smooth(clamp01((u - 0.2) / 0.2)) * (1 - smooth(clamp01((u - 1) / AFTER))) : 0
 
-      // Dónde está el Sol de verdad y cuánto asoma sobre el horizonte real en su rumbo.
+      // El recorrido es de puesta en escena: el Sol entra por arriba a la derecha y baja hasta perderse tras la
+      // cresta, también a la derecha (al amanecer, al revés). Lo que sí es real es dónde y cuándo: durante el cambio
+      // la cámara mira al rumbo por el que el Sol se oculta, así que la cresta que lo tapa es la de verdad y el
+      // disco desaparece justo cuando la cuenta cambia. Fuera del cambio la cámara sigue al Sol por el horizonte.
       const [sunAz, sunEl] = at(sky.sun, hour)
-      const gap = sunEl - horizonAt(real, sunAz)
-      const visible = on ? clamp01((gap + SUN.radiusDeg) / (2 * SUN.radiusDeg)) : 0
-      // La cámara mira hacia el Sol. Durante el cambio lo deja resbalar un poco por la pantalla, en el sentido en
-      // el que se mueve de verdad (hacia la izquierda), y fuera del cambio lo lleva en el centro.
-      const through = on && turn ? (turn.rising ? 1 - u / (1 + AFTER) : u / (1 + AFTER)) : 0.5
-      const slide = on ? SUN.drift * width * (0.5 - through) * smooth(clamp01(u / 0.2)) * (1 - smooth(clamp01((u - 1) / AFTER))) : 0
-      geo.centre = sunAz - slide / geo.sx
-      const sunX = width / 2 + slide
+      const before = turn ? turn.up !== turn.rising : false
+      const when = turn ? Math.min(Math.max(hour + (before ? turn.hours : -turn.hours), 0), sky.sun.az.length - 1) : hour
+      const [turnAz] = at(sky.sun, when)
+      const hold = on ? smooth(clamp01(u / 0.2)) * (1 - smooth(clamp01((u - 1) / AFTER))) : 0
+      const p = clamp01(u)
+      const sunX = width * (SUN.enterX + (SUN.setX - SUN.enterX) * smooth(p))
+      const lookAz = sunAz + ((((turnAz - sunAz) % 360) + 540) % 360 - 180) * hold
+      geo.centre = lookAz - ((sunX - width / 2) / geo.sx) * hold
       const radius = SUN.radiusDeg * sy * SUN.scale
-      const crestY = yOf(geo, horizonAt(real, sunAz))
-      const sunY = crestY - gap * sy * SUN.scale
+      const crestY = yOf(geo, horizonAt(real, turnAz))
+      // Altura sobre la cresta: de fuera de la pantalla, por arriba, a un radio por debajo (oculto del todo). Baja
+      // deprisa al principio y se frena al llegar: el último filo de luz dura.
+      const above = (crestY + SUN.enterAbove * radius) * Math.pow(1 - p, 1.6) - 1.05 * radius * (1 - Math.pow(1 - p, 1.6))
+      const sunY = crestY - above + Math.max(u - 1, 0) * radius * SUN.sinkAfter
+      const visible = on ? clamp01((crestY - (sunY - radius)) / (2 * radius)) : 0
       /** Cuánta luz directa llega a la cámara: manda en el destello, en las estrellas y en el velo de la ventana. */
       const bright = presence * Math.pow(visible, 0.45)
       const light = presence * smooth(clamp01(visible * 4))
@@ -280,20 +294,23 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       // --- Capas que solo se mueven y cambian de opacidad -----------------------------------------------------
       fade(parts.space, sky01)
       fade(parts.stars, starsShown)
+      const starsOn = starsShown > 0.004 ? "visible" : "hidden"
+      put(parts.stars, "visibility", starsOn, () => (parts.stars.style.visibility = starsOn))
       const farMove = shift(DEPTH.starsFar)
       for (const canvas of parts.starsFar) move(canvas, farMove.x, farMove.y)
       const midMove = shift(DEPTH.starsMid)
       move(parts.starsMid, midMove.x, midMove.y)
 
       // --- El relieve: se repinta si cambió la luz o si la cámara giró más que el margen; si no, solo se mueve --
-      const key = `${night.toFixed(2)}|${light.toFixed(2)}|${real.length}|${real[0]}|${real[90]}`
+      // La luz va en escalones de un 4 %: repintar tres lienzos grandes en cada cuadro es lo más caro de la escena.
+      const key = `${Math.round(night * 25)}|${Math.round(light * 25)}|${real.length}|${real[0]}|${real[90]}`
       let pan = ((((geo.centre - landCentre) % 360) + 540) % 360) - 180
       if ((key !== landKey || Math.abs(pan * geo.sx) > PAN_LIMIT) && (dt === 0 || now - landAt >= 30 || Math.abs(pan * geo.sx) > LAND_PAD - 60)) {
         landKey = key
         landAt = now
         landCentre = geo.centre
         pan = 0
-        const lit: Lighting = { night, light, sunX, sunRadius: radius, groundY: crestY }
+        const lit: Lighting = { night: Math.round(night * 25) / 25, light: Math.round(light * 25) / 25, sunX, sunRadius: radius, groundY: crestY }
         LAYERS.forEach((layer, i) => {
           const context = landContexts[i]
           if (!context) return
@@ -303,9 +320,11 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
           paintLayer(context, layer, geo, profileOf(layer), lit, quality)
         })
       }
+      // De día la página queda limpia: el relieve entra con el cielo negro.
       parts.land.forEach((canvas, i) => {
         const offset = shift(DEPTH[LAYERS[i]])
         move(canvas, offset.x - pan * geo.sx, offset.y)
+        fade(canvas, sky01)
       })
 
       // La Tierra: solo cuando está sobre el horizonte del sitio. La fase sale de su separación real con el Sol.
@@ -313,7 +332,8 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       fade(parts.earth, earthUp ? sky01 * (1 - 0.6 * bright) : 0)
       if (earthUp && earthContext) {
         const stacked = height > width
-        const ex = width * (stacked ? 0.78 : 0.86)
+        // A la izquierda: la derecha es del Sol.
+        const ex = width * (stacked ? 0.2 : 0.13)
         const ey = height * (stacked ? 0.16 : 0.2)
         const earthMove = shift(DEPTH.earth)
         move(parts.earth, ex - earthSize / 2 + earthMove.x, ey - earthSize / 2 + earthMove.y)
@@ -333,14 +353,15 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       // --- El Sol --------------------------------------------------------------------------------------------
       // Va pegado a la capa de relieve que lo tapa: si no, el parallax lo sacaría de detrás de la cresta.
       const { back, front } = current.current
-      const sunMove = shift(back[wrap(sunAz)] >= front[wrap(sunAz)] ? DEPTH.far : DEPTH.ridge)
+      const sunMove = shift(back[wrap(turnAz)] >= front[wrap(turnAz)] ? DEPTH.far : DEPTH.ridge)
       const sx = sunX + sunMove.x
       const sY = sunY + sunMove.y
       if (sun) {
         if (presence > 0.004) {
-          // Con "reducir movimiento" la corona se queda quieta: se dibuja solo cuando cambia la hora.
-          const sunNow = still ? `${hour.toFixed(3)}|${presence.toFixed(3)}` : ""
-          if (!still || sunNow !== sunKey) {
+          // El disco y su resplandor no se mueven solos: se dibujan si cambió algo. La corona sí está viva, y va a
+          // 30 cuadros por segundo (gira muy despacio).
+          const sunNow = `${sx.toFixed(1)}|${sY.toFixed(1)}|${presence.toFixed(3)}|${corona > 0.002 && !still ? Math.floor(now / 33) : corona.toFixed(3)}`
+          if (sunNow !== sunKey) {
             sunKey = sunNow
             sun.draw({ x: sx, y: sY, radius, time: still ? 12 : now / 1000, disc: presence, corona })
             sunShown = true
@@ -391,11 +412,20 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
         move(ghost, sx + axisX * along - 50, fy + axisY * along - 50, (base * size * 2) / 100)
       })
 
-      // Para la ventana (su velo) y para las comprobaciones: cuánto deslumbra el Sol y cuánto asoma.
-      if (host) {
-        const value = (Math.round(bright * 0.7 * 25) / 25).toFixed(2)
-        put(host, "glare", value, () => host.style.setProperty("--glare", value))
+      // --- Rótulos de dato: solo cuando la ventana se aparta ---------------------------------------------------
+      spot = dt > 0 ? spot + (cinema.current - spot) * settle(0.45) : cinema.current
+      const write = (target: HTMLElement, text: string) => put(target, "text", text, () => (target.textContent = text))
+      // La marca: el punto de la cresta por donde el Sol se oculta (o sale), con su rumbo y su hora reales.
+      const markOn = turn && on ? spot * presence : 0
+      fade(parts.mark, markOn)
+      if (turn && markOn > 0.01) {
+        const near = geo.centre + ((((turnAz - geo.centre) % 360) + 540) % 360) - 180
+        move(parts.mark, xOf(geo, near) + sunMove.x, crestY + sunMove.y + 3)
+        write(parts.markLines[0], `${turn.rising ? tr("Sunrise", "Salida del Sol") : tr("Sunset", "Puesta del Sol")}  az ${turnAz.toFixed(1)}°`)
+        write(parts.markLines[1], stamp(when))
       }
+
+      // Para las comprobaciones: cuánto asoma el Sol.
       const state = on ? visible.toFixed(2) : "off"
       put(el, "sun", state, () => (el.dataset.sun = state))
     }
@@ -440,11 +470,10 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       window.removeEventListener("deviceorientation", onTilt)
       observer.disconnect()
       sun?.dispose()
-      host?.style.removeProperty("--glare")
       start.current = () => {}
       relayout.current = () => {}
     }
-  }, [level, time])
+  }, [level, time, cinema])
 
   // Al cambiar de perfil (suelo o mástil) el relieve se mide y se pinta de nuevo.
   useEffect(() => {
@@ -475,6 +504,12 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
         <i className="hz__ghost" data-part="ghost-0" />
         <i className="hz__ghost hz__ghost--ring" data-part="ghost-1" />
         <i className="hz__ghost" data-part="ghost-2" />
+        <div className="hz__mark" data-part="mark">
+          <p>
+            <span data-part="mark-0" />
+            <span data-part="mark-1" />
+          </p>
+        </div>
       </div>
     </div>
   )
