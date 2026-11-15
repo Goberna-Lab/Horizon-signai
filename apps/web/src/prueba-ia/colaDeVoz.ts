@@ -1,9 +1,11 @@
+import { crearVozRobot } from "./vozRobot"
+
 // Reproduce, una detrás de otra y sin cortes, las frases que llegan del turno de voz en streaming,
 // y va revelando el texto palabra por palabra en el instante en que se pronuncia (tipo karaoke).
 //
 // Con un AudioContext corriendo: cada frase se decodifica y se agenda en la línea de tiempo del
 // contexto (sin huecos entre frases). Si el navegador lo dejó suspendido, cae a <audio> en fila:
-// suena igual, pero cada frase aparece entera al empezar a sonar.
+// cada frase aparece entera al empezar a sonar, y sin el filtro robótico (va por Web Audio).
 
 export type Palabra = [texto: string, espacio: string, inicio: number, fin: number]
 export type FraseDeVoz = { i: number; texto: string; mime: string; audio: string; palabras: Palabra[]; dur: number }
@@ -35,11 +37,13 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
   let fallbackCola: Promise<void> = Promise.resolve()
   let hablado = ""
 
-  // fuente → analizador (mide el volumen de la voz) → ganancia (baja la voz si hablas encima) → parlantes
+  // fuente → robot (timbre tipo EVA) → analizador (mide el volumen) → ganancia (baja la voz si hablas encima) → parlantes
+  const robot = conWebAudio ? crearVozRobot(ctx!) : null
   const analizador = conWebAudio ? ctx!.createAnalyser() : null
   const ganancia = conWebAudio ? ctx!.createGain() : null
-  if (analizador && ganancia) {
+  if (robot && analizador && ganancia) {
     analizador.fftSize = 512
+    robot.salida.connect(analizador)
     analizador.connect(ganancia)
     ganancia.connect(ctx!.destination)
   }
@@ -79,7 +83,7 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
     siguiente = inicio + buffer.duration
     const fuente = ctx!.createBufferSource()
     fuente.buffer = buffer
-    fuente.connect(analizador!)
+    fuente.connect(robot!.entrada)
     pendientes++
     fuente.onended = () => {
       pendientes--
@@ -153,6 +157,7 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
         }
       }
       fallbackAudio?.pause()
+      robot?.cerrar()
       analizador?.disconnect()
       ganancia?.disconnect()
       pendientes = 0
@@ -175,6 +180,7 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
     },
     cerrar() {
       cancelAnimationFrame(raf)
+      robot?.cerrar()
       analizador?.disconnect()
       ganancia?.disconnect()
       alNivel(0)

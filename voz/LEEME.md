@@ -10,6 +10,11 @@ voz sigue saliendo del `qwen3.6:27b` de la Z6; solo oír y hablar viven aquí.
 | Boca alternativa | Qwen3-TTS 12Hz 0.6B CustomVoice, voz Ryan (Apache 2.0) | misma GPU, float32 (4,4 GB) | Más natural, pero en producción tardaba 9-11 s la primera frase y dejaba silencios de ~5 s entre frases (~2× más lento que el audio). Se cambió a Kokoro el 2026-11-14. Volver: `HVOZ_MOTOR=qwen` (ver la unidad) |
 | Oído | faster-whisper **`large-v3-turbo`**, float16 (MIT), con pistas de vocabulario | GPU de Geografo, ~1,6 GB | ~0,22 s por pregunta y el más preciso del banco (ver abajo). Antes `small.en` (~0,12 s, más errores); en CPU tardaba ~1,7 s. `argus-voz` (Z6) solo transcribe español |
 
+**Voz tipo EVA (2026-11-15):** el API pide `af_heart` (Kokoro, femenina, ya en la caché por el
+banco STT; se cambia con `HVOZ_VOZ_EN` en el `.env` de VPS2) y el navegador le pone el timbre
+robótico (`apps/web/src/prueba-ia/vozRobot.ts`: anillo de 70 Hz, peine de 7 ms y brillo en 3,2 kHz).
+El servicio de Geografo no cambió: su voz por defecto sigue siendo `am_michael`.
+
 ## Por qué Geografo y no la Z6
 
 Se instaló primero en la Z6 y la segunda frase falló con `CUDA out of memory`: la Quadro RTX 6000

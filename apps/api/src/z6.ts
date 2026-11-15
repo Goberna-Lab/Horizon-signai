@@ -11,8 +11,8 @@ const textoUrl = () => process.env.TEXTO_URL ?? "http://100.117.204.80:11434"
 const textoModelo = () => process.env.TEXTO_MODELO ?? "qwen3:8b"
 const TIMEOUT_MS = Number(process.env.Z6_TIMEOUT_MS ?? 120_000)
 const MAX_BYTES = 64 * 1024
-// Voz del chat. Con HVOZ_URL: horizon-voz en Geografo (inglés, Qwen3-TTS «Ryan» en GPU + whisper
-// small.en en CPU; ver voz/LEEME.md). Sin ella: argus-voz de Ivi en la Z6 (español, Piper), de respaldo.
+// Voz del chat. Con HVOZ_URL: horizon-voz en Geografo (inglés, Kokoro en GPU + whisper
+// en GPU; ver voz/LEEME.md). Sin ella: argus-voz de Ivi en la Z6 (español, Piper), de respaldo.
 type ServicioVoz = { url: string; token?: string; idioma: "en" | "es" }
 const servicioVoz = (): ServicioVoz =>
   process.env.HVOZ_URL
@@ -20,6 +20,9 @@ const servicioVoz = (): ServicioVoz =>
     : { url: process.env.VOZ_URL ?? "http://100.82.117.21:8795", token: process.env.VOZ_TOKEN, idioma: "es" }
 const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
+// Voz del asistente en inglés: femenina (Kokoro «af_heart», ya en la caché de Geografo). El toque robótico
+// tipo EVA se le pone en el navegador (apps/web/src/prueba-ia/vozRobot.ts). Se cambia con HVOZ_VOZ_EN.
+const vozEn = () => process.env.HVOZ_VOZ_EN ?? "af_heart"
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
 const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
@@ -229,7 +232,7 @@ const turnoDeVoz = (msgs: Mensaje[], formato: string, señal: AbortSignal, acuse
           method: "POST",
           headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
           body: JSON.stringify(
-            voz.idioma === "en" ? { texto, formato, palabras: true } : { texto, voz: "es-ivi" },
+            voz.idioma === "en" ? { texto, formato, palabras: true, voz: vozEn() } : { texto, voz: "es-ivi" },
           ),
           signal: AbortSignal.any([corte.signal, AbortSignal.timeout(TIMEOUT_VOZ_MS)]),
         })
@@ -574,9 +577,9 @@ export const z6 = new Hono()
         headers: { Authorization: `Bearer ${v.token}` },
         signal: AbortSignal.timeout(3000),
       })
-      const d = (await r.json()) as { motor?: string; voz?: string }
-      // «am_michael» → «Michael»
-      const voz = (d.voz ?? "").replace(/^[a-z]{2}_/, "").replace(/^./, (x) => x.toUpperCase())
+      const d = (await r.json()) as { motor?: string }
+      // «af_heart» → «Heart»: la que pide este API, no la que el servicio tiene por defecto
+      const voz = vozEn().replace(/^[a-z]{2}_/, "").replace(/^./, (x) => x.toUpperCase())
       return c.json({ idioma: "en", voz: voz || "?", motor: NOMBRES[d.motor ?? ""] ?? d.motor ?? "?", equipo: "Geografo" })
     } catch {
       return c.json({ idioma: "en", voz: "?", motor: "sin respuesta", equipo: "Geografo" })
@@ -684,8 +687,7 @@ export const z6 = new Hono()
       const r = await fetch(`${voz.url}/v1/hablar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${voz.token}`, "Content-Type": "application/json" },
-        // horizon-voz usa su voz por defecto (Ryan); argus-voz necesita la suya.
-        body: JSON.stringify(voz.idioma === "en" ? { texto } : { texto, voz: "es-ivi" }),
+        body: JSON.stringify(voz.idioma === "en" ? { texto, voz: vozEn() } : { texto, voz: "es-ivi" }),
         signal: AbortSignal.timeout(TIMEOUT_VOZ_MS),
       })
       if (!r.ok) return c.json({ ok: false, error: `Voz respondió ${r.status}` }, 502)
