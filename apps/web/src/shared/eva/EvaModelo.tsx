@@ -14,6 +14,7 @@ import {
   geometriasEva,
   LUZ,
   PLOMO,
+  VISORES,
   type VisorEva,
 } from "./materiales"
 
@@ -29,6 +30,11 @@ type Props = {
   velocidad?: RefObject<{ x: number; y: number }>
   /** Hacia dónde apunta con su rayo (−1..1; x a la derecha, y hacia arriba) o null. Mira hacia allá y da un destello al empezar. */
   mirar?: RefObject<{ x: number; y: number } | null>
+  /**
+   * Salida: dónde quedan sus dos ojos dentro del lienzo, en cada cuadro, como fracción de su ancho y su alto
+   * (x0, y0, x1, y1; el origen es la esquina de arriba a la izquierda). De ahí sale el rayo con el que apunta.
+   */
+  ojos?: RefObject<Float32Array>
   /** Forma del visor. Por defecto `domo`, la de la referencia. */
   visor?: VisorEva
   /** Color de su luz. Por defecto LUZ («luz de Tierra»). */
@@ -50,7 +56,7 @@ export const CAMARA_EVA = { fov: 28, position: [0, 0.186, 6.3], rotation: [-0.04
  * Qué hace en cada estado y cómo pasa de uno a otro: animacion.ts. Cómo se pinta: materiales.ts.
  * Se dibuja dentro de un <Canvas> (ver EvaLienzo). No necesita luces: trae su estudio de reflejos.
  */
-export function EvaModelo({ estado, nivel, velocidad, mirar, visor = "domo", luz = LUZ, animacion }: Props) {
+export function EvaModelo({ estado, nivel, velocidad, mirar, ojos, visor = "domo", luz = LUZ, animacion }: Props) {
   const gl = useThree((s) => s.gl)
   const raiz = useRef<THREE.Group>(null!)
   const esfera = useRef<THREE.Group>(null!)
@@ -111,6 +117,7 @@ export function EvaModelo({ estado, nivel, velocidad, mirar, visor = "domo", luz
   const mira = useRef({ x: 0, y: 0 })
   const giro = useMemo(() => new THREE.Quaternion(), [])
   const lente = useMemo(() => new THREE.Vector3(), [])
+  const ojo = useMemo(() => new THREE.Vector3(), [])
 
   useFrame((s, dt) => {
     const e = entrada.current
@@ -149,6 +156,20 @@ export function EvaModelo({ estado, nivel, velocidad, mirar, visor = "domo", luz
     raiz.current.updateMatrixWorld()
     estela.current.worldToLocal(esfera.current.localToWorld(lente.set(0, -1.03, 0)))
     piezas.estela.uniforms.uLente.value.set(lente.x * ESTELA.ancho, lente.y * ESTELA.alto)
+
+    // Dónde cae cada ojo en el lienzo. La pantalla del visor usa longitud y latitud sobre la esfera (materiales.ts):
+    // el centro de cada ojo se pasa a un punto de la esfera, luego al mundo y de ahí a la cámara.
+    if (ojos?.current) {
+      const forma = VISORES[visor]
+      for (let k = 0; k < 2; k++) {
+        const lon = pose.ojos[k * 16] * forma.escala
+        const lat = pose.ojos[k * 16 + 1] * forma.escala + forma.ojosY + forma.latitud
+        ojo.set(Math.sin(lon) * Math.cos(lat), Math.sin(lat), Math.cos(lon) * Math.cos(lat))
+        esfera.current.localToWorld(ojo).project(s.camera)
+        ojos.current[k * 2] = (ojo.x + 1) / 2
+        ojos.current[k * 2 + 1] = (1 - ojo.y) / 2
+      }
+    }
 
     const u = piezas.u
     const h = pose.hud

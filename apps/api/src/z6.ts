@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
-import { clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
+import { atenuarWav, clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
 import { contextoRag } from "./assistant/rag.js"
 import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
@@ -31,6 +31,10 @@ const servicioPara = (idioma: Idioma): ServicioVoz => {
   return { url: process.env.VOZ_URL ?? "http://100.82.117.21:8795", token: process.env.VOZ_TOKEN, idioma: "es" }
 }
 const TIMEOUT_ES_MS = 10_000
+// La voz de español (Piper, en argus-voz) sale unos 11 dB más alta que la de inglés (Kokoro) y con picos a tope: medido
+// el 2026-11-15 sobre el guion de EVA, −15 dB de media y −0,3 dB de pico contra −26 dB y −8 dB. Se baja al salir de
+// aquí (0,3 ≈ −10,5 dB) para que suene igual en los dos idiomas y el timbre que el navegador le suma no sature.
+const GANANCIA_ES = 0.3
 const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
 // Voz en inglés: cada asistente (VERA, LUMA) tiene la suya de Kokoro (ver asistentes.ts). La entonación
@@ -210,11 +214,13 @@ const vozDeFrase = async (texto: string, formato: string, persona: Persona, señ
       signal: AbortSignal.any([señal, AbortSignal.timeout(limite)]),
     })
   let r: Response | null = null
+  let deArgus = base.idioma === "es" // la voz de siempre ya es la de español
   const es = servicioPara(persona.idioma)
   if (es.idioma === "es" && base.idioma === "en") {
     // Español por argus-voz, con poco margen: si falla, sigue con la voz de siempre.
     r = await pedirVoz(es, "es-ivi", TIMEOUT_ES_MS).catch(() => null)
-    if (!r?.ok) {
+    if (r?.ok) deArgus = true
+    else {
       r = null
       if (!señal.aborted) esCaidoHasta = Date.now() + 5 * 60_000
     }
@@ -224,7 +230,8 @@ const vozDeFrase = async (texto: string, formato: string, persona: Persona, señ
     if (!r.ok && base.idioma === "en" && vozDe(persona.asistente) !== VOZ_SEGURA) r = await pedirVoz(base, VOZ_SEGURA, TIMEOUT_VOZ_MS)
   }
   if (!r.ok) throw new Error(`Voz respondió ${r.status}`)
-  const audio = Buffer.from(await r.arrayBuffer()).toString("base64")
+  const bytes = new Uint8Array(await r.arrayBuffer())
+  const audio = Buffer.from(deArgus ? atenuarWav(bytes, GANANCIA_ES) : bytes).toString("base64")
   const dur = Number(r.headers.get("x-duracion") ?? 0)
   let palabras: unknown = [[texto, "", 0, dur]]
   try {

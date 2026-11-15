@@ -2,9 +2,12 @@
 // (`es`) para cuando la persona le habla en español. Cifras y definiciones: docs/04-planificador.md.
 //
 // Cómo se comporta (especificación de Estephano, 2026-11-15):
-// - Empieza apagada. Cuando sale el Sol se enciende, se carga, saluda, pregunta el nombre y ofrece enseñar
-//   a planificar una misión (ver TEXTOS). Si aceptan, da la lección: lleva al Planificador y lo recorre
-//   parte por parte.
+// - Empieza apagada. Cuando sale el Sol se enciende, se carga y, antes que nada, pregunta el idioma (dos botones:
+//   English o Español). Luego saluda, pregunta el nombre y pregunta quién llega para dar su recorrido guiado
+//   (ver TEXTOS y recorridos.ts).
+// - Todo lo que dice por su cuenta está escrito aquí y en recorridos.ts, y su voz está grabada (vozGrabada.ts): para
+//   decir el guion no se le pide nada al servidor. Si se cambia una frase, hay que volver a grabarla
+//   (apps/web/scripts/grabar-voz-eva.ts; la prueba vozGrabada.test.ts avisa de las que faltan).
 // - Juguetona cuando todo va bien: un dato real del entorno y un chiste corto al final (`texto`).
 // - Seria cuando hay peligro: con un aviso crítico activo no bromea, solo dice el aviso (`serio`).
 // - No parlanchina: fuera de la lección, como mucho un comentario cada 90 s, nunca encima de otra cosa, un
@@ -178,8 +181,8 @@ export function guionDe(ruta: string, pagina = ""): Guion {
         {
           id: "lm-hito",
           selector: "#steps",
-          texto: "Mission control. The next milestone and its countdown sit up here. Deadlines feel the same on the Moon, I checked.",
-          es: { texto: "Control de misión. Aquí arriba están el próximo hito y su cuenta regresiva. Los plazos se sienten igual en la Luna, lo comprobé." },
+          texto: "Mission control, with an example campaign. The next milestone and its countdown sit up here. Deadlines feel the same on the Moon, I checked.",
+          es: { texto: "Control de misión, con una campaña de ejemplo. Aquí arriba están el próximo hito y su cuenta regresiva. Los plazos se sienten igual en la Luna, lo comprobé." },
         },
         {
           id: "lm-firma",
@@ -196,8 +199,9 @@ export function guionDe(ruta: string, pagina = ""): Guion {
         {
           id: "lm-misiones",
           selector: "#mlist",
-          texto: "The missions of this campaign. Open one to plan its landing. I will float along.",
-          es: { texto: "Las misiones de esta campaña. Abre una para planificar su alunizaje. Yo voy flotando contigo." },
+          // Elegir una misión la resalta en esta página (bitácora, calendario y mapa); no abre el planificador.
+          texto: "The missions of this example campaign. Pick one to see its log, its dates and its place on the map. To plan a landing, open Planner, up top.",
+          es: { texto: "Las misiones de esta campaña de ejemplo. Elige una para ver su bitácora, sus fechas y su lugar en el mapa. Para planificar un alunizaje, abre Planificador, arriba." },
         },
       ],
     }
@@ -298,15 +302,17 @@ export function guionDe(ruta: string, pagina = ""): Guion {
   }
   if (ruta.startsWith("/simulador")) {
     return {
-      pantalla: "Simulator (rehearse the descent)",
+      // El alunizaje del Apollo en el polo sur (features/simulator/LandingSimulator.tsx): lo vuela el guiado, sin control
+      // manual; la cámara se gira arrastrando. Los avisos del descenso se los manda el simulador (`avisarEva`).
+      pantalla: "Simulator: an automatic Apollo-style powered descent to the lunar south pole, with telemetry, a descent map and an altitude profile; the outcome depends on the terrain under the legs",
       comentarios: [
         {
           id: "sim",
-          texto: "The simulator. You rehearse the descent before the real thing. Lunar gravity is one sixth of Earth's, so be gentle with the throttle.",
-          serio: "The simulator. Rehearse the descent before the real thing.",
+          texto: "The simulator: an Apollo-style descent to the south pole. The guidance flies it, not you. Drag to orbit the lander. I will call out the terrain.",
+          serio: "The simulator: an Apollo-style descent to the south pole. The guidance flies it. Drag to orbit the lander.",
           es: {
-            texto: "El simulador. Ensayas el descenso antes del de verdad. La gravedad lunar es un sexto de la terrestre, así que suave con el acelerador.",
-            serio: "El simulador. Ensaya el descenso antes del de verdad.",
+            texto: "El simulador: un descenso al estilo Apollo en el polo sur. Lo vuela el guiado, no tú. Arrastra para girar alrededor de la nave. Yo te aviso del terreno.",
+            serio: "El simulador: un descenso al estilo Apollo en el polo sur. Lo vuela el guiado. Arrastra para girar alrededor de la nave.",
           },
         },
       ],
@@ -417,8 +423,15 @@ export const TEXTOS = {
     oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. I can guide you through the whole thing. Who is visiting today?` : "I can guide you through the whole thing. Who is visiting today?"),
     /** El recorrido guiado: la pregunta desde el panel y los botones de cada paso. */
     quien: "I can guide you, step by step. Who is visiting today?",
+    /** Lo primero que pregunta, antes de saludar: en qué idioma seguir. Se contesta con dos botones. */
+    cualIdioma: "English or Spanish?",
+    /** Lo que muestra mientras toda la app pasa a este idioma (la página se recarga). */
+    reconfigurando: "Reconfiguring language…",
     siguiente: "Next",
     parar: "Stop",
+    /** El campo para preguntarle en medio de un recorrido: una pregunta la contesta la IA y el recorrido sigue donde iba. */
+    duda: "Ask me about this…",
+    dudaRotulo: "Your question for EVA about this step",
     recorrido: "Guided tour",
     leccion: "Great. This is Mission control. I will walk you through it, one part at a time.",
     luego: "No problem. Tap me whenever you want to talk.",
@@ -458,8 +471,12 @@ export const TEXTOS = {
     deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. Puedo guiarte por todo. ¿Quién nos visita hoy?`,
     oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. Puedo guiarte por todo. ¿Quién nos visita hoy?` : "Puedo guiarte por todo. ¿Quién nos visita hoy?"),
     quien: "Puedo guiarte, paso a paso. ¿Quién nos visita hoy?",
+    cualIdioma: "¿Inglés o español?",
+    reconfigurando: "Reconfigurando idioma…",
     siguiente: "Siguiente",
     parar: "Parar",
+    duda: "Pregúntame sobre esto…",
+    dudaRotulo: "Tu pregunta para EVA sobre este paso",
     recorrido: "Recorrido guiado",
     leccion: "Genial. Este es el control de misión. Te lo muestro parte por parte.",
     luego: "No hay problema. Tócame cuando quieras hablar.",

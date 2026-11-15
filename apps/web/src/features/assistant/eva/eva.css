@@ -46,6 +46,9 @@
   animation: eva-aparecer 0.25s ease-out both;
 }
 .eva-caja--derecha .eva-globo { right: auto; left: 78%; border-radius: 14px 14px 14px 4px; }
+/* Si EVA quedó muy arriba (apunta a algo del borde de arriba), el globo se abre hacia abajo para no salirse. */
+.eva-caja--alta .eva-globo { bottom: auto; top: 74%; border-radius: 14px 4px 14px 14px; }
+.eva-caja--alta.eva-caja--derecha .eva-globo { border-radius: 4px 14px 14px 14px; }
 
 /* Una pregunta de EVA: el globo con el campo o los botones para contestarle. */
 .eva-globo--pregunta { display: grid; gap: 8px; }
@@ -75,6 +78,11 @@
 /* «¿Quién nos visita?»: tres recorridos y «ahora no», en dos filas si no caben. */
 .eva-pregunta--quien { flex-wrap: wrap; }
 .eva-pregunta .eva-pregunta__suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
+.eva-pregunta button:disabled { opacity: 0.4; cursor: not-allowed; }
+/* «English or Spanish?»: lo primero que pregunta. Dos botones del mismo ancho, fáciles de tocar. */
+.eva-pregunta--idioma button { flex: 1; min-width: 104px; padding: 9px 14px; font-weight: 600; }
+/* En un paso del recorrido, debajo de «Next» y «Stop»: el campo para preguntarle algo. */
+.eva-pregunta--duda input { width: 190px; font-size: 0.82rem; }
 
 /* Panel: escribirle, hablarle por voz, silenciar, repetir consejos, olvidar. */
 .eva-panel {
@@ -96,6 +104,9 @@
   animation: eva-aparecer 0.2s ease-out both;
 }
 .eva-caja--derecha .eva-panel { right: auto; left: 92%; }
+/* Hacia abajo cuando EVA está en la mitad de arriba; el alto máximo lo pone EvaCompanera según el sitio que hay. */
+.eva-panel { overflow-y: auto; overscroll-behavior: contain; }
+.eva-panel--abajo { bottom: auto; top: 30%; }
 .eva-panel__cabeza { display: flex; align-items: center; gap: 8px; }
 .eva-panel__nombre { flex: 1; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.76rem; }
 .eva-panel__icono {
@@ -153,49 +164,101 @@
 .eva-panel__nota { margin: 0; color: #6b655c; font-size: 0.7rem; }
 
 /*
- * El rayo con el que EVA apunta a la parte de la pantalla de la que habla: una línea desde su visor hasta esa
- * parte y cuatro esquinas que la encierran. Va en una capa aparte, encima de todo (también del Planificador
- * incrustado), sin recibir clics. Rojo de la marca: se lee sobre papel y sobre noche, como un puntero láser.
+ * El rayo con el que EVA apunta a la parte de la pantalla de la que habla. Dos haces finos salen de sus ojos (con la
+ * luz de sus ojos al nacer y el rojo de la marca al llegar) y se juntan en esa parte. La parte queda encerrada en un
+ * cerco que parpadea, y un velo oscurece un poco todo lo demás para que resalte. Va en una capa aparte, encima de
+ * todo (también del Planificador incrustado) y debajo de EVA, sin recibir clics.
+ * Pedido de Estephano (2026-11-15): más fino, que salga de los ojos, que lo resaltado se note y parpadee más, y
+ * que oscurezca.
  */
+.eva-rayos {
+  --eva-rojo: #c8102e;
+  --eva-luz: #9ad7ff;
+}
 .eva-rayo {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 8999;
   pointer-events: none;
   overflow: visible;
-  animation: eva-rayo-sale 0.14s ease-out both;
 }
-.eva-rayo__halo { stroke: var(--eva-rojo, #c8102e); stroke-width: 8; stroke-linecap: round; opacity: 0.2; filter: blur(3px); }
-.eva-rayo__haz {
-  stroke: var(--eva-rojo, #c8102e);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-dasharray: 3 7;
-  animation: eva-rayo-corre 0.45s linear infinite;
-}
-.eva-rayo__punta { fill: var(--eva-rojo, #c8102e); animation: eva-rayo-late 0.9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+/* Dos capas: el velo y el cerco van debajo de EVA; los haces, encima, para que nazcan en sus ojos. */
+.eva-rayo--fondo { z-index: 8999; }
+.eva-rayo--haces { z-index: 9001; transition: opacity 0.5s ease; }
+/*
+ * En descanso (el recorrido espera en su paso): se va el velo y se apagan los haces; queda el cerco, latiendo
+ * despacio, para que la pantalla se pueda usar sin perder de vista de qué hablaba.
+ */
+.eva-rayos[data-reposo] .eva-rayo__velo { fill-opacity: 0; }
+.eva-rayos[data-reposo] .eva-rayo--haces { opacity: 0; }
+.eva-rayos[data-reposo] .eva-rayo__marco,
+.eva-rayos[data-reposo] .eva-rayo__cerco { animation: eva-latido 2.4s ease-in-out infinite; }
+/* El velo: toda la pantalla menos un hueco con la forma de lo que señala. */
+.eva-rayo__velo { fill: #0a0c11; fill-opacity: 0.3; animation: eva-velo 0.35s ease-out; transition: fill-opacity 0.6s ease; }
+/* Al llegar, la parte se enciende dos veces con la luz de sus ojos. */
+.eva-rayo__destello { fill: var(--eva-luz); opacity: 0; animation: eva-destello 0.42s ease-out 0.1s 2 both; }
+.eva-rayo__marco,
 .eva-rayo__cerco {
   fill: none;
-  stroke: var(--eva-rojo, #c8102e);
-  stroke-width: 2;
+  stroke: var(--eva-rojo);
   stroke-linecap: round;
   stroke-linejoin: round;
   transform-box: fill-box;
   transform-origin: center;
-  animation: eva-enfocar 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, eva-foco 1.6s ease-in-out 0.4s infinite;
+  animation: eva-enfocar 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, eva-parpadeo 1.5s linear 1s infinite;
 }
+.eva-rayo__marco { stroke-width: 1.4; filter: drop-shadow(0 0 5px rgba(200, 16, 46, 0.8)); }
+.eva-rayo__cerco { stroke-width: 3.2; }
+/* Los haces: un halo tenue, el haz fino que se dispara desde el ojo y unos pulsos de luz que corren hacia la punta. */
+.eva-rayo__ojo { animation: eva-rayo-sale 0.12s ease-out both; }
+.eva-rayo__halo { fill: none; stroke: var(--eva-rojo); stroke-width: 5; stroke-linecap: round; opacity: 0.13; }
+.eva-rayo__haz { fill: none; stroke-width: 1.1; stroke-linecap: round; stroke-dasharray: 1; animation: eva-rayo-dispara 0.2s ease-out both; }
+.eva-rayo__pulso {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-dasharray: 0.035 0.215;
+  opacity: 0;
+  animation: eva-rayo-corre 0.55s linear 0.2s infinite;
+}
+.eva-rayo__punta { fill: var(--eva-rojo); }
+/* El punto de luz en cada ojo, de donde nace el haz. */
+.eva-rayo__brillo {
+  fill: #fff;
+  filter: drop-shadow(0 0 3px var(--eva-luz));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eva-rayo-late 0.9s ease-in-out infinite;
+}
+.eva-rayo__onda {
+  fill: none;
+  stroke: var(--eva-rojo);
+  stroke-width: 1.2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eva-rayo-onda 1.1s ease-out 0.2s infinite;
+}
+/* Pegada a lo que señala no hay haz que valga: quedan el cerco y el velo. */
+.eva-rayos[data-corto] .eva-rayo--haces { display: none; }
 
 @keyframes eva-aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes eva-foco { 50% { stroke-opacity: 0.45; } }
-@keyframes eva-rayo-sale { from { opacity: 0; } }
-@keyframes eva-rayo-corre { to { stroke-dashoffset: -10; } }
-@keyframes eva-rayo-late { 50% { transform: scale(1.7); opacity: 0.55; } }
+@keyframes eva-velo { from { fill-opacity: 0; } }
+@keyframes eva-destello { 0% { opacity: 0; } 30% { opacity: 0.3; } 100% { opacity: 0; } }
 @keyframes eva-enfocar { from { transform: scale(1.22); opacity: 0; } }
+/* Dos parpadeos seguidos y una pausa, como la mira de un instrumento. */
+@keyframes eva-parpadeo { 0%, 46% { opacity: 1; } 56% { opacity: 0.15; } 66% { opacity: 1; } 76% { opacity: 0.15; } 86%, 100% { opacity: 1; } }
+@keyframes eva-rayo-sale { from { opacity: 0; } }
+@keyframes eva-latido { 50% { opacity: 0.45; } }
+@keyframes eva-rayo-late { 50% { transform: scale(1.4); opacity: 0.65; } }
+@keyframes eva-rayo-dispara { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes eva-rayo-corre { from { stroke-dashoffset: 0; opacity: 0.85; } to { stroke-dashoffset: -0.25; opacity: 0.85; } }
+@keyframes eva-rayo-onda { from { transform: scale(0.6); opacity: 0.9; } to { transform: scale(3.4); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .eva-globo, .eva-panel { animation: none; }
-  .eva-rayo, .eva-rayo__haz, .eva-rayo__punta, .eva-rayo__cerco { animation: none; }
+  .eva-rayo__velo, .eva-rayo__destello, .eva-rayo__marco, .eva-rayo__cerco, .eva-rayo__ojo, .eva-rayo__haz, .eva-rayo__pulso, .eva-rayo__onda, .eva-rayo__brillo { animation: none; }
+  .eva-rayo__pulso, .eva-rayo__onda { display: none; }
   .eva-cuerpo { transition: none; }
 }
