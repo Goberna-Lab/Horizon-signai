@@ -31,6 +31,13 @@ src/
     simulator/             /simulador    Simulador 3D
       components/SceneCanvas.tsx  Canvas base de react-three-fiber
       scenes/registry.ts          Registro de escenas 3D
+      LandingSimulator.tsx        Monta el alunizaje (lo que hoy muestra /simulador)
+      alunizaje/                  Alunizaje del Apollo 11 en Connecting Ridge · RoI 6, motor sin React:
+        world.ts                  terreno del sitio, cielo, luz y bucle de dibujo
+        landing.ts                descenso desde 500 m, cámara que orbita la nave, ruta 3D, mapa, perfil y velocidad
+        engine/                   descenso.ts (copia del motor de luna-recursos) y el descenso nominal
+        data/                     fine.i16 (6 km a 10 m) y wide.i16 (20 km a 80 m) en decímetros, site.json (Sol,
+                                  Tierra y horizonte del sitio) y el módulo lunar (NASA 3D Resources, Draco)
   shared/                  Código usado por más de una feature
     lib/api.ts             Cliente tipado del API (Hono RPC)
     ui/ComingSoon.tsx      Pantalla provisional ("SOON") para las rutas sin contenido
