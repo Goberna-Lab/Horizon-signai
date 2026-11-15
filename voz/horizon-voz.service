@@ -1,5 +1,5 @@
 [Unit]
-Description=Horizon voz — Kokoro «am_michael» (GPU) y faster-whisper en inglés (CPU) para el chat de voz de Horizon
+Description=Horizon voz — Kokoro «am_michael» y faster-whisper en inglés (ambos en GPU) para el chat de voz de Horizon
 # Servicio de USUARIO (systemctl --user) de manolito en Geografo: ~/.config/systemd/user/.
 # Escucha solo en la IP del tailnet; necesita `loginctl enable-linger manolito` para arrancar sin sesión.
 After=network-online.target
@@ -17,6 +17,8 @@ Environment=HVOZ_MOTOR=kokoro
 Environment=HVOZ_VOZ=am_michael
 Environment=HVOZ_IDIOMA=English
 Environment=HVOZ_MODELO_STT=%h/.local/share/horizon-voz/modelos/faster-whisper-small.en
+# Oído en GPU (~0,17 s); «cpu» lo devuelve a la CPU (~1,7 s). HVOZ_HILOS_STT solo aplica en CPU.
+Environment=HVOZ_DISPOSITIVO_STT=cuda
 Environment=HVOZ_HILOS_STT=4
 Environment=HF_HOME=%h/.local/share/horizon-voz/cache
 Environment=HF_HUB_OFFLINE=1

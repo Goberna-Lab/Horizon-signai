@@ -4,6 +4,8 @@ kokoro
 misaki[en]
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 faster-whisper
+# el oído va en GPU: CTranslate2 pide cuBLAS 12 y el torch del venv trae CUDA 13 (cuDNN 9 ya viene)
+nvidia-cublas-cu12
 # faster-whisper 1.2 usa av.open(metadata_errors=...), que PyAV 16+ quitó
 av>=11,<16
 fastapi

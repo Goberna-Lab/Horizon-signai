@@ -5,7 +5,8 @@
     primera frase suena en menos de un segundo. Es la que usa el chat de voz.
   - `qwen`: Qwen3-TTS 0.6B CustomVoice, voz «Ryan». Más natural pero ~2× más lento que el
     audio (esperas de ~10 s por frase en producción); queda como alternativa.
-- Oído: faster-whisper en CPU (int8), para no competir por la GPU con Ollama.
+- Oído: faster-whisper en GPU (float16, ~0,17 s por frase; en CPU int8 tardaba ~1,7 s). Con
+  HVOZ_DISPOSITIVO_STT=cpu, o si la GPU falla al cargar, vuelve a la CPU.
 
 Contrato (todo con `Authorization: Bearer <token>`, comprobado ANTES de leer el cuerpo):
   POST /v1/hablar       {"texto": "...", "voz"?, "formato"?: "wav"|"opus"|"mp3", "palabras"?: bool}
@@ -18,6 +19,8 @@ Una petición a la vez por tipo: la GPU y la CPU no se reparten entre pedidos.
 """
 
 import asyncio
+import ctypes
+import gc
 import hmac
 import io
 import json
@@ -43,11 +46,12 @@ VOZ = os.environ.get("HVOZ_VOZ", "am_michael" if MOTOR == "kokoro" else "Ryan")
 IDIOMA = os.environ.get("HVOZ_IDIOMA", "English")
 MODELO_STT = os.environ.get("HVOZ_MODELO_STT", "small.en")
 HILOS_STT = int(os.environ.get("HVOZ_HILOS_STT", "6"))
+DISPOSITIVO_STT = os.environ.get("HVOZ_DISPOSITIVO_STT", "cuda")
 DTYPE = {"float32": torch.float32, "bfloat16": torch.bfloat16}[os.environ.get("HVOZ_DTYPE", "float32")]
 MAX_TEXTO = 600
 MAX_AUDIO = 5 * 1024 * 1024
 
-estado = {"tts": None, "stt": None, "cola_tts": 0, "cola_stt": 0}
+estado = {"tts": None, "stt": None, "stt_en": "", "cola_tts": 0, "cola_stt": 0}
 candado_tts = asyncio.Lock()
 candado_stt = asyncio.Lock()
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -79,9 +83,34 @@ def cargar():
             MODELO_TTS, device_map="cuda:0", dtype=DTYPE, attn_implementation="sdpa"
         )
         tts.generate_custom_voice(text="Hi.", language=IDIOMA, speaker=VOZ)  # calentar
-    stt = WhisperModel(MODELO_STT, device="cpu", compute_type="int8", cpu_threads=HILOS_STT)
-    estado.update(tts=tts, stt=stt)
+    stt, stt_en = cargar_oido(WhisperModel)
+    estado.update(tts=tts, stt=stt, stt_en=stt_en)
+    # faster-whisper llama a gc.collect() en cada decodificación; con torch, spaCy y Kokoro cargados
+    # recorrer todos sus objetos costaba ~200 ms por pregunta. Congelados (viven todo el proceso), ~20 ms.
+    gc.freeze()
     print(f"modelos cargados en {time.perf_counter() - t:.1f} s", flush=True)
+
+
+def cargar_oido(WhisperModel):
+    """faster-whisper en GPU si se puede; si no, en CPU. Devuelve (modelo, "cuda/float16" | "cpu/int8")."""
+    if DISPOSITIVO_STT == "cuda":
+        try:
+            # CTranslate2 (motor de faster-whisper) busca libcublas.so.12, pero el torch de este venv
+            # trae CUDA 13. Se cargan antes las de `nvidia-cublas-cu12` para que las encuentre por soname.
+            import nvidia.cublas
+
+            lib = Path(list(nvidia.cublas.__path__)[0]) / "lib"
+            for nombre in ("libcublasLt.so.12", "libcublas.so.12"):
+                ctypes.CDLL(str(lib / nombre), mode=ctypes.RTLD_GLOBAL)
+            stt = WhisperModel(MODELO_STT, device="cuda", compute_type="float16")
+            # Calentar: la primera transcripción en GPU tarda ~0,9 s; que no la pague un usuario.
+            ruido = (np.random.default_rng(0).standard_normal(16000) * 0.01).astype(np.float32)
+            list(stt.transcribe(ruido, language="en", beam_size=1)[0])
+            list(stt.transcribe(ruido, language="en", beam_size=1, vad_filter=True)[0])  # y el VAD
+            return stt, "cuda/float16"
+        except Exception as e:  # sin GPU o sin librerías: el oído sigue funcionando en CPU
+            print(f"oído en GPU no disponible ({e}); uso la CPU", flush=True)
+    return WhisperModel(MODELO_STT, device="cpu", compute_type="int8", cpu_threads=HILOS_STT), "cpu/int8"
 
 
 FORMATOS = {  # formato → (contenedor de libsndfile, códec, media type)
@@ -139,6 +168,7 @@ async def salud():
         "idioma": IDIOMA,
         "tts": MODELO_TTS,
         "stt": MODELO_STT,
+        "stt_en": estado["stt_en"],
         "vram_gb": round(torch.cuda.memory_allocated() / 1e9, 2) if torch.cuda.is_available() else 0,
         "cola": {"tts": estado["cola_tts"], "stt": estado["cola_stt"]},
     }

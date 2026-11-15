@@ -8,7 +8,7 @@ voz sigue saliendo del `qwen3.6:27b` de la Z6; solo oír y hablar viven aquí.
 |---|---|---|---|
 | Boca | **Kokoro-82M, voz `am_michael`** (Apache 2.0), inglés americano nativo | GPU de Geografo (RTX A4000), 0,9 GB | ~0,12 s por frase: la voz suena casi a la vez que llega la respuesta |
 | Boca alternativa | Qwen3-TTS 12Hz 0.6B CustomVoice, voz Ryan (Apache 2.0) | misma GPU, float32 (4,4 GB) | Más natural, pero en producción tardaba 9-11 s la primera frase y dejaba silencios de ~5 s entre frases (~2× más lento que el audio). Se cambió a Kokoro el 2026-11-14. Volver: `HVOZ_MOTOR=qwen` (ver la unidad) |
-| Oído | faster-whisper `small.en`, int8 (MIT) | CPU de Geografo | `argus-voz` (Z6) solo transcribe español |
+| Oído | faster-whisper `small.en`, float16 (MIT) | GPU de Geografo, ~0,5 GB | ~0,17 s por pregunta (en CPU int8 tardaba ~1,7 s; pasó a GPU el 2026-11-14). `argus-voz` (Z6) solo transcribe español |
 
 ## Por qué Geografo y no la Z6
 
@@ -22,7 +22,13 @@ decodificar el audio. No caben juntos. En la Z6 quedó instalado pero **desactiv
 - Kokoro `am_michael`: **0,12-0,13 s** por frase (2,8-5,7 s de audio). VRAM 0,9 GB.
 - Ryan (alternativa): ~1,7-2,7× tiempo real, 4,4 GB. La página pide la voz **frase por frase**
   y reproduce una mientras se genera la siguiente, lo que con Ryan disimulaba parte de la espera.
-- Oído: ~1,7-2 s.
+- Oído: ~0,17 s en GPU float16 (int8_float16: ~0,20 s; CPU int8: ~1,7 s), con la misma transcripción
+  de una pregunta de 6 s. La primera llamada en GPU tarda ~0,9 s: el servicio calienta el modelo al arrancar.
+  CTranslate2 pide `libcublas.so.12` y el torch del venv trae CUDA 13: por eso `nvidia-cublas-cu12`
+  en `requisitos.txt`, que `servidor.py` precarga. Si la GPU falla, el oído vuelve solo a la CPU
+  (`/v1/salud` → `stt_en`).
+  Ojo: `decode_audio` de faster-whisper hace `gc.collect()` en cada llamada; con torch y Kokoro en el
+  proceso eso sumaba ~200 ms por pregunta. `servidor.py` hace `gc.freeze()` tras cargar los modelos.
 - Kokoro necesita `misaki[en]`, el modelo `en_core_web_sm` de spaCy (en `requisitos.txt`) y
   `espeak-ng` del sistema. Sus pesos y voces están en la caché HF del servicio
   (`cache/hub/models--hexgrad--Kokoro-82M`, copiados sin enlaces) y se leen sin red.
