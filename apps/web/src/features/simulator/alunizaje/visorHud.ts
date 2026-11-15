@@ -9,7 +9,7 @@ import './visorHud.css';
 const N = 3.4; // exponente de la superelipse que sigue la abertura del casco
 const lvl = (f) => (f > 0.5 ? '#6dffc0' : f > 0.25 ? '#ffc04d' : '#ff5c70');
 const KEYS = [
-  ['e', 'E', tr('Collect', 'Recoger')], ['b', 'B', tr('Deploy', 'Instalar')], ['f', 'F', tr('Flag', 'Bandera')], ['sp', '␣', tr('Jump', 'Saltar')],
+  ['e', 'E', tr('Collect', 'Recoger')], ['sp', '␣', tr('Jump', 'Saltar')],
   ['g', 'G', tr('Sun visor', 'Visor solar')], ['l', 'L', tr('Lamps', 'Luces')], ['r', 'R', tr('Recharge', 'Recarga')], ['t', 'T', tr('Time', 'Tiempo')],
   ['q', 'Q', tr('Fly again', 'Volver a volar')],
 ];

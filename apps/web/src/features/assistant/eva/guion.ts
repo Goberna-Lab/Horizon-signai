@@ -447,18 +447,6 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     texto: "Time sped up. Your consumables noticed before you did.",
     es: { texto: "Tiempo acelerado. Tus consumibles se dieron cuenta antes que tú." },
   },
-  pata: {
-    texto: "The landing leg is fine. The lander is stable. Unlike your walking.",
-    es: { texto: "La pata está bien. La nave está estable. A diferencia de tu forma de caminar." },
-  },
-  sismometro: {
-    texto: "Seismometer listening. If the Moon says anything, you will be the second to know. After me.",
-    es: { texto: "Sismómetro escuchando. Si la Luna dice algo, lo sabrás justo después de mí." },
-  },
-  panel: {
-    texto: "Panel deployed, facing the Sun. At the pole that means almost vertical. Physics, not my idea.",
-    es: { texto: "Panel desplegado, de cara al Sol. En el polo eso es casi vertical. Física, no idea mía." },
-  },
   "muestra-sol": {
     texto: "Sample bagged. Regolith is as sharp as broken glass, by the way. Do not lick it.",
     es: { texto: "Muestra guardada. El regolito corta como vidrio roto, por cierto. No lo pruebes." },
@@ -477,6 +465,20 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
   "ausente-3": {
     texto: "If you fell asleep, at least it is quiet up here. No air, no snoring.",
     es: { texto: "Si te dormiste, al menos aquí arriba hay silencio. Sin aire no hay ronquidos." },
+    repetible: true,
+  },
+  // La caminata planificada (CR-02): fuera de la ruta y pendiente sobre el límite del Planificador (15°)
+  "fuera-de-ruta": {
+    texto: "We are off the planned route. The plan exists for a reason. Several, actually.",
+    serio: "We are off the planned route. Head back to it.",
+    es: { texto: "Estamos fuera de la ruta planificada. El plan existe por algo. Por varias cosas, en realidad.", serio: "Estamos fuera de la ruta planificada. Vuelve a ella." },
+    repetible: true,
+  },
+  pendiente: {
+    texto: "Slope over fifteen degrees, the limit of the plan. Go back to the route.",
+    serio: "Slope over fifteen degrees, the limit of the plan. Go back to the route.",
+    es: { texto: "Pendiente de más de quince grados, el límite del plan. Vuelve a la ruta.", serio: "Pendiente de más de quince grados, el límite del plan. Vuelve a la ruta." },
+    critico: true,
     repetible: true,
   },
   // Cráter grande delante y la persona intenta cruzarlo: aviso crítico con el lado por el que rodearlo

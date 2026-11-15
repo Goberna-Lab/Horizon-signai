@@ -1,15 +1,45 @@
-// @ts-nocheck — portado de nuestro simulador NASA (tareas.js, JavaScript); el tipado estricto queda pendiente.
-// Mini misiones de la caminata, con objetivos reales de una EVA de Artemis: revisar la nave, instalar un sismómetro lejos
-// del módulo, desplegar un panel donde de verdad dé el Sol, muestrear regolito iluminado y en sombra (posible hielo) y
-// volver. Las muestras, el sismómetro, el panel y la bandera son objetos de la escena; el HUD señala el objetivo con un
-// marcador y en el radar. También deja huellas de bota en el regolito.
+// @ts-nocheck — escena three.js imperativa, como caminata.ts.
+// La caminata planificada (misión CR-02 del Planificador, «Science walk to the Shackleton rim · 2 stops»): la ruta
+// científica del paso «Walk» de prototipos/lunar-map (terrain.js, ROUTES.science; mapa local de 4,7 m por píxel con el
+// módulo en (430, 640) y el norte hacia arriba) con sus dos paradas y el regreso obligatorio en la parada 2
+// (campaign.js: «Scientific route, with mandatory return at stop 2»).
+//   1 · Lit rim: muestra de regolito iluminado.   2 · Permanent shadow: muestra en sombra, posible hielo (con lámparas).
+//   Después, de vuelta al módulo por la ruta.
+// Nada más: la simulación reproduce lo planificado. El relieve del Planificador es conceptual y el de aquí es LOLA real,
+// así que cada muestra se pone en el punto con Sol (o en sombra) de verdad más cercano a su parada planificada.
+// La ruta se ve en el suelo; el HUD señala la parada siguiente y avisa si te sales de la ruta.
 import * as THREE from 'three';
 import { avisarEva } from '@/shared/eva';
 import { tr } from '@/shared/i18n';
 
 const MAX_HUELLAS = 600;
-const SEIS_MIN_M = 90; // el polvo del despegue taparía el sismómetro más cerca del módulo
-const num = (x, d = 2) => tr(x.toFixed(d), x.toFixed(d).replace('.', ','));
+const M_POR_PX = 4.7, MODULO_PX = { x: 430, y: 640 };
+const RUTA_CIENTIFICA = 'M430 640 C 470 590, 510 540, 560 520 S 760 570, 860 600 S 885 520, 893 470 S 905 390, 1000 300';
+const PARADAS_PX = [{ x: 560, y: 520 }, { x: 860, y: 600 }];
+const FUERA_DE_RUTA_M = 40;
+
+/** Muestrea un path SVG (M, L, C, S absolutos), como samplePath de prototipos/lunar-map/terrain.js. */
+function muestrearRuta(d, n) {
+  const tok = d.match(/[MLCS]|-?[\d.]+/g) || [];
+  let i = 0, cur = null, last2 = null;
+  const segs = [], num = () => parseFloat(tok[i++]);
+  while (i < tok.length) {
+    const c = tok[i++];
+    if (c === 'M') { cur = { x: num(), y: num() }; last2 = null; }
+    else if (c === 'L') { const p = { x: num(), y: num() }; segs.push([cur, cur, p, p]); cur = p; last2 = null; }
+    else if (c === 'C') { const a = { x: num(), y: num() }, b = { x: num(), y: num() }, q = { x: num(), y: num() }; segs.push([cur, a, b, q]); last2 = b; cur = q; }
+    else if (c === 'S') { const b = { x: num(), y: num() }, q = { x: num(), y: num() }, a = last2 ? { x: 2 * cur.x - last2.x, y: 2 * cur.y - last2.y } : cur; segs.push([cur, a, b, q]); last2 = b; cur = q; }
+  }
+  const pts = [];
+  for (const sg of segs) for (let k = 0; k < n; k++) {
+    const t = k / n, u = 1 - t;
+    pts.push({ x: u * u * u * sg[0].x + 3 * u * u * t * sg[1].x + 3 * u * t * t * sg[2].x + t * t * t * sg[3].x, y: u * u * u * sg[0].y + 3 * u * u * t * sg[1].y + 3 * u * t * t * sg[2].y + t * t * t * sg[3].y });
+  }
+  if (cur) pts.push(cur);
+  return pts;
+}
+/** Del mapa local del Planificador a la escena (m): x hacia el este, z hacia el sur, el módulo en el origen. */
+const aEscena = (p, o) => ({ x: o.x + (p.x - MODULO_PX.x) * M_POR_PX, z: o.z + (p.y - MODULO_PX.y) * M_POR_PX });
 
 function texturaHuella() {
   const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
@@ -19,17 +49,6 @@ function texturaHuella() {
   g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(150,146,138,.5)';
   for (let y = 14; y < 118; y += 13) g.fillRect(10, y, 44, 4);
   g.strokeStyle = 'rgba(150,146,138,.45)'; g.lineWidth = 3; g.beginPath(); g.ellipse(32, 64, 26, 60, 0, 0, Math.PI * 2); g.stroke();
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
-
-/** Bandera de la misión: azul noche con la Luna y el nombre del proyecto (no la de ningún país). */
-function texturaBandera() {
-  const c = document.createElement('canvas'); c.width = 300; c.height = 200; const g = c.getContext('2d');
-  g.fillStyle = '#0d1b3d'; g.fillRect(0, 0, 300, 200);
-  g.fillStyle = '#C8102E'; g.fillRect(0, 168, 300, 32);
-  g.fillStyle = '#e8e4da'; g.beginPath(); g.arc(150, 80, 46, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#0d1b3d'; g.beginPath(); g.arc(170, 66, 40, 0, Math.PI * 2); g.fill(); // creciente
-  g.fillStyle = '#ffffff'; g.font = '700 22px "IBM Plex Mono", monospace'; g.textAlign = 'center'; g.fillText('HORIZON', 150, 158);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
@@ -43,13 +62,13 @@ export class Tareas {
       depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), MAX_HUELLAS);
     this.prints.count = 0; this.prints.frustumCulled = false; this.prints.renderOrder = 2; this.group.add(this.prints);
     this.o = new THREE.Object3D(); this.side = 1; this.nPrint = 0;
-    this.samples = []; this.panel = null; this.seis = null; this.flag = null; this.started = false; this.i = 0; this.done = false;
+    this.samples = []; this.started = false; this.i = 0; this.done = false; this.ruta = [];
   }
 
-  /** Borra la caminata anterior (muestras, instrumentos, bandera y huellas) para empezar otra. */
+  /** Borra la caminata anterior (ruta, muestras y huellas) para empezar otra. */
   reset() {
     for (const o of [...this.group.children]) if (o !== this.prints) { this.group.remove(o); o.traverse((x) => { x.geometry?.dispose(); x.material?.map?.dispose(); x.material?.dispose?.(); }); }
-    this.samples = []; this.panel = null; this.seis = null; this.flag = null; this.started = false; this.i = 0; this.done = false;
+    this.samples = []; this.started = false; this.i = 0; this.done = false; this.ruta = [];
     this.nPrint = 0; this.prints.count = 0;
   }
 
@@ -71,46 +90,67 @@ export class Tareas {
     return true;
   }
 
-  /** Busca alrededor del módulo un punto con la condición pedida, lo más cerca posible dentro del rango. */
-  _find(cx, cz, rMin, rMax, want) {
-    for (let r = rMin; r <= rMax; r += 12) for (let k = 0; k < 24; k++) {
-      const a = (k / 24) * Math.PI * 2 + r * 0.013, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
-      if (want(x, z)) return new THREE.Vector3(x, this.view.groundY(x, z), z);
+  /** El punto más cercano a (cx, cz), hasta rMax, que cumple la condición (anillos de 10 m). */
+  _cerca(cx, cz, rMax, want) {
+    if (want(cx, cz)) return { x: cx, z: cz };
+    for (let r = 10; r <= rMax; r += 10) for (let k = 0; k < 24; k++) {
+      const a = (k / 24) * Math.PI * 2, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+      if (want(x, z)) return { x, z };
     }
     return null;
   }
 
   _dLM() { const c = this.cam, lm = c.lmPos ?? this.home; return Math.hypot(c.pos.x - lm.x, c.pos.z - lm.z); }
 
-  /** Objetivos de la EVA, como los de una salida real de Artemis: revisar la nave, instalar instrumentos, muestrear y volver. */
-  start(lmObj) {
+  /** La ruta planificada desde el módulo, las dos paradas con sus muestras y los pasos de la EVA. */
+  start() {
     if (this.started) return; this.started = true;
-    const c = this.cam, lmP = c.lmPos ?? c.pos.clone(), cx = lmP.x, cz = lmP.z;
-    this.home = c.pos.clone();
+    const c = this.cam, v = this.view, o = c.lmPos ?? c.pos.clone();
+    this.home = o.clone();
+    // Ruta: del módulo a la parada 2 (ahí el regreso es obligatorio)
+    const px = muestrearRuta(RUTA_CIENTIFICA, 24);
+    let fin = 0, best = 1e9;
+    px.forEach((p, k) => { const d = Math.hypot(p.x - PARADAS_PX[1].x, p.y - PARADAS_PX[1].y); if (d < best) { best = d; fin = k; } });
+    this.ruta = px.slice(0, fin + 1).map((p) => aEscena(p, o));
+    const linea = this.ruta.map((p) => new THREE.Vector3(p.x, v.groundY(p.x, p.z) + 0.15, p.z));
+    const trazo = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linea), new THREE.LineDashedMaterial({ color: 0x9fe4f2, dashSize: 2.5, gapSize: 2, transparent: true, opacity: 0.85, depthWrite: false }));
+    trazo.computeLineDistances(); trazo.renderOrder = 3; this.group.add(trazo);
+    // Muestras en sus paradas, en el Sol (1) y en la sombra (2) de verdad más cercanos
     const mat = new THREE.MeshStandardMaterial({ color: 0x4a4640, roughness: 1, flatShading: true });
-    const rock = (pos, name) => { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), mat); m.position.copy(pos); m.position.y += 0.1; m.rotation.set(1.1, pos.x, 0.4); m.scale.set(1.2, 0.8, 1); m.castShadow = true; this.group.add(m); this.samples.push({ name, mesh: m, taken: false }); };
-    // Muestra iluminada a 40–90 m y muestra en sombra (posible hielo) a 60–320 m, donde el relieve de verdad tapa el Sol
-    rock(this._find(cx, cz, 40, 90, (x, z) => this.lit(x, z)) ?? this._find(cx, cz, 40, 90, () => true), 'sol');
-    const dark = this._find(cx, cz, 60, 320, (x, z) => !this.lit(x, z));
-    this.darkReal = !!dark; rock(dark ?? this._find(cx, cz, 120, 160, () => true), 'sombra');
-    // Sismómetro: a más de 90 m del módulo, en una zona con luz
-    this.seisSpot = this._find(cx, cz, 110, 170, (x, z) => this.lit(x, z)) ?? this._find(cx, cz, 110, 170, () => true);
-    const pad = lmObj ? lmObj.localToWorld(new THREE.Vector3(0, 0, -4.3)) : null; // pata trasera del módulo
-    const lm = () => c.lmPos ?? this.home;
+    const anillo = new THREE.MeshBasicMaterial({ color: 0x9fe4f2, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
+    const parada = (pPx, name, want) => {
+      const plan = aEscena(pPx, o), sitio = this._cerca(plan.x, plan.z, 150, want);
+      const p = sitio ?? plan, y = v.groundY(p.x, p.z);
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), mat); m.position.set(p.x, y + 0.1, p.z); m.rotation.set(1.1, p.x, 0.4); m.scale.set(1.2, 0.8, 1); m.castShadow = true;
+      const r = new THREE.Mesh(new THREE.RingGeometry(2.6, 3, 40).rotateX(-Math.PI / 2), anillo); r.position.set(p.x, y + 0.08, p.z);
+      this.group.add(m, r); this.samples.push({ name, mesh: m, taken: false, real: !!sitio });
+    };
+    parada(PARADAS_PX[0], 'sol', (x, z) => this.lit(x, z));
+    parada(PARADAS_PX[1], 'sombra', (x, z) => !this.lit(x, z));
+    this.darkReal = this.samples[1].real;
+    const dist = (t) => Math.round(this.cam.pos.distanceTo(t));
     this.steps = [
-      ...(pad ? [{ text: (d) => tr(`Inspect the rear landing leg: check it rests well and is not damaged · ${d} m`, `Revisa la pata trasera del módulo: comprueba que apoya bien y no hay daños · ${d} m`),
-        target: () => pad, ok: () => c.pos.distanceTo(pad) < 3.2, msg: tr('Landing legs in good shape: the lander is stable', 'Patas en buen estado: la nave está estable'), kind: 'pata' }] : []),
-      { seis: true, text: (d) => (this.seis ? tr('Seismometer deployed', 'Sismómetro instalado') : this._dLM() < SEIS_MIN_M ? tr(`Carry the seismometer more than 90 m from the lander (launch dust would bury it) · ${d} m`, `Lleva el sismómetro a más de 90 m del módulo (el polvo del despegue lo cubriría) · ${d} m`) : tr('This spot works: press B to deploy the seismometer', 'Aquí sirve: pulsa B para instalar el sismómetro')),
-        target: () => this.seisSpot, ok: () => !!this.seis, msg: tr('Seismometer deployed and listening', 'Sismómetro instalado y escuchando'), kind: 'seis' },
-      { text: () => tr('Deploy the solar panel where the Sun really shines (here the relief may block it) · press B', 'Despliega el panel solar donde dé el Sol de verdad (aquí el relieve puede taparlo) · pulsa B'),
-        ok: () => !!this.panel, msg: () => tr(`Panel deployed: ${num(this.panel.userData.kw)} kW for the instruments`, `Panel desplegado: ${num(this.panel.userData.kw)} kW para los instrumentos`), kind: 'panel' },
-      { text: (d) => (this._near(0) ? tr('Sunlit sample within reach · press E', 'Muestra iluminada a tu alcance · pulsa E') : tr(`Collect a sample of sunlit regolith · ${d} m`, `Toma una muestra de regolito iluminado · ${d} m`)),
-        target: () => this.samples[0].mesh.position, ok: () => this.samples[0].taken, msg: tr('Sunlit sample stowed', 'Muestra iluminada guardada'), kind: 'sampleSol' },
-      { text: (d) => (this._near(1) ? (c.lamps || !this.darkReal ? tr('Shadow sample within reach · press E', 'Muestra en sombra a tu alcance · pulsa E') : tr('No sunlight here: turn on the lamps (L) to see the sample', 'Aquí no llega el Sol: enciende las lámparas (L) para ver la muestra')) : tr(`Collect a sample from the shadow, where there may be ice · ${d} m`, `Toma una muestra en la sombra: ahí puede haber hielo · ${d} m`)),
-        target: () => this.samples[1].mesh.position, ok: () => this.samples[1].taken, msg: tr('Shadow sample stowed: a candidate for water ice', 'Muestra de la zona en sombra guardada: candidata a contener hielo'), kind: 'sampleSombra' },
-      { text: (d) => tr(`Return to the lander with consumables to spare · ${d} m`, `Vuelve al módulo con margen de consumibles · ${d} m`), target: lm, ok: () => this._dLM() < 6, msg: tr('Back at the lander: EVA complete', 'De vuelta en el módulo: EVA completada') },
+      { text: () => (this._near(0) ? tr('Stop 1 · Lit rim: sample within reach · press E', 'Parada 1 · Borde iluminado: muestra a tu alcance · pulsa E') : tr(`Follow the scientific route to stop 1 · Lit rim · ${dist(this.samples[0].mesh.position)} m`, `Sigue la ruta científica hasta la parada 1 · Borde iluminado · ${dist(this.samples[0].mesh.position)} m`)),
+        target: () => this.samples[0].mesh.position, ok: () => this.samples[0].taken, msg: tr('Stop 1: sunlit sample stowed', 'Parada 1: muestra iluminada guardada'), kind: 'sampleSol' },
+      { text: () => (this._near(1) ? (c.lamps || !this.darkReal ? tr('Stop 2 · Permanent shadow: sample within reach · press E', 'Parada 2 · Sombra permanente: muestra a tu alcance · pulsa E') : tr('No sunlight here: turn on the lamps (L) to see the sample', 'Aquí no llega el Sol: enciende las lámparas (L) para ver la muestra')) : tr(`Continue to stop 2 · Permanent shadow (possible ice) · ${dist(this.samples[1].mesh.position)} m`, `Sigue hasta la parada 2 · Sombra permanente (posible hielo) · ${dist(this.samples[1].mesh.position)} m`)),
+        target: () => this.samples[1].mesh.position, ok: () => this.samples[1].taken, msg: tr('Stop 2: shadow sample stowed, a candidate for water ice', 'Parada 2: muestra en sombra guardada, candidata a contener hielo'), kind: 'sampleSombra' },
+      { text: () => tr(`Mandatory return at stop 2: back to the lander along the route · ${Math.round(this._dLM())} m`, `Regreso obligatorio en la parada 2: vuelve al módulo por la ruta · ${Math.round(this._dLM())} m`),
+        target: () => this.cam.lmPos ?? this.home, ok: () => this._dLM() < 6, msg: tr('Back at the lander: walk complete as planned', 'De vuelta en el módulo: caminata completada como se planificó') },
     ];
   }
+
+  /** Distancia (m) de la posición a la ruta planificada. */
+  fueraDeRuta() {
+    if (!this.ruta.length) return 0;
+    const c = this.cam.pos; let best = 1e9;
+    for (let k = 1; k < this.ruta.length; k++) {
+      const a = this.ruta[k - 1], b = this.ruta[k], dx = b.x - a.x, dz = b.z - a.z, L = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((c.x - a.x) * dx + (c.z - a.z) * dz) / L));
+      best = Math.min(best, Math.hypot(c.x - (a.x + t * dx), c.z - (a.z + t * dz)));
+    }
+    return best;
+  }
+  get lejosDeRuta() { return this.started && !this.done && this.fueraDeRuta() > FUERA_DE_RUTA_M; }
 
   _near(k) { const s = this.samples[k]; return s && !s.taken && this.cam.pos.distanceTo(s.mesh.position) < 2.6; }
   get step() { return this.started && !this.done ? this.steps[this.i] : null; }
@@ -118,9 +158,8 @@ export class Tareas {
   get target() { return this.step?.target?.() ?? null; }
   text() {
     if (!this.started) return null;
-    if (this.done) return tr(`EVA complete · ${Math.round(this.cam.walked)} m walked, 2 samples, seismometer and panel running`, `EVA completada · ${Math.round(this.cam.walked)} m recorridos, 2 muestras, sismómetro y panel en marcha`);
-    const t = this.target, d = t ? Math.round(this.cam.pos.distanceTo(t)) : 0;
-    return `${this.i + 1}/${this.steps.length} · ${this.step.text(d)}`;
+    if (this.done) return tr(`Walk complete · ${Math.round(this.cam.walked)} m walked, 2 samples`, `Caminata completada · ${Math.round(this.cam.walked)} m recorridos, 2 muestras`);
+    return `${this.i + 1}/${this.steps.length} · ${this.step.text()}`;
   }
 
   /** Tecla E: recoger la muestra que esté a tu alcance (la de sombra solo se ve con lámparas). */
@@ -134,65 +173,14 @@ export class Tareas {
     c.notice = tr('Nothing within reach', 'No hay nada a tu alcance');
   }
 
-  /** Tecla B: instala lo que pida la tarea actual (sismómetro o panel solar). */
-  deploy() {
-    const st = this.step;
-    if (st && st.seis && !this.seis) return this._deploySeis();
-    return this._deployPanel();
-  }
-
-  _deploySeis() {
-    const c = this.cam, v = this.view;
-    if (this._dLM() < SEIS_MIN_M) { c.notice = tr('Too close to the lander: launch dust would bury the seismometer. Go beyond 90 m.', 'Demasiado cerca del módulo: el polvo del despegue taparía el sismómetro. Aléjate a más de 90 m.'); c.sonido?.blip(); return; }
-    const f = c.forward(), x = c.pos.x + f.x * 1.6, z = c.pos.z + f.z * 1.6, g = new THREE.Group(); g.position.set(x, v.groundY(x, z), z);
-    const gold = new THREE.MeshStandardMaterial({ color: 0xd8a23a, metalness: 1, roughness: 0.35 }), gray = new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.5, roughness: 0.5 });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.32, 16), gold); body.position.y = 0.2; body.castShadow = true;
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.02, 24), gold); skirt.position.y = 0.02;
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.5, 6), gray); mast.position.y = 0.6;
-    g.add(body, skirt, mast); this.group.add(g); this.seis = g; c.sonido?.blip(true);
-  }
-
-  /** Panel solar unos metros por delante, de cara al Sol. Solo sirve donde el relieve no tapa el Sol. */
-  _deployPanel() {
-    const c = this.cam, v = this.view, now = v.now;
-    if (this.panel) { c.notice = tr('The panel is already deployed', 'El panel ya está desplegado'); return; }
-    const f = c.forward(), x = c.pos.x + f.x * 3.2 - f.z * 1.3, z = c.pos.z + f.z * 3.2 + f.x * 1.3, y = v.groundY(x, z), D = Math.PI / 180;
-    if (!now || !this.lit(x, z)) { c.notice = tr('The relief blocks the Sun here: a panel in shadow generates nothing. Find a sunlit spot.', 'Aquí el relieve tapa el Sol: un panel en la sombra no genera nada. Busca una zona iluminada.'); c.sonido?.blip(); return; }
-    const g = new THREE.Group(); g.position.set(x, y, z);
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 1.3, 8), new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.6, roughness: 0.5 })); leg.position.y = 0.65; leg.castShadow = true;
-    const cells = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.95, 0.03), new THREE.MeshStandardMaterial({ color: 0x0b1530, metalness: 0.4, roughness: 0.35 })); cells.position.y = 1.35; cells.castShadow = true;
-    const sun = new THREE.Vector3(Math.cos(now.sun.el * D) * Math.sin(now.sun.az * D), Math.sin(now.sun.el * D), -Math.cos(now.sun.el * D) * Math.cos(now.sun.az * D));
-    cells.lookAt(sun.multiplyScalar(10).add(new THREE.Vector3(x, y + 1.35, z))); // de cara al Sol (en el polo: casi vertical)
-    g.add(leg, cells); g.userData.kw = 0.3 * now.sun.frac; // panel portátil de ~1,4 m²
-    this.group.add(g); this.panel = g; c.sonido?.blip(true);
-  }
-
-  /** Tecla F: planta la bandera de la misión un paso por delante (o la mueve si ya está plantada). */
-  plantFlag() {
-    const c = this.cam, v = this.view;
-    if (!this.flag) {
-      const flag = new THREE.Group(), metal = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.6, roughness: 0.4 });
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 2.2, 8), metal); pole.position.y = 1.1;
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.95, 8), metal); bar.rotation.z = Math.PI / 2; bar.position.set(0.47, 2.15, 0); // barra horizontal: sin viento, la tela no ondea
-      const cloth = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.6), new THREE.MeshStandardMaterial({ map: texturaBandera(), side: THREE.DoubleSide, roughness: 0.9 })); cloth.position.set(0.47, 1.84, 0);
-      for (const o of [pole, bar, cloth]) { o.castShadow = true; flag.add(o); }
-      this.flag = flag; this.group.add(flag);
-      avisarEva('bandera');
-    }
-    const f = new THREE.Vector3(Math.sin(c.heading), 0, Math.cos(c.heading)), p = c.pos.clone().addScaledVector(f, 1.4);
-    p.y = v.groundY(p.x, p.z) - 0.15;
-    this.flag.position.copy(p); this.flag.rotation.y = c.heading + Math.PI / 2;
-    c.notice = tr('Flag planted', 'Bandera plantada');
-  }
-
   update() {
     const s = this.step; if (!s || !s.ok()) return;
-    const c = this.cam, link = !!this.view.now?.earth.visible, msg = typeof s.msg === 'function' ? s.msg() : s.msg;
+    const c = this.cam, link = !!this.view.now?.earth.visible, msg = s.msg;
     c.notice = link ? tr(`Houston: ${msg}. Copy.`, `Houston: ${msg}. Te copiamos.`) : tr(`${msg} (no link: logged in the suit)`, `${msg} (sin enlace: queda grabado en el traje)`);
     c.sonido?.blip(true); if (!link) c.sonido?.staticNoise(0.3);
     this.i++; if (this.i >= this.steps.length) this.done = true;
-    // EVA comenta lo que acaba de hacer, con su sarcasmo (eventos de guion.ts); si no hay uno propio, «tarea hecha»
-    const evento = { pata: 'pata', seis: 'sismometro', panel: 'panel', sampleSol: 'muestra-sol', sampleSombra: 'muestra-sombra' }[s.kind];
+    // EVA comenta lo que acaba de hacer (eventos de guion.ts)
+    const evento = { sampleSol: 'muestra-sol', sampleSombra: 'muestra-sombra' }[s.kind];
     avisarEva(this.done ? 'eva-completa' : evento ?? 'tarea-hecha');
   }
 

@@ -3,7 +3,7 @@
 // del sitio, a 1/6 de gravedad, y ve el mundo a través del vidrio del casco (VisorCasco) con su HUD (VisorHud).
 //
 // Mandos: WASD / flechas caminar respecto a la mirada · Shift galope · Espacio salto · ratón mirar (clic captura el
-// puntero, o arrastrando) · E recoger · B instalar (sismómetro / panel) · F bandera · G visor solar · L lámparas ·
+// puntero, o arrastrando) · E recoger muestra · G visor solar · L lámparas ·
 // R recargar el traje junto al LM (o reintentar si se perdió) · T tiempo ×1/×10/×60 · Q volver a volar el descenso.
 //
 // El traje (cifras de referencia de la PLSS del Apollo / xEMU, redondeadas): O₂ 0,82 kg, agua de refrigeración 3,86 kg
@@ -11,7 +11,8 @@
 // esfuerzo (metabolismo de 120 W en reposo a 470 W al galope), el Sol o la sombra y las lámparas. El límite de regreso es
 // la mitad de lo que dura el consumible más escaso caminando. Sin O₂ o con el cartucho saturado la vista se cierra en
 // túnel y la misión se pierde. El módulo lunar guarda reservas para recargar; un aterrizaje duro rompe un tanque.
-// Mini misiones: tareas.ts. EVA (la de toda la app) lo comenta con `avisarEva` y, mientras dura la caminata, vive dentro
+// La caminata es la planificada (misión CR-02: ruta científica, dos paradas, regreso obligatorio): tareas.ts. El
+// límite de pendiente es el del Planificador (15°, SLOPE_LIMIT de prototipos/lunar-map/mission.js). EVA (la de toda la app) lo comenta con `avisarEva` y, mientras dura la caminata, vive dentro
 // del visor como holograma (`evaEnCasco`): abajo a la derecha del vidrio, entre la retícula y las filas del traje.
 import * as THREE from 'three';
 import { avisarEva, evaEnCasco } from '@/shared/eva';
@@ -28,6 +29,7 @@ const O2_PER_J = 1.43e-3 / 20100;   // kg de O₂ por julio metabólico
 const SUBLIM_J_PER_KG = 2.83e6;     // calor que se lleva cada kg de agua al sublimarse
 const RESERVE_S = 30 * 60;          // reserva de O₂ que no se cuenta para el regreso
 const LM_O2_KG = 21.8, LM_WATER_KG = 151;
+const PENDIENTE_LIMITE = 15; // grados: el límite de la ruta en el Planificador (SLOPE_LIMIT)
 const CRATER_MIN_R = 2.5;  // cráteres que se avisan (radio, m): los más chicos se cruzan sin problema
 const CRATER_BORDE = 1.2;  // el borde levantado llega a ~1,2 radios del centro (detalle.ts)
 /** Límite de regreso (m) con el traje lleno, caminando a ~1 m/s: la mitad de lo que dura el consumible más escaso. */
@@ -87,8 +89,6 @@ export class Caminata {
     if (e.code === 'KeyG') { this.visor.visor = this.visor.visor === 2 ? 1 : 2; if (this.visor.visor !== 2) avisarEva('visor-solar'); } // visor solar: arriba ↔ abajo
     if (e.code === 'KeyL') { this.lamps = !this.lamps; if (this.lamps) avisarEva('luces'); }
     if (e.code === 'KeyE') this.tasks.interact();
-    if (e.code === 'KeyB') this.tasks.deploy();
-    if (e.code === 'KeyF') this.tasks.plantFlag();
     if (e.code === 'KeyR') this.recharge();
     if (e.code === 'KeyT') { this.timeScale = this.timeScale === 1 ? 10 : this.timeScale === 10 ? 60 : 1; if (this.timeScale > 1) avisarEva('tiempo'); }
   }
@@ -218,6 +218,16 @@ export class Caminata {
       if (!best || k < best.k) best = { c, d, k, nivel: d < borde ? 'crit' : 'warn', izq: v.z * dx - v.x * dz < 0 };
     }
     this.crater = best;
+    // Pendiente por delante (a 3 m en la dirección de la marcha) contra el límite del plan
+    this.pendiente = null;
+    if (speed > 0.25) {
+      const g = this.view.groundY, dir = v.clone().setY(0).normalize(), x = this.pos.x + dir.x * 3, z = this.pos.z + dir.z * 3, e = 1.5;
+      const s = (Math.atan(Math.hypot(g(x + e, z) - g(x - e, z), g(x, z + e) - g(x, z - e)) / (2 * e)) * 180) / Math.PI;
+      if (s > PENDIENTE_LIMITE - 3) this.pendiente = { s, nivel: s > PENDIENTE_LIMITE ? 'crit' : 'warn' };
+      if (this.pendiente?.nivel === 'crit') { const t = performance.now(); if (!this._pendT || t - this._pendT > 25000) { this._pendT = t; avisarEva('pendiente'); } }
+    }
+    // Fuera de la ruta planificada
+    if (this.tasks.lejosDeRuta) { const t = performance.now(); if (!this._rutaT || t - this._rutaT > 60000) { this._rutaT = t; avisarEva('fuera-de-ruta'); } }
     if (best?.nivel === 'crit') {
       const t = performance.now();
       if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha'); }
@@ -384,6 +394,10 @@ export class Caminata {
       alerts.push(cr.nivel === 'crit' ? ['crit', tr('Crater: do not cross it', 'Cráter: no lo cruces'), tr(`Ø ${fmt(cr.c.rad * 2)} m, ${fmt(cr.c.depth * 1.6, 1)} m deep · ${lado}`, `Ø ${fmt(cr.c.rad * 2)} m y ${fmt(cr.c.depth * 1.6, 1)} m de hondo · ${lado}`), 'crater']
         : ['warn', tr('Crater ahead', 'Cráter delante'), tr(`Ø ${fmt(cr.c.rad * 2)} m · ${lado}`, `Ø ${fmt(cr.c.rad * 2)} m · ${lado}`)]);
     }
+    const pe = this.pendiente;
+    if (pe) alerts.push(pe.nivel === 'crit' ? ['crit', tr('Slope over the plan limit', 'Pendiente sobre el límite del plan'), tr(`${fmt(pe.s)}° ahead · limit 15° · go back to the route`, `${fmt(pe.s)}° por delante · límite 15° · vuelve a la ruta`), 'crater']
+      : ['warn', tr('Steep slope ahead', 'Pendiente fuerte delante'), tr(`${fmt(pe.s)}° · limit 15°`, `${fmt(pe.s)}° · límite 15°`)]);
+    if (this.tasks.lejosDeRuta) alerts.push(['warn', tr('Off the planned route', 'Fuera de la ruta planificada'), tr(`${fmt(this.tasks.fueraDeRuta())} m from the route`, `a ${fmt(this.tasks.fueraDeRuta())} m de la ruta`)]);
     if (this.visor.thetaSol < 0.5 && this.visor.visor === 2 && d.inSun) alerts.push(['warn', tr('Glare', 'Deslumbramiento'), tr('Lower the sun visor (G)', 'Baja el visor solar (G)')]);
     const suit0 = alerts.length;
     if (F.o2 < 0.25) alerts.push(['crit', tr('Low O₂ · back to the LM', 'O₂ bajo · vuelve al LM'), tr(`${hm(d.left.o2)} of oxygen left`, `Queda ${hm(d.left.o2)} de oxígeno`)]);
@@ -413,7 +427,7 @@ export class Caminata {
       yawDeg: d.yawDeg, clock: hh(s.t), timeScale: this.timeScale, site: this.view.siteName ?? '', objective, gauges, minis, alerts: alerts.slice(0, 6), estado, blips,
       left: tr('APOLLO LM · SOUTH POLE', 'APOLLO LM · POLO SUR'), right: { text: r ? r.title : '', level: rightLevel },
       crit: crit ? crit[1] : '', boot: 1, bpm: (120 / Math.max(40, s.hr)).toFixed(2),
-      keys: { e: this.tasks._near(0) || this.tasks._near(1), b: !!this.tasks.step?.seis || !this.tasks.panel, f: !this.tasks.flag, sp: this.jumpY > 0, g: this.visor.visor !== 2, l: this.lamps, r: d.dLM != null && d.dLM < 6, t: this.timeScale > 1, q: false },
+      keys: { e: this.tasks._near(0) || this.tasks._near(1), sp: this.jumpY > 0, g: this.visor.visor !== 2, l: this.lamps, r: d.dLM != null && d.dLM < 6, t: this.timeScale > 1, q: false },
     });
   }
 

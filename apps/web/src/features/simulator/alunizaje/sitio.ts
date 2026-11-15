@@ -11,6 +11,8 @@ import wideUrl from "./data/wide.i16?url"
 import siteUrl from "./data/site.json?url"
 
 export const SITIO_POR_DEFECTO = "connecting-ridge-roi-6"
+/** El plan de la misión CR-01 del Planificador (prototipos/lunar-map/campaign.js): 18 dic 2026, 09:00 UTC, zona A. */
+export const FECHA_CR01 = Date.UTC(2026, 11, 18, 9)
 const OJO_M = 1.7
 const RADIO_SOL = 0.2697 // semidiámetro aparente (°)
 const RADIO_TIERRA = 0.9017
@@ -46,15 +48,15 @@ async function cielo(id: string, lat: number, lon: number, ms: number) {
   }
 }
 
-/** Carga el sitio `id` para el instante `ms` (si no hay `ms`, el del paquete hecho a mano: 2026-11-15). */
+/** Carga el sitio `id` para el instante `ms` (si no hay `ms`, el del plan CR-01). */
 export async function cargarSitio(id = SITIO_POR_DEFECTO, ms?: number): Promise<Sitio> {
   if (id === SITIO_POR_DEFECTO || !siteById.has(id)) {
     const [base, fineBuf, wideBuf] = await Promise.all([json<DatosSitio>(siteUrl), bytes(fineUrl), bytes(wideUrl)])
-    const c = await cielo(SITIO_POR_DEFECTO, base.lat, base.lon, ms ?? Date.parse(base.time)).catch(() => null)
+    const c = await cielo(SITIO_POR_DEFECTO, base.lat, base.lon, ms ?? FECHA_CR01).catch(() => null)
     return { site: { ...base, id: SITIO_POR_DEFECTO, ...(c ?? {}) }, fineBuf, wideBuf }
   }
   const dir = `/simulador/sitios/${encodeURIComponent(id)}`
   const [p, wideBuf] = await Promise.all([json<Omit<DatosSitio, "sun" | "earth" | "time" | "fine" | "site"> & { name: string }>(`${dir}.json`), bytes(`${dir}.i16`)])
-  const c = await cielo(id, p.lat, p.lon, ms ?? Date.now())
+  const c = await cielo(id, p.lat, p.lon, ms ?? FECHA_CR01)
   return { site: { ...p, site: p.name, fine: { half: 3000, n: 601 }, ...c }, fineBuf: null, wideBuf }
 }
