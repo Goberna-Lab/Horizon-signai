@@ -486,6 +486,7 @@ export const z6 = new Hono()
   // En inglés le pregunta a horizon-voz qué motor y voz tiene cargados (cambian con HVOZ_MOTOR).
   .get("/voz", async (c) => {
     void precalentarClasificador() // la página abrió el modo voz: que el 8B esté listo para cuando hables encima
+    void fetch(`${z6Url()}/api/version`, { signal: AbortSignal.timeout(5000) }).catch(() => {}) // abre ya la conexión a la Z6
     const v = servicioVoz()
     if (v.idioma === "es") return c.json({ idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" })
     const NOMBRES: Record<string, string> = { kokoro: "Kokoro-82M", qwen: "Qwen3-TTS 0.6B" }

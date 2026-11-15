@@ -10,7 +10,8 @@
   "dependencies": {
     "@hono/node-server": "^1.14.0",
     "@horizon-signai/shared": "*",
-    "hono": "^4.8.0"
+    "hono": "^4.8.0",
+    "undici": "^7.30.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

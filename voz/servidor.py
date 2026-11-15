@@ -227,4 +227,6 @@ if __name__ == "__main__":
     import uvicorn
 
     cargar()
-    uvicorn.run(app, host=IP, port=PUERTO, log_level="warning")
+    # El API está en Alemania (~180 ms de ida y vuelta): que reutilice la conexión entre pedidos de
+    # una conversación en vez de abrir otra (uvicorn la cierra a los 5 s por defecto).
+    uvicorn.run(app, host=IP, port=PUERTO, log_level="warning", timeout_keep_alive=120)
