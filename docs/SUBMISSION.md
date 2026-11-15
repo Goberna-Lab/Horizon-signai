@@ -27,7 +27,7 @@ It matters because at the pole a small change of site or date changes power and 
 
 Pick one of the two (the form takes one link):
 
-- **Video, 30 seconds:** https://signal-horizon.goberna.us/spot.mp4 (exactly 30.0 s, English narration with burned-in English subtitles).
+- **Video, 30 seconds:** https://signal-horizon.goberna.us/spot.mp4 (exactly 30.0 s, English narration with burned-in English subtitles). Problem first (a launch slips; today the answer means specialist tools and raw data; at the pole a hill hides the Sun for days), then the solution in the app (what fails and why, fixed in one click, compare), proof (the 3D descent, the walk, EVA by voice, real NASA data) and the call to action.
 - **Slides, 7:** https://signal-horizon.goberna.us/demo.html, also as PDF: https://signal-horizon.goberna.us/demo.pdf
 
 Both name the team, the members and the challenge, and open without login; check them in a private window before pasting.
@@ -77,7 +77,7 @@ Yes.
 - **Limit we set.** The language model never computes a figure. Sun, Earth, power and verdicts are computed by the project's engine from NASA data; the model only explains them.
 - **Review.** In the earlier prototype, an independent SI agent reviewed the interface design against a design reference book.
 
-- **Demo video.** The video is a screen recording of the application, not generated imagery. Its narration is synthetic speech (Kokoro-82M on the team's server, the same voice as EVA); the closing card of the video says so, and so does the file's metadata. The script of the narration was written with the SI coding assistant and reviewed by the team.
+- **Demo video.** The video is a screen recording of the application, not generated imagery. Its narration is synthetic speech (Kokoro-82M on the team's server, the same voice as EVA); the closing card of the video says so, and so does the file's metadata. The raw-data shot shows real ephemeris rows computed by the project's engine; the sound effects were synthesized by the team (no music). The script of the narration was written with the SI coding assistant and reviewed by the team.
 - **Images.** The application and the slides contain no SI-generated images: screenshots, NASA data renders and the team's own logo.
 
 ## NASA Data
