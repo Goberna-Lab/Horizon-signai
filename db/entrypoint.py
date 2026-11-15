@@ -15,7 +15,9 @@ REPO = HERE.parent
 sys.path.insert(0, str(HERE))
 from dbconfig import connect  # noqa: E402
 
-FINGERPRINT_DIRS = ["db", "luna-recursos", "apps/web/scripts/mapa-3d", "prototipos/lunar-map/data/zonas.js"]
+FINGERPRINT_DIRS = ["db", "luna-recursos", "apps/web/scripts/mapa-3d", "prototipos/lunar-map/data/zonas.js",
+                    "prototipos/lunar-map/data/efemerides-luna.js", "prototipos/lunar-map/engine.js",
+                    "prototipos/lunar-map/tools/zone-stats.js"]
 SKIP_NAMES = {"__pycache__", "docker-compose.yml", "Dockerfile", "Dockerfile.dockerignore", "README.md"}
 
 
@@ -82,6 +84,7 @@ def main():
             t1 = time.time()
             run("db/etl/load_map3d.py")
             run("db/etl/load_zones.py")
+            run("db/etl/load_zone_stats.py")
             conn.execute("CALL moon.refresh_site_illumination()")
             conn.execute("INSERT INTO public.etl_run (fingerprint, duration_s) VALUES (%s, %s)",
                          (fp, round(time.time() - t1, 1)))
