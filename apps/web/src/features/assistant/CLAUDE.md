@@ -56,6 +56,7 @@ Flota encima de todas las pantallas (la monta `app/layouts/RootLayout.tsx`). Su 
 - `eva/sugerencias.ts`: las sugerencias que son órdenes del planificador anterior («+1 week», «Compare», «Descent»…).
 - EVA no se monta en `planificar-mision.html` (es una página autónoma, fuera de React): el tutorial se da desde Missions apuntando a `.addm` («Add mission») y a `[data-planner]` («Planner») dentro del iframe de `/planner`, o hay que montarla en esa página.
 - Al cambiar frases, regrabar la voz: `node apps/web/scripts/grabar-voz-eva.ts`.
+- **2026-11-15, más tarde:** el planificador anterior se retiró: `index.html` y `planificar.html` redirigen la ventana a `/planificar-mision.html` (commit 2daa086). EVA ya no lo ve ni ofrece sus sugerencias, pero las etapas 2-4 del flujo de misiones (`recorridos.ts`), que abren `/planner#landing` y usan `LunarPlanner`, ahora salen de la app hacia el Planificador nuevo: el flujo se corta ahí hasta que se cambie por el tutorial.
 
 ## Siguiente
 0. **EVA y el Planificador** (sección de arriba): el Planificador ahora es `planificar-mision.html`; EVA solo lo presenta y da el tutorial para crear la primera misión.
