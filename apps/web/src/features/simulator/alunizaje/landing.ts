@@ -630,7 +630,6 @@ export class LandingSim {
       <dl><div><dt>${tr('Contact speed', 'Velocidad de contacto')}</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>${tr('Footpad tilt', 'Inclinación de las patas')}</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
       <div><dt>${tr('Off target', 'Desvío del objetivo')}</dt><dd>${fmt(miss)} m</dd></div><div><dt>${tr('Fuel left', 'Combustible restante')}</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
       <div><dt>${tr('Powered descent', 'Descenso propulsado')}</dt><dd>${clock(this.t)}</dd></div><div><dt>${tr('Earth link', 'Enlace con la Tierra')}</dt><dd>${v.now?.earth.visible ? tr('direct', 'directo') : tr('below the horizon', 'bajo el horizonte')}</dd></div></dl>
-      <p class="credito">${tr('3D models of the Artemis base: NASA (free use) and CC0; "Space rover" by Poly by Google, CC-BY 3.0.', 'Modelos 3D de la base Artemis: NASA (uso libre) y CC0; «Space rover» de Poly by Google, CC-BY 3.0.')}</p>
       <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
         <button type="button" data-act="again" class="${R.kind === 'tip' || R.kind === 'crash' ? '' : 'sec'}">${tr('Fly the descent again', 'Volar el descenso otra vez')}</button></div>`;
     card.addEventListener('click', (e) => {

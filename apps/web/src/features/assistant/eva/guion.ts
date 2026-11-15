@@ -463,11 +463,6 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     texto: "Sample bagged. Regolith is as sharp as broken glass, by the way. Do not lick it.",
     es: { texto: "Muestra guardada. El regolito corta como vidrio roto, por cierto. No lo pruebes." },
   },
-  // Llegada a la base Artemis de la caminata (simulador: base.ts)
-  base: {
-    texto: "The Artemis base. Habitats, panels, a landing pad, and nobody home. Very on brand for the Moon.",
-    es: { texto: "La base Artemis. Hábitats, paneles, una plataforma de aterrizaje y nadie en casa. Muy de la Luna." },
-  },
   // Nadie toca nada en el simulador durante un rato (AFK): EVA se burla de la ausencia, por turnos
   "ausente-1": {
     texto: "Hello? Your oxygen keeps running even when you do not.",

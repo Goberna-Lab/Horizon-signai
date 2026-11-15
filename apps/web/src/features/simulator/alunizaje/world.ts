@@ -9,7 +9,6 @@ import { Sonido } from './sonido';
 import { makeDetail, buildDetail, disposeDetail, DETAIL_HALF } from './detalle';
 import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
-import { crearBase } from './base';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -143,7 +142,6 @@ export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?:
     astro: createAstronaut(), // procedural: baja la escalera y camina (en primera persona casi no se ve)
     pos: new THREE.Vector3(), heading: 0, quality: 0,
   };
-  view.base = crearBase(scene, groundY); // Base Artemis: destino de la caminata, a ~230 m
   scene.add(view.astro.object, view.astro.dust);
   view.astro.object.visible = false;
   // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
@@ -185,7 +183,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms }: { siteId?:
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
     caminata.dispose(); view.astro.dispose();
-    disposeDetail(detailMesh); glowTex.dispose(); view.base.dispose();
+    disposeDetail(detailMesh); glowTex.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
 }
