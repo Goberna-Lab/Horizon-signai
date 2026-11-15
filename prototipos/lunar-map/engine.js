@@ -243,7 +243,7 @@
     var f = lat * RAD, l = lon * RAD, u = [Math.cos(f) * Math.cos(l), Math.cos(f) * Math.sin(l), Math.sin(f)];
     var e = [-Math.sin(l), Math.cos(l), 0], n = [-Math.sin(f) * Math.cos(l), -Math.sin(f) * Math.sin(l), Math.cos(f)];
     var p0 = estereoSur(lat, lon), h0 = alturaPolar(dem, p0[0], p0[1]);
-    if (isNaN(h0)) throw new Error('El punto está fuera del relieve polar.');
+    if (isNaN(h0)) throw new Error('The point is outside the polar terrain.');
     var v = [];
     for (var i = 0; i < 720; i++) {
       var az = i * 0.5 * RAD, ca = Math.cos(az), sa = Math.sin(az), d = [ca * n[0] + sa * e[0], ca * n[1] + sa * e[1], ca * n[2]], pts = [];
@@ -255,7 +255,7 @@
       }
       v.push(envolventeSuperior(pts));
     }
-    return { id: 'punto-propio', nombre: 'Punto propio', lat: lat, lon: lon, paso: 0.5, v: v, alturaM: h0, aproximado: true };
+    return { id: 'punto-propio', nombre: 'Own point', lat: lat, lon: lon, paso: 0.5, v: v, alturaM: h0, aproximado: true };
   }
 
   root.Lunar = root.Lunar || {};

@@ -39,6 +39,8 @@ src/
       model/               Tipos y lógica de dominio
     map-3d/                /3d-map       Mapa 3D de la Luna: muestra a pantalla completa public/mapa-3d.html, página
                            autónoma (datos y three.js dentro) generada por scripts/mapa-3d/construir-mapa.py
+    lunar-map/             /planner      Dashboard y Planificador: iframe a pantalla completa del prototipo estático
+                           prototipos/lunar-map/ (en inglés), que la API sirve en /lunar-map/ (una sola copia)
     simulator/             /simulador    Simulador 3D
       components/SceneCanvas.tsx  Canvas base de react-three-fiber
       scenes/registry.ts          Registro de escenas 3D

@@ -1,13 +1,14 @@
 # Prototipo Lunar Map: Dashboard y Planificador
 
-Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`inicio.html`) y del **Planificador** (`index.html` y `planificar.html`). Sirve para que cada área extraiga lo que necesite y lo lleve a la app en React. No forma parte de `apps/`: no entra en la compilación ni en el despliegue.
+Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`inicio.html`) y del **Planificador** (`index.html` y `planificar.html`). Sirve para que cada área extraiga lo que necesite y lo lleve a la app en React. No es código de `apps/` (no entra en la compilación de la web), pero la app lo muestra: la API lo sirve tal cual en `/lunar-map/` y la ruta `/planner` de la web lo abre a pantalla completa en un iframe (ver abajo).
 
-- **Interfaz en español.** La app va en inglés (`apps/web/ARCHITECTURE.md`): hay que traducir los textos al portarlos.
+- **Interfaz en inglés.** Los textos visibles ya están traducidos (fechas y números en formato `en-GB`: `18 Dec 2026`, `2,100`, `3.8`). Los identificadores, claves de datos, claves de `localStorage`, clases CSS y nombres de archivo siguen en español y no se tocan. Los comentarios del código siguen en español.
+- **Dónde se sirve.** Única copia: esta carpeta. La API la expone en `/lunar-map/` (`apps/api/src/lunar-map/estaticos.ts`; `/lunar-map/` carga `inicio.html`; `no-cache` con ETag; en dev, Vite reenvía `/lunar-map` a la API en el puerto 3000). La pantalla de React es `/planner` (`features/lunar-map/`) y es el destino del botón "Open the planner" de la landing. Al editar aquí, basta recargar: no hay paso de compilación.
 - **Calcula con el motor del equipo portado a JavaScript** (`engine.js`), con el mismo método y los mismos datos de `luna-recursos/`. Al llevarlo a la app, el cálculo debe salir de `@/shared/planning`, no de este archivo (regla "un solo motor", `docs/11-flujo-y-arquitectura.md`).
 
 ## Cómo abrirlo
 
-Doble clic en `inicio.html`, o desde esta carpeta:
+Dentro de la app: `/planner` (con la API en marcha). Suelto: doble clic en `inicio.html`, o desde esta carpeta:
 
 ```
 python -m http.server 8765
@@ -53,10 +54,10 @@ Se descartaron los centros de mosaico porque no son puntos de aterrizaje (`docs/
 
 **Veredicto.**
 - **GO:** cumple todos los requisitos.
-- **REVISAR:** cumple, pero el Sol o la Tierra asoman menos de 0,5° al aterrizar.
+- **REVIEW** (antes REVISAR): cumple, pero el Sol o la Tierra asoman menos de 0,5° al aterrizar.
 - **NO GO:** no cumple algún requisito.
 
-**Cómo cumplir.** Cuando la zona elegida no cumple, se proponen tres salidas con botón «Aplicar»:
+**Cómo cumplir.** Cuando la zona elegida no cumple, se proponen tres salidas con botón «Apply»:
 - otra fecha (`scanDates` y `suggestDate`),
 - otra zona,
 - más altura (`suggestHeight`).

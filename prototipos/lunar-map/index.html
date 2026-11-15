@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lunar Map · Planificador · Alunizaje</title>
+<title>Lunar Map · Planner · Landing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -58,7 +58,7 @@
 .act .foot { text-align: center; }
 .act .foot:empty { display: none; }
 .verdict { padding: 3px 10px; border-radius: 999px; font-size: var(--t-label); font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
-.verdict.GO { background: var(--tinta); color: var(--crema); } .verdict.REVISAR { background: var(--borde); color: var(--tinta); } .verdict.NOGO { background: var(--rojo); color: var(--crema); }
+.verdict.GO { background: var(--tinta); color: var(--crema); } .verdict.REVIEW { background: var(--borde); color: var(--tinta); } .verdict.NOGO { background: var(--rojo); color: var(--crema); }
 
 .monitor { flex: 1; min-width: 0; display: flex; flex-direction: column; transform: rotateX(4deg); transform-origin: 50% 100%; }
 .monitor .glass-inner { flex: 1; min-height: 0; background: #060608; }
@@ -184,12 +184,12 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 <body>
 <div class="app">
   <header class="top">
-    <div class="topl"><div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Pasos del planificador"><span aria-current="step"><b>1</b>Alunizaje</span><a href="planificar.html"><b>2</b>Caminata</a></nav></div>
-    <nav class="pillnav" aria-label="Secciones"><a href="inicio.html">Inicio</a><span aria-current="page">Planificador</span></nav>
+    <div class="topl"><div class="paper flat brand"><span class="moon" aria-hidden="true"></span><h1 class="disp">Lunar Map</h1></div><nav class="psteps" aria-label="Planner steps"><span aria-current="step"><b>1</b>Landing</span><a href="planificar.html"><b>2</b>Walk</a></nav></div>
+    <nav class="pillnav" aria-label="Sections"><a href="inicio.html">Home</a><span aria-current="page">Planner</span></nav>
     <div class="topr">
       <div class="paper flat clock mono" id="clock">
         <span class="dot" id="clockDot"></span>
-        <span style="color: var(--gris)" id="phase">Evaluando zonas</span>
+        <span style="color: var(--gris)" id="phase">Evaluating zones</span>
         <b id="tminus">T– 00:11:50</b>
       </div>
     </div>
@@ -197,20 +197,20 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
   <div class="stage">
     <section class="paper side l" aria-labelledby="cand-t">
-      <div class="hd"><h2 id="cand-t" class="disp">Zonas candidatas</h2><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Comparar escenarios (hasta 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span id="cmpN">0</span></button></div></div>
-      <div class="cards" role="radiogroup" aria-label="Zonas candidatas" id="cards"></div>
+      <div class="hd"><h2 id="cand-t" class="disp">Candidate zones</h2><div class="scrow"><button type="button" class="scbtn" id="scBtn" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg><span id="scTxt">—</span></button><button type="button" class="cmpbtn" id="cmpBtn" aria-haspopup="dialog" title="Compare scenarios (up to 6)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span id="cmpN">0</span></button></div></div>
+      <div class="cards" role="radiogroup" aria-label="Candidate zones" id="cards"></div>
       <div class="act">
-        <button type="button" class="btn red" id="actBtn"><span id="actIco" aria-hidden="true"></span><span id="actLabel">Simular descenso</span></button>
+        <button type="button" class="btn red" id="actBtn"><span id="actIco" aria-hidden="true"></span><span id="actLabel">Simulate descent</span></button>
         <p class="mono foot" id="actHint" aria-live="polite"></p>
       </div>
     </section>
 
-    <section class="screen monitor" aria-label="Pantalla principal">
+    <section class="screen monitor" aria-label="Main display">
       <div class="glass-inner">
         <canvas id="relief" width="1000" height="800" class="boot" aria-hidden="true"></canvas>
         <canvas id="ovHaz" width="1000" height="800" class="ov" aria-hidden="true"></canvas>
         <canvas id="ovLight" width="1000" height="800" class="ov" aria-hidden="true"></canvas>
-        <svg class="map" viewBox="0 -100 1000 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa del polo sur lunar en estereográfica polar, con el polo junto al borde de Shackleton y tres zonas candidatas reales del catálogo de PGDA">
+        <svg class="map" viewBox="0 -100 1000 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the lunar south pole in polar stereographic projection, with the pole next to the Shackleton rim and three real candidate zones from the PGDA catalogue">
           <defs>
             <linearGradient id="altrack" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9BFFE4"></stop><stop offset="100%" stop-color="#22CCEE"></stop></linearGradient>
             <filter id="softglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
@@ -222,7 +222,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
           <circle cx="555" cy="329" r="146" fill="none" stroke="rgba(240,242,248,0.28)" stroke-width="1.5" stroke-dasharray="3 5"></circle>
           <g>
             <line x1="436" y1="239" x2="452" y2="239" stroke="#F5F5F6" stroke-width="2"></line><line x1="444" y1="231" x2="444" y2="247" stroke="#F5F5F6" stroke-width="2"></line>
-            <rect x="346" y="212" width="76" height="20" rx="10" fill="rgba(7,8,11,0.78)"></rect><text x="384" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#F5F5F6" font-family="Inter, sans-serif">Polo sur</text>
+            <rect x="346" y="212" width="76" height="20" rx="10" fill="rgba(7,8,11,0.78)"></rect><text x="384" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#F5F5F6" font-family="Inter, sans-serif">South Pole</text>
             <rect x="505" y="158" width="100" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="555" y="173" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Shackleton</text>
           </g>
           <g id="sites">
@@ -235,9 +235,9 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
           <ellipse id="eP" cx="0" cy="0" rx="128" ry="35" class="ell" style="opacity: 0"></ellipse>
           <g id="ptLayer"></g>
           <ellipse id="eC" cx="407" cy="322" rx="128" ry="35" transform="rotate(-32 407 322)" class="ell"></ellipse>
-          <g><rect x="266" y="340" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="294" y="355" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zona A</text></g>
-          <g><rect x="834" y="456" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="862" y="471" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zona B</text></g>
-          <g><rect x="379" y="260" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="407" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zona C</text></g>
+          <g><rect x="266" y="340" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="294" y="355" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zone A</text></g>
+          <g><rect x="834" y="456" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="862" y="471" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zone B</text></g>
+          <g><rect x="379" y="260" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="407" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zone C</text></g>
           <path id="trackGhost" d="" fill="none" stroke="rgba(155,255,228,0.25)" stroke-width="2" stroke-dasharray="4 6"></path>
           <path id="trackGlow" d="" fill="none" stroke="rgba(155,255,228,0.55)" stroke-width="7" stroke-linecap="round" filter="url(#softglow)" style="opacity:0"></path>
           <path id="track" d="" fill="none" stroke="url(#altrack)" stroke-width="3.5" stroke-linecap="round" style="opacity:0"></path>
@@ -249,72 +249,72 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
           </g>
           <circle id="target" cx="294" cy="402" r="5" fill="#9BFFE4" stroke="#05060A" stroke-width="2"></circle>
           <path d="M20 552 L 36 560 L 20 568 Z" fill="#9BFFE4"></path>
-          <text x="44" y="556" font-size="11" fill="rgba(244,239,230,0.75)" font-family="IBM Plex Mono, monospace">inicio del descenso motorizado · rumbo 026°</text>
+          <text x="44" y="556" font-size="11" fill="rgba(244,239,230,0.75)" font-family="IBM Plex Mono, monospace">powered descent start · heading 026°</text>
           <g font-family="IBM Plex Mono, monospace">
             <g stroke="rgba(244,239,230,0.35)" stroke-width="1.5" fill="none"><path d="M14 -70 L 14 -86 L 30 -86"></path><path d="M970 -86 L 986 -86 L 986 -70"></path><path d="M14 670 L 14 686 L 30 686"></path><path d="M986 670 L 986 686 L 970 686"></path></g>
             <text x="452" y="-76" font-size="10.5" fill="rgba(244,239,230,0.6)">0° E</text>
             <text x="946" y="232" font-size="10.5" fill="rgba(244,239,230,0.6)">90° E</text>
-            <text x="300" y="95" font-size="10" fill="rgba(255,255,255,0.45)">89,5° S</text>
+            <text x="300" y="95" font-size="10" fill="rgba(255,255,255,0.45)">89.5° S</text>
             <text x="28" y="233" font-size="10" fill="rgba(255,255,255,0.45)">89° S</text>
-            <text x="18" y="678" font-size="10.5" fill="rgba(244,239,230,0.6)">Estereográfica polar sur · LOLA LDEM_75S · 240 m/px · sitios: PGDA (Barker 2021) · sol a 8° desde el NO</text>
+            <text x="18" y="678" font-size="10.5" fill="rgba(244,239,230,0.6)">South polar stereographic · LOLA LDEM_75S · 240 m/px · sites: PGDA (Barker 2021) · Sun at 8° from the NW</text>
             <g stroke="rgba(244,239,230,0.7)" stroke-width="2"><line x1="540" y1="572" x2="679" y2="572"></line><line x1="540" y1="566" x2="540" y2="578"></line><line x1="679" y1="566" x2="679" y2="578"></line></g>
             <text x="609" y="560" text-anchor="middle" font-size="10.5" fill="rgba(244,239,230,0.7)">10 km</text>
           </g>
         </svg>
         <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div><div class="bloom"></div></div>
         <div class="chips">
-          <button type="button" class="tag" id="chipHaz" aria-pressed="true"><span class="sw" style="background: var(--alerta)"></span>Pendiente &gt; 15°</button>
-          <button type="button" class="tag" id="chipLight" aria-pressed="true"><span class="sw" style="background: var(--amarillo)"></span>Luz media alta</button>
-          <span class="tag"><span class="sw" style="background: #000; border: 1px solid rgba(244,239,230,0.6)"></span>Sombra permanente</span>
-          <button type="button" class="tag" id="chipPt" aria-pressed="false" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg><span id="chipPtTxt">Punto propio</span></button>
+          <button type="button" class="tag" id="chipHaz" aria-pressed="true"><span class="sw" style="background: var(--alerta)"></span>Slope &gt; 15°</button>
+          <button type="button" class="tag" id="chipLight" aria-pressed="true"><span class="sw" style="background: var(--amarillo)"></span>High mean light</button>
+          <span class="tag"><span class="sw" style="background: #000; border: 1px solid rgba(244,239,230,0.6)"></span>Permanent shadow</span>
+          <button type="button" class="tag" id="chipPt" aria-pressed="false" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg><span id="chipPtTxt">Own point</span></button>
         </div>
         <div class="telem mono" id="telem" aria-live="off">
-          <small>ALTITUD</small><b id="tAlt">14 900 m</b>
-          <small>VELOCIDAD</small><b id="tVel">1 695 m/s</b>
-          <small>FASE</small><b id="tFase">P63</b>
+          <small>ALTITUDE</small><b id="tAlt">14,900 m</b>
+          <small>VELOCITY</small><b id="tVel">1,695 m/s</b>
+          <small>PHASE</small><b id="tFase">P63</b>
         </div>
         <div class="banner" role="status" id="banner">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>
           <span id="bannerText"></span>
-          <a class="btn red" href="planificar.html">Planificar la caminata</a>
+          <a class="btn red" href="planificar.html">Plan the walk</a>
         </div>
       </div>
       <span class="led" aria-hidden="true"></span>
       <span class="model" aria-hidden="true">LUNAR MAP · CRT-2</span>
     </section>
 
-    <section class="paper side r" aria-label="Descenso y verificación">
+    <section class="paper side r" aria-label="Descent and checks">
       <div>
-        <div class="hd"><h2 class="disp">Horizonte real · Zona <span id="hzZona">A</span></h2><span class="mono src" id="hzSrc">LOLA</span></div>
-        <svg id="hz" role="img" aria-label="Horizonte real de la zona elegida, en 360° desde el norte, con el Sol y la Tierra"><title>Panorámica de 360° desde el norte. La escala vertical está exagerada y los discos no están a escala.</title></svg>
+        <div class="hd"><h2 class="disp">Real horizon · Zone <span id="hzZona">A</span></h2><span class="mono src" id="hzSrc">LOLA</span></div>
+        <svg id="hz" role="img" aria-label="Real horizon of the chosen zone, 360° from north, with the Sun and Earth"><title>360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.</title></svg>
       </div>
       <dl class="telemgrid mono" id="telemGrid">
-        <div><dt>PUERTA ALTA</dt><dd>2 291 m</dd></div><div><dt>VELOCIDAD</dt><dd>154 m/s</dd></div>
-        <div><dt>ΔV TOTAL</dt><dd>2 044 m/s</dd></div><div><dt>COMBUSTIBLE</dt><dd>sobran 496 kg</dd></div>
+        <div><dt>HIGH GATE</dt><dd>2,291 m</dd></div><div><dt>VELOCITY</dt><dd>154 m/s</dd></div>
+        <div><dt>TOTAL ΔV</dt><dd>2,044 m/s</dd></div><div><dt>FUEL</dt><dd>496 kg spare</dd></div>
       </dl>
-      <div class="ways" id="ways" hidden aria-live="polite"><h3>Cómo cumplir</h3><ul></ul></div>
+      <div class="ways" id="ways" hidden aria-live="polite"><h3>How to meet it</h3><ul></ul></div>
       <div class="checks">
-        <div class="hd" style="flex-direction: row; align-items: center; justify-content: space-between"><h2 class="disp">Go / No-Go · Zona <span id="siteId">A</span></h2><span class="verdict" id="verdict">GO</span></div>
+        <div class="hd" style="flex-direction: row; align-items: center; justify-content: space-between"><h2 class="disp">Go / No-Go · Zone <span id="siteId">A</span></h2><span class="verdict" id="verdict">GO</span></div>
         <div id="checkList" style="display: flex; flex-direction: column; gap: 5px"></div>
         <p class="mono foot" id="siteFoot" style="margin-top: 2px"></p>
       </div>
     </section>
   </div>
 
-  <p class="credits">Posiciones y medias reales · relieve generado a 240 m · elipse de dispersión del Apollo (18,5 × 5 km) · perfil Apollo 11: R-695 · TN D-6846 · Sol y Tierra sobre el horizonte: JPL Horizons DE441 + LOLA/PGDA</p>
+  <p class="credits">Real positions and means · generated terrain at 240 m · Apollo dispersion ellipse (18.5 × 5 km) · Apollo 11 profile: R-695 · TN D-6846 · Sun and Earth above the horizon: JPL Horizons DE441 + LOLA/PGDA</p>
 
-  <section class="screen tline" aria-label="Línea de tiempo de la misión">
+  <section class="screen tline" aria-label="Mission timeline">
     <div class="glass-inner">
       <div>
         <div class="tl-cab">
-          <button type="button" class="tl-play" id="tlPlay" aria-label="Reproducir"></button>
-          <h2>Línea de tiempo · Zona <span id="tlZona">A</span></h2>
+          <button type="button" class="tl-play" id="tlPlay" aria-label="Play"></button>
+          <h2>Timeline · Zone <span id="tlZona">A</span></h2>
         </div>
         <p class="mono tl-now" id="tlNow">—</p>
         <p class="tl-st" id="tlSt"></p>
       </div>
-      <svg id="tl" role="slider" tabindex="0" aria-label="Fecha en la línea de tiempo: arrastra o usa las flechas" aria-valuemin="0" aria-valuemax="90"></svg>
-      <div class="tl-sum" id="tlSum" aria-label="Resumen del período"></div>
+      <svg id="tl" role="slider" tabindex="0" aria-label="Date on the timeline: drag or use the arrow keys" aria-valuemin="0" aria-valuemax="90"></svg>
+      <div class="tl-sum" id="tlSum" aria-label="Period summary"></div>
     </div>
   </section>
 </div>
@@ -323,45 +323,45 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   <div class="dlg-back" data-close></div>
   <div class="paper dlg-box cmp-box" role="dialog" aria-modal="true" aria-labelledby="cmpT">
     <div class="cmp-top">
-      <h2 id="cmpT" class="disp">Comparar escenarios</h2>
-      <button type="button" class="btn red" id="cmpAdd">Añadir el escenario actual</button>
+      <h2 id="cmpT" class="disp">Compare scenarios</h2>
+      <button type="button" class="btn red" id="cmpAdd">Add the current scenario</button>
     </div>
-    <p class="dlg-sub" id="cmpSub">Hasta 6 escenarios, cada uno con su zona. Cifras de la estadía con las definiciones del motor; subrayada en rojo, la mejor de cada columna. Clic en una fila para cargarla.</p>
+    <p class="dlg-sub" id="cmpSub">Up to 6 scenarios, each with its zone. Stay figures use the engine definitions; underlined in red, the best of each column. Click a row to load it.</p>
     <div class="cmp-wrap" id="cmpWrap"></div>
-    <div class="dlg-acts"><button type="button" class="btn" id="cmpClear">Vaciar</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cerrar</button></div>
+    <div class="dlg-acts"><button type="button" class="btn" id="cmpClear">Clear</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Close</button></div>
   </div>
 </div>
 
 <div class="dlg" id="ptDlg" hidden>
   <div class="dlg-back" data-close></div>
   <form class="paper dlg-box" id="ptForm" role="dialog" aria-modal="true" aria-labelledby="ptT">
-    <h2 id="ptT" class="disp">Punto propio</h2>
-    <p class="dlg-sub">Cualquier lugar a menos de 190 km del polo sur (hasta ~83,7° S). El horizonte sale del relieve LOLA de 240 m y es <b>aproximado</b>: a esa resolución no aparece el relieve de menos de ~500 m, y en crestas y bordes de cráter puede diferir mucho del de las RoI. Para decidir, usa una RoI del catálogo (SPEC E24).</p>
+    <h2 id="ptT" class="disp">Own point</h2>
+    <p class="dlg-sub">Anywhere within 190 km of the south pole (down to ~83.7° S). The horizon comes from the 240 m LOLA terrain and is <b>approximate</b>: at that resolution terrain smaller than ~500 m does not appear, and on ridges and crater rims it can differ a lot from the RoI horizons. To decide, use an RoI from the catalogue (SPEC E24).</p>
     <div class="dlg-grid">
-      <label>Latitud (°; sur, negativa)<input type="number" id="pLat" min="-90" max="90" step="0.0001" required></label>
-      <label>Longitud este (°)<input type="number" id="pLon" min="0" max="360" step="0.0001" required></label>
+      <label>Latitude (°; south, negative)<input type="number" id="pLat" min="-90" max="90" step="0.0001" required></label>
+      <label>Longitude east (°)<input type="number" id="pLon" min="0" max="360" step="0.0001" required></label>
     </div>
     <p class="dlg-note" id="pMsg" aria-live="polite"></p>
-    <div class="dlg-acts"><button type="button" class="btn" id="pPick">Elegir en el mapa</button><button type="button" class="btn" id="pDel">Quitar el punto</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn red">Usar este punto</button></div>
+    <div class="dlg-acts"><button type="button" class="btn" id="pPick">Pick on the map</button><button type="button" class="btn" id="pDel">Remove the point</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn red">Use this point</button></div>
   </form>
 </div>
 
 <div class="dlg" id="dlg" hidden>
   <div class="dlg-back" data-close></div>
   <form class="paper dlg-box" id="scForm" role="dialog" aria-modal="true" aria-labelledby="dlgT">
-    <h2 id="dlgT" class="disp">Escenario de alunizaje</h2>
-    <p class="dlg-sub">El equipo y los requisitos valen para las tres zonas; así se pueden comparar.</p>
+    <h2 id="dlgT" class="disp">Landing scenario</h2>
+    <p class="dlg-sub">The equipment and requirements apply to all three zones, so they can be compared.</p>
     <div class="dlg-grid">
-      <label class="wide">Aterrizaje (UTC)<input type="datetime-local" id="fLanding" step="60" required></label>
-      <label>Estadía (días)<input type="number" id="fStay" min="1" max="60" step="1" required></label>
-      <label>Batería: horas sin Sol<input type="number" id="fBattery" min="0" max="720" step="1" required></label>
-      <label>Altura del panel (m)<input type="number" id="fPanel" min="0" max="30" step="0.5" required></label>
-      <label>Altura de la antena (m)<input type="number" id="fAntenna" min="0" max="30" step="0.5" required></label>
-      <label>Tierra mínima en la estadía (%)<input type="number" id="fEarth" min="0" max="100" step="1" required></label>
-      <span class="checksf"><label class="chk"><input type="checkbox" id="fSun"> Sol a la vista al aterrizar</label><label class="chk"><input type="checkbox" id="fEarthL"> Tierra a la vista al aterrizar</label></span>
+      <label class="wide">Landing (UTC)<input type="datetime-local" id="fLanding" step="60" required></label>
+      <label>Stay (days)<input type="number" id="fStay" min="1" max="60" step="1" required></label>
+      <label>Battery: hours without Sun<input type="number" id="fBattery" min="0" max="720" step="1" required></label>
+      <label>Panel height (m)<input type="number" id="fPanel" min="0" max="30" step="0.5" required></label>
+      <label>Antenna height (m)<input type="number" id="fAntenna" min="0" max="30" step="0.5" required></label>
+      <label>Minimum Earth during the stay (%)<input type="number" id="fEarth" min="0" max="100" step="1" required></label>
+      <span class="checksf"><label class="chk"><input type="checkbox" id="fSun"> Sun in view at landing</label><label class="chk"><input type="checkbox" id="fEarthL"> Earth in view at landing</label></span>
     </div>
-    <p class="dlg-note">Supuestos del planificador del equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno; panel vertical que sigue al Sol. Fechas de 2026 a 2030, en UTC.</p>
-    <div class="dlg-acts"><button type="button" class="btn" id="fReset">Plan de CR-01</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn red">Aplicar</button></div>
+    <p class="dlg-note">Assumptions of the team planner: the Sun is measured from the panel and Earth from the antenna, at the same terrain point; vertical panel that tracks the Sun. Dates from 2026 to 2030, in UTC.</p>
+    <div class="dlg-acts"><button type="button" class="btn" id="fReset">CR-01 plan</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn red">Apply</button></div>
   </form>
 </div>
 
@@ -375,10 +375,10 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   var L = window.Lunar, E = L.Engine, Z = window.LunarData.zonas, TABLA = E.tabla(window.LunarData.efemerides);
   var $ = function (id) { return document.getElementById(id); };
   var DAY = E.DAY_MS, HOUR = E.HOUR_MS;
-  var MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  var MES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function two(n) { return (n < 10 ? '0' : '') + n; }
-  function fmt(n) { return Math.round(n).toLocaleString('es-ES').replace(/\./g, ' '); }
-  function num(x, d) { return x.toFixed(d == null ? 1 : d).replace('.', ','); }
+  function fmt(n) { return Math.round(n).toLocaleString('en-GB'); }
+  function num(x, d) { return x.toFixed(d == null ? 1 : d); }
   function deg(x) { return (x >= 0 ? '+' : '−') + num(Math.abs(x), 1) + '°'; }
   function fDate(ms, hora) { var t = new Date(ms); return t.getUTCDate() + ' ' + MES[t.getUTCMonth()] + ' ' + t.getUTCFullYear() + (hora ? ' · ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' UTC' : ''); }
   function horas(h) { h = Math.round(h); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; }
@@ -388,8 +388,8 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   var ids = ['A', 'B', 'C'];
   var MAP = {
     A: { name: 'Connecting Ridge · RoI 6', pos: [294, 402], track: 'M20 560 C 110 540, 200 474, 294 402' },
-    B: { name: 'Pico cerca de Shackleton · RoI 2', pos: [862, 518], track: 'M300 592 C 500 580, 700 556, 862 518' },
-    C: { name: 'Borde de Shackleton · RoI 4', pos: [407, 322], track: 'M20 560 C 160 520, 300 410, 407 322' }
+    B: { name: 'Peak near Shackleton · RoI 2', pos: [862, 518], track: 'M300 592 C 500 580, 700 556, 862 518' },
+    C: { name: 'Shackleton rim · RoI 4', pos: [407, 322], track: 'M20 560 C 160 520, 300 410, 407 322' }
   };
   var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E' };
   var state = { site: 'A', simulated: false, confirmed: false, haz: true, light: true, running: false };
@@ -421,17 +421,17 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       st[z] = E.station(Z[z], sc.panelM, sc.antennaM);
       var e = E.evaluate(TABLA, st[z], sc), l = e.landing, rq = sc.requirements;
       e.means = E.means(TABLA, st[z]);
-      /* REVISAR: cumple, pero el Sol o la Tierra asoman menos de 0,5° al aterrizar */
-      e.verdict = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVISAR' : 'GO';
+      /* REVIEW: meets the requirements, but the Sun or Earth rises less than 0.5° at landing */
+      e.verdict = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVIEW' : 'GO';
       ev[z] = e;
     });
   }
   function noteOf(e) {
-    if (e.verdict === 'GO') return ['Cumple los ' + e.checks.length + ' requisitos', ''];
-    if (e.verdict === 'REVISAR') return ['Cumple, pero ' + (sc.requirements.sunAtLanding && e.landing.sunMarginDeg < 0.5 ? 'el Sol' : 'la Tierra') + ' queda al ras al aterrizar', ''];
+    if (e.verdict === 'GO') return ['Meets all ' + e.checks.length + ' requirements', ''];
+    if (e.verdict === 'REVIEW') return ['Meets them, but ' + (sc.requirements.sunAtLanding && e.landing.sunMarginDeg < 0.5 ? 'the Sun' : 'Earth') + ' is at the horizon at landing', ''];
     var c = e.checks.filter(function (x) { return !x.ok; })[0];
-    var t = c.id === 'sunAtLanding' ? 'Sol oculto al aterrizar' : c.id === 'earthAtLanding' ? 'Tierra oculta al aterrizar' :
-      c.id === 'battery' ? 'Noche de ' + horas(c.value) + ': más que la batería' : 'Tierra el ' + Math.round(c.value) + ' % de la estadía (mín. ' + c.limit + ' %)';
+    var t = c.id === 'sunAtLanding' ? 'Sun hidden at landing' : c.id === 'earthAtLanding' ? 'Earth hidden at landing' :
+      c.id === 'battery' ? 'Night of ' + horas(c.value) + ': longer than the battery' : 'Earth ' + Math.round(c.value) + '% of the stay (min. ' + c.limit + '%)';
     return [t, 'bad'];
   }
 
@@ -443,47 +443,47 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   $('ovLight').getContext('2d').drawImage(L.renderMask(terrain, function (i) { var v = tone[i]; return v < 0.74 ? 0 : Math.min(0.22, (v - 0.74) * 1.1); }, [253, 230, 138]), 0, 0);
 
   /* ---------- tarjetas: cifras de la estadía del escenario ---------- */
-  var cards = $('cards'), metLabels = ['Luz solar', 'Tierra visible', 'Sol + Tierra', 'Noche más larga'];
+  var cards = $('cards'), metLabels = ['Sunlight', 'Earth visible', 'Sun + Earth', 'Longest night'];
   function renderCards() {
     cards.innerHTML = ids.map(function (z) {
-      var e = ev[z], f = e.figures, m = e.means, mz = Z[z].mazarico || null, stay = 'Estadía de ' + sc.stayDays + ' d desde el aterrizaje';
-      var nh = Math.round(f.longestNightH), vals = [Math.round(f.sunPct) + ' %', Math.round(f.earthPct) + ' %', Math.round(f.bothPct) + ' %', nh < 100 ? nh + ' h' : Math.round(nh / 24) + ' d'];
-      var tips = [stay + ' · media 2026–2030 con el panel a ' + metros(sc.panelM) + ': ' + Math.round(m.sunPct) + ' %' + (mz ? ' · Mazarico 2011, a ras del suelo: ' + mz.sol + ' %' : ' · horizonte aproximado'),
-        stay + ' · media 2026–2030 con la antena a ' + metros(sc.antennaM) + ': ' + Math.round(m.earthPct) + ' %' + (mz ? ' · Mazarico 2011, a ras del suelo: ' + mz.tierra + ' %' : ' · horizonte aproximado'),
-        stay + ' · media 2026–2030: ' + Math.round(m.bothPct) + ' %', 'Racha más larga sin Sol en la estadía; la batería aguanta ' + sc.requirements.batteryH + ' h'];
+      var e = ev[z], f = e.figures, m = e.means, mz = Z[z].mazarico || null, stay = 'Stay of ' + sc.stayDays + ' d from landing';
+      var nh = Math.round(f.longestNightH), vals = [Math.round(f.sunPct) + '%', Math.round(f.earthPct) + '%', Math.round(f.bothPct) + '%', nh < 100 ? nh + ' h' : Math.round(nh / 24) + ' d'];
+      var tips = [stay + ' · 2026–2030 mean with the panel at ' + metros(sc.panelM) + ': ' + Math.round(m.sunPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.sol + '%' : ' · approximate horizon'),
+        stay + ' · 2026–2030 mean with the antenna at ' + metros(sc.antennaM) + ': ' + Math.round(m.earthPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.tierra + '%' : ' · approximate horizon'),
+        stay + ' · 2026–2030 mean: ' + Math.round(m.bothPct) + '%', 'Longest run without Sun during the stay; the battery lasts ' + sc.requirements.batteryH + ' h'];
       var nt = noteOf(e);
       return '<button type="button" class="card" role="radio" data-site="' + z + '" aria-checked="' + (z === state.site) + '">' +
         '<span class="row"><span class="nm"><span class="badge">' + z + '</span>' + MAP[z].name + '</span><span class="verdict ' + e.verdict.replace(' ', '') + '">' + e.verdict + '</span></span>' +
-        '<span class="mono sub">' + coordTxt(Z[z].lat, Z[z].lon) + (Z[z].aproximado ? ' · <span class="aprox" title="Horizonte del relieve LOLA de 240 m: no aparece el relieve de menos de ~500 m (SPEC E24)">aprox.</span>' : '') + '</span>' +
+        '<span class="mono sub">' + coordTxt(Z[z].lat, Z[z].lon) + (Z[z].aproximado ? ' · <span class="aprox" title="Horizon from the 240 m LOLA terrain: terrain smaller than ~500 m does not appear (SPEC E24)">approx.</span>' : '') + '</span>' +
         '<span class="met">' + metLabels.map(function (l, i) { return '<span><b title="' + tips[i] + '">' + vals[i] + '</b><small>' + l + '</small></span>'; }).join('') + '</span>' +
         '<span class="note' + (nt[1] ? ' ' + nt[1] : '') + '">' + nt[0] + '</span></button>';
     }).join('');
     var t = new Date(sc.landingMs);
-    $('scTxt').textContent = fDate(sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' · ' + sc.stayDays + ' d · equipo ' +
+    $('scTxt').textContent = fDate(sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + ' · ' + sc.stayDays + ' d · gear ' +
       (sc.panelM === sc.antennaM ? metros(sc.panelM) : metros(sc.panelM) + '/' + metros(sc.antennaM));
     $('scBtn').classList.toggle('changed', !isPlan());
-    $('scBtn').title = (isPlan() ? 'Plan de CR-01' : 'Escenario distinto del plan de CR-01') + ': batería ' + sc.requirements.batteryH + ' h, Tierra mínima ' + sc.requirements.minEarthPct + ' % de la estadía. Clic para editar.';
+    $('scBtn').title = (isPlan() ? 'CR-01 plan' : 'Scenario different from the CR-01 plan') + ': battery ' + sc.requirements.batteryH + ' h, minimum Earth ' + sc.requirements.minEarthPct + '% of the stay. Click to edit.';
   }
   cards.addEventListener('click', function (evt) { var b = evt.target.closest('.card'); if (b) pick(b.dataset.site); });
   function pick(id) { state.site = id; state.simulated = false; state.confirmed = false; stopSim(); tlT = null; render(); }
 
   /* ---------- Go / No-Go: el descenso (perfil del Apollo 11) y los requisitos del escenario ---------- */
-  var DESC = ['Descenso (perfil del Apollo 11)', 'sobran 496 kg · sobre la línea del Sol en P64', 'TN D-6846', 'ok'];
+  var DESC = ['Descent (Apollo 11 profile)', '496 kg spare · on the Sun line at P64', 'TN D-6846', 'ok'];
   function checkRows(e) {
     var l = e.landing, rows = [DESC];
     e.checks.forEach(function (c) {
       var s = c.ok ? 'ok' : 'fail';
-      /* el Sol cuenta como visible si asoma el borde del disco: con el centro bajo el horizonte se dice así */
-      if (c.id === 'sunAtLanding') rows.push(['Sol al aterrizar', (l.sunAboveDeg < 0 && c.ok ? 'asoma el borde del disco' : deg(l.sunAboveDeg) + ' sobre el horizonte'), 'panel ' + metros(sc.panelM), c.ok && c.value < 0.5 ? 'warn' : s]);
-      if (c.id === 'earthAtLanding') rows.push(['Tierra al aterrizar', deg(l.earthAboveDeg) + ' sobre el horizonte', 'antena ' + metros(sc.antennaM), c.ok && c.value < 0.5 ? 'warn' : s]);
-      if (c.id === 'battery') rows.push(['Noche más larga en la estadía', horas(c.value) + ' · batería ' + c.limit + ' h', '', s]);
-      if (c.id === 'earthContact') rows.push(['Tierra en la estadía', Math.round(c.value) + ' % · mínimo ' + c.limit + ' %', '', s]);
+      /* the Sun counts as visible if the edge of the disc shows: with the centre below the horizon it reads like this */
+      if (c.id === 'sunAtLanding') rows.push(['Sun at landing', (l.sunAboveDeg < 0 && c.ok ? 'edge of the disc shows' : deg(l.sunAboveDeg) + ' above the horizon'), 'panel ' + metros(sc.panelM), c.ok && c.value < 0.5 ? 'warn' : s]);
+      if (c.id === 'earthAtLanding') rows.push(['Earth at landing', deg(l.earthAboveDeg) + ' above the horizon', 'antenna ' + metros(sc.antennaM), c.ok && c.value < 0.5 ? 'warn' : s]);
+      if (c.id === 'battery') rows.push(['Longest night during the stay', horas(c.value) + ' · battery ' + c.limit + ' h', '', s]);
+      if (c.id === 'earthContact') rows.push(['Earth during the stay', Math.round(c.value) + '% · minimum ' + c.limit + '%', '', s]);
     });
     return rows;
   }
   function footOf(e) {
     var l = e.landing, vis = l.sunMarginDeg > 0, ch = l.sunChangeMs;
-    return 'Aterrizaje: ' + fDate(sc.landingMs, true) + ' · ' + (ch == null ? (vis ? 'el Sol no se pone en 60 d' : 'el Sol no sale en 60 d') : (vis ? 'se pone en ' : 'sale en ') + horas((ch - sc.landingMs) / HOUR));
+    return 'Landing: ' + fDate(sc.landingMs, true) + ' · ' + (ch == null ? (vis ? 'the Sun does not set in 60 d' : 'the Sun does not rise in 60 d') : (vis ? 'sets in ' : 'rises in ') + horas((ch - sc.landingMs) / HOUR));
   }
 
   /* ---------- cómo cumplir (zona NO GO): otra fecha, otra zona o más altura, como el planificador del equipo ---------- */
@@ -497,11 +497,11 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('ways').hidden = !show; $('telemGrid').hidden = show;
     if (!show) return;
     var w = waysOf(state.site);
-    var row = function (t, n, act) { return '<li' + (n ? ' title="' + n + '"' : '') + '><span>' + t + '</span>' + (act ? '<button type="button" class="mini" data-act="' + act + '">Aplicar</button>' : '') + '</li>'; };
+    var row = function (t, n, act) { return '<li' + (n ? ' title="' + n + '"' : '') + '><span>' + t + '</span>' + (act ? '<button type="button" class="mini" data-act="' + act + '">Apply</button>' : '') + '</li>'; };
     $('ways').querySelector('ul').innerHTML =
-      (w.date ? row('Aterrizar el ' + fDate(w.date.day.landingMs), 'Centro de una ventana de ' + w.date.window.days + ' d en que aterrizar cumple (misma hora, estadía y equipo)', 'date') : row('Ninguna fecha cumple en 120 d', 'Se buscó desde 30 d antes hasta 120 d después', null)) +
-      (w.sites.length ? row('Cambiar a la zona ' + w.sites[0], 'Mismo día, estadía y equipo', 'site') : row('Ninguna otra zona cumple', 'Ninguna de las otras zonas cumple ese día con el mismo equipo', null)) +
-      (w.height ? row('Subir el equipo a ' + w.height.heightM + ' m', 'Panel y antena a ' + w.height.heightM + ' m, mismo lugar y día (alturas probadas: 2, 5, 10, 15, 20 y 30 m)', 'height') : row('Ni subiendo a 30 m cumple', 'Alturas probadas: 2, 5, 10, 15, 20 y 30 m', null));
+      (w.date ? row('Land on ' + fDate(w.date.day.landingMs), 'Centre of a ' + w.date.window.days + ' d window in which landing meets the requirements (same time, stay and gear)', 'date') : row('No date meets them within 120 d', 'Searched from 30 d before to 120 d after', null)) +
+      (w.sites.length ? row('Switch to zone ' + w.sites[0], 'Same day, stay and gear', 'site') : row('No other zone meets them', 'None of the other zones meets them that day with the same gear', null)) +
+      (w.height ? row('Raise the gear to ' + w.height.heightM + ' m', 'Panel and antenna at ' + w.height.heightM + ' m, same place and day (heights tried: 2, 5, 10, 15, 20 and 30 m)', 'height') : row('Not even 30 m meets them', 'Heights tried: 2, 5, 10, 15, 20 and 30 m', null));
   }
   $('ways').addEventListener('click', function (evt) {
     var b = evt.target.closest('[data-act]'); if (!b) return;
@@ -532,9 +532,9 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       $('landerG').setAttribute('transform', 'rotate(' + (angle + 90) * (1 - e) + ')');
       var alt = 14900 * (1 - e) * (1 - e * 0.15), vel = 1695 * Math.pow(1 - e, 1.6);
       $('tAlt').textContent = fmt(alt) + ' m'; $('tVel').textContent = fmt(vel) + ' m/s';
-      $('tFase').textContent = e < 0.62 ? 'P63 · frenado' : e < 0.93 ? 'P64 · aproximación' : 'P66 · vertical';
+      $('tFase').textContent = e < 0.62 ? 'P63 · braking' : e < 0.93 ? 'P64 · approach' : 'P66 · vertical';
       var secs = 710 * (1 - e); $('tminus').textContent = 'T– 00:' + two(Math.floor(secs / 60)) + ':' + two(Math.floor(secs % 60));
-      if (t < 1) simTimer = requestAnimationFrame(step); else { simTimer = null; state.running = false; $('tFase').textContent = 'contacto · 710 s'; render(); }
+      if (t < 1) simTimer = requestAnimationFrame(step); else { simTimer = null; state.running = false; $('tFase').textContent = 'contact · 710 s'; render(); }
     };
     simTimer = requestAnimationFrame(step);
   }
@@ -571,42 +571,42 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       var x = tx(d, W), end = d > DAYS - 6;
       o += '<line x1="' + x + '" x2="' + x + '" y1="16" y2="' + (H - 2) + '" class="grid"></line><text x="' + x + '" y="12" text-anchor="' + (d < 3 ? 'start' : end ? 'end' : 'middle') + '">' + fecha(p, d) + '</text>';
     });
-    [['Luz solar', 'sol'], ['Tierra visible', 'tierra'], ['Sol + Tierra', 'ambos']].forEach(function (r, i) {
+    [['Sunlight', 'sol'], ['Earth visible', 'tierra'], ['Sun + Earth', 'ambos']].forEach(function (r, i) {
       var y = Y0 + i * (ROW + GAP), x0 = tx(0, W), x1 = tx(DAYS, W);
       o += '<text x="0" y="' + (y + ROW - 2) + '"' + (i === 2 ? ' class="fuerte"' : '') + '>' + r[0] + '</text>';
       o += '<rect x="' + x0 + '" y="' + y + '" width="' + (x1 - x0) + '" height="' + ROW + '" rx="2" class="fondo"></rect>';
-      if (i === 0) p.noches.forEach(function (w) { o += '<rect x="' + tx(w[0], W) + '" y="' + y + '" width="' + Math.max(1, tx(w[1], W) - tx(w[0], W)) + '" height="' + ROW + '" class="noche"><title>Noche más larga que la batería (' + sc.requirements.batteryH + ' h)</title></rect>'; });
+      if (i === 0) p.noches.forEach(function (w) { o += '<rect x="' + tx(w[0], W) + '" y="' + y + '" width="' + Math.max(1, tx(w[1], W) - tx(w[0], W)) + '" height="' + ROW + '" class="noche"><title>Night longer than the battery (' + sc.requirements.batteryH + ' h)</title></rect>'; });
       p[r[1]].forEach(function (w) { o += '<rect x="' + tx(w[0], W) + '" y="' + y + '" width="' + Math.max(1, tx(w[1], W) - tx(w[0], W)) + '" height="' + ROW + '" rx="2" class="' + r[1] + '"></rect>'; });
     });
     var xc = tx(p.contact, W), xe = tx(p.contact + sc.stayDays, W);
-    o += '<rect x="' + xc + '" y="16" width="' + Math.max(1, xe - xc) + '" height="' + (H - 18) + '" class="estadia"><title>Estadía: ' + sc.stayDays + ' d desde el aterrizaje</title></rect>';
+    o += '<rect x="' + xc + '" y="16" width="' + Math.max(1, xe - xc) + '" height="' + (H - 18) + '" class="estadia"><title>Stay: ' + sc.stayDays + ' d from landing</title></rect>';
     o += '<line x1="' + xc + '" x2="' + xc + '" y1="16" y2="' + (H - 2) + '" class="contacto"></line>';
     var xt = tx(tlT, W);
     o += '<line x1="' + xt + '" x2="' + xt + '" y1="15" y2="' + H + '" class="cursor"></line><path d="M' + (xt - 5) + ',14 L' + (xt + 5) + ',14 L' + xt + ',20 Z" class="mango"></path>';
     tl.innerHTML = o;
     tl.setAttribute('aria-valuenow', tlT.toFixed(1)); tl.setAttribute('aria-valuetext', fecha(p, tlT, true));
     $('tlNow').textContent = fecha(p, tlT, true);
-    $('tlSt').textContent = (Math.abs(tlT - p.contact) < 0.05 ? 'Aterrizaje · ' : '') + 'Sol ' + (dentro(p.sol, tlT) ? 'visible' : 'oculto') + ' · Tierra ' + (dentro(p.tierra, tlT) ? 'visible' : 'oculta');
-    $('tlPlay').innerHTML = tlPlaying ? icoPauseTL : icoPlayTL; $('tlPlay').setAttribute('aria-label', tlPlaying ? 'Pausar' : 'Reproducir');
+    $('tlSt').textContent = (Math.abs(tlT - p.contact) < 0.05 ? 'Landing · ' : '') + 'Sun ' + (dentro(p.sol, tlT) ? 'visible' : 'hidden') + ' · Earth ' + (dentro(p.tierra, tlT) ? 'visible' : 'hidden');
+    $('tlPlay').innerHTML = tlPlaying ? icoPauseTL : icoPlayTL; $('tlPlay').setAttribute('aria-label', tlPlaying ? 'Pause' : 'Play');
     drawHz(p); drawSum(p);
   }
   function drawSum(p) {
     var f = p.fig, el = $('tlSum');
-    el.title = 'Resumen del período ' + fecha(p, 0, false) + ' – ' + fecha(p, DAYS, false) + ' · panel a ' + metros(sc.panelM) + ', antena a ' + metros(sc.antennaM) + ' · JPL Horizons DE441 + horizonte LOLA/PGDA';
+    el.title = 'Period summary ' + fecha(p, 0, false) + ' – ' + fecha(p, DAYS, false) + ' · panel at ' + metros(sc.panelM) + ', antenna at ' + metros(sc.antennaM) + ' · JPL Horizons DE441 + LOLA/PGDA horizon';
     var cell = function (l, v, t) { return '<span title="' + t + '"><small>' + l + '</small><b>' + v + '</b></span>'; };
-    el.innerHTML = cell('Sol', Math.round(f.sunPct) + ' %', 'Sol visible: alguna parte del disco sobre el horizonte real') +
-      cell('Tierra', Math.round(f.earthPct) + ' %', 'Tierra visible: su centro sobre el horizonte real') +
-      cell('Ambos', Math.round(f.bothPct) + ' %', 'Sol y Tierra a la vez') +
-      cell('Noche máx.', horas(f.longestNightH), 'Noche más larga: mayor racha sin Sol visible; es lo que debe aguantar la batería') +
-      cell('Silencio máx.', horas(f.longestSilenceH), 'Silencio más largo: mayor racha sin la Tierra a la vista (sin enlace directo)') +
-      cell('Panel medio', Math.round(f.meanPanelWm2) + ' W/m²', 'Panel vertical que sigue al Sol (supuesto): 1361 W/m² × disco visible × cos(elevación), promedio del período');
+    el.innerHTML = cell('Sun', Math.round(f.sunPct) + '%', 'Sun visible: any part of the disc above the real horizon') +
+      cell('Earth', Math.round(f.earthPct) + '%', 'Earth visible: its centre above the real horizon') +
+      cell('Both', Math.round(f.bothPct) + '%', 'Sun and Earth at the same time') +
+      cell('Max night', horas(f.longestNightH), 'Longest night: longest run without the Sun visible; it is what the battery must last') +
+      cell('Max silence', horas(f.longestSilenceH), 'Longest silence: longest run without Earth in view (no direct link)') +
+      cell('Mean panel', Math.round(f.meanPanelWm2) + ' W/m²', 'Vertical panel that tracks the Sun (assumed): 1361 W/m² × visible disc × cos(elevation), period average');
   }
   /* panorámica de 360° desde el norte: horizonte real visto desde el panel, el Sol y la Tierra en su posición real y el
    * recorrido del Sol en un día lunar alrededor del cursor. La silueta va encima: tapa lo que está bajo el horizonte. */
   var LUNAR_DAY = 29.53;
   function skyAt(az, el, n, t) { var k = Math.min(n - 1.001, Math.max(0, t * 24)), i = Math.floor(k), f = k - i, a0 = az[i], da = ((az[i + 1] - a0 + 540) % 360) - 180; return [((a0 + da * f) % 360 + 360) % 360, el[i] + (el[i + 1] - el[i]) * f]; }
   function sunNext(p, t) {
-    for (var i = 0; i < p.sol.length; i++) { var w = p.sol[i]; if (t < w[0]) return ['sale', w[0] - t]; if (t < w[1]) return ['se pone', w[1] - t]; }
+    for (var i = 0; i < p.sol.length; i++) { var w = p.sol[i]; if (t < w[0]) return ['rises', w[0] - t]; if (t < w[1]) return ['sets', w[1] - t]; }
     return null;
   }
   function dur(d) { var h = Math.round(d * 24); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; }
@@ -644,13 +644,13 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     var d = 'M' + G + ',' + H;
     for (var i = 0; i <= n; i++) d += ' L' + X(i / n * 360).toFixed(1) + ',' + ey(prof[i % n]).toFixed(1);
     o += '<path d="' + d + ' L' + W + ',' + H + ' Z" class="sil"></path>' + labels;
-    if (e[1] > lo && dentro(p.tierra, tlT)) o += '<text x="' + (X(e[0]) + 8).toFixed(1) + '" y="' + (ey(e[1]) + 4).toFixed(1) + '" class="tierra-t">Tierra</text>';
+    if (e[1] > lo && dentro(p.tierra, tlT)) o += '<text x="' + (X(e[0]) + 8).toFixed(1) + '" y="' + (ey(e[1]) + 4).toFixed(1) + '" class="tierra-t">Earth</text>';
     var nx = sunNext(p, tlT);
-    o += '<text x="' + (W - 10) + '" y="18" text-anchor="end">' + (nx ? (nx[0] === 'sale' ? 'Sale en ' : 'Se pone en ') + dur(nx[1]) : 'Sin cambios en el período') + '</text>';
+    o += '<text x="' + (W - 10) + '" y="18" text-anchor="end">' + (nx ? (nx[0] === 'rises' ? 'Rises in ' : 'Sets in ') + dur(nx[1]) : 'No change in the period') + '</text>';
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-    svg.innerHTML = '<title>Panorámica de 360° desde el norte. La escala vertical está exagerada y los discos no están a escala.</title>' + o;
+    svg.innerHTML = '<title>360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.</title>' + o;
     $('hzZona').textContent = state.site;
-    $('hzSrc').textContent = (Z[state.site].aproximado ? 'LOLA 240 m, aprox.' : 'LOLA') + ' · panel a ' + metros(sc.panelM) + ' · Horizons';
+    $('hzSrc').textContent = (Z[state.site].aproximado ? 'LOLA 240 m, approx.' : 'LOLA') + ' · panel at ' + metros(sc.panelM) + ' · Horizons';
   }
   function tlSet(d) { tlT = Math.min(DAYS, Math.max(0, d)); drawTL(); }
   function tlFromX(clientX) { var r = tl.getBoundingClientRect(), W = tlW(); tlSet(((clientX - r.left) / r.width * W - LW) / (W - LW - RP) * DAYS); }
@@ -704,7 +704,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     var k = keyOf(x);
     if (!cmpCache[k]) {
       var e = E.evaluate(TABLA, E.station(zonaOf(x), x.sc.panelM, x.sc.antennaM), x.sc), l = e.landing, rq = x.sc.requirements;
-      e.verdict = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVISAR' : 'GO';
+      e.verdict = !e.ok ? 'NO GO' : ((rq.sunAtLanding && l.sunMarginDeg < 0.5) || (rq.earthAtLanding && l.earthMarginDeg < 0.5)) ? 'REVIEW' : 'GO';
       cmpCache[k] = e;
     }
     return cmpCache[k];
@@ -715,35 +715,35 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('cmpN').textContent = cmpList.length;
     var add = $('cmpAdd'), dup = inCmp();
     add.disabled = dup || cmpList.length >= MAXC;
-    add.textContent = dup ? 'El escenario actual ya está' : cmpList.length >= MAXC ? 'Máximo 6 escenarios' : 'Añadir el escenario actual (zona ' + state.site + ')';
+    add.textContent = dup ? 'The current scenario is already added' : cmpList.length >= MAXC ? 'Maximum 6 scenarios' : 'Add the current scenario (zone ' + state.site + ')';
     $('cmpClear').disabled = !cmpList.length;
-    if (!cmpList.length) { $('cmpWrap').innerHTML = '<p class="cmp-empty">Todavía no hay escenarios. Ajusta el escenario o la zona y pulsa «Añadir el escenario actual».</p>'; return; }
-    if (!demObj && cmpList.some(function (x) { return x.zone === 'P'; })) { $('cmpWrap').innerHTML = '<p class="cmp-empty">Cargando el relieve LOLA para el punto propio…</p>'; loadDem(renderCmp); return; }
+    if (!cmpList.length) { $('cmpWrap').innerHTML = '<p class="cmp-empty">There are no scenarios yet. Adjust the scenario or the zone and press “Add the current scenario”.</p>'; return; }
+    if (!demObj && cmpList.some(function (x) { return x.zone === 'P'; })) { $('cmpWrap').innerHTML = '<p class="cmp-empty">Loading the LOLA terrain for the own point…</p>'; loadDem(renderCmp); return; }
     var evs = cmpList.map(cmpEval), cols = [
-      ['Sol', function (f) { return f.sunPct; }, 1, function (v) { return Math.round(v) + ' %'; }],
-      ['Tierra', function (f) { return f.earthPct; }, 1, function (v) { return Math.round(v) + ' %'; }],
-      ['Ambos', function (f) { return f.bothPct; }, 1, function (v) { return Math.round(v) + ' %'; }],
-      ['Noche máx.', function (f) { return f.longestNightH; }, -1, horas],
-      ['Silencio máx.', function (f) { return f.longestSilenceH; }, -1, horas],
-      ['Panel medio', function (f) { return f.meanPanelWm2; }, 1, function (v) { return Math.round(v) + ' W/m²'; }]
+      ['Sun', function (f) { return f.sunPct; }, 1, function (v) { return Math.round(v) + '%'; }],
+      ['Earth', function (f) { return f.earthPct; }, 1, function (v) { return Math.round(v) + '%'; }],
+      ['Both', function (f) { return f.bothPct; }, 1, function (v) { return Math.round(v) + '%'; }],
+      ['Max night', function (f) { return f.longestNightH; }, -1, horas],
+      ['Max silence', function (f) { return f.longestSilenceH; }, -1, horas],
+      ['Mean panel', function (f) { return f.meanPanelWm2; }, 1, function (v) { return Math.round(v) + ' W/m²'; }]
     ];
     var best = cols.map(function (c) { var vs = evs.map(function (e) { return Math.round(c[1](e.figures)); }); return c[2] > 0 ? Math.max.apply(null, vs) : Math.min.apply(null, vs); });
     var maxStay = Math.max.apply(null, cmpList.map(function (x) { return x.sc.stayDays; })), SW = 150;
-    var strip = function (x, e) {   /* Sol arriba y Tierra abajo, alineados desde el aterrizaje; misma escala para todos */
+    var strip = function (x, e) {   /* Sun on top and Earth below, aligned from landing; same scale for all */
       var k = SW / (maxStay * DAY), bar = function (w, y, cls) { return '<rect x="' + ((w[0] - e.fromMs) * k).toFixed(1) + '" y="' + y + '" width="' + Math.max(1, (w[1] - w[0]) * k).toFixed(1) + '" height="7" rx="1.5" fill="' + cls + '"></rect>'; };
-      return '<svg class="cmp-strip" width="' + SW + '" height="18" viewBox="0 0 ' + SW + ' 18" role="img" aria-label="Sol y Tierra durante la estadía"><rect x="0" y="0" width="' + (x.sc.stayDays * DAY * k).toFixed(1) + '" height="18" rx="3" fill="rgba(17,17,17,0.06)"></rect>' +
+      return '<svg class="cmp-strip" width="' + SW + '" height="18" viewBox="0 0 ' + SW + ' 18" role="img" aria-label="Sun and Earth during the stay"><rect x="0" y="0" width="' + (x.sc.stayDays * DAY * k).toFixed(1) + '" height="18" rx="3" fill="rgba(17,17,17,0.06)"></rect>' +
         e.windows.sun.map(function (w) { return bar(w, 1, '#C8102E'); }).join('') + e.windows.earth.map(function (w) { return bar(w, 10, '#8C857A'); }).join('') + '</svg>';
     };
-    $('cmpWrap').innerHTML = '<table class="cmp-table"><thead><tr><th>#</th><th>Zona</th><th>Aterrizaje (UTC)</th><th>Estadía</th><th>Equipo</th>' +
-      cols.map(function (c) { return '<th class="n">' + c[0] + '</th>'; }).join('') + '<th title="Sol arriba y Tierra abajo, alineados desde el aterrizaje">Sol / Tierra</th><th></th><th></th></tr></thead><tbody>' +
+    $('cmpWrap').innerHTML = '<table class="cmp-table"><thead><tr><th>#</th><th>Zone</th><th>Landing (UTC)</th><th>Stay</th><th>Gear</th>' +
+      cols.map(function (c) { return '<th class="n">' + c[0] + '</th>'; }).join('') + '<th title="Sun on top and Earth below, aligned from landing">Sun / Earth</th><th></th><th></th></tr></thead><tbody>' +
       cmpList.map(function (x, i) {
         var e = evs[i], t = new Date(x.sc.landingMs), cur = keyOf(x) === keyOf(curItem());
-        return '<tr class="row-sc" data-i="' + i + '" title="Cargar este escenario"' + (cur ? ' style="font-weight:600"' : '') + '><td class="n">' + (i + 1) + '</td><td title="' + (x.zone === 'P' ? 'Punto propio (horizonte aproximado): ' + coordTxt(x.pt.lat, x.pt.lon) : MAP[x.zone].name) + '">' + x.zone + ' · ' + (x.zone === 'P' ? 'propio' : MAP[x.zone].name.split(' · ')[1]) + '</td>' +
+        return '<tr class="row-sc" data-i="' + i + '" title="Load this scenario"' + (cur ? ' style="font-weight:600"' : '') + '><td class="n">' + (i + 1) + '</td><td title="' + (x.zone === 'P' ? 'Own point (approximate horizon): ' + coordTxt(x.pt.lat, x.pt.lon) : MAP[x.zone].name) + '">' + x.zone + ' · ' + (x.zone === 'P' ? 'own' : MAP[x.zone].name.split(' · ')[1]) + '</td>' +
           '<td class="n" style="text-align:left">' + fDate(x.sc.landingMs) + ' ' + two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()) + '</td><td class="n">' + x.sc.stayDays + ' d</td>' +
           '<td class="n" style="text-align:left">' + (x.sc.panelM === x.sc.antennaM ? metros(x.sc.panelM) : metros(x.sc.panelM) + ' / ' + metros(x.sc.antennaM)) + '</td>' +
           cols.map(function (c, j) { var v = c[1](e.figures); return '<td class="n' + (cmpList.length > 1 && Math.round(v) === best[j] ? ' best' : '') + '">' + c[3](v) + '</td>'; }).join('') +
           '<td>' + strip(x, e) + '</td><td><span class="verdict ' + e.verdict.replace(' ', '') + '">' + e.verdict + '</span></td>' +
-          '<td><button type="button" class="x" data-del="' + i + '" aria-label="Quitar el escenario ' + (i + 1) + '" title="Quitar">×</button></td></tr>';
+          '<td><button type="button" class="x" data-del="' + i + '" aria-label="Remove scenario ' + (i + 1) + '" title="Remove">×</button></td></tr>';
       }).join('') + '</tbody></table>';
   }
   function openCmp() { lastFocus = document.activeElement; renderCmp(); cmp.hidden = false; $('cmpAdd').focus(); }
@@ -774,7 +774,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     var sEl = document.createElement('script');
     sEl.src = 'data/dem-polo.js';
     sEl.onload = function () { demObj = E.crearDem(window.LunarData.demPolar); var q = demLoading; demLoading = []; q.forEach(function (f) { f(); }); };
-    sEl.onerror = function () { demLoading = []; $('pMsg').textContent = 'No se pudo cargar el relieve LOLA (data/dem-polo.js).'; };
+    sEl.onerror = function () { demLoading = []; $('pMsg').textContent = 'Could not load the LOLA terrain (data/dem-polo.js).'; };
     document.head.appendChild(sEl);
   }
   function drawPoint() {
@@ -782,13 +782,13 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     if (!pt) { lay.innerHTML = ''; eP.style.opacity = 0; return; }
     var q = toMap(pt.lat, pt.lon), x = q[0].toFixed(1), y = q[1].toFixed(1), vis = q[0] > -20 && q[0] < 1020 && q[1] > -120 && q[1] < 720;
     lay.innerHTML = vis ? '<circle cx="' + x + '" cy="' + y + '" r="13" fill="none" stroke="rgba(253,230,138,0.8)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#FDE68A" stroke="#05060A" stroke-width="2"></circle>' +
-      '<g><rect x="' + (q[0] - 28) + '" y="' + (q[1] - 62) + '" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="' + x + '" y="' + (q[1] - 47) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#FDE68A" font-family="Space Grotesk, Inter, sans-serif">Punto P</text></g>' : '';
+      '<g><rect x="' + (q[0] - 28) + '" y="' + (q[1] - 62) + '" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="' + x + '" y="' + (q[1] - 47) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#FDE68A" font-family="Space Grotesk, Inter, sans-serif">Point P</text></g>' : '';
     eP.setAttribute('cx', x); eP.setAttribute('cy', y); eP.setAttribute('transform', 'rotate(-28 ' + x + ' ' + y + ')');
   }
   function setPoint(lat, lon, select) {
     Z.P = maskCache[lat + ',' + lon] || (maskCache[lat + ',' + lon] = E.mascaraPolar(demObj, lat, lon));
     var q = toMap(lat, lon);
-    MAP.P = { name: 'Punto propio', pos: [q[0], q[1]], track: 'M20 560 C 160 520, ' + (q[0] - 120).toFixed(0) + ' ' + (q[1] + 60).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
+    MAP.P = { name: 'Own point', pos: [q[0], q[1]], track: 'M20 560 C 160 520, ' + (q[0] - 120).toFixed(0) + ' ' + (q[1] + 60).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
     pt = { lat: lat, lon: lon };
     ids = ['A', 'B', 'C', 'P'];
     try { localStorage.setItem(PKEY, JSON.stringify(pt)); } catch (e) { /* sin almacenamiento */ }
@@ -802,9 +802,9 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     drawPoint(); apply();
   }
   function usePoint(lat, lon) {
-    if (!isFinite(lat) || !isFinite(lon)) { $('pMsg').textContent = 'Escribe la latitud y la longitud.'; return false; }
-    if (!E.dentroDelDominio(lat, lon)) { var p = E.estereoSur(lat, lon); $('pMsg').textContent = 'Fuera del dominio: el punto está a ' + Math.round(Math.hypot(p[0], p[1]) / 1000) + ' km del polo (máximo 190 km).'; return false; }
-    $('pMsg').textContent = 'Cargando el relieve LOLA (8 MB) y calculando el horizonte…';
+    if (!isFinite(lat) || !isFinite(lon)) { $('pMsg').textContent = 'Enter the latitude and longitude.'; return false; }
+    if (!E.dentroDelDominio(lat, lon)) { var p = E.estereoSur(lat, lon); $('pMsg').textContent = 'Out of range: the point is ' + Math.round(Math.hypot(p[0], p[1]) / 1000) + ' km from the pole (maximum 190 km).'; return false; }
+    $('pMsg').textContent = 'Loading the LOLA terrain (8 MB) and computing the horizon…';
     loadDem(function () { setPoint(Math.round(lat * 1e5) / 1e5, Math.round(lon * 1e5) / 1e5, true); closePt(); apply(); var c = cards.querySelector('[data-site="P"]'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest' }); });
     return true;
   }
@@ -817,7 +817,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   function closePt() { ptDlg.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
   function setPicking(on) {
     picking = on; document.querySelector('.monitor .glass-inner').classList.toggle('picking', on);
-    $('chipPt').setAttribute('aria-pressed', on); $('chipPtTxt').textContent = on ? 'Haz clic en el mapa' : 'Punto propio';
+    $('chipPt').setAttribute('aria-pressed', on); $('chipPtTxt').textContent = on ? 'Click on the map' : 'Own point';
   }
   $('chipPt').addEventListener('click', function () { if (picking) setPicking(false); else openPt(); });
   ptDlg.addEventListener('click', function (evt) { if (evt.target.closest('[data-close]')) closePt(); });
@@ -853,18 +853,18 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('siteFoot').textContent = footOf(cur);
     renderWays();
     var canConfirm = state.simulated && cur.verdict === 'GO' && !state.confirmed;
-    /* un solo botón: simular → simulando → confirmar (solo GO) → confirmada */
+    /* a single button: simulate → simulating → confirm (GO only) → confirmed */
     var act = $('actBtn'), label, hint = '', ico = '';
-    if (state.confirmed) { label = 'Zona ' + state.site + ' confirmada'; ico = icoCheck; hint = 'Siguiente paso: planificar la caminata'; }
-    else if (state.running) { label = 'Simulando descenso…'; }
-    else if (!state.simulated) { label = 'Simular descenso'; ico = icoPlay; }
-    else { label = 'Confirmar zona ' + state.site; ico = icoCheck; if (!canConfirm) hint = cur.verdict === 'NO GO' ? 'No cumple: mira «Cómo cumplir»' : 'Al ras: ajusta el escenario'; }
+    if (state.confirmed) { label = 'Zone ' + state.site + ' confirmed'; ico = icoCheck; hint = 'Next step: plan the walk'; }
+    else if (state.running) { label = 'Simulating descent…'; }
+    else if (!state.simulated) { label = 'Simulate descent'; ico = icoPlay; }
+    else { label = 'Confirm zone ' + state.site; ico = icoCheck; if (!canConfirm) hint = cur.verdict === 'NO GO' ? 'Does not meet them: see “How to meet it”' : 'At the horizon: adjust the scenario'; }
     act.disabled = state.confirmed || state.running || (state.simulated && !canConfirm);
     act.classList.toggle('red', !act.disabled);
     $('actLabel').textContent = label; $('actIco').innerHTML = ico; $('actIco').hidden = !ico; $('actHint').textContent = hint;
     $('banner').classList.toggle('on', state.confirmed);
-    $('bannerText').textContent = 'Zona ' + state.site + ' · ' + m.name + ' confirmada para el alunizaje';
-    $('phase').textContent = state.confirmed ? 'Zona confirmada' : (state.simulated ? 'Simulación completada' : 'Evaluando zonas');
+    $('bannerText').textContent = 'Zone ' + state.site + ' · ' + m.name + ' confirmed for the landing';
+    $('phase').textContent = state.confirmed ? 'Zone confirmed' : (state.simulated ? 'Simulation complete' : 'Evaluating zones');
     $('clockDot').style.background = state.confirmed ? '#C8102E' : (state.simulated ? '#111111' : '#857D72');
     $('clockDot').style.boxShadow = state.confirmed ? '0 0 8px rgba(200,16,46,0.8)' : 'none';
     $('tlZona').textContent = state.site; drawTL(); renderCmp();

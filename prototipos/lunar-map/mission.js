@@ -1,4 +1,4 @@
-/* Lunar Map · datos de misión compartidos entre Inicio y Planificar.
+/* Lunar Map · mission data shared between Home and Plan.
  * Las rutas viven en Lunar.ROUTES (coordenadas del mapa local); aquí se miden sobre el terreno.
  */
 (function (root) {
@@ -7,18 +7,18 @@
   var WALK_KMH = 2.2, STOP_MIN = 20, SLOPE_LIMIT = 15;
 
   var META = {
-    safe: { label: 'Segura', status: 'ok', hint: 'Rodea las dos zonas de pendiente. Es la más larga.', leg: 'módulo → desvío', next: 'Desvío para rodear la pendiente', stopNames: ['Desvío'] },
-    short: { label: 'Corta', status: 'risk', hint: 'La más directa, pero un tramo cruza una pendiente fuera del límite.', leg: 'módulo → borde de Shackleton', next: 'Borde de Shackleton', stopNames: [] },
-    science: { label: 'Científica', status: 'tight', hint: 'Pasa por el borde iluminado y una zona en sombra con posible hielo, sin cruzar peligros.', leg: 'módulo → parada 1', next: '1 · Borde iluminado', stopNames: ['1 · Borde iluminado', '2 · Sombra permanente'] }
+    safe: { label: 'Safe', status: 'ok', hint: 'Goes around both slope zones. It is the longest.', leg: 'lander → detour', next: 'Detour around the slope', stopNames: ['Detour'] },
+    short: { label: 'Short', status: 'risk', hint: 'The most direct, but one stretch crosses a slope beyond the limit.', leg: 'lander → Shackleton rim', next: 'Shackleton rim', stopNames: [] },
+    science: { label: 'Scientific', status: 'tight', hint: 'Passes the lit rim and a shadowed area with possible ice, without crossing hazards.', leg: 'lander → stop 1', next: '1 · Lit rim', stopNames: ['1 · Lit rim', '2 · Permanent shadow'] }
   };
   var ORDER = ['safe', 'short', 'science'];
   var FILLS = { ok: [0.45, 0.4, 0.35], tight: [0.74, 0.66, 0.58], risk: [0.4, 0.34, 0.3] };
   var STATUS = {
-    ok: { label: 'Dentro de la reserva', bg: 'rgba(17,17,17,0.07)', fg: '#111111', note: 'Consumo estimado frente a la reserva' },
-    tight: { label: 'Oxígeno ajustado', bg: '#C9C1B6', fg: '#111111', note: 'El oxígeno queda justo al volver' },
-    risk: { label: 'Ruta no viable', bg: '#C8102E', fg: '#F4EFE6', note: 'Los consumibles alcanzan; el problema es la pendiente' }
+    ok: { label: 'Within reserve', bg: 'rgba(17,17,17,0.07)', fg: '#111111', note: 'Estimated use against the reserve' },
+    tight: { label: 'Tight oxygen', bg: '#C9C1B6', fg: '#111111', note: 'Oxygen is just enough on the way back' },
+    risk: { label: 'Route not viable', bg: '#C8102E', fg: '#F4EFE6', note: 'Consumables suffice; the problem is the slope' }
   };
-  var SUPPLIES = [['O₂', 'Oxígeno'], ['E', 'Energía'], ['H₂O', 'Agua']];
+  var SUPPLIES = [['O₂', 'Oxygen'], ['E', 'Power'], ['H₂O', 'Water']];
 
   var cache = {};
   function routeStats(t, key) {
@@ -53,12 +53,12 @@
     var circ = 2 * Math.PI * radius;
     return SUPPLIES.map(function (p, i) {
       var f = FILLS[status][i];
-      return { short: p[0], name: p[1], pct: Math.round((1 - f) * 100), aria: p[1] + ': consumo estimado frente a la reserva', color: f > 0.7 ? '#C8102E' : '#111111', dash: (f * circ).toFixed(1) + ' ' + circ.toFixed(1) };
+      return { short: p[0], name: p[1], pct: Math.round((1 - f) * 100), aria: p[1] + ': estimated use against the reserve', color: f > 0.7 ? '#C8102E' : '#111111', dash: (f * circ).toFixed(1) + ' ' + circ.toFixed(1) };
     });
   }
 
-  /* formato español: 3,8 · 2 100 */
-  function num(v, dec) { var s = v.toFixed(dec || 0).replace('.', ','); return s.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  /* English format: 3.8 · 2,100 */
+  function num(v, dec) { var s = v.toFixed(dec || 0), p = s.split('.'); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); return p.join('.'); }
   function hm(h) { var H = Math.floor(h), M = Math.round((h - H) * 60); return H + ' h ' + (M < 10 ? '0' : '') + M; }
 
   /* bearing en grados desde el norte del mapa (−y), horario */
