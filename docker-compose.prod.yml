@@ -11,3 +11,52 @@ services:
     # Solo loopback: el vhost de Hestia (signal-horizon.goberna.us) hace proxy a :7083
     ports:
       - "127.0.0.1:7083:3000"
+    # Base del mapa 3D (PostGIS): la API entra con el rol de solo lectura map_api (lo crea db-loader).
+    # POSTGRES_DB y MAP_API_PASSWORD salen del .env (contraseñas URL-safe).
+    environment:
+      DATABASE_URL: postgres://map_api:${MAP_API_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+      db-loader:
+        condition: service_completed_successfully
+
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: horizon_signai_db
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - horizon_pgdata:/var/lib/postgresql/data
+    shm_size: 256mb
+    # Sin puerto publicado: solo la red interna de compose
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Migra y carga la base en cada deploy (rápido si las fuentes no cambiaron) y asegura el rol map_api.
+  db-loader:
+    build:
+      context: .
+      dockerfile: db/Dockerfile
+    image: horizon-signai-db-loader:latest
+    container_name: horizon_signai_db_loader
+    restart: "no"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      HORIZON_DB_HOST: db
+      HORIZON_DB_PORT: "5432"
+      MAP_API_PASSWORD: ${MAP_API_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  horizon_pgdata:

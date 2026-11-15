@@ -1,0 +1,27 @@
+# Whitelist for db/Dockerfile (BuildKit picks <Dockerfile>.dockerignore over the root .dockerignore).
+*
+!db
+!luna-recursos/datos/luna-ldem4.f16
+!luna-recursos/datos/luna-ldam4.f16
+!luna-recursos/datos/dem-polo.json
+!luna-recursos/datos/dem-polo-240m.i16
+!luna-recursos/datos/dem-polo-960m.i16
+!luna-recursos/datos/efemerides-luna.json
+!luna-recursos/datos/efemerides-luna.f32
+!luna-recursos/datos/horizonte-catalogo-connecting-ridge.json
+!luna-recursos/datos/horizonte-catalogo-shackleton-rim.json
+!luna-recursos/datos/horizonte-catalogo-peak-near-shackleton.json
+!luna-recursos/datos/horizonte-catalogo-de-gerlache-rim.json
+!luna-recursos/datos/horizonte-catalogo-haworth.json
+!luna-recursos/datos/horizonte-catalogo-malapert-massif.json
+!luna-recursos/datos/horizonte-catalogo-nobile-rim-1.json
+!luna-recursos/datos/horizonte-catalogo-nobile-rim-2.json
+!luna-recursos/datos/horizonte-catalogo-leibnitz-beta.json
+!luna-recursos/datos/horizonte-catalogo-shoemaker.json
+!apps/web/scripts/mapa-3d/sitios.json
+!apps/web/scripts/mapa-3d/iau-nombres.json
+!apps/web/scripts/mapa-3d/gradiente16.webp
+!apps/web/scripts/mapa-3d/tierra-bluemarble.jpg
+!apps/web/scripts/mapa-3d/mapa.src.html
+**/__pycache__
+db/docker-compose.yml
