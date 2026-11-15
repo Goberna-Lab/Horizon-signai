@@ -132,6 +132,23 @@
 
 /* --- Barra superior ----------------------------------------------------------------------------------------- */
 
+/* En la entrada de la portada (pantalla negra) la barra espera a que el negro se retire. */
+@media (prefers-reduced-motion: no-preference) {
+  .ln:has(.fl__limb) .ln-bar {
+    animation: ln-bar-in 800ms var(--ease) 6200ms both;
+  }
+
+  :root:not([data-intro]) .ln:has(.fl__limb) .ln-bar {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes ln-bar-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .ln-bar {
   position: fixed;
   top: 0;
@@ -140,10 +157,31 @@
   z-index: var(--z-bar);
   height: var(--bar);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  /* Marca a la izquierda, enlaces en el centro exacto y acción a la derecha. */
+  grid-template-columns: 1fr auto 1fr;
   align-items: stretch;
+  /* En pantallas anchas la marca y la acción se acercan al centro en vez de pegarse a los bordes. */
+  padding-inline: clamp(0px, 9vw - 70px, 240px);
   background: var(--paper);
   border-bottom: var(--rule);
+}
+
+/*
+ * Con las lecturas del inicio a los lados (FlightStage.tsx mide sus columnas), la marca se pone justo encima de la
+ * columna izquierda y la acción encima de la derecha: mismos bordes y mismo ancho.
+ */
+:root[data-bar-aligned] .ln-bar {
+  padding-inline: var(--bar-left) var(--bar-right);
+}
+
+:root[data-bar-aligned] .ln-bar__brand {
+  width: var(--bar-left-w);
+  padding-left: 0;
+}
+
+:root[data-bar-aligned] .ln-bar__cta {
+  width: var(--bar-right-w);
+  justify-content: center;
 }
 
 .ln-bar__brand {
@@ -159,10 +197,19 @@
   white-space: nowrap;
 }
 
+.ln-bar__brand {
+  justify-self: start;
+}
+
+.ln-bar__cta {
+  justify-self: end;
+}
+
 .ln-bar__nav {
   display: flex;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: clamp(4px, 1vw, 16px);
 }
 
 .ln-bar__nav a {

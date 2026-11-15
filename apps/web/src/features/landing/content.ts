@@ -23,6 +23,32 @@ export const brand = {
   challengeUrl: "https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/",
 }
 
+/**
+ * El inicio. El titular dice qué es el producto: un planificador ágil de misiones lunares con IA integrada. La
+ * parte marcada va en el rojo de señal, el único color del emblema del equipo.
+ */
+export const opening = {
+  /**
+   * La marca animada: se escribe "Horizon Signal", se borra "al" y se escribe "AI" en rojo: queda "Horizon SignAI".
+   */
+  brand: { keep: "Horizon Sign", erase: "al", write: "AI" },
+  title: [{ text: "The agile lunar mission planner with " }, { text: "AI built in", mark: true }, { text: "." }] as Array<{ text: string; mark?: boolean }>,
+  /** Lecturas del módulo en el sitio destacado: los valores salen de sky.json en FlightStage.tsx. */
+  status: {
+    title: "lander status",
+    link: "Earth link",
+    linked: "Connection established",
+    unlinked: "No connection",
+    earth: "Earth above level",
+    power: "Solar power",
+    sunLeft: "Sunlight left",
+    sunIn: "Sunrise in",
+    earthLeft: "Earth contact left",
+    earthIn: "Earthrise in",
+    when: "Mission time, UT",
+  },
+}
+
 /** Una etiqueta por intención: se usa igual en la barra, el inicio y el cierre. */
 export const actions = {
   planner: { label: "Open the planner", to: routes.missionPlanner },
@@ -38,6 +64,12 @@ export const nav = [
 
 export type Fact = { value: string; label: string }
 
+/** Una pregunta para adivinar antes de ver el dato de la escena: tres respuestas y cuál es la buena. */
+export type Quiz = { ask: string; options: string[]; right: number }
+
+/** Rótulos de las preguntas del vuelo. */
+export const guess = { label: "Guess first", right: "Right.", wrong: "Not quite.", show: "Show the answer" }
+
 export type Scene = {
   id: string
   /** Nombre corto para el riel de la derecha. */
@@ -46,6 +78,7 @@ export type Scene = {
   body: string
   facts?: Fact[]
   note?: string
+  quiz?: Quiz
 }
 
 /** Las escenas del vuelo, en orden. La primera es el inicio de la página. */
@@ -65,6 +98,7 @@ export const scenes: Scene[] = [
       { value: `${pole.sunMaxElevationDeg.toFixed(2)}°`, label: "Highest Sun over the pole, 2026 to 2030" },
       { value: `${facts.lunarDayDays.toFixed(1)} d`, label: "One turn around the horizon" },
     ],
+    quiz: { ask: "How high does the Sun climb at the south pole?", options: ["Straight overhead", "About halfway up the sky", "Under 2 degrees"], right: 2 },
   },
   {
     id: "power",
@@ -76,6 +110,7 @@ export const scenes: Scene[] = [
       { value: pct(featured.mast10m.sunPct), label: "Sun in view, 10 m mast" },
       { value: hours(featured.ground.longestNightH), label: "Longest night, ground level" },
     ],
+    quiz: { ask: "Raise the solar panel on a 10 m mast. How much more sunlight?", options: ["Almost twice as much", "A few percent more", "None: the Sun is the same"], right: 0 },
   },
   {
     id: "earth",
@@ -88,12 +123,14 @@ export const scenes: Scene[] = [
       { value: hours(featured.ground.longestSilenceH), label: "Longest silence, ground level" },
     ],
     note: "Red hatching: direct line of sight to Earth at this hour.",
+    quiz: { ask: "Can a lander at the pole always see Earth?", options: ["Always", "Only part of the time", "Never"], right: 1 },
   },
   {
     id: "compare",
     rail: "Compare",
     title: `${pairDistanceM} metres change the mission.`,
-    body: `Two points on the same ridge, the same lunar day. One gets sunlight ${pct(featured.ground.sunPct)} of the time, the other never loses it.`,
+    body: `Two points on the same ridge, the same lunar day. One gets sunlight ${pct(featured.ground.sunPct)} of the time, the other never loses it. That is why a lunar plan has to be compared again every time the site or the date moves.`,
+    quiz: { ask: `Two sites ${pairDistanceM} m apart on the same ridge. Same sunlight?`, options: ["Nearly the same", "A few percent apart", "One never loses the Sun"], right: 2 },
   },
 ]
 
@@ -124,8 +161,8 @@ export const hud = {
  * (sections/data/sky.json, product.json y catalog.json).
  */
 export const software = {
-  title: "The software, live on this page.",
-  body: `Not a screenshot. These are the tool's own views running on real ephemeris and terrain: one lunar day at ${featured.name}, from 1 December 2026.`,
+  title: "The planner's engine, live on this page.",
+  body: `Not a screenshot. These are the planner's own views running on real ephemeris and terrain: one lunar day at ${featured.name}, from 1 December 2026. Move the date and watch the plan respond.`,
   tabs: { lander: "Lander", compare: "Compare", calendar: "Calendar", map: "Map", planb: "Plan B", learn: "Learn" },
   lander: {
     title: "Lander",
@@ -203,31 +240,35 @@ export const months = {
   hint: "Point at a bar to read a month.",
 }
 
+/**
+ * El recorrido del producto en cuatro pasos, uno por pantalla del flujo del equipo (docs/11-flujo-y-arquitectura.md):
+ * Dashboard, Planificador, Simulación y el asistente de IA.
+ */
 export const product = {
-  title: "From a site and a date to a decision you can explain.",
+  title: "One workflow, from the first plan to the replan.",
   steps: [
     {
       verb: "Plan",
-      question: "Which site, which date?",
-      body: "Pick a catalogued site or drop your own point within 190 km of the pole. Choose any date from 2026 to 2030 and read the Sun and Earth windows against the real horizon.",
+      question: "Which missions still hold?",
+      body: "Give each mission a site, a date and its requirements. The dashboard keeps them together and flags the ones that stopped meeting their sunlight or Earth contact.",
       action: actions.planner,
     },
     {
       verb: "Compare",
-      question: "Which scenario wins?",
-      body: "Keep up to six scenarios side by side and read the same figures for each one: Sun in view, Earth in view and the longest night.",
+      question: "The date slipped. What now?",
+      body: "The planner lines up the ways out, another date, another site or a taller mast, with the same figures for each, and proposes the one that meets the requirements.",
       action: null,
     },
     {
       verb: "See",
-      question: "Why does one scenario win?",
-      body: "Open the chosen scenario in 3D at the first moment the Sun and Earth are both in view, and see which ridge blocks the light or the link.",
-      action: null,
+      question: "Does the landing work from start to finish?",
+      body: "Take the chosen plan to the simulator and rehearse it: the descent, the touchdown and the days on the surface, with the same Sun and Earth windows.",
+      action: actions.simulator,
     },
     {
       verb: "Learn",
-      question: "Why is the pole different?",
-      body: "The Sun circles the horizon, Earth rocks in place and height buys sunlight. Three figures from the same data explain why a few metres or a few days change the answer.",
+      question: "Why did the plan change?",
+      body: "Ask the AI assistant. It explains the figures the engine computed and cites its sources; it never invents a number. In the simulator it teaches why the pole is different.",
       action: null,
     },
   ],
@@ -236,18 +277,18 @@ export const product = {
 export const audience = {
   quote: "The date slipped. Is the site still viable? Which alternative is better?",
   attribution: "The question a mission planner has to answer, again and again",
-  body: "Built for the person who picks a landing site and date, and picks again when the schedule moves. Open to educators and to anyone curious about why the lunar south pole is so hard.",
+  body: "Built for the person who picks a landing site and date, and picks again when the schedule moves. Agile planning for lunar missions, with an AI assistant on hand. Open to educators and to anyone curious about why the lunar south pole is so hard.",
   measures: [
-    { term: "Sun above the horizon", detail: "Power for the solar arrays" },
-    { term: "Earth above the horizon", detail: "A direct link, no relay satellite" },
-    { term: "Time left", detail: "How long until either one sets" },
+    { term: "Technical innovation", detail: "A validated engine on LOLA terrain and JPL ephemeris, with an AI assistant that explains its figures" },
+    { term: "Educational value", detail: "Guess-first questions, live views and an assistant that teaches why the pole is different" },
+    { term: "Mission impact", detail: "A replan in minutes, not weeks, when the schedule moves" },
   ],
 }
 
 /** Cada cifra viene de docs/07-pruebas-y-validacion.md y docs/04-planificador.md (suite del 2026-11-14). */
 export const validation = {
   title: "Checked against the record.",
-  body: "Every calculation is tested against an independent source. The suite ran on 14 November 2026.",
+  body: "A fast replan is only useful if its numbers hold. Every calculation is tested against an independent source. The suite ran on 14 November 2026.",
   moreLabel: "All checks and stated limits",
   /** docs/04-planificador.md (sección 5), docs/07-pruebas-y-validacion.md y luna-recursos/LEEME.md. */
   checks: [
@@ -327,8 +368,8 @@ export const sources = {
 }
 
 export const closing = {
-  title: "Pick the site. Pick the date.",
-  body: "Start with a catalogued site at the south pole and move the date. The windows update as you go.",
+  title: "Plan the mission. Replan in minutes.",
+  body: "Start a mission at the south pole, move the date and watch the plan respond. The assistant is there when you ask why.",
 }
 
 export const footer = {

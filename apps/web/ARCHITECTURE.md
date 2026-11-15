@@ -19,7 +19,16 @@ src/
                            dibuja el cielo en polar, Timeline.tsx las ventanas, HorizonScene.tsx el horizonte de fondo
                            (sus piezas están en horizon/) y sky.ts lee los datos
       flight/              El vuelo sobre el polo sur: un escenario fijo que el scroll recorre
-        FlightStage.tsx    Escenario: lienzo, texto de las escenas, riel, tablero y scroll (GSAP ScrollTrigger)
+        FlightStage.tsx    Escenario: lienzo, texto de las escenas, tablero y scroll (GSAP ScrollTrigger)
+                           El inicio: entrada en negro ("Horizon Signai" se escribe en blanco con cursor, "Sign"
+                           se retira y queda "Horizon AI"), después la marca baja a su sitio, el Sol rojo entra
+                           por arriba a la derecha y se posa tras la cresta (el horizonte real de Connecting
+                           Ridge), llegan las lecturas del módulo (de `sky.json`) y el astronauta camina sobre la
+                           cresta dejando huellas que se borran (astronaut.ts, modelo en data/astronaut.glb, CC BY
+                           4.0, aligerado con scripts/convert-astronaut.mjs). Para que la entrada vaya fluida,
+                           espera a la serif y la lámina 3D y el astronauta no se cargan hasta que termina
+        ScenePanel.tsx     El panel de cada escena: primero pregunta ("Guess first", tres respuestas) y al responder
+                           revela el dato; las preguntas van con cada escena en content.ts (`quiz`)
         stops.ts           Paradas de la cámara, una por escena
         telemetry.ts       Lecturas del tablero (fecha, Sol, Tierra, cuenta regresiva)
         createFlight.ts    Entrada del trozo diferido: three.js, datos y motor
