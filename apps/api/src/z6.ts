@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
-import { atenuarWav, clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
+import { atenuarWav, clasificarOido, filtroDeNotas, SIN_RESPUESTA, sinNotas, type Z6Respuesta } from "@horizon-signai/shared"
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
 import { parecida, precalentarParecidas } from "./assistant/parecidas.js"
 import { contextoRag } from "./assistant/rag.js"
@@ -282,7 +282,7 @@ const turnoDeVoz = (
     const hablarFrase = (crudo: string) => {
       const i = n++
       const texto = paraHablar(crudo)
-      if (!texto) return
+      if (!texto || !/[\p{L}\d]/u.test(texto)) return // lo que quedó de una nota quitada (un «.» suelto) no se dice
       cola = cola
         .then(async () => {
           if (corte.signal.aborted || errorDeVoz) return
@@ -343,7 +343,14 @@ const turnoDeVoz = (
       let buffer = ""
       let respuesta = ""
       // Las órdenes que el modelo pone al final («<<planner zone=B>>») no se muestran ni se pronuncian: salen como evento.
-      const filtro = filtroDeAcciones((a) => emitir({ t: "accion", a }))
+      let huboAccion = false
+      const filtro = filtroDeAcciones((a) => {
+        huboAccion = true
+        emitir({ t: "accion", a })
+      })
+      // Y las notas entre corchetes que a veces imita de las nuestras («[Note from the system: …]»): ni se muestran,
+      // ni se pronuncian, ni vuelven al historial (packages/shared/src/notas.ts).
+      const notas = filtroDeNotas()
       for (;;) {
         const { done, value } = await lector.read()
         if (done) break
@@ -354,7 +361,7 @@ const turnoDeVoz = (
           if (!l.trim()) continue
           const d = JSON.parse(l) as { message?: { content?: string }; error?: string }
           if (d.error) throw new Error(d.error)
-          const delta = filtro.pasar(d.message?.content ?? "")
+          const delta = notas.pasar(filtro.pasar(d.message?.content ?? ""))
           if (!delta) continue
           respuesta += delta
           buffer += delta
@@ -373,8 +380,16 @@ const turnoDeVoz = (
         }
       }
       if (buffer.trim()) hablarFrase(buffer)
+      // La respuesta entera eran notas (medido: «[Response to …] [Response to …]»): una frase honesta, no silencio.
+      // Una respuesta que es solo una orden no cuenta: hizo algo.
+      if (!sinNotas(respuesta) && !huboAccion) {
+        respuesta = SIN_RESPUESTA[persona.idioma]
+        emitir({ t: "texto", d: respuesta })
+        hablarFrase(respuesta)
+      }
       await cola
       if (errorDeVoz) throw errorDeVoz
+      respuesta = sinNotas(respuesta)
       if (repetida) respuesta = respuesta.replace(repetida[0], repetida[1])
       if (acuse) respuesta = `${acuse} ${respuesta.trim()}`
       emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs })
