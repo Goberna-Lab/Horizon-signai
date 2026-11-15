@@ -77,6 +77,9 @@ export function darkness(windows: number[][], t: number): number {
   return smooth(clamp01((1 - turn.hours / DUSK_H) / NIGHTFALL))
 }
 
+/** Velocidad del tiempo durante el cambio, respecto a la normal (0.5 = la mitad). */
+export const TURN_TEMPO = 0.5
+
 /**
  * Velocidad del tiempo cuando corre solo, de 0 a 1: se frena alrededor de la puesta y de la salida para que el
  * cambio se pueda ver (a velocidad normal duraría dos segundos y medio).
@@ -85,7 +88,7 @@ export function tempo(windows: number[][], t: number): number {
   const turn = turnOf(windows, t)
   if (!turn) return 1
   const near = clamp01(1 - turn.hours / (turn.up ? DUSK_H : AFTERGLOW_H))
-  return 1 - 0.74 * smooth(clamp01(near * 4))
+  return 1 - (1 - TURN_TEMPO) * smooth(clamp01(near * 4))
 }
 
 export const span = (hours: number) => formatSpan(hours * HOUR_MS)

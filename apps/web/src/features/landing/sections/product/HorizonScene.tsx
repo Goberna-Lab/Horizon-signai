@@ -108,8 +108,6 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
     const landContexts = parts.land.map((canvas) => canvas.getContext("2d"))
     const earthContext = parts.earth.getContext("2d")
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    /** Dónde se anotan `--glare` (para el velo de la ventana): la sección entera. */
-    const host = el.closest<HTMLElement>("section")
 
     let geo: Geometry = { width: 0, height: 0, centre: 0, zero: 0, sx: 1, sy: 1, pad: LAND_PAD }
     let quality = QUALITY.large
@@ -280,20 +278,23 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       // --- Capas que solo se mueven y cambian de opacidad -----------------------------------------------------
       fade(parts.space, sky01)
       fade(parts.stars, starsShown)
+      const starsOn = starsShown > 0.004 ? "visible" : "hidden"
+      put(parts.stars, "visibility", starsOn, () => (parts.stars.style.visibility = starsOn))
       const farMove = shift(DEPTH.starsFar)
       for (const canvas of parts.starsFar) move(canvas, farMove.x, farMove.y)
       const midMove = shift(DEPTH.starsMid)
       move(parts.starsMid, midMove.x, midMove.y)
 
       // --- El relieve: se repinta si cambió la luz o si la cámara giró más que el margen; si no, solo se mueve --
-      const key = `${night.toFixed(2)}|${light.toFixed(2)}|${real.length}|${real[0]}|${real[90]}`
+      // La luz va en escalones de un 4 %: repintar tres lienzos grandes en cada cuadro es lo más caro de la escena.
+      const key = `${Math.round(night * 25)}|${Math.round(light * 25)}|${real.length}|${real[0]}|${real[90]}`
       let pan = ((((geo.centre - landCentre) % 360) + 540) % 360) - 180
       if ((key !== landKey || Math.abs(pan * geo.sx) > PAN_LIMIT) && (dt === 0 || now - landAt >= 30 || Math.abs(pan * geo.sx) > LAND_PAD - 60)) {
         landKey = key
         landAt = now
         landCentre = geo.centre
         pan = 0
-        const lit: Lighting = { night, light, sunX, sunRadius: radius, groundY: crestY }
+        const lit: Lighting = { night: Math.round(night * 25) / 25, light: Math.round(light * 25) / 25, sunX, sunRadius: radius, groundY: crestY }
         LAYERS.forEach((layer, i) => {
           const context = landContexts[i]
           if (!context) return
@@ -338,9 +339,10 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       const sY = sunY + sunMove.y
       if (sun) {
         if (presence > 0.004) {
-          // Con "reducir movimiento" la corona se queda quieta: se dibuja solo cuando cambia la hora.
-          const sunNow = still ? `${hour.toFixed(3)}|${presence.toFixed(3)}` : ""
-          if (!still || sunNow !== sunKey) {
+          // El disco y su resplandor no se mueven solos: se dibujan si cambió algo. La corona sí está viva, y va a
+          // 30 cuadros por segundo (gira muy despacio).
+          const sunNow = `${sx.toFixed(1)}|${sY.toFixed(1)}|${presence.toFixed(3)}|${corona > 0.002 && !still ? Math.floor(now / 33) : corona.toFixed(3)}`
+          if (sunNow !== sunKey) {
             sunKey = sunNow
             sun.draw({ x: sx, y: sY, radius, time: still ? 12 : now / 1000, disc: presence, corona })
             sunShown = true
@@ -391,11 +393,7 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
         move(ghost, sx + axisX * along - 50, fy + axisY * along - 50, (base * size * 2) / 100)
       })
 
-      // Para la ventana (su velo) y para las comprobaciones: cuánto deslumbra el Sol y cuánto asoma.
-      if (host) {
-        const value = (Math.round(bright * 0.7 * 25) / 25).toFixed(2)
-        put(host, "glare", value, () => host.style.setProperty("--glare", value))
-      }
+      // Para las comprobaciones: cuánto asoma el Sol.
       const state = on ? visible.toFixed(2) : "off"
       put(el, "sun", state, () => (el.dataset.sun = state))
     }
@@ -440,7 +438,6 @@ export function HorizonScene({ time, horizon, sunWindows, earthWindows, level, a
       window.removeEventListener("deviceorientation", onTilt)
       observer.disconnect()
       sun?.dispose()
-      host?.style.removeProperty("--glare")
       start.current = () => {}
       relayout.current = () => {}
     }

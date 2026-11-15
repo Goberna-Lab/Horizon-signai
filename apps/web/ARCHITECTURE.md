@@ -124,8 +124,8 @@ Map, Plan B y Learn, con el diseño de las pantallas del producto.
   fundido). De esos dos valores cuelgan todos los colores de la página (`.ln` en `landing.css`; la paleta de noche
   está en `styles/tokens.css`). Solo ocurre con la ventana en pantalla: al seguir bajando, la página vuelve al
   papel. El vuelo conserva siempre los colores de día, porque su lienzo se dibuja con ellos.
-- **El tiempo se frena en el cambio.** Con el reloj corriendo, la puesta y la salida pasan a un cuarto de la
-  velocidad (`tempo` en `sky.ts`): unos diez segundos en vez de dos y medio.
+- **El tiempo se frena en el cambio.** Con el reloj corriendo, la puesta y la salida pasan a la mitad de la
+  velocidad (`TURN_TEMPO` en `sky.ts`): unos cinco segundos en vez de dos y medio.
 - **El horizonte de fondo** (`HorizonScene.tsx` y `product/horizon/`): detrás de la vista Lander va la puesta del
   Sol como se vería de verdad desde el suelo del sitio, filmada con una cámara de cine. Solo aparece en el cambio:
   el cielo se vuelve negro, el Sol resbala a ras del horizonte y una ladera lo va tapando hasta que desaparece
@@ -150,13 +150,13 @@ Map, Plan B y Learn, con el diseño de las pantallas del producto.
     estrellas, polvo, Tierra y rayos de difracción; `horizon/terrain.ts`, el relieve.
   - Rendimiento: un solo bucle, que solo corre con la vista en pantalla. El parallax, el giro de la cámara y los
     fundidos son solo `transform` y `opacity`. Las estrellas y los rayos se pintan una vez; el relieve, solo cuando
-    cambia la luz o la cámara giró más que su margen (como mucho 30 veces por segundo); el shader, solo mientras el
-    Sol está en escena, con un tope de píxeles que baja solo si el equipo no llega. En pantallas pequeñas hay menos
+    cambia la luz (en escalones de un 4 %) o la cámara giró más que su margen; el shader, solo mientras el Sol está
+    en escena y solo si algo cambió, con un tope de píxeles que baja solo si el equipo no llega. En pantallas pequeñas hay menos
     estrellas, menos rocas y un ruido más barato.
   - Con "reducir movimiento" no hay parallax ni titileo y la corona queda quieta: la escena es una lámina fija de
     la hora elegida. Sin WebGL el Sol se dibuja con degradados.
   - Legibilidad: con el fondo visible la ventana es casi transparente de día y hace de visor ahumado de noche,
-    más oscuro cuanto más deslumbra el Sol (`--glare`, que escribe la escena en la sección).
+    lo justo para leer con el Sol detrás.
 - **La vista Lander cabe entera en la pantalla** (desde 900 px de ancho): el bloque central toma el alto que queda
   libre y el cielo y las cifras se miden contra él (`cqh`). La nota de la vista va debajo de la ventana, como pie.
 - **Colores de dato:** el Sol va en el rojo de señal y la Tierra en azul (`--earth`), solo dentro de las figuras.

@@ -54,6 +54,30 @@
   transition: opacity 500ms;
 }
 
+/*
+ * Los bordes de arriba y de abajo de la sección se funden con la página: en pantallas más altas que la sección (una
+ * tableta en vertical, un monitor grande) el escenario termina dentro de la pantalla y, sin esto, se vería el corte.
+ */
+.sw-sky::before,
+.sw-sky::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: clamp(72px, 16vh, 200px);
+}
+
+.sw-sky::before {
+  top: 0;
+  background: linear-gradient(var(--paper), transparent);
+}
+
+.sw-sky::after {
+  bottom: 0;
+  background: linear-gradient(transparent, var(--paper));
+}
+
 /* El escenario: se queda fijo a pantalla completa mientras la sección pasa por encima. */
 .hz {
   position: sticky;
@@ -201,8 +225,8 @@
   --sw-pad: clamp(16px, 2.2vw, 32px);
   border: 1.5px solid var(--sw-ink);
   /* Con el horizonte de fondo la ventana se vuelve casi transparente: la vista flota sobre el paisaje. */
-  /* De noche hace de visor ahumado: se oscurece lo justo para leer, más cuanto más deslumbra el Sol (`--glare`). */
-  background: color-mix(in srgb, var(--sw-bg) calc((1 - var(--scene, 0) * (0.9 - 0.22 * var(--night) - 0.38 * var(--glare, 0))) * 100%), transparent);
+  /* De noche hace de visor ahumado: se oscurece lo justo para leer con el Sol detrás. */
+  background: color-mix(in srgb, var(--sw-bg) calc((1 - var(--scene, 0) * (0.9 - 0.5 * var(--night))) * 100%), transparent);
   transition: background-color 500ms;
   color: var(--sw-ink);
   font-family: var(--font-display);

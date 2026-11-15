@@ -98,7 +98,7 @@ export type Quality = {
 }
 export const QUALITY: { small: Quality; large: Quality } = {
   small: { sunPixels: 420_000, octaves: 3, fine: false, starAreaFar: 2600, starAreaMid: 9000, rocks: 12, craters: 6 },
-  large: { sunPixels: 1_100_000, octaves: 4, fine: true, starAreaFar: 3400, starAreaMid: 11000, rocks: 24, craters: 12 },
+  large: { sunPixels: 700_000, octaves: 4, fine: true, starAreaFar: 3400, starAreaMid: 11000, rocks: 24, craters: 12 },
 }
 /** Por debajo de este lado menor (px) la pantalla cuenta como pequeña. */
 export const SMALL_SCREEN = 700
