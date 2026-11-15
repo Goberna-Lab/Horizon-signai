@@ -31,15 +31,26 @@ export const brand = {
  */
 /** La pantalla de carga del inicio: un paso por cada parte de la carga y la fuente del relieve. */
 export const loading = {
-  title: "Lunar south pole",
+  title: tr("Lunar south pole", "Polo sur lunar"),
   steps: {
-    engine: "Starting the 3D engine",
-    terrain: "Downloading the terrain",
-    mesh: "Building the relief",
-    light: "Computing sunlight and shadows",
-    done: "Ready",
+    engine: tr("Starting the 3D engine", "Arrancando el motor 3D"),
+    terrain: tr("Downloading the terrain", "Descargando el relieve"),
+    mesh: tr("Building the relief", "Construyendo el relieve"),
+    light: tr("Computing sunlight and shadows", "Calculando luz y sombras"),
+    done: tr("Ready", "Listo"),
   },
-  source: "Elevation: NASA LRO, LOLA",
+  source: tr("Elevation: NASA LRO, LOLA", "Altimetría: NASA LRO, LOLA"),
+}
+
+/** El modal de idioma de cada visita, con el estilo de las preguntas del vuelo: en inglés, para que lo lea cualquiera. */
+export const chooseLanguage = {
+  label: "Language · Idioma",
+  title: "For a better experience, choose your language",
+  options: [
+    { lang: "en", name: "English" },
+    { lang: "es", name: "Spanish" },
+  ] as Array<{ lang: "en" | "es"; name: string }>,
+  skip: "Not now",
 }
 
 export const opening = {
@@ -56,7 +67,7 @@ export const opening = {
   status: {
     title: tr("lander status", "estado del módulo"),
     link: tr("Earth link", "Enlace con la Tierra"),
-    linked: tr("Connection restored", "Conexión establecida"),
+    linked: tr("Connection restored", "Conexión restablecida"),
     unlinked: tr("No connection", "Sin conexión"),
     earth: tr("Earth above level", "Elevación de la Tierra"),
     power: tr("Solar power", "Potencia solar"),

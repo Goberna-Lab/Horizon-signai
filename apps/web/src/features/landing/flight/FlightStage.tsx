@@ -4,7 +4,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger"
 import Lenis from "lenis"
 import "lenis/dist/lenis.css"
 import { tr } from "@/shared/i18n"
-import { brand, hud, loading, opening, scenes } from "../content"
+import { lang, setLang, type Lang } from "@/shared/i18n"
+import { brand, chooseLanguage, hud, loading, opening, scenes } from "../content"
 import type { FlightHandle, LoadStep } from "./createFlight"
 import type { Flight, ScreenPoint } from "./engine/renderer"
 import type { Frame } from "./engine/story"
@@ -43,6 +44,21 @@ const SUNSET_AZ = 176
  */
 /** El relieve 3D es el propio inicio: se carga enseguida, con la pantalla de carga delante. */
 const FLIGHT_AT_MS = 0
+/** Cuándo se pregunta el idioma (ms de la entrada): con la marca ya retirada, antes de que entre la frase. */
+const LANG_AT_MS = 5600
+/** Marca de sesión: la recarga tras elegir el otro idioma no vuelve a preguntar. */
+const LANG_ASKED = "horizon-signai.lang-asked"
+/** Se lee una sola vez, al cargar la página (y se borra: la visita siguiente vuelve a preguntar). */
+const justChoseLang = (() => {
+  if (typeof window === "undefined") return false
+  try {
+    const asked = window.sessionStorage.getItem(LANG_ASKED) === "1"
+    window.sessionStorage.removeItem(LANG_ASKED)
+    return asked
+  } catch {
+    return false
+  }
+})()
 /** El amanecer en 3D: el día avanza entre estos instantes de la entrada (ms), de `SUNRISE_FROM` a `HERO_DAY`. */
 const DAWN = { from: 3400, to: 7400 }
 /** Hora del día lunar (desde el 1 de diciembre de 2026) que enseñan las lecturas del inicio: el Sol y la Tierra a la vista. */
@@ -120,6 +136,12 @@ export function FlightStage() {
   const lenisRef = useRef<Lenis | null>(null)
   /** Cuándo arrancó la entrada (performance.now()): el reloj del amanecer y del HUD. */
   const introAt = useRef<number | null>(null)
+  /** Mientras se elige idioma la entrada está en pausa: desde cuándo (performance.now()). */
+  const holdAt = useRef<number | null>(null)
+  /** Tiempo de la entrada (ms), parado durante la pausa. */
+  const introTime = () => (introAt.current === null ? 0 : (holdAt.current ?? performance.now()) - introAt.current)
+  /** El modal de idioma: en cada visita, entre la marca y la frase. */
+  const [askLang, setAskLang] = useState(false)
   const limbEl = useRef<HTMLDivElement>(null)
   const statusEl = useRef<HTMLDivElement>(null)
   const cellEls = useRef<Record<string, HTMLElement | null>>({})
@@ -333,6 +355,53 @@ export function FlightStage() {
     }
   }, [mode])
 
+  // El idioma: en cada visita, entre la marca y la frase, la entrada se pausa y se pregunta. Elegir el idioma que ya
+  // está (o "Not now") la reanuda; elegir el otro recarga la página en ese idioma, y esa recarga ya no pregunta.
+  useEffect(() => {
+    if (justChoseLang) return
+    const root = container.current
+    if (!root) return
+    let timer = 0
+    const ask = () => {
+      timer = window.setTimeout(() => {
+        holdAt.current = performance.now()
+        root.dataset.hold = ""
+        document.documentElement.dataset.hold = ""
+        setAskLang(true)
+      }, Math.max(LANG_AT_MS - introTime(), 0))
+    }
+    if (root.dataset.intro === "run") ask()
+    else window.addEventListener("flight:intro", ask, { once: true })
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener("flight:intro", ask)
+    }
+  }, [])
+
+  const resume = () => {
+    const root = container.current
+    if (holdAt.current !== null && introAt.current !== null) introAt.current += performance.now() - holdAt.current
+    holdAt.current = null
+    if (root) delete root.dataset.hold
+    delete document.documentElement.dataset.hold
+    setAskLang(false)
+  }
+
+  const choose = (next: Lang) => {
+    if (next !== lang) {
+      // La recarga en el otro idioma no vuelve a preguntar.
+      try {
+        window.sessionStorage.setItem(LANG_ASKED, "1")
+      } catch {
+        // sin almacenamiento, la recarga preguntará otra vez
+      }
+      setLang(next)
+      return
+    }
+    setLang(next)
+    resume()
+  }
+
   // El HUD se reinicia con el Sol (ver `HUD`): sin energía y sin enlace de noche, la potencia sube con la luz y el
   // enlace vuelve. El texto final está ya en la página (sin JS o con "reducir movimiento" se queda así).
   useEffect(() => {
@@ -356,7 +425,6 @@ export function FlightStage() {
     const power = parseFloat(final("power")) || 0
     const earth = parseFloat(final("earth")) || 0
     let frame = 0
-    let startedAt = 0
     const show = (t: number) => {
       const charge = smooth(clamp01((t - HUD.chargeFrom) / (HUD.chargeTo - HUD.chargeFrom)))
       hero.dataset.power = t < HUD.chargeFrom ? "off" : t < HUD.chargeTo ? "charging" : "online"
@@ -375,14 +443,13 @@ export function FlightStage() {
       write("earthLeft", t < HUD.link ? "--" : final("earthLeft"), t < HUD.link ? "off" : "on")
     }
     const tick = () => {
-      const t = performance.now() - startedAt
+      const t = introTime()
       show(t)
       if (t < HUD.end) frame = requestAnimationFrame(tick)
     }
     // Desde el primer momento: sin energía y sin enlace.
     show(0)
     const start = () => {
-      startedAt = performance.now()
       tick()
     }
     if (root.dataset.intro === "run") start()
@@ -543,7 +610,7 @@ export function FlightStage() {
       const now = performance.now()
       if (handle && !dawnDone) {
         // El amanecer de la entrada: el día avanza y el Sol sale de verdad por detrás del horizonte.
-        const t = introAt.current === null ? 0 : now - introAt.current
+        const t = introTime()
         const k = clamp01((t - DAWN.from) / (DAWN.to - DAWN.from))
         handle.flight.setIntroDay(SUNRISE_FROM + (HERO_DAY - SUNRISE_FROM) * smooth(k))
         if (k >= 1) {
@@ -838,6 +905,28 @@ export function FlightStage() {
             </span>
             <p className="fl-loader__step">{loading.steps[load.step]}</p>
             <p className="fl-loader__source">{loading.source}</p>
+          </div>
+        )}
+
+        {/* El idioma, con el estilo de las preguntas del vuelo. */}
+        {askLang && (
+          <div className="fl-lang">
+            <div className="fl-lang__card" role="dialog" aria-modal="true" aria-labelledby="fl-lang-title">
+              <p className="fl-quiz__label">{chooseLanguage.label}</p>
+              <h2 className="fl-scene__title" id="fl-lang-title">
+                {chooseLanguage.title}
+              </h2>
+              <div className="fl-quiz__options">
+                {chooseLanguage.options.map((option) => (
+                  <button key={option.lang} type="button" onClick={() => choose(option.lang)}>
+                    {option.name}
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="fl-quiz__show" onClick={resume}>
+                {chooseLanguage.skip}
+              </button>
+            </div>
           </div>
         )}
 

@@ -148,6 +148,11 @@
   :root:not([data-intro]) .ln:has(.fl__limb) .ln-bar {
     animation-play-state: paused;
   }
+
+  /* También mientras se elige idioma (la entrada está en pausa). */
+  :root[data-hold] .ln:has(.fl__limb) .ln-bar {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes ln-bar-in {

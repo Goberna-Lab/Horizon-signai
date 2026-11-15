@@ -35,14 +35,17 @@ export const lang: Lang = read()
 /** El texto en el idioma de la página: `tr("Open the planner", "Abrir el planificador")`. Vale para cualquier valor, no solo cadenas. */
 export const tr = <T>(en: T, es: T): T => (lang === "es" ? es : en)
 
-/** Cambia el idioma de toda la aplicación y recarga la página. */
+/**
+ * Cambia el idioma de toda la aplicación y recarga la página. Elegir el idioma que ya está lo guarda como elegido,
+ * sin recargar.
+ */
 export function setLang(next: Lang) {
-  if (next === lang) return
   try {
     window.localStorage.setItem(KEY, next)
   } catch {
     return // sin almacenamiento no hay preferencia que recordar
   }
+  if (next === lang) return
   // Si la dirección traía `?lang=`, se quita: si no, al recargar volvería a mandar ella.
   const url = new URL(window.location.href)
   if (url.searchParams.has("lang")) {

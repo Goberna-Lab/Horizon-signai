@@ -369,6 +369,55 @@
   animation-play-state: running !important;
 }
 
+/*
+ * El idioma, entre la marca y la frase: una tarjeta con el estilo de las preguntas del vuelo (papel, borde de tinta,
+ * rótulo, titular en mayúsculas y opciones apiladas) sobre el paisaje en pausa (`data-hold`).
+ */
+.fl-lang {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: rgb(0 0 0 / 0.35);
+  animation: fl-lang-in 500ms var(--ease) both;
+}
+
+.fl-lang__card {
+  width: min(440px, 100%);
+  padding: clamp(18px, 1.8vw, 26px);
+  background: var(--paper);
+  border: var(--rule);
+  color: var(--ink);
+  animation: fl-lang-rise 600ms var(--ease) 80ms both;
+}
+
+@keyframes fl-lang-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fl-lang-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+/* La entrada en pausa mientras se elige idioma (el modal sigue animándose). */
+.fl[data-hold] .fl__stage *,
+.fl[data-hold] .fl__stage *::before,
+.fl[data-hold] .fl__stage *::after {
+  animation-play-state: paused !important;
+}
+
+.fl[data-hold] .fl__stage .fl-lang,
+.fl[data-hold] .fl__stage .fl-lang * {
+  animation-play-state: running !important;
+}
+
 /* Todo quieto (y en negro) hasta que FlightStage.tsx da la salida, con la letra ya cargada. */
 .fl:not([data-intro]) .fl__stage *,
 .fl:not([data-intro]) .fl__stage *::before,
