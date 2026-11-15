@@ -100,6 +100,7 @@ export class LandingSim {
     this.bell = [];
     lm.traverse((o) => {
       if (!o.isMesh) return;
+      if (/polySurfa1/.test(o.name)) { o.visible = false; return; } // la escalera del modelo: tramo suelto y con pocos peldaños; se rehace abajo
       o.castShadow = true; o.receiveShadow = true;
       // El modelo NASA solo trae colores planos. Materiales por código:
       //  etapa de descenso: lámina dorada arrugada (Kapton aluminizado) y paneles negros;
@@ -121,13 +122,19 @@ export class LandingSim {
     });
     this.lm = new THREE.Group();
     this.lm.add(lm);
-    // Tramo superior de la escalera: en el modelo queda un hueco entre el porche y el primer peldaño
-    const white = new THREE.MeshStandardMaterial({ color: 0xdedede, metalness: 0.2, roughness: 0.6 });
-    const A = new THREE.Vector3(0, 1.93, 2.15), B = new THREE.Vector3(0, 2.34, 2.02); // de la escalera al borde del porche (unidades del modelo)
-    const seg = (p, q, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, p.distanceTo(q) * S, 8), white);
-      m.position.copy(p).add(q).multiplyScalar(0.5 * S); m.quaternion.setFromUnitVectors(UP, q.clone().sub(p).normalize()); m.castShadow = true; this.lm.add(m); };
-    for (const x of [-0.225, 0.135]) seg(A.clone().setX(x), B.clone().setX(x), 0.016);
-    for (const t of [0.33, 0.72]) { const c = A.clone().lerp(B, t); seg(c.clone().setX(-0.225), c.clone().setX(0.135), 0.013); }
+    // Escalera: una sola pieza del borde del porche hasta encima del plato, a lo largo de la pata delantera, con
+    // peldaños cada ~23 cm como la del LM (los pies del astronauta caen en ellos: EG.top → EG.bottom en RUNGS pasos).
+    // La del modelo (polySurfa1) se oculta: dejaba un hueco bajo el porche y solo tenía tres peldaños.
+    const white = new THREE.MeshStandardMaterial({ color: 0xc9c9c9, metalness: 0.35, roughness: 0.55 });
+    const seg = (p, q, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, p.distanceTo(q) * S, 10), white);
+      m.position.copy(p).add(q).multiplyScalar(0.5 * S); m.quaternion.setFromUnitVectors(UP, q.clone().sub(p).normalize()); m.castShadow = true; m.receiveShadow = true; this.lm.add(m); };
+    const LA = new THREE.Vector3(0, 2.3, 2.04), LB = new THREE.Vector3(0, 0.5, 2.835); // arriba (borde del porche) y abajo (unidades del modelo)
+    const zEn = (y) => LA.z + ((LA.y - y) / (LA.y - LB.y)) * (LB.z - LA.z);
+    const RX = [-0.225, 0.135];
+    for (const x of RX) seg(LA.clone().setX(x), LB.clone().setX(x), 0.02);                       // largueros
+    for (const x of RX) seg(new THREE.Vector3(x, 2.3, 2.04), new THREE.Vector3(x, 2.23, 1.9), 0.016); // anclaje al porche
+    const paso = (EG.top[1] - EG.bottom[1]) / S / RUNGS;                                             // ~0,164 del modelo = 0,23 m
+    for (let j = -1; j <= RUNGS; j++) { const y = EG.top[1] / S - j * paso + 0.02; seg(new THREE.Vector3(RX[0], y, zEn(y)), new THREE.Vector3(RX[1], y, zEn(y)), 0.014); }
     // Luz de seguimiento: destello blanco una vez por segundo
     this.beacon = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(30, 30, 34) }));
     this.beacon.position.set(0, 4.0 * S, 1.66 * S);
