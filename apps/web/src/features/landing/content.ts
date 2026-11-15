@@ -6,7 +6,7 @@
  * `apps/web/scripts/build-landing-data.ts` con el motor validado y los datos de la NASA. Las demás cifras citan su
  * documento en `docs/`.
  */
-import { missionsPath, plannerPath, routes } from "@/app/routes"
+import { routes } from "@/app/routes"
 import { tr } from "@/shared/i18n"
 import facts from "./flight/data/facts.json"
 
@@ -83,12 +83,6 @@ export const actions = {
   map3d: { label: tr("Open the 3D map", "Abrir el mapa 3D"), to: routes.map3d },
 }
 
-/** La barra superior lleva a las pantallas de la aplicación. */
-export const nav = [
-  { label: tr("Planner", "Planificador"), to: plannerPath() },
-  { label: tr("Missions", "Misiones"), to: missionsPath },
-  { label: tr("3D Map", "Mapa 3D"), to: routes.map3d },
-]
 
 export type Fact = { value: string; label: string }
 
