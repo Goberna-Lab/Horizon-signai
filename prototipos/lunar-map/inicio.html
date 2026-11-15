@@ -253,7 +253,7 @@
     <a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><h1 class="logo"><img src="logo.png" alt="Horizon Signai" width="223" height="24"></h1></a>
     <nav class="pillnav" aria-label="Sections">
       <span aria-current="page">Missions</span>
-      <a href="index.html">Planner</a>
+      <a href="/planificar-mision.html" target="_top" data-planner>Planner</a>
     </nav>
     <div class="topr">
       <span class="utc mono"><small id="today">—</small><b id="utc">--:--:-- UTC</b></span>
@@ -752,10 +752,12 @@
     });
   });
 
-  /* «Add mission» abre el planificador de misiones (/planificar-mision.html, de Jefrry) directamente en su formulario
-   * (?nueva) y en el idioma de esta página (?lang). Fuera de la app (sin servidor) el enlace no tiene destino. */
+  /* El planificador es el de misiones (/planificar-mision.html, de Jefrry): «Planner» abre su portada y «Add mission»,
+   * directamente su formulario (?nueva); los dos en el idioma de esta página (?lang). Fuera de la app (sin servidor)
+   * estos enlaces no tienen destino. */
   (function () {
     var l = 'en'; try { if (localStorage.getItem('horizon-signai.lang') === 'es') l = 'es'; } catch (e) { /* sin almacenamiento: inglés */ }
+    document.querySelector('[data-planner]').href = '/planificar-mision.html?lang=' + l;
     document.querySelector('.addm').href = '/planificar-mision.html?nueva&lang=' + l;
   })();
 
