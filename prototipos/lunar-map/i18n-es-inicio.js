@@ -193,6 +193,7 @@
     /* ---------- sitios de misión ---------- */
     'Mission sites': 'Sitios de misión',
     'radar · 200 km': 'radar · 200 km',
+    '· Hover a point for its details': '· Pasa el ratón por un punto para ver su ficha',
     'Radar of the lunar south pole, 200 km: the campaign mission sites at their real distance': 'Radar del polo sur lunar, 200 km: los sitios de las misiones de la campaña a su distancia real',
     'Peak near Shackleton · RoI 2': 'Pico cerca de Shackleton · RoI 2',
     'Shackleton rim · RoI 4': 'Borde de Shackleton · RoI 4',

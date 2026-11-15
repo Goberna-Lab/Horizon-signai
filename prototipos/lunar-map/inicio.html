@@ -161,7 +161,7 @@
 .sites canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sites canvas.over { cursor: pointer; }
 .sites .tag { position: absolute; left: 8px; bottom: 8px; height: 24px; font-size: 11px; }
-.sites .caption { right: 8px; top: 7px; bottom: auto; font-size: 9.5px; color: rgba(244,239,230,0.85); }
+.sites .caption { position: absolute; z-index: 2; margin: 0; left: auto; right: 10px; top: auto; bottom: 10px; font-size: 9.5px; color: rgba(244,239,230,0.85); text-align: right; }
 /* ficha de un punto del radar (al pasar el ratón o al tocarlo) */
 .rtip { position: absolute; z-index: 3; max-width: 220px; padding: 7px 10px; border-radius: 10px; background: rgba(7,8,11,0.92); box-shadow: inset 0 0 0 1px rgba(155,255,228,0.45), 0 6px 18px rgba(0,0,0,0.5); color: #F4EFE6; font-size: 11px; line-height: 1.35; pointer-events: none; }
 .rtip[hidden] { display: none; }
@@ -284,7 +284,7 @@
               <div class="rtip" id="rtip" hidden></div>
               <div class="fx" aria-hidden="true"><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
               <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
-              <p class="caption" id="rcap"><i class="rl" style="background:#F5F5F6"></i>GO <i class="rl" style="background:#F2C14E"></i>REVIEW <i class="rl" style="background:#FF5A4A"></i>PENDING SIGN-OFF <i class="rl" style="background:#8C8C92"></i>DRAFT</p>
+              <p class="caption" id="rcap"><i class="rl" style="background:#F5F5F6"></i>GO <i class="rl" style="background:#F2C14E"></i>REVIEW <i class="rl" style="background:#FF5A4A"></i>PENDING SIGN-OFF <i class="rl" style="background:#8C8C92"></i>DRAFT <span class="rh">· Hover a point for its details</span></p>
             </div>
             <span class="led" aria-hidden="true"></span>
           </div>
@@ -425,7 +425,8 @@
   function sitesByZone() { var o = {}; missions.forEach(function (m) { (o[m.site] = o[m.site] || []).push(m.id); }); return o; }
   function drawRadar(theta) {
     if (!rW || !rH || !missions) return;
-    var ctx = rctx, cx = rW / 2, cy = rH / 2, R = Math.min(rW, rH) / 2 - 12, sel = current(), bySite = sitesByZone();
+    /* el círculo sube un poco para dejar abajo la fila de la leyenda y la etiqueta de la misión */
+    var ctx = rctx, cx = rW / 2, cy = rH / 2 - 8, R = Math.min(rW, rH - 30) / 2 - 22, sel = current(), bySite = sitesByZone();
     ctx.clearRect(0, 0, rW, rH);
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
     ctx.fillStyle = '#04110D'; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
@@ -436,15 +437,19 @@
       ctx.fillStyle = 'rgba(' + PHOS + ',' + (0.2 * (1 - k / 24)).toFixed(3) + ')'; ctx.fill();
     }
     ctx.restore();
-    /* anillos cada 50 km y rumbos cada 90° */
+    /* anillos cada 50 km con su distancia y su latitud; rumbos cada 30° con su grado (longitud este) alrededor */
+    var fs = Math.max(8, Math.min(10.5, R / 18));
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(' + PHOS + ',0.3)';
     [50, 100, 150, 200].forEach(function (km) { ctx.beginPath(); ctx.arc(cx, cy, km / RKM * R, 0, Math.PI * 2); ctx.stroke(); });
-    ctx.strokeStyle = 'rgba(' + PHOS + ',0.18)';
-    for (var d = 0; d < 360; d += 90) { var ar = d * Math.PI / 180; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(ar), cy - R * Math.cos(ar)); ctx.stroke(); }
+    ctx.strokeStyle = 'rgba(' + PHOS + ',0.16)';
+    for (var d = 0; d < 360; d += 30) { var ar = d * Math.PI / 180; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(ar), cy - R * Math.cos(ar)); ctx.stroke(); }
     ctx.strokeStyle = 'rgba(' + PHOS + ',0.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
-    ctx.font = '500 8px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(' + PHOS + ',0.85)'; ctx.textAlign = 'left';
-    ctx.fillText('100 km', cx + 3, cy + R / 2 + 9); ctx.fillText('200 km', cx + 3, cy + R - 3);
-    ctx.textAlign = 'right'; ctx.fillText('90° E', cx + R + 34 < rW ? cx + R + 30 : rW - 4, cy - 3); ctx.textAlign = 'left'; ctx.fillText('270° E', cx - R - 34 > 0 ? cx - R - 30 : 4, cy - 3);
+    ctx.font = '500 ' + fs.toFixed(1) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(' + PHOS + ',0.85)';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    [50, 100, 150, 200].forEach(function (km) { ctx.fillText(km + ' km · ' + (90 - km / KMDEG).toFixed(1) + '° S', cx + 4, cy - km / RKM * R - 4); });
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (var g = 0; g < 360; g += 30) { var ag = g * Math.PI / 180; ctx.fillText(g + '°', cx + (R + fs + 2) * Math.sin(ag), cy - (R + fs + 2) * Math.cos(ag)); }
+    ctx.textBaseline = 'alphabetic';
     if (!reduceMotion) { ctx.strokeStyle = 'rgba(' + PHOS + ',0.9)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(theta), cy - R * Math.cos(theta)); ctx.stroke(); }
     /* los puntos: brillan al pasar el barrido */
     rPts = [];
