@@ -5,8 +5,9 @@
     primera frase suena en menos de un segundo. Es la que usa el chat de voz.
   - `qwen`: Qwen3-TTS 0.6B CustomVoice, voz «Ryan». Más natural pero ~2× más lento que el
     audio (esperas de ~10 s por frase en producción); queda como alternativa.
-- Oído: faster-whisper en GPU (float16, ~0,17 s por frase; en CPU int8 tardaba ~1,7 s). Con
-  HVOZ_DISPOSITIVO_STT=cpu, o si la GPU falla al cargar, vuelve a la CPU.
+- Oído: faster-whisper en GPU (float16). Modelo en HVOZ_MODELO_STT: large-v3-turbo (~0,21 s, el más
+  preciso del banco voz/banco-stt) o small.en (~0,12 s). Con HVOZ_DISPOSITIVO_STT=cpu, o si la GPU
+  falla al cargar, vuelve a la CPU. HVOZ_PISTAS_STT: vocabulario del dominio para Whisper (hotwords).
 
 Contrato (todo con `Authorization: Bearer <token>`, comprobado ANTES de leer el cuerpo):
   POST /v1/hablar       {"texto": "...", "voz"?, "formato"?: "wav"|"opus"|"mp3", "palabras"?: bool}
@@ -47,6 +48,7 @@ IDIOMA = os.environ.get("HVOZ_IDIOMA", "English")
 MODELO_STT = os.environ.get("HVOZ_MODELO_STT", "small.en")
 HILOS_STT = int(os.environ.get("HVOZ_HILOS_STT", "6"))
 DISPOSITIVO_STT = os.environ.get("HVOZ_DISPOSITIVO_STT", "cuda")
+PISTAS_STT = os.environ.get("HVOZ_PISTAS_STT", "").strip() or None
 DTYPE = {"float32": torch.float32, "bfloat16": torch.bfloat16}[os.environ.get("HVOZ_DTYPE", "float32")]
 MAX_TEXTO = 600
 MAX_AUDIO = 5 * 1024 * 1024
@@ -154,7 +156,9 @@ def oir(crudo: bytes) -> str:
     with tempfile.NamedTemporaryFile(suffix=".audio") as f:
         f.write(crudo)
         f.flush()
-        segmentos, _ = estado["stt"].transcribe(f.name, language="en", vad_filter=True, beam_size=1)
+        segmentos, _ = estado["stt"].transcribe(
+            f.name, language="en", vad_filter=True, beam_size=1, hotwords=PISTAS_STT
+        )
         return " ".join(s.text.strip() for s in segmentos).strip()
 
 

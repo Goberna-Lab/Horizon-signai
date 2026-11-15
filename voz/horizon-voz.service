@@ -16,7 +16,10 @@ Environment=HVOZ_TOKEN_ARCHIVO=%h/.config/horizon-voz/token
 Environment=HVOZ_MOTOR=kokoro
 Environment=HVOZ_VOZ=am_michael
 Environment=HVOZ_IDIOMA=English
-Environment=HVOZ_MODELO_STT=%h/.local/share/horizon-voz/modelos/faster-whisper-small.en
+# Oído: large-v3-turbo es el más preciso del banco (voz/banco-stt): 0,1 % de error en limpio y 1,0 %
+# con ruido, contra 1,7 % y 2,8 % de small.en, por ~0,1 s más. Volver: faster-whisper-small.en
+Environment=HVOZ_MODELO_STT=%h/.local/share/horizon-voz/modelos/faster-whisper-large-v3-turbo
+Environment="HVOZ_PISTAS_STT=Moon, lunar south pole, Shackleton crater, Malapert Massif, Connecting Ridge, Artemis, regolith, permanently shadowed region."
 # Oído en GPU (~0,17 s); «cpu» lo devuelve a la CPU (~1,7 s). HVOZ_HILOS_STT solo aplica en CPU.
 Environment=HVOZ_DISPOSITIVO_STT=cuda
 Environment=HVOZ_HILOS_STT=4

@@ -8,7 +8,7 @@ voz sigue saliendo del `qwen3.6:27b` de la Z6; solo oír y hablar viven aquí.
 |---|---|---|---|
 | Boca | **Kokoro-82M, voz `am_michael`** (Apache 2.0), inglés americano nativo | GPU de Geografo (RTX A4000), 0,9 GB | ~0,12 s por frase: la voz suena casi a la vez que llega la respuesta |
 | Boca alternativa | Qwen3-TTS 12Hz 0.6B CustomVoice, voz Ryan (Apache 2.0) | misma GPU, float32 (4,4 GB) | Más natural, pero en producción tardaba 9-11 s la primera frase y dejaba silencios de ~5 s entre frases (~2× más lento que el audio). Se cambió a Kokoro el 2026-11-14. Volver: `HVOZ_MOTOR=qwen` (ver la unidad) |
-| Oído | faster-whisper `small.en`, float16 (MIT) | GPU de Geografo, ~0,5 GB | ~0,17 s por pregunta (en CPU int8 tardaba ~1,7 s; pasó a GPU el 2026-11-14). `argus-voz` (Z6) solo transcribe español |
+| Oído | faster-whisper **`large-v3-turbo`**, float16 (MIT), con pistas de vocabulario | GPU de Geografo, ~1,6 GB | ~0,22 s por pregunta y el más preciso del banco (ver abajo). Antes `small.en` (~0,12 s, más errores); en CPU tardaba ~1,7 s. `argus-voz` (Z6) solo transcribe español |
 
 ## Por qué Geografo y no la Z6
 
@@ -114,8 +114,30 @@ y se pide con `keep_alive: 2h`. Si falla o tarda más de 4 s, se asume adición.
 La intención viaja al 27B en la marca al final de la respuesta cortada (`marcaDeCorte`), por ejemplo
 `[interrupted: the user is correcting something]`, y `SISTEMA_VOZ` dice qué hacer con cada una.
 
-Pendiente: Whisper `small.en` oye mal algunas correcciones («I meant the north pole» → «I'm at the
-North Pole»). Opciones: pasarle contexto (`initial_prompt`) o un modelo más grande ahora que va en GPU.
+`small.en` oía mal algunas correcciones («I meant the north pole» → «I'm at the North Pole»): se
+cambió a `large-v3-turbo` (sección siguiente).
+
+### Qué Whisper usar (banco `voz/banco-stt`, 2026-11-14)
+
+20 frases de esta conversación (correcciones, «wait», nombres como Malapert Massif) × 4 voces de
+Kokoro, limpias y con ruido (SNR 12 dB). Error por palabra (WER) y mediana de latencia en la A4000:
+
+| Modelo | Limpio | Ruido | Latencia |
+|---|---|---|---|
+| `small.en` | 1,7 % | 2,8 % | 120 ms |
+| `small.en` + pistas | 1,3 % | 1,8 % | ~115 ms |
+| `distil-large-v3` | 0,7 % | 1,8 % | 214 ms |
+| `medium.en` + pistas | 0,3 % | 1,4 % | 216 ms |
+| **`large-v3-turbo`** | **0,1 %** | **1,0 %** | 212 ms |
+| `large-v3-turbo` + pistas | 0,0 % | 1,1 % | 223 ms |
+
+- Se usa `large-v3-turbo` con pistas (`HVOZ_PISTAS_STT`): las pistas son neutras en el total pero
+  arreglan nombres (Malapert) y no hicieron alucinar a Whisper con ruido ni silencio (con el VAD del
+  servicio, dan vacío).
+- Pasarle la conversación como `initial_prompt` **empeoró** `small.en` (1,7 % → 2,3 %): lo empuja a
+  repetir palabras («I'm at the north pole» siguió igual y apareció «I met»). No se usa.
+- El «uh-huh» de Kokoro sale como «It's home» (dos palabras): no lo atrapan las reglas, pero el 8B lo
+  clasifica `ignore`. Las voces son sintéticas: falta medir con voz humana real.
 
 ### El 8B como «hablante rápido» (etapa 3)
 
