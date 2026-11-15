@@ -103,6 +103,16 @@ export const enFrases = (texto: string) => {
   return frases
 }
 
+// Qué quiso el usuario al hablar encima de la respuesta (qwen3:8b en Geografo, ~0,4 s).
+export const clasificar = async (pregunta: string, dicho: string, oido: string) => {
+  const r = await pedir("/voz/clasificar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pregunta, dicho, oido }),
+  })
+  return (await r.json()) as { tipo: string; ms: number }
+}
+
 export const transcribir = async (audio: Blob) => {
   const r = await pedir("/transcribir", {
     method: "POST",

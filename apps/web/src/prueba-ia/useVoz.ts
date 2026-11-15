@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { MicVAD } from "@ricky0123/vad-web"
-import { transcribir, turnoDeVoz, type Mensaje } from "./cliente"
+import { clasificar, transcribir, turnoDeVoz, type Mensaje } from "./cliente"
 import { crearColaDeVoz } from "./colaDeVoz"
-import { aWav, clasificarOido } from "./eco"
+import { aWav, clasificarOido, deEtiqueta, marcaDeCorte, type Intencion } from "./eco"
 
 export type EstadoVoz = "reposo" | "escuchando" | "pensando" | "hablando"
 
@@ -17,7 +17,6 @@ const VAD_ENCIMA = { positiveSpeechThreshold: 0.7, negativeSpeechThreshold: 0.5,
 // Modelo de Silero, worklet y wasm de ONNX: del CDN, en las versiones exactas de package.json.
 const VAD_CDN = "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.31/dist/"
 const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/"
-const MARCA_CORTE = "[interrupted]" // el 27B sabe que lo cortaron (ver SISTEMA_VOZ en el API)
 
 type Opciones = {
   /** Historial con el que arranca la conversación (el del chat de texto). */
@@ -80,8 +79,11 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     armarSinVoz()
   }, [cambiar, armarSinVoz])
 
-  /** Corta la respuesta en curso. Lo que alcanzó a decir pasa al historial, marcado como cortado. */
-  const cortar = useCallback(() => {
+  /**
+   * Corta la respuesta en curso. Lo que alcanzó a decir pasa al historial terminado en una marca
+   * que le dice al 27B por qué lo cortaron (ver marcaDeCorte y SISTEMA_VOZ en el API).
+   */
+  const cortar = useCallback((intencion?: Intencion) => {
     const t = turno.current
     if (!t) return
     t.cortado = true
@@ -92,8 +94,9 @@ export function useVoz({ historial, alMensaje }: Opciones) {
     // Para el 27B, la respuesta cortada termina en la marca; si no alcanzó a decir nada, queda solo
     // la marca. Así el pedido siguiente añade al final (user A, assistant, user B) y Ollama
     // reaprovecha la caché (~0,3 s); dos «user» seguidos la pierden (~1 s). Ver la investigación.
-    if (dicho) sumar({ role: "assistant", content: dicho }, { role: "assistant", content: `${dicho} ${MARCA_CORTE}` })
-    else hilo.current = [...hilo.current, { role: "assistant", content: MARCA_CORTE }]
+    const marca = marcaDeCorte(intencion)
+    if (dicho) sumar({ role: "assistant", content: dicho }, { role: "assistant", content: `${dicho} ${marca}` })
+    else hilo.current = [...hilo.current, { role: "assistant", content: marca }]
   }, [])
 
   const responder = useCallback(
@@ -169,11 +172,36 @@ export function useVoz({ historial, alMensaje }: Opciones) {
       if (tipo === "parada") {
         cortar()
         escuchar()
-      } else if (tipo === "habla") {
-        cortar()
-        void responder(oido.texto, fin, oido.ms)
-      } else {
+        return
+      }
+      if (tipo !== "habla") {
         t.cola.volumen(1) // eco, ruido o «uh-huh»: sigue hablando como si nada
+        return
+      }
+      // Habla real: el 8B decide qué quiso (la voz sigue bajada mientras tanto). Si falla, adición.
+      const pregunta = [...hilo.current].reverse().find((m) => m.role === "user")?.content ?? ""
+      const intencion = await clasificar(pregunta, t.cola.hablado().slice(-400), oido.texto)
+        .then((r) => {
+          console.debug(`[voz] intención ${r.tipo} (${r.ms} ms)`)
+          return deEtiqueta(r.tipo)
+        })
+        .catch((e: unknown) => {
+          console.debug(`[voz] clasificador falló (${String(e)}): adición`)
+          return "adicion" as const
+        })
+      if (!activa.current) return
+      if (turno.current !== t) {
+        // La respuesta terminó mientras se clasificaba: lo dicho ya es un turno nuevo, sin corte.
+        if (intencion !== "ignorar" && intencion !== "parada") void responder(oido.texto, fin, oido.ms)
+        return
+      }
+      if (intencion === "ignorar") t.cola.volumen(1)
+      else if (intencion === "parada") {
+        cortar(intencion)
+        escuchar()
+      } else {
+        cortar(intencion)
+        void responder(oido.texto, fin, oido.ms)
       }
     },
     [responder, cortar, escuchar, armarSinVoz],

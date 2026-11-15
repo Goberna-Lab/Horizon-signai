@@ -69,3 +69,27 @@ export function aWav(muestras: Float32Array, sr = 16000): Blob {
   })
   return new Blob([b.buffer], { type: "audio/wav" })
 }
+
+// ── Qué quiso el usuario al hablar encima (lo decide el qwen3:8b de Geografo) ───────────────
+export type Intencion = "adicion" | "correccion" | "pregunta" | "parada" | "ignorar"
+
+const ETIQUETAS: Record<string, Intencion> = {
+  add: "adicion",
+  correct: "correccion",
+  new: "pregunta",
+  stop: "parada",
+  ignore: "ignorar",
+}
+/** Etiqueta del clasificador → intención. Ante la duda, adición: cortar e integrar es lo seguro. */
+export const deEtiqueta = (e: string): Intencion => ETIQUETAS[e] ?? "adicion"
+
+/**
+ * Nota al final de la respuesta cortada, para el 27B (SISTEMA_VOZ en el API explica cada una).
+ * Va al final del historial, así que no rompe la caché de Ollama.
+ */
+export function marcaDeCorte(i?: Intencion): string {
+  if (i === "adicion") return "[interrupted: the user is adding to their request]"
+  if (i === "correccion") return "[interrupted: the user is correcting something]"
+  if (i === "pregunta") return "[interrupted: the user is asking something new]"
+  return "[interrupted]"
+}

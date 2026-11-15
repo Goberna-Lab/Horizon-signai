@@ -87,7 +87,11 @@ export function crearColaDeVoz({ ctx, alHablar, alNivel, alEmpezar }: Opciones) 
     }
     fuente.start(inicio)
     fuentes.push(fuente)
-    for (const [texto, espacio, ini] of f.palabras) linea.push({ t: inicio + ini, texto: texto + espacio })
+    // La última palabra de una frase llega sin espacio detrás: sin esto se leía «North Pole.The».
+    const separar = linea.length > 0 && !/\s$/.test(linea[linea.length - 1].texto)
+    f.palabras.forEach(([texto, espacio, ini], k) =>
+      linea.push({ t: inicio + ini, texto: (k === 0 && separar ? " " : "") + texto + espacio }),
+    )
     if (!empezo) {
       empezo = true
       alEmpezar()

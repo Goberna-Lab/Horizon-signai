@@ -1,7 +1,7 @@
 // Correr: node --test apps/web/src/prueba-ia/eco.test.ts (Node ≥ 22.18 entiende TypeScript)
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { aWav, clasificarOido } from "./eco.ts"
+import { aWav, clasificarOido, marcaDeCorte, deEtiqueta } from "./eco.ts"
 
 const DICHO = "Some craters there have floors that have not seen sunlight for billions of years."
 
@@ -63,4 +63,21 @@ test("aWav arma un WAV PCM de 16 bits a 16 kHz", async () => {
   assert.equal(b.getInt16(44 + 2 * 3, true), 32767)
   assert.equal(b.getInt16(44 + 2 * 4, true), -32768)
   assert.equal(b.getInt16(44 + 2 * 5, true), 32767) // recorta lo que pasa de 1
+})
+
+test("la marca de corte le dice al 27B qué hizo el usuario, siempre empezando por [interrupted", () => {
+  assert.equal(marcaDeCorte(), "[interrupted]")
+  assert.equal(marcaDeCorte("parada"), "[interrupted]")
+  assert.equal(marcaDeCorte("adicion"), "[interrupted: the user is adding to their request]")
+  assert.equal(marcaDeCorte("correccion"), "[interrupted: the user is correcting something]")
+  assert.equal(marcaDeCorte("pregunta"), "[interrupted: the user is asking something new]")
+})
+
+test("las etiquetas del clasificador se traducen; lo desconocido cuenta como adición", () => {
+  assert.equal(deEtiqueta("add"), "adicion")
+  assert.equal(deEtiqueta("correct"), "correccion")
+  assert.equal(deEtiqueta("new"), "pregunta")
+  assert.equal(deEtiqueta("stop"), "parada")
+  assert.equal(deEtiqueta("ignore"), "ignorar")
+  assert.equal(deEtiqueta("¿?"), "adicion")
 })

@@ -101,3 +101,18 @@ El habla real corta la respuesta: lo que alcanzó a decir queda en el historial 
 - Whisper transcribe mal las interjecciones («Uh-huh» → «y'all», «YHWH»): mientras la IA habla,
   una sola palabra que no es pregunta cuenta como asentimiento.
 - Tests de la clasificación: `npm test -w @horizon-signai/web`.
+
+### Clasificador de lo que dices encima (etapa 2)
+
+Cuando las reglas de `eco.ts` dicen «habla real» con la IA en su turno, `POST /api/z6/voz/clasificar`
+le pregunta al `qwen3:8b` de **Geografo** (no a la Z6: pisaría la caché del 27B) si fue `add`,
+`correct`, `new`, `stop` o `ignore` (comentario o charla con otra persona). 11/11 en casos de prueba.
+~0,4-0,7 s con el modelo caliente: Ollama 0.31 suma ~300 ms de «carga» en cada pedido aunque el
+modelo ya esté en la GPU. Frío tardó 28 s, por eso `GET /voz` (al abrir el modo voz) lo precalienta
+y se pide con `keep_alive: 2h`. Si falla o tarda más de 4 s, se asume adición.
+
+La intención viaja al 27B en la marca al final de la respuesta cortada (`marcaDeCorte`), por ejemplo
+`[interrupted: the user is correcting something]`, y `SISTEMA_VOZ` dice qué hacer con cada una.
+
+Pendiente: Whisper `small.en` oye mal algunas correcciones («I meant the north pole» → «I'm at the
+North Pole»). Opciones: pasarle contexto (`initial_prompt`) o un modelo más grande ahora que va en GPU.

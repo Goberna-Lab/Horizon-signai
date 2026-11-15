@@ -22,7 +22,7 @@ const MAX_AUDIO = 5 * 1024 * 1024 // tope del servicio de voz
 const MAX_TTS = 600
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz", "/voz/turno"])
+const PUBLICAS = new Set(["/chat", "/chat/stream", "/transcribir", "/hablar", "/voz", "/voz/turno", "/voz/clasificar"])
 // Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
 const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
@@ -52,20 +52,53 @@ const SISTEMA_VOZ: Record<ServicioVoz["idioma"], string> = {
   es:
     "Eres el asistente de voz de Horizon Signai. Estás hablando en voz alta: responde en español, " +
     "en una a tres frases cortas, sin listas, sin markdown, sin emojis y sin símbolos raros. " +
-    "Si una respuesta tuya anterior termina en [interrupted], el usuario te cortó para agregar algo: " +
-    "empieza con un acuse muy corto, responde teniendo en cuenta lo que agregó junto con su pregunta " +
-    "anterior y no repitas lo que ya dijiste. Nunca escribas [interrupted].",
+    "Si una respuesta tuya anterior termina en una nota entre corchetes que empieza con «interrupted», " +
+    "el usuario te cortó. Si agrega algo a su pedido, empieza con un acuse muy corto y responde " +
+    "integrándolo con lo que pidió antes. Si corrige algo, reconoce la corrección en pocas palabras y " +
+    "responde de nuevo con ella. Si pregunta algo nuevo, respóndelo y, solo si la respuesta anterior " +
+    "quedó a medias, ofrece al final volver a ella. Nunca repitas lo que ya dijiste ni escribas notas entre corchetes.",
   en:
     "You are the Horizon Signai voice assistant. You are speaking out loud: always answer in English, " +
     "in one to three short sentences, with no lists, no markdown, no emojis and no special symbols. " +
     "Always start with a very short first sentence of at most eight words, then continue. " +
     "Write numbers as words when they are short. " +
-    "If one of your previous answers ends with [interrupted], the user cut you off to add something: " +
-    "open with a very short acknowledgement, answer taking what they just said into account together " +
-    "with their earlier question, and do not repeat what you already said. Never write [interrupted].",
+    "If one of your previous answers ends with a note in square brackets starting with 'interrupted', " +
+    "the user cut you off. If they are adding to their request, open with a very short acknowledgement " +
+    "and answer integrating it with what they asked before. If they are correcting something, briefly " +
+    "acknowledge the correction and answer again with it. If they ask something new, answer it and, only " +
+    "if your earlier answer was unfinished, offer in a few words at the end to get back to it. Never " +
+    "repeat what you already said and never write notes in square brackets.",
 }
 
 type Mensaje = { role: "user" | "assistant"; content: string }
+
+// Clasificador de lo que el usuario dice ENCIMA de la respuesta de voz: qwen3:8b de Geografo, que no
+// toca la Z6 (pisaría la caché del 27B). 11/11 en casos de prueba; ~0,4 s con el modelo caliente.
+const SISTEMA_CLASIFICAR = `You classify what a user said out loud while a voice assistant was still answering them. The words come from speech recognition and may contain small errors. Reply only with JSON.
+Categories:
+- "add": adds something to their request or asks to also cover something ("and also compare it with Mars", "what about at night?").
+- "correct": corrects or changes something in their request or in what the assistant said ("no, I meant the north pole", "not that crater, the other one").
+- "new": a different question or topic, unrelated to the current answer.
+- "stop": only wants the assistant to stop or be quiet, without asking anything.
+- "ignore": a reaction or acknowledgement ("yeah that makes sense", "oh wow, interesting"), words said to someone else, or anything not directed at the assistant.`
+const ETIQUETAS_CLASIFICAR = ["add", "correct", "new", "stop", "ignore"]
+const TIMEOUT_CLASIFICAR_MS = 4000
+// Que el modelo siga cargado en la GPU entre turnos: frío, el primer pedido tardó 28 s.
+const KEEP_ALIVE_CLASIFICAR = "2h"
+const precalentarClasificador = () =>
+  fetch(`${textoUrl()}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(60_000),
+    body: JSON.stringify({
+      model: textoModelo(),
+      stream: false,
+      think: false,
+      keep_alive: KEEP_ALIVE_CLASIFICAR,
+      options: { num_predict: 1 },
+      messages: [{ role: "system", content: SISTEMA_CLASIFICAR }, { role: "user", content: "ok" }],
+    }),
+  }).catch(() => {})
 
 // Corta en un final de frase para no pasar del tope del servicio de voz.
 const paraHablar = (t: string) => {
@@ -425,6 +458,7 @@ export const z6 = new Hono()
   // Qué voz atiende ahora (la página lo muestra y decide el idioma de sus textos).
   // En inglés le pregunta a horizon-voz qué motor y voz tiene cargados (cambian con HVOZ_MOTOR).
   .get("/voz", async (c) => {
+    void precalentarClasificador() // la página abrió el modo voz: que el 8B esté listo para cuando hables encima
     const v = servicioVoz()
     if (v.idioma === "es") return c.json({ idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" })
     const NOMBRES: Record<string, string> = { kokoro: "Kokoro-82M", qwen: "Qwen3-TTS 0.6B" }
@@ -449,6 +483,47 @@ export const z6 = new Hono()
     if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const formato = FORMATOS_VOZ.has(cuerpo?.formato ?? "") ? cuerpo!.formato! : "opus"
     return turnoDeVoz(msgs, formato, c.req.raw.signal)
+  })
+  // Qué quiso decir el usuario al hablar encima de la respuesta: add | correct | new | stop | ignore.
+  .post("/voz/clasificar", async (c) => {
+    const cuerpo = (await c.req.json().catch(() => null)) as Record<string, unknown> | null
+    const campo = (k: string) => (typeof cuerpo?.[k] === "string" ? (cuerpo[k] as string).slice(-1000) : "")
+    const oido = campo("oido").trim()
+    if (!oido) return c.json({ ok: false, error: "oido vacío" }, 400)
+    const t = performance.now()
+    try {
+      const r = await fetch(`${textoUrl()}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(TIMEOUT_CLASIFICAR_MS),
+        body: JSON.stringify({
+          model: textoModelo(),
+          stream: false,
+          think: false,
+          keep_alive: KEEP_ALIVE_CLASIFICAR,
+          options: { temperature: 0, num_predict: 20 },
+          format: {
+            type: "object",
+            properties: { tipo: { type: "string", enum: ETIQUETAS_CLASIFICAR } },
+            required: ["tipo"],
+          },
+          messages: [
+            { role: "system", content: SISTEMA_CLASIFICAR },
+            {
+              role: "user",
+              content: `User's request: ${JSON.stringify(campo("pregunta"))}\nAssistant was saying: ${JSON.stringify(campo("dicho"))}\nUser just said: ${JSON.stringify(oido)}`,
+            },
+          ],
+        }),
+      })
+      if (!r.ok) return c.json({ ok: false, error: `Geografo respondió ${r.status}` }, 502)
+      const d = (await r.json()) as { message?: { content?: string } }
+      const tipo = (JSON.parse(d.message?.content ?? "{}") as { tipo?: string }).tipo ?? ""
+      if (!ETIQUETAS_CLASIFICAR.includes(tipo)) return c.json({ ok: false, error: `etiqueta rara: ${tipo}` }, 502)
+      return c.json({ ok: true, tipo, ms: Math.round(performance.now() - t) })
+    } catch (e) {
+      return c.json({ ok: false, error: `No se pudo clasificar: ${String(e)}` }, 502)
+    }
   })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.
   .post("/transcribir", async (c) => {
