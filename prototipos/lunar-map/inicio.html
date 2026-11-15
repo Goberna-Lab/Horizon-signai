@@ -84,6 +84,15 @@
 .mrow .leg { font-size: 9.5px; color: var(--gris-2); }
 .mrow .cnt { font-size: 10px; color: var(--gris-2); }
 
+/* ---------- calendario y movimientos: un panel con dos pestañas ---------- */
+.tabs { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(17,17,17,0.05); box-shadow: inset 0 1px 2px rgba(17,17,17,0.1); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.tab { flex: none; height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; font-weight: 600; color: var(--gris); cursor: pointer; white-space: nowrap; transition: background-color .18s ease, color .18s ease; }
+.tab:hover { color: var(--tinta); }
+.tab[aria-selected="true"] { background: var(--tinta); color: var(--crema); }
+.tab:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.board .ph { align-items: center; }
+.board [role="tabpanel"][hidden], .board .aux[hidden] { display: none; }
+
 /* ---------- calendario de campaña ---------- */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -2px 0 10px; font-size: 11px; color: var(--gris); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -164,15 +173,16 @@
 .foot { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-family: var(--f-mono); font-size: 9.5px; color: var(--gris-2); }
 .foot button { border: 0; background: none; padding: 0; font: inherit; color: var(--gris); text-decoration: underline; cursor: pointer; }
 
-@media (prefers-reduced-motion: reduce) { .ev.fresh { animation: none; } .tip { transition: none; } .log { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) { .ev.fresh { animation: none; } .tab { transition: none; } .tip { transition: none; } .log { scroll-behavior: auto; } }
 
 /* ---------- columnas a la par: el último panel de cada columna baja hasta el fondo; la bitácora llena el hueco ---------- */
 @media (min-width: 1001px) {
   .main { align-items: stretch; }
   .col > :last-child { flex-grow: 1; }
   .col > .pending:last-child { flex-grow: 0; } /* la firma pendiente no se estira: quedaría un hueco vacío dentro */
-  .movs { display: flex; flex-direction: column; }
-  .log { flex: 1 1 0; height: 0; min-height: 360px; max-height: none; }
+  .board, .movs { display: flex; flex-direction: column; }
+  .movs { flex: 1 1 auto; }
+  .log { flex: 1 1 0; height: 0; min-height: 420px; max-height: none; }
   /* la lista de misiones mide lo mismo que el mapa de al lado y se desplaza por dentro */
   .upcoming { display: flex; flex-direction: column; min-height: 0; }
   .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; }
@@ -184,11 +194,13 @@
   .main { display: flex; flex-direction: column; min-width: 0; }
   .col, .duo { display: contents; }
   .main > .col > * { min-width: 0; max-width: 100%; }
-  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .cal { order: 4; } .movs { order: 5; } .upcoming { order: 6; } .sites { order: 7; }
+  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .board { order: 4; } .upcoming { order: 6; } .sites { order: 7; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .utc small { display: none; }
 }
 @media (max-width: 560px) {
+  .board .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; border-radius: 18px; }
+  .board .tab { height: auto; min-height: 34px; padding: 6px 10px; border-radius: 15px; font-size: 13px; line-height: 1.15; white-space: normal; }
   .brand small, .brand .sep { display: none; }
   .pillnav { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
   .pillnav a, .pillnav span { flex: none; padding: 0 12px; }
@@ -277,34 +289,40 @@
         </section>
       </div>
 
-      <section class="paper panel cal" aria-labelledby="cal-t">
-        <div class="ph"><h2 id="cal-t" class="display-caps">Campaign calendar</h2><span class="mono aux">Oct 2026 → Jan 2027 · UTC</span></div>
-        <div class="legend" aria-hidden="true">
-          <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
-          <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
-          <span><i class="lg-bar" style="background: var(--gris-3)"></i>Sun above the horizon</span>
-          <span><i class="lg-dot"></i>Movement</span>
-          <span><i class="lg-dot o"></i>Scheduled</span>
-          <span><i class="lg-hit"></i>Milestone</span>
-          <span><i class="lg-now"></i>Today</span>
-        </div>
-        <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Campaign calendar with the Sun windows, preparation, the stay on the surface and the movements of each mission"></svg><div class="tip" id="tip" role="tooltip"></div></div>
-      </section>
-
-      <section class="paper panel movs" aria-labelledby="mv-t">
-        <div class="ph"><h2 id="mv-t" class="display-caps">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
-        <div class="tools">
-          <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
-          <label class="sr-only" for="fType">Movement type</label>
-          <select class="sel" id="fType"></select>
-          <div class="chips" id="fWhen" role="group" aria-label="Filter by time">
-            <button type="button" class="chip" data-v="all" aria-pressed="true">All</button>
-            <button type="button" class="chip" data-v="past" aria-pressed="false">Logged</button>
-            <button type="button" class="chip" data-v="next" aria-pressed="false">Scheduled</button>
+      <section class="paper panel board">
+        <div class="ph">
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab display-caps" role="tab" id="tab-cal" aria-controls="cal-p" aria-selected="true">Campaign calendar</button>
+            <button type="button" class="tab display-caps" role="tab" id="tab-mv" aria-controls="mv-p" aria-selected="false" tabindex="-1">Mission movements</button>
           </div>
-          <span class="mono count" id="logCount" aria-live="polite"></span>
+          <span class="mono aux" data-for="cal-p">Oct 2026 → Jan 2027 · UTC</span><span class="mono aux" data-for="mv-p" hidden>logged and scheduled</span>
         </div>
-        <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
+        <div class="cal" id="cal-p" role="tabpanel" aria-labelledby="tab-cal">
+          <div class="legend" aria-hidden="true">
+            <span><i class="lg-bar" style="background: var(--borde)"></i>Preparation</span>
+            <span><i class="lg-bar" style="background: var(--tinta)"></i>On the surface</span>
+            <span><i class="lg-bar" style="background: var(--gris-3)"></i>Sun above the horizon</span>
+            <span><i class="lg-dot"></i>Movement</span>
+            <span><i class="lg-dot o"></i>Scheduled</span>
+            <span><i class="lg-hit"></i>Milestone</span>
+            <span><i class="lg-now"></i>Today</span>
+          </div>
+          <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Campaign calendar with the Sun windows, preparation, the stay on the surface and the movements of each mission"></svg><div class="tip" id="tip" role="tooltip"></div></div>
+        </div>
+        <div class="movs" id="mv-p" role="tabpanel" aria-labelledby="tab-mv" hidden>
+          <div class="tools">
+            <div class="chips" id="fMission" role="group" aria-label="Filter by mission"></div>
+            <label class="sr-only" for="fType">Movement type</label>
+            <select class="sel" id="fType"></select>
+            <div class="chips" id="fWhen" role="group" aria-label="Filter by time">
+              <button type="button" class="chip" data-v="all" aria-pressed="true">All</button>
+              <button type="button" class="chip" data-v="past" aria-pressed="false">Logged</button>
+              <button type="button" class="chip" data-v="next" aria-pressed="false">Scheduled</button>
+            </div>
+            <span class="mono count" id="logCount" aria-live="polite"></span>
+          </div>
+          <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
+        </div>
       </section>
     </div>
   </div>
@@ -626,6 +644,27 @@
   /* terreno: se calcula después de pintar */
   var localT = null;
   function local() { if (!localT) localT = L.localScene(); return localT; }
+
+  /* pestañas del calendario y los movimientos: clic, o flechas izquierda/derecha, Inicio y Fin */
+  var tabs = [].slice.call(document.querySelectorAll('.board [role="tab"]'));
+  function showTab(tb, focus) {
+    tabs.forEach(function (x) {
+      var on = x === tb, id = x.getAttribute('aria-controls');
+      x.setAttribute('aria-selected', on); x.tabIndex = on ? 0 : -1;
+      $(id).hidden = !on; document.querySelector('.board .aux[data-for="' + id + '"]').hidden = !on;
+    });
+    if (focus) tb.focus();
+    /* la bitácora, oculta, no tenía alto: al mostrarla se lleva otra vez a «ahora» */
+    if (tb.id === 'tab-mv') renderLog(true);
+  }
+  tabs.forEach(function (tb, i) {
+    tb.addEventListener('click', function () { showTab(tb); });
+    tb.addEventListener('keydown', function (e) {
+      var k = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+      if (k === undefined) return;
+      e.preventDefault(); showTab(tabs[(k + tabs.length) % tabs.length], true);
+    });
+  });
 
   /* interacción de paneles */
   $('mlist').addEventListener('click', function (e) { var b = e.target.closest('.mrow'); if (b) select(b.dataset.id, true); });
