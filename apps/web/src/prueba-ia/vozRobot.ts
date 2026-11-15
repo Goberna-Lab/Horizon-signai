@@ -1,21 +1,26 @@
-// Timbre robótico femenino (tipo EVA) sobre la voz de Kokoro «af_heart», todo en Web Audio:
-// no cambia la duración del audio, así que los tiempos por palabra (karaoke y eco) siguen valiendo.
+// Timbre robótico sobre la voz de Kokoro, todo en Web Audio. No cambia la duración del audio, así que los
+// tiempos por palabra (subtítulos y eco) siguen valiendo. Cada asistente trae su Timbre (personajes.ts).
 //
-//   entrada → paso alto 160 Hz ─┬─ seca (0,6) ───────────────────────────┐
-//                               ├─ modulación en anillo 70 Hz (0,3) ─────┼─ brillo 3,2 kHz → salida
-//                               └─ peine metálico 7 ms, realim. 0,45 (0,3)┘
+//   entrada → paso alto 160 Hz ─┬─ seca ───────────────────────────────┐
+//                               ├─ modulación en anillo (anilloHz) ────┼─ brillo 3,2 kHz → salida
+//                               └─ peine metálico (peineMs, realim.) ──┘
 //
-// La modulación en anillo da el zumbido de máquina; el peine, la resonancia de lata; el brillo, lo «digital».
-// Para ajustarlo, cambia MEZCLA: con todo en 0 salvo `seca: 1` vuelve la voz natural.
+// El anillo da el zumbido de máquina; el peine, la resonancia de lata; el brillo, lo «digital».
+// Con `seca: 1` y lo demás en 0 vuelve la voz natural.
 
-const MEZCLA = { seca: 0.6, anillo: 0.3, peine: 0.3 }
-const ANILLO_HZ = 70
-const PEINE_S = 0.007
-const PEINE_REALIMENTACION = 0.45
+export type Timbre = {
+  seca: number
+  anillo: number
+  anilloHz: number
+  peine: number
+  peineMs: number
+  realimentacion: number
+  brilloDb: number
+}
 
 export type VozRobot = { entrada: AudioNode; salida: AudioNode; cerrar: () => void }
 
-export function crearVozRobot(ctx: AudioContext): VozRobot {
+export function crearVozRobot(ctx: AudioContext, t: Timbre): VozRobot {
   const entrada = ctx.createGain()
   const pasoAlto = ctx.createBiquadFilter()
   pasoAlto.type = "highpass"
@@ -26,34 +31,34 @@ export function crearVozRobot(ctx: AudioContext): VozRobot {
   brillo.type = "peaking"
   brillo.frequency.value = 3200
   brillo.Q.value = 0.9
-  brillo.gain.value = 4
+  brillo.gain.value = t.brilloDb
   const salida = ctx.createGain()
   salida.gain.value = 0.85 // la suma de las tres ramas pasa de 1: que no sature
   brillo.connect(salida)
 
   const seca = ctx.createGain()
-  seca.gain.value = MEZCLA.seca
+  seca.gain.value = t.seca
   pasoAlto.connect(seca).connect(brillo)
 
   // Anillo: la voz multiplicada por una senoidal (la senoidal maneja la ganancia, que parte en 0).
   const anillo = ctx.createGain()
   anillo.gain.value = 0
   const oscilador = ctx.createOscillator()
-  oscilador.frequency.value = ANILLO_HZ
+  oscilador.frequency.value = t.anilloHz
   oscilador.connect(anillo.gain)
   oscilador.start()
   const mezclaAnillo = ctx.createGain()
-  mezclaAnillo.gain.value = MEZCLA.anillo
+  mezclaAnillo.gain.value = t.anillo
   pasoAlto.connect(anillo).connect(mezclaAnillo).connect(brillo)
 
   // Peine: un eco cortísimo que se realimenta.
   const retardo = ctx.createDelay(0.05)
-  retardo.delayTime.value = PEINE_S
+  retardo.delayTime.value = t.peineMs / 1000
   const realimentacion = ctx.createGain()
-  realimentacion.gain.value = PEINE_REALIMENTACION
+  realimentacion.gain.value = t.realimentacion
   retardo.connect(realimentacion).connect(retardo)
   const mezclaPeine = ctx.createGain()
-  mezclaPeine.gain.value = MEZCLA.peine
+  mezclaPeine.gain.value = t.peine
   pasoAlto.connect(retardo)
   retardo.connect(mezclaPeine).connect(brillo)
 

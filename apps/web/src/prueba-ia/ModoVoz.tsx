@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { ASSISTANTS, type AssistantMode } from "@horizon-signai/shared"
 import type { Burbuja } from "./Chat"
 import { infoVoz, type InfoVoz, type Mensaje } from "./cliente"
 import { etiquetaEncima } from "./eco"
@@ -20,13 +21,15 @@ const PISTA: Record<EstadoVoz, string> = {
 }
 
 type Props = {
+  asistente: AssistantMode
   mensajes: Burbuja[]
   agregar: (m: Burbuja) => void
   cerrar: () => void
 }
 
-export function ModoVoz({ mensajes, agregar, cerrar }: Props) {
+export function ModoVoz({ asistente, mensajes, agregar, cerrar }: Props) {
   const voz = useVoz({
+    asistente,
     historial: () => mensajes.map(({ role, content }): Mensaje => ({ role, content })),
     alMensaje: (m) => agregar({ ...m, via: "voz" }),
   })
@@ -65,7 +68,7 @@ export function ModoVoz({ mensajes, agregar, cerrar }: Props) {
         <span className="chip">
           <i className="punto" />{" "}
           {info
-            ? `${info.idioma === "en" ? "English" : "Español"} · ${info.voz} · ${info.motor} · ${info.equipo}`
+            ? `${ASSISTANTS[asistente].name} · ${info.idioma === "en" ? "English" : "Español"} · ${info.motor} · ${info.equipo}`
             : "Voz · Z6"}
         </span>
         <button type="button" className="boton-fantasma" onClick={salir}>

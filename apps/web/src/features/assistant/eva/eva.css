@@ -1,0 +1,124 @@
+/* EVA, la robot guía, flotando encima de toda la app. Prefijo eva-. Colores de la marca: papel, tinta, rojo. */
+.eva-caja {
+  --eva-papel: #f4efe6;
+  --eva-tinta: #111111;
+  --eva-rojo: #c8102e;
+  --eva-gris: #c9c1b6;
+  --eva-luz: #9ad7ff;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9000;
+  pointer-events: none; /* solo EVA, su globo y su panel reciben clics */
+  will-change: transform;
+}
+.eva-cuerpo {
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+.eva-cuerpo:active { cursor: grabbing; }
+.eva-cuerpo:focus-visible { outline: 2px solid var(--eva-rojo); outline-offset: -12px; }
+
+/* Globo: lo que va diciendo, palabra por palabra. Va hacia el lado con más espacio. */
+.eva-globo {
+  position: absolute;
+  bottom: 72%;
+  right: 78%;
+  width: max-content;
+  max-width: min(320px, 70vw);
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 14px 14px 4px 14px;
+  background: var(--eva-papel);
+  color: var(--eva-tinta);
+  font: 500 0.88rem/1.45 "IBM Plex Mono", ui-monospace, monospace;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  pointer-events: auto;
+  animation: eva-aparecer 0.25s ease-out both;
+}
+.eva-caja--derecha .eva-globo { right: auto; left: 78%; border-radius: 14px 14px 14px 4px; }
+
+/* Panel: escribirle, hablarle por voz, silenciar, repetir consejos, olvidar. */
+.eva-panel {
+  position: absolute;
+  bottom: 40%;
+  right: 92%;
+  width: min(340px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 16px;
+  background: var(--eva-papel);
+  color: var(--eva-tinta);
+  font: 0.86rem/1.45 "IBM Plex Mono", ui-monospace, monospace;
+  box-shadow: 0 12px 32px rgba(17, 17, 17, 0.22);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: eva-aparecer 0.2s ease-out both;
+}
+.eva-caja--derecha .eva-panel { right: auto; left: 92%; }
+.eva-panel__cabeza { display: flex; align-items: center; gap: 8px; }
+.eva-panel__nombre { flex: 1; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.76rem; }
+.eva-panel__icono {
+  border: 1px solid var(--eva-gris);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.eva-panel__icono[aria-pressed="true"] { background: var(--eva-tinta); color: var(--eva-papel); }
+.eva-panel__respuesta { margin: 0; max-height: 40vh; overflow: auto; white-space: pre-wrap; }
+.eva-panel__error { margin: 0; color: var(--eva-rojo); }
+.eva-panel__form { display: flex; gap: 6px; }
+.eva-panel__form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--eva-tinta);
+  font: inherit;
+}
+.eva-panel__form button,
+.eva-boton {
+  padding: 8px 12px;
+  border: 1px solid var(--eva-tinta);
+  border-radius: 10px;
+  background: var(--eva-tinta);
+  color: var(--eva-papel);
+  font: inherit;
+  cursor: pointer;
+}
+.eva-panel__form button:disabled { opacity: 0.4; cursor: not-allowed; }
+.eva-panel__acciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.eva-boton--activo { background: var(--eva-rojo); border-color: var(--eva-rojo); }
+.eva-boton--suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
+.eva-panel__nota { margin: 0; color: #6b655c; font-size: 0.7rem; }
+
+/* La parte de la pantalla de la que EVA está hablando. */
+.eva-foco {
+  outline: 2px solid var(--eva-rojo, #c8102e) !important;
+  outline-offset: 4px;
+  border-radius: 6px;
+  transition: outline-color 0.3s;
+  animation: eva-foco 1.6s ease-in-out infinite;
+}
+
+@keyframes eva-aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes eva-foco { 50% { outline-color: rgba(200, 16, 46, 0.35); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .eva-globo, .eva-panel { animation: none; }
+  .eva-foco { animation: none; }
+}

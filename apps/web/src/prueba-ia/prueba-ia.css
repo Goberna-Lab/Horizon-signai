@@ -441,3 +441,27 @@
 
 /* Texto que crece palabra a palabra con la voz: sin la animación de entrada (se repetiría en cada palabra). */
 .sub-en-vivo { animation: none; }
+
+/* Selector de asistente: VERA (misión) o EVA (guía). */
+.selector-asistente {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: rgba(10, 13, 23, 0.7);
+}
+.selector-asistente button {
+  padding: 5px 14px;
+  border-radius: 999px;
+  color: var(--tenue) !important;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.selector-asistente button[aria-pressed="true"] { background: rgba(143, 182, 255, 0.16); color: var(--texto) !important; }
+@media (max-width: 640px) { .selector-asistente { top: 64px; } }

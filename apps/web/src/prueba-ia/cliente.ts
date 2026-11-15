@@ -1,6 +1,20 @@
-import type { Oido } from "@horizon-signai/shared"
+import type { AssistantMode, Oido } from "@horizon-signai/shared"
+import { recuerdos } from "./memoria"
 
 export type Mensaje = { role: "user" | "assistant"; content: string }
+
+// Quién responde (VERA o EVA). La página lo fija al cambiar de asistente; cada pedido lo lleva junto con
+// lo que la asistente recuerda de la persona (memoria.ts), leído en el momento.
+let asistenteActual: AssistantMode = "educational"
+export const usarAsistente = (a: AssistantMode) => {
+  asistenteActual = a
+}
+// En qué pantalla está la persona (la manda EVA al moverse por la app): la IA guía con eso.
+let pantallaActual = ""
+export const usarPantalla = (p: string) => {
+  pantallaActual = p
+}
+const persona = () => ({ asistente: asistenteActual, recuerdos: recuerdos(), pantalla: pantallaActual })
 
 const pedir = async (ruta: string, init: RequestInit) => {
   const r = await fetch(`/api/z6${ruta}`, init)
@@ -16,7 +30,7 @@ export const chat = async (messages: Mensaje[], voz: boolean) => {
   const r = await pedir("/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, voz }),
+    body: JSON.stringify({ messages, voz, ...persona() }),
   })
   return (await r.json()) as { respuesta: string; ms: number; modelo: string; equipo: string }
 }
@@ -31,7 +45,7 @@ export const chatStream = async (
   const r = await pedir("/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, ...persona() }),
     signal,
   })
   const lector = r.body!.getReader()
@@ -97,7 +111,7 @@ export const escuchar = async (
 ) => {
   const form = new FormData()
   form.append("audio", audio, "voz.wav")
-  form.append("contexto", JSON.stringify({ ...contexto, formato: formatoDeVoz() }))
+  form.append("contexto", JSON.stringify({ ...contexto, ...persona(), formato: formatoDeVoz() }))
   await leerEventos(await pedir("/voz/escuchar", { method: "POST", body: form, signal }), alEvento)
 }
 
@@ -112,7 +126,18 @@ export const turnoDeVoz = async (
   const r = await pedir("/voz/turno", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, formato: formatoDeVoz(), acuse }),
+    body: JSON.stringify({ messages, formato: formatoDeVoz(), acuse, ...persona() }),
+    signal,
+  })
+  await leerEventos(r, alEvento)
+}
+
+/** Una frase hecha (la guía de EVA) dicha con la voz de la asistente: eventos {t:"frase"} como el turno. */
+export const decir = async (texto: string, alEvento: (e: EventoTurno) => void, signal?: AbortSignal) => {
+  const r = await pedir("/decir", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texto, formato: formatoDeVoz(), ...persona() }),
     signal,
   })
   await leerEventos(r, alEvento)
@@ -153,7 +178,7 @@ export const hablar = async (texto: string) => {
   const r = await pedir("/hablar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ texto }),
+    body: JSON.stringify({ texto, ...persona() }),
   })
   return await r.blob()
 }
