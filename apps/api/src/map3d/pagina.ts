@@ -15,6 +15,18 @@ import { manifiesto } from "./index.js"
 const plantillaRuta = process.env.WEB_DIST
   ? join(process.env.WEB_DIST, "mapa-3d.html")
   : fileURLToPath(new URL("../../../web/public/mapa-3d.html", import.meta.url))
+// La hoja de Archivo (`/ui/display-caps.css`) va con `?v=<hash>`: Cloudflare guarda los .css 4 h en el navegador.
+const hojaRuta = process.env.WEB_DIST
+  ? join(process.env.WEB_DIST, "ui", "display-caps.css")
+  : fileURLToPath(new URL("../../../web/public/ui/display-caps.css", import.meta.url))
+const HOJA = 'href="/ui/display-caps.css"'
+let hoja: { mtime: number; v: string } | null = null
+async function versionHoja(): Promise<string | null> {
+  const info = await stat(hojaRuta).catch(() => null)
+  if (!info) return null
+  if (!hoja || hoja.mtime !== info.mtimeMs) hoja = { mtime: info.mtimeMs, v: createHash("sha256").update(await readFile(hojaRuta)).digest("hex").slice(0, 10) }
+  return hoja.v
+}
 
 let plantilla: { mtime: number; html: string } | null = null
 async function leerPlantilla(): Promise<string> {
@@ -51,6 +63,8 @@ export async function paginaMapa3d(c: Context): Promise<Response> {
     // sin manifiesto: el visor usa /api/map3d/meta
   }
   html = html.replace(MARCA, arranque)
+  const v = await versionHoja()
+  if (v) html = html.replace(HOJA, `href="/ui/display-caps.css?v=${v}"`)
   const etag = `"${createHash("sha256").update(html).digest("hex").slice(0, 16)}"`
   if (c.req.header("If-None-Match")?.split(",").some((x) => x.trim().replace(/^W\//, "") === etag))
     return new Response(null, { status: 304, headers: { ETag: etag, "Cache-Control": "no-cache" } })
