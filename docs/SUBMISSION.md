@@ -25,9 +25,12 @@ It matters because at the pole a small change of site or date changes power and 
 
 ## Link to Project Demo
 
-https://signal-horizon.goberna.us/demo.html
+Pick one of the two (the form takes one link):
 
-(7 slides, the limit, in English, with the team name, the members and the challenge on the first slide. Opens without login; check it in a private window before pasting.)
+- **Video, 30 seconds:** https://signal-horizon.goberna.us/spot.mp4 (exactly 30.0 s, English narration with burned-in English subtitles).
+- **Slides, 7:** https://signal-horizon.goberna.us/demo.html, also as PDF: https://signal-horizon.goberna.us/demo.pdf
+
+Both name the team, the members and the challenge, and open without login; check them in a private window before pasting.
 
 ## Link to Final Project
 
@@ -74,7 +77,8 @@ Yes.
 - **Limit we set.** The language model never computes a figure. Sun, Earth, power and verdicts are computed by the project's engine from NASA data; the model only explains them.
 - **Review.** In the earlier prototype, an independent SI agent reviewed the interface design against a design reference book.
 
-TODO before pasting: confirm whether any image or video in the application or the demo was SI-generated (if so, it needs a visible watermark and a line here), and confirm that no generated content uses NASA logos, flags or mission identifiers.
+- **Demo video.** The video is a screen recording of the application, not generated imagery. Its narration is synthetic speech (Kokoro-82M on the team's server, the same voice as EVA); the closing card of the video says so, and so does the file's metadata. The script of the narration was written with the SI coding assistant and reviewed by the team.
+- **Images.** The application and the slides contain no SI-generated images: screenshots, NASA data renders and the team's own logo.
 
 ## NASA Data
 
