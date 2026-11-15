@@ -108,6 +108,7 @@
 
     /* ---------- calendario de campaña ---------- */
     'Campaign calendar': 'Calendario de campaña',
+    'Panel on the left': 'Panel de la izquierda',
     'Oct 2026 → Jan 2027 · UTC': 'oct 2026 → ene 2027 · UTC',
     'Preparation': 'Preparación',
     'On the surface': 'En superficie',
