@@ -46,6 +46,8 @@ y abrir `http://localhost:8765/inicio.html`. Los datos se cargan como scripts, a
 
 `inicio.html` se apoya en `campaign.js` (misiones y movimientos), `mission.js` (cifras de la ruta científica de CR-02) y `terrain.js` (mapa de sitios). Los movimientos enlazan a los dos pasos del Planificador.
 
+**Add mission** abre una ventana con el formulario de la misión nueva (tipo, fecha de inicio, nombre, zona, duración y fuente de energía). «Next» guarda el borrador en `localStorage` (`horizon-signai.mission-draft`) y abre el planificador con `#z=…&t=…T09:00&stay=…`.
+
 Las cifras de la zona A que muestra son las del Planificador con el plan de CR-01 (18 dic 2026, 09:00 UTC, 3 días, panel y antena a 2 m):
 - Sol a +2,7° sobre el horizonte en el contacto.
 - Tierra a +6,5°: enlace directo, sin relé.

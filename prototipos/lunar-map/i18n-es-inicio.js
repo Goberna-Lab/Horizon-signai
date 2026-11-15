@@ -286,3 +286,35 @@ LunarI18n.add({
   }
 });
 
+/* ventana «New mission» (2026-11-15) */
+LunarI18n.add({
+  exact: {
+    'Step 1 of 2': 'Paso 1 de 2',
+    'New mission': 'Nueva misión',
+    'From the simplest to the most technical. Next opens the Planner with this zone, date and duration.': 'Del dato más simple al más técnico. «Siguiente» abre el planificador con esta zona, fecha y duración.',
+    'Mission type': 'Tipo de misión',
+    'Surface walk': 'Caminata',
+    'Survey': 'Reconocimiento',
+    'Sampling': 'Muestreo',
+    'Start date': 'Fecha de inicio',
+    'Name': 'Nombre',
+    'e.g. Landing at Haworth': 'p. ej. Alunizaje en Haworth',
+    'Zone': 'Zona',
+    'Choose a zone': 'Elige una zona',
+    'Duration': 'Duración',
+    'days': 'días',
+    'Power source': 'Fuente de energía',
+    'Solar panel': 'Panel solar',
+    'Needs the Sun in view: no power at night': 'Necesita ver el Sol: sin energía de noche',
+    'Solar + battery': 'Solar + batería',
+    'The battery covers the nights': 'La batería cubre las noches',
+    'Battery only': 'Solo batería',
+    'Short stays, limited by its capacity': 'Estadías cortas, según su capacidad',
+    'Radioisotope (RTG)': 'Radioisótopo (RTG)',
+    'Steady power, day and night': 'Energía constante, de día y de noche',
+    'Fill in every field to continue.': 'Completa todos los campos para seguir.',
+    'Cancel': 'Cancelar',
+    'Next': 'Siguiente',
+    'Close': 'Cerrar'
+  }
+});
