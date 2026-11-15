@@ -271,7 +271,7 @@ export class LandingSim {
     const v = this.view;
     if (!v.now) return;
     // Si la caminata anterior iluminó la escena con la hora de la EVA, el descenso vuelve a la del alunizaje
-    v.rover?.stop(); document.querySelector('.sim-informe')?.remove();
+    v.rover?.stop(); v.estacion?.quitar(); document.querySelector('.sim-informe')?.remove();
     v.tSalida = null;
     if (this._luzEva || v.cieloMovido) { this._luzEva = false; v.cieloMovido = false; await v.iluminarEn?.(v.tAlunizaje); }
     this.stop(true);
@@ -644,12 +644,13 @@ export class LandingSim {
       <dl><div><dt>${tr('Contact speed', 'Velocidad de contacto')}</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>${tr('Footpad tilt', 'Inclinación de las patas')}</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
       <div><dt>${tr('Off target', 'Desvío del objetivo')}</dt><dd>${fmt(miss)} m</dd></div><div><dt>${tr('Fuel left', 'Combustible restante')}</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
       <div><dt>${tr('Powered descent', 'Descenso propulsado')}</dt><dd>${clock(this.t)}</dd></div><div><dt>${tr('Earth link', 'Enlace con la Tierra')}</dt><dd>${v.now?.earth.visible ? tr('direct', 'directo') : tr('below the horizon', 'bajo el horizonte')}</dd></div></dl>
-      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : v.plan?.tipo === 'rover' ? `<button type="button" data-act="rover">${tr('Deploy the rover', 'Desplegar el rover')}</button>` : v.plan?.tipo === 'fija' ? `<button type="button" data-act="informe">${tr('Mission report', 'Informe de la misión')}</button>` : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
+      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : v.plan?.tipo === 'rover' ? `<button type="button" data-act="rover">${tr('Deploy the rover', 'Desplegar el rover')}</button>` : v.plan?.tipo === 'fija' ? `<button type="button" data-act="equipo">${tr('Deploy panel and antenna', 'Desplegar panel y antena')}</button><button type="button" data-act="informe" class="sec">${tr('Mission report', 'Informe de la misión')}</button>` : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
         <button type="button" data-act="again" class="${R.kind === 'tip' || R.kind === 'crash' ? '' : 'sec'}">${tr('Fly the descent again', 'Volar el descenso otra vez')}</button></div>`;
     card.addEventListener('click', (e) => {
       const act = e.target.closest?.('button')?.dataset.act;
       if (act === 'again') this.start();
       if (act === 'out') { card.remove(); this.endEl = null; this._startEgress(); }
+      if (act === 'equipo') void v.estacion?.desplegar(this.lmPos.x + 8, this.lmPos.z + 8, v.tAlunizaje);
       if (act === 'rover') { card.remove(); this.endEl = null; this._startRover(); }
       if (act === 'informe') mostrarInforme(v, datosFija(v), { volar: () => this.start(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } });
     });

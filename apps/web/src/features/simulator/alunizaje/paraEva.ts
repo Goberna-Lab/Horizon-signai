@@ -34,6 +34,8 @@ export function estadoSimulador(view, sim, caminata, rover) {
     const r = rover, t = r.tasks;
     L.push(`ROVER: traverse time ${hm(r.s.t)}, driven ${f(r.walked)} m, speed ${f(Math.abs(r.vel) * 3.6, 2)} of ${f(r.vmax * 3.6, 1)} km/h. ${now?.earth.visible ? 'Earth link: driving allowed.' : 'No Earth link: the rover is stopped.'} Max slope crossed ${f(r.stats.pendienteMax, 1)}°. Task: ${t.text() ?? '-'}. Measurements ${t.samples.filter((m) => m.taken).length}/${t.samples.length}.`);
   }
+  const eq = view.equipo;
+  if (eq) L.push(`PANEL AND ANTENNA DEPLOYED (Planner engine, rest of the stay, ${f(eq.horas)} h): panel at ${eq.panelM} m sees the Sun ${f(eq.sunPct)}% of the time (${f(eq.sunH)} h), ${f(eq.energiaKWhM2, 1)} kWh/m² reach it (mean ${f(eq.meanPanelWm2)} W/m², vertical panel turning to the Sun), longest night ${f(eq.longestNightH, 1)} h; antenna at ${eq.antenaM} m sees the Earth ${f(eq.earthPct)}% (${f(eq.earthH)} h), longest link gap ${f(eq.longestSilenceH, 1)} h; Sun and Earth together ${f(eq.bothPct)}%.`);
   const inf = document.querySelector('.sim-informe');
   if (inf) L.push(`MISSION REPORT ON SCREEN: ${inf.querySelector('b')?.textContent ?? ''}. ` + [...inf.querySelectorAll('tbody tr')].map((r) => [...r.children].map((x) => x.textContent).join(': ')).join('; ') + '.');
   return L.join('\n');

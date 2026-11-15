@@ -68,6 +68,7 @@ const RUTA = { cientifica: () => tr('science route (CR-02)', 'ruta científica (
 export function mostrarInforme(view, d, acciones = {}) {
   document.querySelector('.sim-informe')?.remove();
   const el = document.createElement('div');
+  d.equipo = view.equipo ?? null; // panel y antena, si se desplegaron (estacion.ts)
   el.className = 'sim-informe ' + d.veredicto;
   const fila = (k, plan, real, ok) => `<tr${ok === false ? ' class="mal"' : ''}><th>${k}</th><td>${plan}</td><td>${real}</td></tr>`;
   const al = d.al, KIND = { ok: tr('nominal', 'nominal'), hard: tr('hard', 'duro'), tilt: tr('tilted', 'inclinado'), tip: tr('tipped over', 'volcado'), crash: tr('destroyed', 'destruido') };
@@ -90,6 +91,8 @@ export function mostrarInforme(view, d, acciones = {}) {
       ${d.tipo === 'tripulada' ? fila(tr('Suit recharges', 'Recargas del traje'), '—', String(d.recargas), null) : ''}
       ${d.tipo === 'rover' ? fila(tr('Stopped without link', 'Parado sin enlace'), '0 min', hm(d.st.sinEnlaceS ?? 0), !(d.st.sinEnlaceS > 0)) : ''}
       ${d.tipo === 'rover' ? fila(tr('Max slope crossed', 'Pendiente máxima'), '≤ 15°', `${fmt(d.st.pendienteMax ?? 0, 1)}°`, (d.st.pendienteMax ?? 0) <= 15) : ''}
+      ${d.equipo ? fila(tr(`Panel at ${d.equipo.panelM} m`, `Panel a ${d.equipo.panelM} m`), tr('Sun · energy', 'Sol · energía'), `${fmt(d.equipo.sunPct)} % · ${fmt(d.equipo.energiaKWhM2, 1)} kWh/m²`, null) : ''}
+      ${d.equipo ? fila(tr(`Antenna at ${d.equipo.antenaM} m`, `Antena a ${d.equipo.antenaM} m`), tr('Earth link', 'Enlace con la Tierra'), `${fmt(d.equipo.earthPct)} % · ${tr('longest gap', 'corte máx.')} ${fmt(d.equipo.longestSilenceH, 1)} h`, null) : ''}
     </tbody></table>
     ${d.cons ? `<div class="sim-inf-cons"><span class="lbl">${tr('Suit left at the end', 'Traje al terminar')}</span>
       ${barra('O₂', d.cons.o2)}${barra(tr('Water', 'Agua'), d.cons.agua)}${barra('LiOH', d.cons.co2)}${barra(tr('Battery', 'Batería'), d.cons.bat)}</div>` : ''}

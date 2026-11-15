@@ -375,3 +375,8 @@ El modelo 3D del LM viene de NASA 3D Resources (clave NASA3D-LM). El registro co
 
 ### 9.8 En el celular
 - En pantallas táctiles aparece una palanca (caminar o conducir), se mira arrastrando y hay botones con las teclas de cada momento; en el descenso, «Saltar» (`tactil.ts`). Con menos resolución y sombras más baratas para que vaya fluido.
+
+### 9.9 Panel solar y antena
+- `&panel=<m>&antena=<m>&estadia=<h>`: alturas del plan (las del Planificador: 2, 5, 10, 15, 20 o 30 m) y la estadía. En la caminata, la tecla **P** (botón «Panel» en el celular) despliega el panel y la antena 5 m por delante; con módulo fijo, el botón «Desplegar panel y antena» de la tarjeta del alunizaje (`estacion.ts`).
+- Al desplegarlos aparece su informe, con el motor del Planificador (`equipoEn` en `sitio.ts`: `station` + `sweep` + `figures`, cada 10 min) desde ese momento hasta el fin de la estadía: % de tiempo con Sol en el panel y horas, energía que le llega por m² (kWh/m²) e irradiancia media, noche más larga, % con Tierra en la antena, corte de enlace más largo y % con los dos. El Sol se ve desde la altura del panel y la Tierra desde la de la antena, en el mismo punto del terreno; el panel es vertical y gira hacia el Sol (supuestos del Planificador); la energía es la que llega, no la eléctrica. Comprobado contra `figures()`: Shackleton rim RoI 4, 5–12 may 2027, panel 10 m y antena 2 m: 73,94 % de Sol, 100 % de Tierra, 26,33 h de noche, 152,94 kWh/m².
+- Sus cifras pasan al informe final y a EVA. Un sitio sin paquete del simulador (K–M de las 13 zonas) muestra un aviso en vez de cargar otro.

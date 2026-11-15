@@ -93,6 +93,10 @@ export class Caminata {
     if (e.code === 'KeyG') { this.visor.visor = this.visor.visor === 2 ? 1 : 2; this.sonido?.visor(); if (this.visor.visor !== 2) avisarEva('visor-solar'); } // visor solar: arriba ↔ abajo
     if (e.code === 'KeyL') { this.lamps = !this.lamps; if (this.lamps) avisarEva('luces'); }
     if (e.code === 'KeyE') this.tasks.interact();
+    if (e.code === 'KeyP' && this.view.estacion) { // panel y antena del plan, cinco metros por delante
+      const f = this.forward(), v = this.view;
+      void v.estacion.desplegar(this.pos.x + f.x * 5, this.pos.z + f.z * 5, (v.tSalida ?? v.tAlunizaje) + this.s.t * 1000);
+    }
     if (e.code === 'KeyR') this.recharge();
     if (e.code === 'KeyM') this.notice = this.sonido?.toggleMute() ? tr('Sound off (M)', 'Sonido apagado (M)') : tr('Sound on (M)', 'Sonido encendido (M)');
     if (e.code === 'KeyT') { this.timeScale = this.timeScale === 1 ? 10 : this.timeScale === 10 ? 60 : 1; if (this.timeScale > 1) avisarEva('tiempo'); }

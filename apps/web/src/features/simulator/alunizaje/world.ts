@@ -13,6 +13,7 @@ import { Caminata } from './caminata';
 import { Rover } from './rover';
 import { Tactil, esTactil } from './tactil';
 import { abrirEva, estadoSimulador } from './paraEva';
+import { Estacion } from './estacion';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -56,7 +57,7 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number } = {}): Promise<() => void> {
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
   const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
@@ -170,7 +171,9 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
     // El plan: la ruta elegida en el Planificador y cuándo sale la EVA (horas después del alunizaje)
-    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0, tipo: tipo ?? 'tripulada', roverKmh: roverKmh ?? 0.8, paradaH: paradaH ?? 2 }, tAlunizaje: Date.parse(site.time),
+    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0, tipo: tipo ?? 'tripulada', roverKmh: roverKmh ?? 0.8, paradaH: paradaH ?? 2, panelM: panelM ?? 2, antenaM: antenaM ?? 2, estadiaH: estadiaH ?? 168 },
+    tAlunizaje: Date.parse(site.time),
+    sitio: site, // para el informe del panel y la antena (equipoEn)
     /** Vuelve a iluminar la escena con el cielo de otro instante (la hora de la EVA). */
     async iluminarEn(t) {
       const c = await cieloEn(site, t);
@@ -198,6 +201,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
   const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start(), sonido }));
   const rover = (view.rover = new Rover(view, { onSalir: () => void sim.start(), sonido }));
+  view.estacion = new Estacion(view);
   const sim = new LandingSim(view);
   const tactil = movil ? new Tactil(view, { sim, caminata, rover }) : null;
   await sim.start();
@@ -230,6 +234,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     caminata.update(dt);
     rover.update(dt);
     tactil?.update();
+    view.estacion.update();
     // Las sombras se calculan alrededor de la nave (o del astronauta, en la caminata)
     const f = caminata.active ? caminata.pos : rover.active ? rover.pos : sim.lm?.position ?? camera.position;
     sunLight.target.position.copy(f); sunLight.position.copy(f).addScaledVector(sd, 1500);
@@ -245,7 +250,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
-    caminata.dispose(); rover.dispose(); tactil?.dispose(); view.astro.dispose();
+    caminata.dispose(); rover.dispose(); tactil?.dispose(); view.estacion.dispose(); view.astro.dispose();
     disposeDetail(detailMesh); glowTex.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };
