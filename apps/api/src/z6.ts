@@ -189,6 +189,13 @@ const NOTA_ECO =
   'Start directly with the answer: no acknowledgement, no "good question", and do not restate the question.]'
 // Para rotar las plantillas del eco entre turnos (que no suene dos veces seguidas la misma).
 let vecesEco = 0
+// Pide a Geografo que tenga cargado el 8B del eco (y del clasificador), como mucho una vez cada 5 minutos.
+let ecoCalentadoEn = 0
+const calentarEco = () => {
+  if (Date.now() - ecoCalentadoEn < 5 * 60_000) return
+  ecoCalentadoEn = Date.now()
+  void precalentarClasificador()
+}
 // Antes de esto el eco no suena (desde que llega la pregunta al API): si el 27B ya tiene su primera frase, va directo.
 // El murmullo grabado del navegador cubre ese primer segundo.
 const ESPERA_ECO_MS = 900
@@ -321,6 +328,11 @@ const turnoDeVoz = (
       const i = n++
       const listo = temaDeEco(msgs[msgs.length - 1].content, persona.idioma, textoUrl(), textoModelo(), corte.signal)
         .then(async (t) => {
+          // Sin tema: lo normal es un saludo, pero también pasa con el 8B descargado de Geografo (tras 2 h sin uso;
+          // cargarlo tarda más que el tope del eco, y así nadie volvía a cargarlo: pasó en producción el 2026-11-15).
+          // Se le pide que lo cargue, sin esperar: el próximo turno ya tiene eco. No en cada turno: el pedido de
+          // calentar compite con el del eco en el mismo modelo y lo hacía llegar tarde (medido).
+          if (!t) calentarEco()
           const frase = armarEco(t, persona.idioma, vecesEco)
           if (!frase) return null
           vecesEco++ // solo cuenta el que se usó: así nunca suena la misma plantilla dos veces seguidas

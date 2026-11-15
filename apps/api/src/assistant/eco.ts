@@ -24,8 +24,9 @@ Ejemplos:
 "gracias" → {"topic": ""}`,
 }
 
-// Pasado esto el eco ya no gana tiempo: la primera frase del 27B está por llegar.
-const TIMEOUT_MS = 1500
+// Pasado esto el eco ya no gana tiempo. Si llega tarde pero antes que la primera frase del 27B, igual suena (z6.ts
+// lo calla si el 27B ya empezó). A veces el primer pedido tras un rato tarda ~1,5 s aunque el modelo esté cargado.
+const TIMEOUT_MS = 2500
 
 /** El tema de `pregunta` según el modelo chico, o "" (sin tema, lento o con error). Sin limpiar: ver `armarEco`. */
 export async function temaDeEco(pregunta: string, idioma: "en" | "es", url: string, modelo: string, señal?: AbortSignal): Promise<string> {
