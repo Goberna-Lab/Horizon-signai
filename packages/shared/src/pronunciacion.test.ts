@@ -30,6 +30,7 @@ test("español para Piper: el murmullo, el veredicto, unidades y el signo menos"
   assert.equal(paraPiper("Mmm, a ver."), "Umm, a ver.")
   assert.equal(paraPiper("Hmm. Ya veo."), "Umm. Ya veo.")
   assert.equal(paraPiper("La zona A es NO GO, la B es GO."), "La zona A es nou gou, la B es gou.")
+  assert.equal(paraPiper("El veredicto: GO, REVIEW o NO GO."), "El veredicto: gou, riviú o nou gou.")
   assert.equal(paraPiper("Está a 384.400 km y el mástil mide 5 m."), "Está a 384.400 kilómetros y el mástil mide 5 metros.")
   assert.equal(paraPiper("Dura 24 h y baja a -170 °C."), "Dura 24 horas y baja a menos 170 grados Celsius.")
   assert.equal(paraPiper("Soy EVA, de Horizon Signai."), "Soy EVA, de Horizon Sain ei ai.")

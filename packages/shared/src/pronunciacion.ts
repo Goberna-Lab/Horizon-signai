@@ -47,6 +47,7 @@ const PIPER: [RegExp, string | ((m: string, ...g: string[]) => string)][] = [
   [/(?<!\d\s?)\b[MmHh]m{1,}\b/g, "Umm"], // el murmullo de pensar («5 mm» son milímetros: se deja)
   [/\bNO[- ]GO\b/g, "nou gou"],
   [/(?<!nou )\bGO\b/g, "gou"],
+  [/\bREVIEW\b/g, "riviú"], // espeak decía «rebiéu»
   [/\bSignai\b/g, "Sain ei ai"],
   [/\bDE ?441\b/g, "de cuatro cuarenta y uno"],
   [/(^|[\s(])-(\d)/g, "$1menos $2"],
