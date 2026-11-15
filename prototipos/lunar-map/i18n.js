@@ -63,7 +63,6 @@
   function start() {
     var d = root.document;
     d.documentElement.lang = lang;
-    toggles();
     if (lang !== 'es') return;
     d.title = tr(d.title);
     tree(d.body);
@@ -77,22 +76,13 @@
     }).observe(d.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
   }
 
-  /* el selector EN / ES: cada página deja un hueco <span data-lang-toggle></span> en su cabecera */
+  /* cambia el idioma de la app (no hay botones EN / ES en pantalla: el idioma lo elige EVA o «?lang=») */
   function set(next) {
     if (next !== 'en' && next !== 'es' || next === lang) return;
     try { root.localStorage.setItem(KEY, next); } catch (e) { /* sin almacenamiento no hay cambio que recordar */ }
     /* si la dirección traía «?lang=», se quita: si no, al recargar volvería a mandar ella */
     var clean = root.location.href.replace(/([?&])lang=(en|es)\b&?/, '$1').replace(/[?&](#|$)/, '$1');
     if (clean !== root.location.href) root.location.replace(clean); else root.location.reload();
-  }
-  function toggles() {
-    var slots = root.document.querySelectorAll('[data-lang-toggle]');
-    for (var i = 0; i < slots.length; i++) {
-      slots[i].setAttribute('role', 'group');
-      slots[i].setAttribute('aria-label', 'Language / Idioma');
-      slots[i].innerHTML = '<button type="button" data-lang="en" aria-pressed="' + (lang === 'en') + '">EN</button><button type="button" data-lang="es" aria-pressed="' + (lang === 'es') + '">ES</button>';
-      slots[i].addEventListener('click', function (evt) { var b = evt.target.closest('[data-lang]'); if (b) set(b.getAttribute('data-lang')); });
-    }
   }
   root.addEventListener('storage', function (evt) {
     if (evt.key === KEY && (evt.newValue === 'es' ? 'es' : 'en') !== lang) root.location.reload();

@@ -29,7 +29,7 @@ Landing (/)  ──►  Dashboard (/dashboard)  ──►  Planificador (/planif
 2. **Una sola lista de misiones.** `useMissions()` y `missionStore` (`shared/planning/store.ts`), guardada en el navegador. La misión viaja entre pantallas por su `id` en la URL.
 3. **El modelo no calcula.** La IA recibe las cifras ya calculadas (`MissionContext` en `packages/shared/src/assistant.ts`) y los trozos de documento recuperados; explica y cita. Nunca inventa porcentajes ni fechas.
 4. **Una feature no importa de otra** (`apps/web/ARCHITECTURE.md`). Lo común va a `shared/`. Solo `app/` compone features.
-5. **Interfaz en inglés y en español** (inglés por defecto; selector EN / ES en cada pantalla, una sola preferencia: `@/shared/i18n`, texto con `tr("English", "Español")`; las páginas del planificador, con `prototipos/lunar-map/i18n.js`), docs en español, commits en inglés (Conventional Commits). Prefijos de CSS por área: `ln-`/`sw-` landing, `db-` dashboard, `pl-` planificador, `sim-` simulador, `ai-` asistente, `pmap-` mapa, `ui-` piezas comunes, `ws-` escritorio.
+5. **Interfaz en inglés y en español** (inglés por defecto; sin botones EN / ES en pantalla: el idioma lo elige EVA o `?lang=es`; una sola preferencia: `@/shared/i18n`, texto con `tr("English", "Español")`; las páginas del planificador, con `prototipos/lunar-map/i18n.js`), docs en español, commits en inglés (Conventional Commits). Prefijos de CSS por área: `ln-`/`sw-` landing, `db-` dashboard, `pl-` planificador, `sim-` simulador, `ai-` asistente, `pmap-` mapa, `ui-` piezas comunes, `ws-` escritorio.
 6. **Antes del push:** `npm test` y `npx tsc --noEmit -p apps/api && npm run build -w @horizon-signai/web`. `main` despliega solo.
 
 ## Contratos entre áreas

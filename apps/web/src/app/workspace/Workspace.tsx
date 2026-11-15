@@ -4,7 +4,6 @@ import { missionPath, plannerPath, routes } from "@/app/routes"
 import { AssistantDock } from "@/features/assistant"
 import { AlertBar, MissionList, Summary, SunLink } from "@/features/dashboard"
 import { MissionDetail, StayTimeline } from "@/features/mission-planner"
-import { LangToggle } from "@/shared/i18n/LangToggle"
 import { PolarMap, type MapSky } from "@/shared/map"
 import {
   missionContext,
@@ -70,7 +69,6 @@ export function Workspace() {
           <Link to={plannerPath()}>{copy.nav.planner}</Link>
           <Link to={routes.map3d}>{copy.nav.map3d}</Link>
         </nav>
-        <LangToggle className="ws-bar__lang" />
       </header>
 
       {failed || masksFailed ? (
