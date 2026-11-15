@@ -1,0 +1,1590 @@
+{
+  "procedencia": {
+    "principal": "NASA NSSDCA, \"Lunar Artifact Impacts and Landings\" (D. R. Williams), https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html — actualizada el 2025-08-13, consultada el 2026-11-14. Coordenadas en marco DE421, longitud este positiva (0–360). Fechas en UTC.",
+    "polo": "PGDA, High-Resolution LOLA Topography for Lunar South Pole Sites (Barker et al. 2021, Planet. Space Sci. 203, 105119): centros de los mosaicos DTM de 5 m, vía catalogo-polo.json (consultado 2026-11-07).",
+    "artemis": "NASA, 9 regiones candidatas de Artemis III (anuncio del 2024-10-28). NASA no publica un centro por región: se usa el centro del mosaico LROC NAC de la región (data.lroc.im-ldi.com) o el del DTM de PGDA, y se marca como aproximado.",
+    "estado2026": "Sin alunizajes en 2026 hasta el 2026-11-14: Chang'e 7 se pospuso en agosto de 2026 en la rampa; Blue Moon MK1 e IM-3 pasaron a 2027 (fuentes de prensa, ver References)."
+  },
+  "categorias": [
+    "tripulada",
+    "robotica",
+    "muestras",
+    "rover",
+    "impacto",
+    "candidata"
+  ],
+  "sitios": [
+    {
+      "id": "apollo-11",
+      "nombre": "Apollo 11",
+      "cat": "tripulada",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1969-07-20",
+      "lat": 0.67416,
+      "lon": 23.47314,
+      "region": "Mare Tranquillitatis",
+      "es": "Primer alunizaje tripulado (Armstrong, Aldrin). LM Eagle.",
+      "en": "First crewed landing (Armstrong, Aldrin). LM Eagle.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1969-059C",
+          "en": "NSSDCA record 1969-059C",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1969-059C"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "apollo-12",
+      "nombre": "Apollo 12",
+      "cat": "tripulada",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1969-11-19",
+      "lat": -3.0128,
+      "lon": 336.5781,
+      "region": "Oceanus Procellarum",
+      "es": "Aterrizaje de precisión a ~160 m del Surveyor 3.",
+      "en": "Pinpoint landing ~160 m from Surveyor 3.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1969-099C",
+          "en": "NSSDCA record 1969-099C",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1969-099C"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "apollo-14",
+      "nombre": "Apollo 14",
+      "cat": "tripulada",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1971-02-05",
+      "lat": -3.64589,
+      "lon": 342.52806,
+      "region": "Fra Mauro",
+      "es": "Tierras altas de Fra Mauro, objetivo original del Apollo 13.",
+      "en": "Fra Mauro highlands, Apollo 13's original target.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1971-008C",
+          "en": "NSSDCA record 1971-008C",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1971-008C"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "apollo-15",
+      "nombre": "Apollo 15",
+      "cat": "tripulada",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1971-07-30",
+      "lat": 26.13239,
+      "lon": 3.6333,
+      "region": "Hadley–Apennine",
+      "es": "Primera misión con el rover LRV, junto a Hadley Rille.",
+      "en": "First mission with the LRV rover, next to Hadley Rille.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1971-063C",
+          "en": "NSSDCA record 1971-063C",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1971-063C"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "apollo-16",
+      "nombre": "Apollo 16",
+      "cat": "tripulada",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1972-04-21",
+      "lat": -8.9734,
+      "lon": 15.5011,
+      "region": "Descartes Highlands",
+      "es": "Único Apollo en las tierras altas centrales.",
+      "en": "Only Apollo in the central highlands.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1972-031C",
+          "en": "NSSDCA record 1972-031C",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1972-031C"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "apollo-17",
+      "nombre": "Apollo 17",
+      "cat": "tripulada",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1972-12-11",
+      "lat": 20.1911,
+      "lon": 30.7723,
+      "region": "Taurus–Littrow",
+      "es": "Último alunizaje tripulado hasta hoy.",
+      "en": "Last crewed landing to date.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1972-096C",
+          "en": "NSSDCA record 1972-096C",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1972-096C"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-9",
+      "nombre": "Luna 9",
+      "cat": "robotica",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1966-02-03",
+      "lat": 7.13,
+      "lon": 295.63,
+      "region": "Oceanus Procellarum",
+      "es": "Primer aterrizaje suave en la Luna. Coordenadas inciertas: el lander estaría a ≥10 km (Wagner et al. 2017).",
+      "en": "First soft landing on the Moon. Uncertain coordinates: the lander is probably ≥10 km away (Wagner et al. 2017).",
+      "src": "NSSDCA",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "surveyor-1",
+      "nombre": "Surveyor 1",
+      "cat": "robotica",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1966-06-02",
+      "lat": -2.4745,
+      "lon": 316.6602,
+      "region": "Flamsteed P",
+      "es": "Primer aterrizaje suave de EE. UU.",
+      "en": "First US soft landing.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1966-045A",
+          "en": "NSSDCA record 1966-045A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1966-045A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-13",
+      "nombre": "Luna 13",
+      "cat": "robotica",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1966-12-24",
+      "lat": 18.87,
+      "lon": 297.95,
+      "region": "Oceanus Procellarum",
+      "es": "Midió la densidad del suelo con un penetrómetro.",
+      "en": "Measured soil density with a penetrometer.",
+      "src": "NSSDCA (Siddiqi 2002)",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "surveyor-3",
+      "nombre": "Surveyor 3",
+      "cat": "robotica",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1967-04-20",
+      "lat": -3.0162,
+      "lon": 336.582,
+      "region": "Oceanus Procellarum",
+      "es": "Visitado por el Apollo 12, que trajo piezas a la Tierra.",
+      "en": "Visited by Apollo 12, which brought parts back to Earth.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1967-035A",
+          "en": "NSSDCA record 1967-035A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1967-035A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "surveyor-5",
+      "nombre": "Surveyor 5",
+      "cat": "robotica",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1967-09-11",
+      "lat": 1.4551,
+      "lon": 23.1943,
+      "region": "Mare Tranquillitatis",
+      "es": "Primer análisis químico del suelo lunar in situ.",
+      "en": "First in-situ chemical analysis of lunar soil.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1967-084A",
+          "en": "NSSDCA record 1967-084A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1967-084A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "surveyor-6",
+      "nombre": "Surveyor 6",
+      "cat": "robotica",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1967-11-10",
+      "lat": 0.4742,
+      "lon": 358.5725,
+      "region": "Sinus Medii",
+      "es": "Primer despegue desde la Luna (salto de 2,5 m).",
+      "en": "First liftoff from the Moon (2.5 m hop).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1967-112A",
+          "en": "NSSDCA record 1967-112A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1967-112A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "surveyor-7",
+      "nombre": "Surveyor 7",
+      "cat": "robotica",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1968-01-10",
+      "lat": -40.9812,
+      "lon": 348.4873,
+      "region": "Tycho (borde norte)",
+      "es": "Único Surveyor en tierras altas, junto al cráter Tycho.",
+      "en": "Only Surveyor in the highlands, near Tycho crater.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1968-001A",
+          "en": "NSSDCA record 1968-001A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1968-001A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-23",
+      "nombre": "Luna 23",
+      "cat": "robotica",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1974-11-06",
+      "lat": 12.6667,
+      "lon": 62.1511,
+      "region": "Mare Crisium",
+      "es": "Aterrizó dañado; no pudo tomar muestras.",
+      "en": "Landed damaged; could not collect samples.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "change-3",
+      "nombre": "Chang'e 3",
+      "cat": "robotica",
+      "agencia": "CNSA",
+      "pais": "CN",
+      "fecha": "2013-12-14",
+      "lat": 44.1214,
+      "lon": 340.4883,
+      "region": "Mare Imbrium",
+      "es": "Primer aterrizaje suave desde 1976. Llevó el rover Yutu.",
+      "en": "First soft landing since 1976. Carried the Yutu rover.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "change-4",
+      "nombre": "Chang'e 4",
+      "cat": "robotica",
+      "agencia": "CNSA",
+      "pais": "CN",
+      "fecha": "2019-01-03",
+      "lat": -45.4561,
+      "lon": 177.5885,
+      "region": "Von Kármán (cara oculta)",
+      "es": "Primer aterrizaje en la cara oculta. Llevó el rover Yutu-2.",
+      "en": "First landing on the far side. Carried the Yutu-2 rover.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "chandrayaan-3",
+      "nombre": "Chandrayaan-3 (Vikram)",
+      "cat": "robotica",
+      "agencia": "ISRO",
+      "pais": "IN",
+      "fecha": "2023-08-23",
+      "lat": -69.3741,
+      "lon": 32.32,
+      "region": "Alto polar sur (Manzinus–Simpelius)",
+      "es": "Primer aterrizaje cerca del polo sur. Rover Pragyan (~100 m).",
+      "en": "First landing near the south pole. Pragyan rover (~100 m).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "slim",
+      "nombre": "SLIM",
+      "cat": "robotica",
+      "agencia": "JAXA",
+      "pais": "JP",
+      "fecha": "2024-01-19",
+      "lat": -13.316,
+      "lon": 25.251,
+      "region": "Shioli",
+      "es": "Aterrizaje de precisión (<100 m); quedó boca abajo.",
+      "en": "Pinpoint landing (<100 m); ended upside down.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "im-1",
+      "nombre": "Odysseus (IM-1)",
+      "cat": "robotica",
+      "agencia": "Intuitive Machines",
+      "pais": "US",
+      "fecha": "2024-02-22",
+      "lat": -80.13,
+      "lon": 1.44,
+      "region": "Malapert A",
+      "es": "Primer lander comercial (NASA CLPS). Volcó sobre un costado.",
+      "en": "First commercial lander (NASA CLPS). Tipped onto its side.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "blue-ghost-1",
+      "nombre": "Blue Ghost M1",
+      "cat": "robotica",
+      "agencia": "Firefly",
+      "pais": "US",
+      "fecha": "2025-03-02",
+      "lat": 18.562,
+      "lon": 61.81,
+      "region": "Mons Latreille (Mare Crisium)",
+      "es": "Primer aterrizaje comercial totalmente exitoso (NASA CLPS).",
+      "en": "First fully successful commercial landing (NASA CLPS).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "im-2",
+      "nombre": "Athena (IM-2)",
+      "cat": "robotica",
+      "agencia": "Intuitive Machines",
+      "pais": "US",
+      "fecha": "2025-03-06",
+      "lat": -84.7906,
+      "lon": 29.1957,
+      "region": "Mons Mouton",
+      "es": "El aterrizaje más austral hasta hoy. Volcó en un cráter.",
+      "en": "Southernmost landing to date. Tipped over inside a crater.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA PRIME-1",
+          "en": "NSSDCA record PRIME-1",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=PRIME-1"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-16",
+      "nombre": "Luna 16",
+      "cat": "muestras",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1970-09-20",
+      "lat": -0.5137,
+      "lon": 56.3638,
+      "region": "Mare Fecunditatis",
+      "es": "Primer retorno robótico de muestras (101 g).",
+      "en": "First robotic sample return (101 g).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-20",
+      "nombre": "Luna 20",
+      "cat": "muestras",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1972-02-21",
+      "lat": 3.7863,
+      "lon": 56.6242,
+      "region": "Apollonius (tierras altas)",
+      "es": "Retorno de 55 g de tierras altas.",
+      "en": "Returned 55 g from the highlands.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-24",
+      "nombre": "Luna 24",
+      "cat": "muestras",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1976-08-18",
+      "lat": 12.7142,
+      "lon": 62.2129,
+      "region": "Mare Crisium",
+      "es": "Último alunizaje soviético; testigo de 2 m de profundidad.",
+      "en": "Last Soviet landing; 2 m deep core.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "change-5",
+      "nombre": "Chang'e 5",
+      "cat": "muestras",
+      "agencia": "CNSA",
+      "pais": "CN",
+      "fecha": "2020-12-01",
+      "lat": 43.0576,
+      "lon": 308.0839,
+      "region": "Mons Rümker",
+      "es": "Retorno de 1731 g de basaltos jóvenes.",
+      "en": "Returned 1,731 g of young basalts.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "change-6",
+      "nombre": "Chang'e 6",
+      "cat": "muestras",
+      "agencia": "CNSA",
+      "pais": "CN",
+      "fecha": "2024-06-01",
+      "lat": -41.6385,
+      "lon": 206.0148,
+      "region": "Cuenca Apollo (cara oculta)",
+      "es": "Primer retorno de muestras de la cara oculta (1935 g).",
+      "en": "First far-side sample return (1,935 g).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "lunokhod-1",
+      "nombre": "Lunokhod 1",
+      "cat": "rover",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1970-11-17",
+      "lat": 38.315,
+      "lon": 324.9919,
+      "region": "Mare Imbrium",
+      "es": "Primer rover robótico (Luna 17). Posición final, ~10,5 km recorridos.",
+      "en": "First robotic rover (Luna 17). Final position, ~10.5 km driven.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-17",
+      "nombre": "Luna 17",
+      "cat": "robotica",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1970-11-17",
+      "lat": 38.23764,
+      "lon": 324.99837,
+      "region": "Mare Imbrium",
+      "es": "Lander que llevó al Lunokhod 1.",
+      "en": "Lander that carried Lunokhod 1.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "lunokhod-2",
+      "nombre": "Lunokhod 2",
+      "cat": "rover",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1973-01-15",
+      "lat": 25.8323,
+      "lon": 30.9222,
+      "region": "Le Monnier",
+      "es": "Posición final; recorrió ~39 km (Luna 21).",
+      "en": "Final position; drove ~39 km (Luna 21).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-21",
+      "nombre": "Luna 21",
+      "cat": "robotica",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1973-01-15",
+      "lat": 25.9994,
+      "lon": 30.4076,
+      "region": "Le Monnier",
+      "es": "Lander que llevó al Lunokhod 2.",
+      "en": "Lander that carried Lunokhod 2.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "yutu",
+      "nombre": "Yutu",
+      "cat": "rover",
+      "agencia": "CNSA",
+      "pais": "CN",
+      "fecha": "2013-12-14",
+      "lat": 44.1208,
+      "lon": 340.4878,
+      "region": "Mare Imbrium",
+      "es": "Rover del Chang'e 3.",
+      "en": "Chang'e 3 rover.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "yutu-2",
+      "nombre": "Yutu-2",
+      "cat": "rover",
+      "agencia": "CNSA",
+      "pais": "CN",
+      "fecha": "2019-01-03",
+      "lat": -45.46,
+      "lon": 177.59,
+      "region": "Von Kármán (cara oculta)",
+      "es": "Rover del Chang'e 4; seguía activo en 2023, ~850 m al NO.",
+      "en": "Chang'e 4 rover; still active in 2023, ~850 m NW.",
+      "src": "NSSDCA (Ulivi y Harland)",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-2",
+      "nombre": "Luna 2",
+      "cat": "impacto",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1959-09-13",
+      "lat": 30,
+      "lon": 0,
+      "region": "Palus Putredinis",
+      "es": "Primer objeto humano en tocar la Luna (impacto).",
+      "en": "First human-made object to reach the Moon (impact).",
+      "src": "NSSDCA",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "ranger-7",
+      "nombre": "Ranger 7",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1964-07-31",
+      "lat": -10.634,
+      "lon": 339.323,
+      "region": "Mare Cognitum",
+      "es": "Impacto planeado; primeras imágenes de cerca.",
+      "en": "Planned impact; first close-up images.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1964-041A",
+          "en": "NSSDCA record 1964-041A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1964-041A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "ranger-8",
+      "nombre": "Ranger 8",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1965-02-20",
+      "lat": 2.6376,
+      "lon": 24.7881,
+      "region": "Mare Tranquillitatis",
+      "es": "Impacto planeado.",
+      "en": "Planned impact.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1965-010A",
+          "en": "NSSDCA record 1965-010A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1965-010A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "ranger-9",
+      "nombre": "Ranger 9",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1965-03-24",
+      "lat": -12.8281,
+      "lon": 357.6116,
+      "region": "Alphonsus",
+      "es": "Impacto planeado, transmitido en TV.",
+      "en": "Planned impact, broadcast on TV.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1965-023A",
+          "en": "NSSDCA record 1965-023A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1965-023A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-15",
+      "nombre": "Luna 15",
+      "cat": "impacto",
+      "agencia": "URSS",
+      "pais": "SU",
+      "fecha": "1969-07-21",
+      "lat": 17,
+      "lon": 60,
+      "region": "Mare Crisium",
+      "es": "Intento de retorno de muestras; se estrelló durante el Apollo 11.",
+      "en": "Sample-return attempt; crashed during Apollo 11.",
+      "src": "NSSDCA (Siddiqi)",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "NSSDCA · resumen de las misiones soviéticas (lanzamiento, alunizaje, coordenadas)",
+          "en": "NSSDCA · Soviet missions summary (launch, landing, coordinates)",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunarussr.html"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "beresheet",
+      "nombre": "Beresheet",
+      "cat": "impacto",
+      "agencia": "SpaceIL",
+      "pais": "IL",
+      "fecha": "2019-04-11",
+      "lat": 32.5956,
+      "lon": 19.3496,
+      "region": "Mare Serenitatis",
+      "es": "Intento de aterrizaje fallido (primer intento privado).",
+      "en": "Failed landing attempt (first private attempt).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "vikram-2019",
+      "nombre": "Vikram (Chandrayaan-2)",
+      "cat": "impacto",
+      "agencia": "ISRO",
+      "pais": "IN",
+      "fecha": "2019-09-06",
+      "lat": -70.881,
+      "lon": 22.784,
+      "region": "Alto polar sur",
+      "es": "Intento de aterrizaje fallido.",
+      "en": "Failed landing attempt.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "hakuto-r-1",
+      "nombre": "Hakuto-R M1",
+      "cat": "impacto",
+      "agencia": "ispace",
+      "pais": "JP",
+      "fecha": "2023-04-25",
+      "lat": 47.581,
+      "lon": 44.094,
+      "region": "Atlas",
+      "es": "Intento de aterrizaje fallido (error de altímetro).",
+      "en": "Failed landing attempt (altimeter error).",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "luna-25",
+      "nombre": "Luna 25",
+      "cat": "impacto",
+      "agencia": "Roscosmos",
+      "pais": "RU",
+      "fecha": "2023-08-19",
+      "lat": -57.865,
+      "lon": 61.36,
+      "region": "Pontécoulant G",
+      "es": "Se estrelló antes del aterrizaje polar previsto.",
+      "en": "Crashed before its planned polar landing.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "hakuto-r-2",
+      "nombre": "Resilience (Hakuto-R M2)",
+      "cat": "impacto",
+      "agencia": "ispace",
+      "pais": "JP",
+      "fecha": "2025-06-05",
+      "lat": 60.4445,
+      "lon": 355.412,
+      "region": "Mare Frigoris",
+      "es": "Intento de aterrizaje fallido.",
+      "en": "Failed landing attempt.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "lcross",
+      "nombre": "LCROSS (Centaur)",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "2009-10-09",
+      "lat": -84.6796,
+      "lon": 311.2907,
+      "region": "Cabeus (sombra permanente)",
+      "es": "Impacto planeado que detectó agua helada.",
+      "en": "Planned impact that detected water ice.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 2009-031D",
+          "en": "NSSDCA record 2009-031D",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2009-031D"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "chandrayaan-1-mip",
+      "nombre": "Chandrayaan-1 MIP",
+      "cat": "impacto",
+      "agencia": "ISRO",
+      "pais": "IN",
+      "fecha": "2008-11-14",
+      "lat": -89,
+      "lon": 330,
+      "region": "Shackleton",
+      "es": "Sonda de impacto; coordenadas exactas desconocidas.",
+      "en": "Impact probe; exact coordinates unknown.",
+      "src": "NSSDCA",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "lunar-prospector",
+      "nombre": "Lunar Prospector",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "1999-07-31",
+      "lat": -87.7,
+      "lon": 42,
+      "region": "Cerca de Shoemaker",
+      "es": "Impacto final controlado en un cráter polar.",
+      "en": "Controlled end-of-mission impact in a polar crater.",
+      "src": "NSSDCA (Ulivi y Harland)",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 1998-001A",
+          "en": "NSSDCA record 1998-001A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1998-001A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "smart-1",
+      "nombre": "SMART-1",
+      "cat": "impacto",
+      "agencia": "ESA",
+      "pais": "EU",
+      "fecha": "2006-09-03",
+      "lat": -34.4,
+      "lon": 313.8,
+      "region": "Lacus Excellentiae",
+      "es": "Impacto final controlado.",
+      "en": "Controlled end-of-mission impact.",
+      "src": "NSSDCA (Burchell et al. 2015)",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "kaguya",
+      "nombre": "Kaguya (SELENE)",
+      "cat": "impacto",
+      "agencia": "JAXA",
+      "pais": "JP",
+      "fecha": "2009-06-10",
+      "lat": -65.5,
+      "lon": 80.4,
+      "region": "Gill",
+      "es": "Impacto final controlado.",
+      "en": "Controlled end-of-mission impact.",
+      "src": "NSSDCA (JAXA)",
+      "aprox": true,
+      "enlaces": [
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "grail",
+      "nombre": "GRAIL A y B",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "2012-12-17",
+      "lat": 75.6088,
+      "lon": 333.406,
+      "region": "Sally Ride Impact Site",
+      "es": "Impacto final de las dos sondas gemelas.",
+      "en": "End-of-mission impact of the twin probes.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 2011-046A",
+          "en": "NSSDCA record 2011-046A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2011-046A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "ladee",
+      "nombre": "LADEE",
+      "cat": "impacto",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": "2014-04-18",
+      "lat": 11.8494,
+      "lon": 266.7506,
+      "region": "Sundman V (cara oculta)",
+      "es": "Impacto final controlado.",
+      "en": "Controlled end-of-mission impact.",
+      "src": "NSSDCA",
+      "enlaces": [
+        {
+          "es": "Ficha NSSDCA 2013-047A",
+          "en": "NSSDCA record 2013-047A",
+          "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=2013-047A"
+        },
+        {
+          "es": "Tabla NSSDCA de alunizajes e impactos",
+          "en": "NSSDCA landings and impacts table",
+          "url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html"
+        }
+      ]
+    },
+    {
+      "id": "cand-connecting-ridge",
+      "nombre": "Connecting Ridge",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -89.46316,
+      "lon": 222.5104,
+      "region": "Shackleton–de Gerlache",
+      "es": "Sitio polar de PGDA (Site01); fue región candidata de Artemis III en 2022. Destino previsto del Blue Moon MK1 (2027).",
+      "en": "PGDA polar site (Site01); an Artemis III candidate region in 2022. Planned target of Blue Moon MK1 (2027).",
+      "src": "PGDA (Barker et al. 2021)",
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site01)",
+          "en": "5 m DTM index (folder Site01)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        }
+      ]
+    },
+    {
+      "id": "cand-shackleton-rim",
+      "nombre": "Shackleton Rim",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -89.76681,
+      "lon": 188.1301,
+      "region": "Shackleton",
+      "es": "Sitio polar de PGDA en el borde de Shackleton. El centro del mosaico cae en la pared interior del cráter: las zonas candidatas (RoI) están en el borde, a ~1 km.",
+      "en": "PGDA polar site on the Shackleton rim. The mosaic center falls on the crater's inner wall: the candidate zones (RoIs) lie on the rim, ~1 km away.",
+      "src": "PGDA (Barker et al. 2021)",
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site04)",
+          "en": "5 m DTM index (folder Site04)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        }
+      ]
+    },
+    {
+      "id": "cand-peak-shackleton",
+      "nombre": "Peak near Shackleton",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -88.81101,
+      "lon": 123.6901,
+      "region": "Shackleton",
+      "es": "Sitio polar de PGDA; fue región candidata de Artemis III en 2022.",
+      "en": "PGDA polar site; an Artemis III candidate region in 2022.",
+      "src": "PGDA (Barker et al. 2021)",
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site07)",
+          "en": "5 m DTM index (folder Site07)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        }
+      ]
+    },
+    {
+      "id": "cand-de-gerlache",
+      "nombre": "de Gerlache Rim 2",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -88.68342,
+      "lon": 292.0679,
+      "region": "de Gerlache",
+      "es": "Región candidata de Artemis III (2024). Centro del DTM de PGDA «de Gerlache Rim», no el oficial de la región.",
+      "en": "Artemis III candidate region (2024). Center of the PGDA \"de Gerlache Rim\" DTM, not the official region center.",
+      "src": "PGDA (Barker et al. 2021); NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site11)",
+          "en": "5 m DTM index (folder Site11)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-haworth",
+      "nombre": "Haworth",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -86.76394,
+      "lon": 337.223,
+      "region": "Haworth",
+      "es": "Región candidata de Artemis III (2024). Centro del DTM de PGDA.",
+      "en": "Artemis III candidate region (2024). PGDA DTM center.",
+      "src": "PGDA (Barker et al. 2021); NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Haworth)",
+          "en": "5 m DTM index (folder Haworth)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-malapert",
+      "nombre": "Malapert Massif",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -85.99478,
+      "lon": 359.7642,
+      "region": "Malapert",
+      "es": "Región candidata de Artemis III (2024). Centro del DTM de PGDA.",
+      "en": "Artemis III candidate region (2024). PGDA DTM center.",
+      "src": "PGDA (Barker et al. 2021); NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site23)",
+          "en": "5 m DTM index (folder Site23)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-nobile-1",
+      "nombre": "Nobile Rim 1",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -85.4381,
+      "lon": 37.3667,
+      "region": "Nobile",
+      "es": "Región candidata de Artemis III (2024). Centro del DTM de PGDA.",
+      "en": "Artemis III candidate region (2024). PGDA DTM center.",
+      "src": "PGDA (Barker et al. 2021); NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site06)",
+          "en": "5 m DTM index (folder Site06)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-nobile-2",
+      "nombre": "Nobile Rim 2",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -83.95402,
+      "lon": 58.8221,
+      "region": "Nobile",
+      "es": "Región candidata de Artemis III (2024). Centro del DTM de PGDA.",
+      "en": "Artemis III candidate region (2024). PGDA DTM center.",
+      "src": "PGDA (Barker et al. 2021); NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta DM2)",
+          "en": "5 m DTM index (folder DM2)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-mons-mouton",
+      "nombre": "Mons Mouton",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -85.4,
+      "lon": 35.3,
+      "region": "Mons Mouton",
+      "es": "Región candidata de Artemis III (2024). Centro del mosaico LROC NAC MTMOUTON.",
+      "en": "Artemis III candidate region (2024). Center of LROC NAC mosaic MTMOUTON.",
+      "src": "LROC NAC_ROI_MTMOUTONLOB; NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "Mosaico LROC NAC_ROI_MTMOUTONLOB",
+          "en": "LROC mosaic NAC_ROI_MTMOUTONLOB",
+          "url": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ROI_MTMOUTONLOB"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-mons-mouton-plateau",
+      "nombre": "Mons Mouton Plateau",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -84.3,
+      "lon": 30.6,
+      "region": "Mons Mouton",
+      "es": "Región candidata de Artemis III (2024), la más ancha y plana. Centro del mosaico LROC NAC MOUTNPLT.",
+      "en": "Artemis III candidate region (2024), the widest and flattest. Center of LROC NAC mosaic MOUTNPLT.",
+      "src": "LROC NAC_ROI_MOUTNPLTLO1; NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "Mosaico LROC NAC_ROI_MOUTNPLTLO1",
+          "en": "LROC mosaic NAC_ROI_MOUTNPLTLO1",
+          "url": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ROI_MOUTNPLTLO1"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-cabeus-b",
+      "nombre": "Peak near Cabeus B",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -83.6,
+      "lon": 291.2,
+      "region": "Cabeus",
+      "es": "Región candidata de Artemis III (2024). Centro del mosaico LROC NAC CABEUSPK.",
+      "en": "Artemis III candidate region (2024). Center of LROC NAC mosaic CABEUSPK.",
+      "src": "LROC NAC_ROI_CABEUSPKLO1; NASA 2024",
+      "aprox": true,
+      "artemis": true,
+      "enlaces": [
+        {
+          "es": "Mosaico LROC NAC_ROI_CABEUSPKLO1",
+          "en": "LROC mosaic NAC_ROI_CABEUSPKLO1",
+          "url": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ROI_CABEUSPKLO1"
+        },
+        {
+          "es": "NASA · regiones de Artemis III (2024)",
+          "en": "NASA · Artemis III regions (2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ]
+    },
+    {
+      "id": "cand-leibnitz-beta",
+      "nombre": "Leibnitz Beta",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -85.42658,
+      "lon": 31.7428,
+      "region": "Leibnitz Beta",
+      "es": "Sitio polar de PGDA; fue región candidata de Artemis III en 2022.",
+      "en": "PGDA polar site; an Artemis III candidate region in 2022.",
+      "src": "PGDA (Barker et al. 2021)",
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Site20)",
+          "en": "5 m DTM index (folder Site20)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        }
+      ]
+    },
+    {
+      "id": "cand-shoemaker",
+      "nombre": "Shoemaker",
+      "cat": "candidata",
+      "agencia": "NASA",
+      "pais": "US",
+      "fecha": null,
+      "lat": -87.18351,
+      "lon": 62.835,
+      "region": "Shoemaker",
+      "es": "Sitio polar de PGDA junto al cráter Shoemaker (sombra permanente).",
+      "en": "PGDA polar site by Shoemaker crater (permanent shadow).",
+      "src": "PGDA (Barker et al. 2021)",
+      "enlaces": [
+        {
+          "es": "PGDA · producto 78 (Barker et al. 2021)",
+          "en": "PGDA · product 78 (Barker et al. 2021)",
+          "url": "https://pgda.gsfc.nasa.gov/products/78"
+        },
+        {
+          "es": "Índice de DTM de 5 m (carpeta Shoemaker)",
+          "en": "5 m DTM index (folder Shoemaker)",
+          "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/"
+        }
+      ]
+    }
+  ]
+}

@@ -28,7 +28,8 @@ src/
         data/              Datos generados: relieve LOLA, efemérides y cifras (ver "Datos de la landing")
     mission-planner/       /planificador Planificador de misiones
       model/               Tipos y lógica de dominio
-    map-3d/                /3d-map       Mapa 3D (provisional: pantalla "SOON")
+    map-3d/                /3d-map       Mapa 3D de la Luna: muestra a pantalla completa public/mapa-3d.html, página
+                           autónoma (datos y three.js dentro) generada por scripts/mapa-3d/construir-mapa.py
     simulator/             /simulador    Simulador 3D
       components/SceneCanvas.tsx  Canvas base de react-three-fiber
       scenes/registry.ts          Registro de escenas 3D
@@ -40,6 +41,7 @@ src/
     global.css             Estilos base
 scripts/
   build-landing-data.ts    Genera los datos de la landing a partir de luna-recursos/
+  mapa-3d/                 Fuente y generador del mapa 3D (mapa.src.html, sitios.json, nombres IAU, verificar-mapa.py)
   capture-landing-plates.mjs  Guarda como imagen las láminas fijas, capturadas del propio lienzo (Playwright)
   check-landing.mjs        Comprueba rutas, enlaces y la ventana del producto con interacciones reales (Playwright)
 ```
