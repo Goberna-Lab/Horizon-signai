@@ -1,0 +1,754 @@
+/*
+ * Landing: lenguaje de impresión industrial suiza. Papel, tinta y un solo color de señal; retícula a la vista,
+ * esquinas a 90 grados, tipografía pesada para la estructura y monoespaciada para el dato.
+ */
+
+.ln {
+  position: relative;
+  scroll-padding-top: var(--bar);
+
+  /*
+   * Día y noche. Toda la página sigue al Sol de la ventana del software mientras esa ventana está en pantalla:
+   * `--night` va de 0 (el Sol a la vista: papel) a 1 (noche cerrada: negro) y sube poco a poco según se acerca la
+   * puesta. `--night-text` es la tinta: pasa de oscura a clara a mitad del fundido, donde el fondo ya no le da
+   * contraste. Los dos valores los fija `sections/product/ProductWindow.tsx`.
+   */
+  --night: 0;
+  --night-text: 0;
+  --paper: color-mix(in srgb, var(--paper-night) calc(var(--night) * 100%), var(--paper-day));
+  --shade: color-mix(in srgb, var(--shade-night) calc(var(--night) * 100%), var(--shade-day));
+  --ink: color-mix(in srgb, var(--ink-night) calc(var(--night-text) * 100%), var(--ink-day));
+  --ink-soft: color-mix(in srgb, var(--ink-soft-night) calc(var(--night-text) * 100%), var(--ink-soft-day));
+  --signal: color-mix(in srgb, var(--signal-night) calc(var(--night) * 100%), var(--signal-day));
+  --earth: color-mix(in srgb, var(--earth-night) calc(var(--night) * 100%), var(--earth-day));
+  /* Los filetes se definen otra vez aquí: si no, se quedarían con la tinta de día de la raíz. */
+  --rule: 1px solid var(--ink);
+  --hairline: 1px solid var(--shade);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Navegadores sin mezcla de colores: la página se queda de día. */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .ln {
+    --paper: var(--paper-day);
+    --shade: var(--shade-day);
+    --ink: var(--ink-day);
+    --ink-soft: var(--ink-soft-day);
+    --signal: var(--signal-day);
+    --earth: var(--earth-day);
+  }
+}
+
+/*
+ * Grano de papel: una sola capa fija que no recibe eventos. Sin modos de mezcla: con uno, el navegador tendría que
+ * recomponer la página entera en cada cuadro del vuelo.
+ */
+.ln::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grain);
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0 0.07 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* --- Botones ------------------------------------------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px 13px;
+  border: var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 13px/1 var(--font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms, color 140ms, border-color 140ms, transform 80ms;
+}
+
+.btn::after {
+  content: "\2192";
+  transition: transform 220ms var(--ease);
+}
+
+.btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn:hover::after {
+  transform: translateX(4px);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Sobre el rojo de señal van siempre el rojo y el papel de día: el rótulo se lee igual a cualquier hora. */
+.btn--primary {
+  background: var(--signal-day);
+  border-color: var(--signal-day);
+  color: var(--paper-day);
+}
+
+.btn--primary:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+/* --- Entradas al hacer scroll ------------------------------------------------------------------------------- */
+
+[data-reveal] {
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+}
+
+[data-reveal="armed"] {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+}
+
+/* Los títulos entran como una pasada de tinta, de izquierda a derecha. El recorte va en el elemento interior. */
+[data-reveal][data-wipe] {
+  opacity: 1;
+  transform: none;
+}
+
+.ln-wipe {
+  display: block;
+  clip-path: inset(-6% 0 -14% 0);
+  transition: clip-path 900ms var(--ease);
+}
+
+[data-reveal="armed"] > .ln-wipe {
+  clip-path: inset(-6% 100% -14% 0);
+}
+
+/* --- Barra superior ----------------------------------------------------------------------------------------- */
+
+.ln-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-bar);
+  height: var(--bar);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: stretch;
+  background: var(--paper);
+  border-bottom: var(--rule);
+}
+
+.ln-bar__brand {
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(10px, 3vw, var(--gutter)) 0 var(--gutter);
+  border-right: var(--rule);
+  font-weight: 900;
+  font-size: clamp(0.9375rem, 4.45vw, 1.125rem);
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ln-bar__nav {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.ln-bar__nav a {
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(12px, 1.6vw, 24px);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 140ms;
+}
+
+.ln-bar__nav a:hover {
+  background: var(--shade);
+}
+
+.ln-bar__cta {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 2vw, 12px);
+  padding: 0 clamp(10px, 3.4vw, var(--gutter));
+  background: var(--signal-day);
+  color: var(--paper-day);
+  font: 500 clamp(0.6875rem, 3.1vw, 0.75rem) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 140ms;
+}
+
+.ln-bar__cta::after {
+  content: "\2192";
+}
+
+.ln-bar__cta:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+@media (max-width: 719px) {
+  .ln-bar {
+    grid-template-columns: 1fr auto;
+  }
+  .ln-bar__brand {
+    border-right: 0;
+  }
+  .ln-bar__nav {
+    display: none;
+  }
+}
+
+/* --- Secciones ---------------------------------------------------------------------------------------------- */
+
+.ln-sec {
+  position: relative;
+  z-index: var(--z-overlay);
+  background: var(--paper);
+  border-top: var(--rule);
+}
+
+.ln-wrap {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(64px, 9vw, 136px) var(--gutter);
+}
+
+.ln-title {
+  font-weight: 900;
+  font-size: clamp(2.125rem, 5.2vw, 4.875rem);
+  line-height: 0.9;
+  letter-spacing: -0.042em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  max-width: 17ch;
+}
+
+.ln-lede {
+  margin-top: clamp(16px, 2vw, 28px);
+  font-size: clamp(1.0625rem, 1.35vw, 1.25rem);
+  line-height: 1.42;
+  max-width: 52ch;
+}
+
+.ln-mono {
+  font: 400 12px/1.4 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --- Producto: tres bandas ---------------------------------------------------------------------------------- */
+
+.ln-steps {
+  list-style: none;
+  margin-top: clamp(40px, 6vw, 88px);
+  border-bottom: var(--rule);
+  /* Los verbos se miden contra el ancho de la lista, no de la ventana: nunca invaden la columna de texto. */
+  container-type: inline-size;
+}
+
+.ln-step {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--gutter);
+  align-items: end;
+  padding: clamp(20px, 2.6vw, 40px) 0;
+  border-top: var(--rule);
+}
+
+.ln-step__verb {
+  font-weight: 900;
+  /* "REHEARSE", el verbo más largo, mide 5,62 veces el cuerpo: así cabe entero en su columna de 7/12. */
+  font-size: clamp(3rem, 10cqi, 9.5rem);
+  line-height: 0.8;
+  letter-spacing: -0.055em;
+  text-transform: uppercase;
+  /* La tinta llega al borde inferior de la banda. */
+  margin-bottom: -0.04em;
+}
+
+.ln-step__question {
+  font-weight: 800;
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.ln-step__body {
+  margin-top: 10px;
+  max-width: 46ch;
+}
+
+.ln-step .btn {
+  margin-top: 18px;
+}
+
+/* Teléfonos: el verbo arriba, a todo el ancho, y el texto debajo. */
+@media (max-width: 699px) {
+  .ln-step {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .ln-step__verb {
+    font-size: clamp(3rem, 17.2cqi, 7rem);
+  }
+}
+
+/* --- Todas las comprobaciones ---------------------------------------------------------------------------------- */
+
+.ln-checks {
+  margin-top: -1px;
+  border: var(--rule);
+}
+
+.ln-checks summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px clamp(18px, 2.2vw, 32px) 15px;
+  font: 500 13px/1 var(--font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 140ms;
+}
+
+.ln-checks summary::-webkit-details-marker {
+  display: none;
+}
+
+.ln-checks summary::after {
+  content: "+";
+  font-size: 1.25rem;
+  line-height: 0.6;
+}
+
+.ln-checks[open] summary::after {
+  content: "\2212";
+}
+
+.ln-checks summary:hover {
+  background: var(--shade);
+}
+
+.ln-checks__body {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  border-top: var(--rule);
+}
+
+.ln-checks__list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 4fr) minmax(0, 5fr);
+  gap: 6px var(--gutter);
+  padding: 14px clamp(18px, 2.2vw, 32px) 13px;
+}
+
+.ln-checks__list > div:nth-child(odd) {
+  background: rgb(201 193 182 / 0.28);
+}
+
+.ln-checks__list dt {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.ln-checks__against {
+  color: var(--ink-soft);
+}
+
+.ln-checks__limits {
+  padding: clamp(18px, 2.2vw, 32px);
+  border-left: var(--rule);
+}
+
+.ln-checks__limits ul {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-left: 1.1em;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 899px) {
+  .ln-checks__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ln-checks__limits {
+    border-left: 0;
+    border-top: var(--rule);
+  }
+}
+
+@media (max-width: 599px) {
+  .ln-checks__list > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Para quién --------------------------------------------------------------------------------------------- */
+
+.ln-audience {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: clamp(32px, 5vw, 88px);
+  align-items: start;
+}
+
+.ln-quote p {
+  font-weight: 900;
+  font-size: clamp(2rem, 4.6vw, 4.25rem);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.ln-quote footer {
+  margin-top: clamp(16px, 2vw, 28px);
+  color: var(--ink-soft);
+}
+
+.ln-measures {
+  margin-top: clamp(20px, 2.4vw, 32px);
+  border-top: var(--rule);
+}
+
+.ln-measures div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 0 13px;
+}
+
+.ln-measures div + div {
+  border-top: var(--hairline);
+}
+
+.ln-measures dt {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.ln-measures dd {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 899px) {
+  .ln-audience {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Validación: cuatro celdas ------------------------------------------------------------------------------ */
+
+.ln-tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 1px;
+  margin-top: clamp(40px, 6vw, 88px);
+  background: var(--ink);
+  border: var(--rule);
+}
+
+.ln-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(28px, 5vw, 72px);
+  min-height: clamp(200px, 22vw, 300px);
+  padding: clamp(18px, 2.2vw, 32px);
+  background: var(--paper);
+}
+
+.ln-tile:nth-child(3),
+.ln-tile:nth-child(4) {
+  /* La segunda fila invierte las proporciones. */
+  grid-column: auto;
+}
+
+.ln-tile--ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.ln-tile--ink .ln-tile__detail {
+  color: rgb(244 239 230 / 0.74);
+}
+
+.ln-tile--screen {
+  /* Trama de puntos impresa con el color de sombra. */
+  background:
+    radial-gradient(circle at center, var(--shade) 0 1.6px, transparent 1.9px) 0 0 / 9px 9px,
+    var(--paper);
+}
+
+.ln-tile__value {
+  font-weight: 900;
+  font-size: clamp(2.75rem, 6.4vw, 6rem);
+  line-height: 0.86;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ln-tile__label {
+  font-weight: 800;
+  font-size: clamp(1rem, 1.3vw, 1.1875rem);
+  letter-spacing: -0.01em;
+}
+
+.ln-tile__detail {
+  margin-top: 6px;
+  max-width: 40ch;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 600px) {
+  .ln-tiles {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .ln-tile:nth-child(1) {
+    grid-column: span 7;
+  }
+  .ln-tile:nth-child(2) {
+    grid-column: span 5;
+  }
+  .ln-tile:nth-child(3) {
+    grid-column: span 5;
+  }
+  .ln-tile:nth-child(4) {
+    grid-column: span 7;
+  }
+}
+
+@media (max-width: 599px) {
+  .ln-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Datos: libro mayor ------------------------------------------------------------------------------------- */
+
+.ln-ledger {
+  margin-top: clamp(40px, 6vw, 88px);
+  border-bottom: var(--rule);
+}
+
+.ln-ledger__group {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
+  gap: var(--gutter);
+  padding: clamp(18px, 2vw, 28px) 0;
+  border-top: var(--rule);
+}
+
+.ln-ledger__items {
+  display: grid;
+  gap: clamp(16px, 1.8vw, 24px);
+  list-style: none;
+}
+
+.ln-ledger__items a {
+  display: inline;
+  font-weight: 800;
+  font-size: clamp(1.125rem, 1.7vw, 1.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--shade);
+  transition: text-decoration-color 140ms, color 140ms;
+}
+
+.ln-ledger__items a:hover {
+  color: var(--signal);
+  text-decoration-color: var(--signal);
+}
+
+.ln-ledger__items p {
+  margin-top: 6px;
+  max-width: 62ch;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 719px) {
+  .ln-ledger__group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+}
+
+/* --- Cierre ------------------------------------------------------------------------------------------------- */
+
+.ln-closing {
+  border-top: 0;
+  overflow: hidden;
+}
+
+.ln-closing .ln-wrap {
+  position: relative;
+}
+
+/* La lámina, cortada por el borde derecho, detrás del titular. */
+.ln-closing__plate {
+  position: absolute;
+  top: 50%;
+  right: max(-6vw, -120px);
+  width: min(62vw, 880px);
+  height: auto;
+  transform: translateY(-46%) rotate(-9deg);
+  border: var(--rule);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Franja de aviso: la única del sitio, marca la última decisión de la página. */
+.ln-closing::before {
+  content: "";
+  position: relative;
+  z-index: 1;
+  display: block;
+  height: 14px;
+  border-block: var(--rule);
+  background: repeating-linear-gradient(-45deg, var(--signal) 0 12px, var(--paper) 12px 24px);
+}
+
+.ln-closing__title {
+  font-weight: 900;
+  font-size: clamp(2.75rem, 9.4vw, 9.5rem);
+  line-height: 0.84;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+
+.ln-closing__title span {
+  display: block;
+}
+
+.ln-closing__row .ln-lede {
+  padding: 14px 16px;
+  background: var(--paper);
+  border: var(--rule);
+}
+
+.ln-closing__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px 48px;
+  margin-top: clamp(28px, 4vw, 56px);
+}
+
+.ln-closing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* --- Pie ---------------------------------------------------------------------------------------------------- */
+
+.ln-foot {
+  position: relative;
+  z-index: var(--z-overlay);
+  background: var(--paper);
+  border-top: var(--rule);
+  overflow: hidden;
+  /* La marca se mide contra el ancho del pie. */
+  container-type: inline-size;
+}
+
+.ln-foot__grid {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: clamp(28px, 3.4vw, 48px) var(--gutter);
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 40px) var(--gutter);
+}
+
+.ln-foot__grid p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.ln-foot__grid > p {
+  grid-column: span 4;
+}
+
+.ln-foot__links {
+  grid-column: span 12;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  padding-top: 18px;
+  border-top: var(--hairline);
+}
+
+.ln-foot__links a:hover {
+  color: var(--signal);
+}
+
+.ln-foot__mark {
+  display: block;
+  padding: 0 var(--gutter);
+  font-weight: 900;
+  /* "HORIZON SIGNAI" mide 8,44 veces el cuerpo: así va de margen a margen, sin cortarse ni quedarse corta. */
+  font-size: calc((100cqi - 2 * var(--gutter)) / 8.47);
+  line-height: 0.74;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* La marca sangra por abajo, como un pliego cortado. */
+  margin-bottom: -0.1em;
+  user-select: none;
+}
+
+@media (max-width: 719px) {
+  .ln-foot__grid > p {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 899px) {
+  .ln-closing__plate {
+    top: auto;
+    bottom: -18%;
+    right: -30%;
+    width: 120%;
+    transform: rotate(-9deg);
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn::after,
+  [data-reveal],
+  .ln-wipe {
+    transition: none;
+  }
+}
