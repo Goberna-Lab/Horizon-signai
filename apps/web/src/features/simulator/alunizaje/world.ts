@@ -11,6 +11,7 @@ import { makeDetail, buildDetail, disposeDetail, DETAIL_HALF } from './detalle';
 import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
 import { Rover } from './rover';
+import { Tactil, esTactil } from './tactil';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -69,7 +70,8 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   const groundY = (x, z) => (enDetalle(x, z) ? baseY(x, z) + detail.height(x, z) : baseY(x, z));
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+  const movil = esTactil(); // celular o tableta: menos resolución y sombras más baratas, y controles en pantalla
+  renderer.setPixelRatio(movil ? 1 : Math.min(1.5, window.devicePixelRatio || 1));
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; // three 0.187 ya no trae PCFSoftShadowMap
   host.appendChild(renderer.domElement);
@@ -131,7 +133,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
 
   // Luz: Sol rasante con sombras que siguen a la nave, luz rebotada por el regolito y un mínimo de ambiente
   const sunLight = new THREE.DirectionalLight(0xfff6e8, 0);
-  sunLight.castShadow = true; sunLight.shadow.mapSize.set(2048, 2048); sunLight.shadow.bias = -0.0005;
+  sunLight.castShadow = true; sunLight.shadow.mapSize.set(movil ? 1024 : 2048, movil ? 1024 : 2048); sunLight.shadow.bias = -0.0005;
   Object.assign(sunLight.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 3000 });
   const hemi = new THREE.HemisphereLight(0x05060a, 0xbdb7aa, 0.01);
   scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0x9aa6c0, 0.012), hemi);
@@ -142,7 +144,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   function iluminar(c) {
     sd = dir(c.sun.az, c.sun.el);
     // Sombras del relieve hacia el Sol (luz.ts): rasante en el polo, casi todo lo que no mira al Sol queda negro
-    const luzFina = rejillaDeLuz(groundY, sd, FH, 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, 100, 8000);
+    const luzFina = rejillaDeLuz(groundY, sd, FH, movil ? 40 : 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, movil ? 160 : 100, 8000);
     const luzDe = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? luzFina(x, z) : luzAmplia(x, z));
     pintarLuz(mallaFina, luzDe); pintarLuz(mallaAmplia, luzDe);
     pintarLuz(detailMesh.children[0], (x, z) => verSol(groundY, sd, x, z, 160, 1) * luzFina(x, z)); // cráteres y rocas: su propia sombra
@@ -181,6 +183,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start(), sonido }));
   const rover = (view.rover = new Rover(view, { onSalir: () => void sim.start(), sonido }));
   const sim = new LandingSim(view);
+  const tactil = movil ? new Tactil(view, { sim, caminata, rover }) : null;
   await sim.start();
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
 
@@ -204,6 +207,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     sim.update(dt);
     caminata.update(dt);
     rover.update(dt);
+    tactil?.update();
     // Las sombras se calculan alrededor de la nave (o del astronauta, en la caminata)
     const f = caminata.active ? caminata.pos : rover.active ? rover.pos : sim.lm?.position ?? camera.position;
     sunLight.target.position.copy(f); sunLight.position.copy(f).addScaledVector(sd, 1500);
@@ -218,7 +222,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
-    caminata.dispose(); rover.dispose(); view.astro.dispose();
+    caminata.dispose(); rover.dispose(); tactil?.dispose(); view.astro.dispose();
     disposeDetail(detailMesh); glowTex.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };

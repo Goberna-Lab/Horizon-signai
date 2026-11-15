@@ -99,3 +99,23 @@
 .sim-rover-hud .fila { display: grid; grid-template-columns: 92px auto 1fr; gap: 8px; align-items: baseline; } .sim-rover-hud .fila span { color: rgba(230, 244, 250, .6); letter-spacing: .08em; font-size: 10.5px; }
 .sim-rover-hud .fila b { font-size: 14px; } .sim-rover-hud .fila.mal b { color: #ff6b6b; }
 .sim-rover-hud p { margin: 6px 0 0; line-height: 1.4; } .sim-rover-hud .tarea { color: #9fe4f2; } .sim-rover-hud .aviso { color: #ffd25a; } .sim-rover-hud .teclas { color: rgba(230, 244, 250, .55); font-size: 11px; }
+/* Controles táctiles (tactil.ts) */
+.sim-tactil { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.sim-tactil > * { pointer-events: auto; } .sim-tactil [hidden] { display: none !important; }
+.sim-tc-palanca { position: absolute; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(14px, env(safe-area-inset-bottom, 0px)); width: 112px; height: 112px; border-radius: 50%; border: 2px solid rgba(230, 244, 250, .45); background: rgba(6, 10, 14, .35); touch-action: none; display: grid; place-items: center; }
+.sim-tc-palanca i { width: 54px; height: 54px; border-radius: 50%; background: rgba(230, 244, 250, .75); transition: transform .05s; }
+.sim-tc-botones { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); bottom: max(10px, env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: repeat(2, auto); gap: 5px; }
+.sim-tc-botones button, .sim-tc-saltar { min-width: 60px; height: 36px; padding: 0 8px; border: 1px solid rgba(230, 244, 250, .5); background: rgba(6, 10, 14, .6); color: #e6f4fa; font: 600 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .04em; text-transform: uppercase; touch-action: manipulation; }
+.sim-tc-botones button:active, .sim-tc-saltar:active { background: rgba(200, 16, 46, .7); }
+.sim-tc-saltar { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom, 0px)); padding: 0 22px; } /* al centro: abajo a la derecha está EVA */
+
+/* En pantalla táctil: sin las ayudas de teclado (los botones las reemplazan) */
+.sim-es-tactil .sim-lfp-keys, .sim-es-tactil .sim-vh-keys { display: none !important; }
+/* Pantallas bajas (celular en horizontal): menos paneles en el descenso, HUD y tarjetas más compactos */
+@media (max-height: 520px) {
+  .sim-lfp-map, .sim-lfp-prof { display: none !important; }
+  .sim-lfp-top, .sim-lfp-alt, .sim-lfp-r, .sim-lfp-tape, .sim-lfp-radio { zoom: .62; }
+  .sim-vh-rows, .sim-vh-alerts, .sim-vh-lens, .sim-vh-head, .sim-vh-feed, .sim-vh-compass, .sim-rover-hud { zoom: .7; }
+  .sim-lfp-end { bottom: auto; top: 50%; transform: translate(-50%, -50%); max-height: 96%; overflow: auto; zoom: .72; }
+  .sim-informe { zoom: .78; }
+}
