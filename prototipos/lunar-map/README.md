@@ -6,6 +6,18 @@ Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`
 - **Dónde se sirve.** Única copia: esta carpeta. La API la expone en `/lunar-map/` (`apps/api/src/lunar-map/estaticos.ts`; `/lunar-map/` carga `inicio.html`; `no-cache` con ETag; en dev, Vite reenvía `/lunar-map` a la API en el puerto 3000). La pantalla de React es `/planner` (`features/lunar-map/`) y es el destino del botón "Open the planner" de la landing. Al editar aquí, basta recargar: no hay paso de compilación.
 - **Calcula con el motor del equipo portado a JavaScript** (`engine.js`), con el mismo método y los mismos datos de `luna-recursos/`. Al llevarlo a la app, el cálculo debe salir de `@/shared/planning`, no de este archivo (regla "un solo motor", `docs/11-flujo-y-arquitectura.md`).
 
+## Cambios del 2026-11-15 (entrega)
+
+- **Marca y navegación:** las tres páginas dicen Horizon Signai y enlazan a la landing, a Missions (`inicio.html`), al planificador y al mapa 3D.
+- **Vista inicial: el calendario se movió.** Sin escenario guardado, el planificador abre con el plan de CR-01 (18 dic 2026, las tres zonas GO) movido al 3 abr 2027: A y C NO GO, B GO. La barra bajo «Candidate zones» mueve la fecha ±1 día o ±1 semana y vuelve al plan. Son cifras de `engine.js`.
+- **Enlace al escenario.** El botón «Link» copia `/planner#z=…&t=…&stay=…&panel=…&antenna=…&battery=…&earth=…`; la página lee ese `#` al abrir (también `site=<id del catálogo>` y `lat`/`lon` para un punto propio).
+- **Cuánto queda.** Bajo el horizonte: «Sunlight left / Sunrise in» y «Earth contact left / Earthrise in», en el instante del cursor.
+- **Períodos rotulados.** Las tarjetas dicen que sus cifras son de la estadía; el resumen de la línea de tiempo, que son de la ventana de 90 días.
+- **LROC Quickmap.** Enlace al mismo lugar en Quickmap (estereográfica polar sur).
+- **Etiquetas honestas.** El relieve de los mapas y todo el paso «Walk» se rotulan como generados para ilustrar («Walk · concept»); sus capas ya no citan instrumentos.
+- **Inglés y español.** `i18n.js` traduce lo que se ve con los diccionarios `i18n-es.js` (planificador), `i18n-es-inicio.js` e `i18n-es-planificar.js`, hechos con el español original de estas páginas (commit `5b6bdc4`). La preferencia es la de toda la app (`localStorage` «horizon-signai.lang»). Un texto nuevo necesita su entrada en el diccionario.
+- **Para la asistente.** `window.LunarPlanner.text()` describe lo que se ve con las cifras del motor y `LunarPlanner.run(orden)` ejecuta una orden validada (ver `apps/api/src/acciones.ts`).
+
 ## Cómo abrirlo
 
 Dentro de la app: `/planner` (con la API en marcha). Suelto: doble clic en `inicio.html`, o desde esta carpeta:

@@ -101,10 +101,16 @@ const TEXTO = (idioma: Idioma) =>
   `You are writing in a chat: answer in the user's language${idioma === "es" ? " (they have been speaking Spanish: answer in Spanish unless they switch)" : ""}, clearly and briefly, in short paragraphs. Markdown is allowed. Keep your personality in writing too.`
 
 // Las órdenes (acciones.ts) solo se ofrecen en el turno de voz, que es el que las saca del texto, y solo si la web
-// avisó que puede ejecutarlas (EVA dentro de la app). `extra`: los trozos de documentación recuperados (RAG).
-export const sistemaVoz = (p: Persona, extra = "") =>
-  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}${extra ? `\n\n${extra}` : ""}\n\n${p.recuerdos}\n\n${VOZ(p.idioma)}${p.acciones ? `\n\n${INSTRUCCIONES_ACCIONES}` : ""}`
-export const sistemaTexto = (p: Persona) => `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}\n\n${p.recuerdos}\n\n${TEXTO(p.idioma)}`
+// avisó que puede ejecutarlas (EVA dentro de la app).
+// El orden importa para la velocidad: Ollama reutiliza lo ya evaluado mientras el comienzo del prompt no cambie. Va
+// primero lo que no cambia en toda la conversación y al final lo que cambia de un turno a otro (los recuerdos, que
+// crecen con cada pregunta, y lo que hay en pantalla). Los trozos de documentación del RAG no van aquí: van como nota
+// junto a la pregunta (ver turnoDeVoz en z6.ts), para no invalidar todo el historial en cada turno (medido: con el
+// RAG dentro del sistema el turno pasaba de ~1,4 s a ~6 s).
+export const sistemaVoz = (p: Persona) =>
+  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}\n\n${VOZ(p.idioma)}${p.acciones ? `\n\n${INSTRUCCIONES_ACCIONES}` : ""}\n\n${p.recuerdos}`
+export const sistemaTexto = (p: Persona, extra = "") =>
+  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}${extra ? `\n\n${extra}` : ""}\n\n${p.recuerdos}\n\n${TEXTO(p.idioma)}`
 
 /** Cómo suena el acuse rápido del 8B (lo que dice apenas la interrumpes) según quién habla. */
 export const ESTILO_ACUSE: Record<AssistantMode, string> = {

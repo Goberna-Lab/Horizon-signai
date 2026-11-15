@@ -6,6 +6,8 @@
 - **Base del mapa 3D en producción**: el deploy migra y carga la base solo (servicio `db-loader`); variables `POSTGRES_*` y `MAP_API_PASSWORD` en el `.env` del servidor → `db/README.md` (sección Production).
 - **IA y voz de `/prueba-ia`** (`apps/api/src/z6.ts`): qué corre en la Z6 y en Geografo → `voz/LEEME.md`. La Z6 en sí (Ollama, `argus-voz`, acceso SSH) → `~/Proyectos/goberna-kanban/docs/operacion/ia-en-z6.md`.
 - **Web**: `apps/web/ARCHITECTURE.md`. Dominio del reto: `docs/README.md`.
+- **Idioma de la interfaz**: inglés y español en todas las pantallas. Todo texto visible nuevo va en los dos: `tr("English", "Español")` de `@/shared/i18n` en React; en `prototipos/lunar-map/`, una entrada en el diccionario `i18n-es*.js`.
+- **Entrega de Space Apps**: `README.md` (inglés), `docs/SUBMISSION.md` (textos del formulario) y la demo de 7 diapositivas en `/demo.html` (`apps/web/public/demo.html`).
 
 ## Equipo y responsabilidades (2026-11-15)
 

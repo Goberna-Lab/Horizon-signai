@@ -273,3 +273,11 @@ LunarI18n.add({
     [/\b(\d{1,2}) Dec\b/g, '$1 dic']
   ]
 });
+
+/* añadidos después del diccionario inicial */
+LunarI18n.add({
+  exact: {
+    'See this place in LROC Quickmap ↗': 'Ver este lugar en LROC Quickmap ↗',
+    "Opens NASA's LROC Quickmap centred on this place, in south polar projection": 'Abre LROC Quickmap de la NASA centrado en este lugar, en proyección polar sur'
+  }
+});

@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { timingSafeEqual } from "node:crypto"
 import { clasificarOido, type Z6Respuesta } from "@horizon-signai/shared"
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
+import { contextoRag } from "./assistant/rag.js"
 import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
 
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
@@ -70,7 +71,7 @@ const SISTEMA_VOZ_ES =
   "integrándolo con lo que pidió antes. Si corrige algo, reconoce la corrección en pocas palabras y " +
   "responde de nuevo con ella. Si pregunta algo nuevo, respóndelo y, solo si la respuesta anterior " +
   "quedó a medias, ofrece al final volver a ella. Nunca repitas lo que ya dijiste ni escribas notas entre corchetes."
-const sistemaDeVoz = (p: Persona, extra = "") => (servicioVoz().idioma === "en" ? sistemaVoz(p, extra) : SISTEMA_VOZ_ES)
+const sistemaDeVoz = (p: Persona) => (servicioVoz().idioma === "en" ? sistemaVoz(p) : SISTEMA_VOZ_ES)
 
 type Mensaje = { role: "user" | "assistant"; content: string }
 
@@ -291,9 +292,18 @@ const turnoDeVoz = (
         },
       ]
     }
-    if (persona.acciones && voz.idioma === "en") {
+    // RAG: trozos de la documentación del proyecto para esta pregunta (apps/api/src/assistant/rag.ts). Se busca con
+    // la pregunta tal como llegó, antes de pegarle notas. Nunca falla ni demora más que su propio tope.
+    // Los trozos van como nota al final de la pregunta, no en el sistema: así el comienzo del prompt no cambia y el
+    // modelo no vuelve a evaluar todo el historial en cada turno (ver sistemaVoz en asistentes.ts).
+    const extra = await contextoRag(msgs[msgs.length - 1].content, true)
+    const notas = [
+      extra ? `[Note from the app, not from the person. ${extra}]` : "",
+      persona.acciones && voz.idioma === "en" ? RECORDATORIO_ACCIONES : "",
+    ].filter(Boolean)
+    if (notas.length) {
       const ultimo = msgs[msgs.length - 1]
-      msgs = [...msgs.slice(0, -1), { ...ultimo, content: `${ultimo.content}\n${RECORDATORIO_ACCIONES}` }]
+      msgs = [...msgs.slice(0, -1), { ...ultimo, content: `${ultimo.content}\n${notas.join("\n")}` }]
     }
     try {
       const r = await fetch(`${z6Url()}/api/chat`, {
@@ -543,6 +553,7 @@ export const z6 = new Hono()
     const msgs = limpiarMensajes(cuerpo)
     if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
     const modelo = textoModelo()
+    const extra = await contextoRag(msgs[msgs.length - 1].content) // documentación del proyecto para esta pregunta
     let r: Response
     try {
       r = await fetch(`${textoUrl()}/api/chat`, {
@@ -553,7 +564,7 @@ export const z6 = new Hono()
           model: modelo,
           stream: true,
           think: false,
-          messages: [{ role: "system", content: sistemaTexto(personaDe(cuerpo)) }, ...msgs],
+          messages: [{ role: "system", content: sistemaTexto(personaDe(cuerpo), extra) }, ...msgs],
         }),
       })
     } catch (e) {

@@ -146,6 +146,8 @@
 .left dd { font-size: var(--t-small); font-weight: 600; color: var(--tinta); white-space: nowrap; }
 .left dd.off { color: var(--rojo); }
 .left dd small { font-weight: 400; color: var(--gris-2); font-size: var(--t-label); }
+.qm { display: inline-block; margin-top: 6px; font-size: var(--t-label); color: var(--gris); text-decoration: underline dotted rgba(17,17,17,0.35); text-underline-offset: 3px; }
+.qm:hover { color: var(--tinta); }
 .tl-sumw { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .tl-cap { padding-left: 18px; font-size: var(--t-label); color: rgba(244,239,230,0.6); white-space: nowrap; }
 a.brand { color: inherit; text-decoration: none; }
@@ -322,6 +324,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
         <div class="hd"><h2 class="disp">Real horizon · Zone <span id="hzZona">A</span></h2><span class="mono src" id="hzSrc">LOLA</span></div>
         <svg id="hz" role="img" aria-label="Real horizon of the chosen zone, 360° from north, with the Sun and Earth"><title>360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.</title></svg>
         <dl class="left mono" id="hzLeft" aria-live="off"></dl>
+        <a class="mono qm" id="qm" target="_blank" rel="noopener" title="Opens NASA's LROC Quickmap centred on this place, in south polar projection">See this place in LROC Quickmap ↗</a>
       </div>
       <dl class="telemgrid mono" id="telemGrid">
         <div><dt>HIGH GATE</dt><dd>2,291 m</dd></div><div><dt>VELOCITY</dt><dd>154 m/s</dd></div>
@@ -759,6 +762,10 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     svg.innerHTML = '<title>360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.</title>' + o;
     $('hzZona').textContent = state.site;
+    /* el mismo lugar en LROC Quickmap (recurso del reto): estereográfica polar sur (proj=27) y una ventana de 12 km en
+     * metros, los mismos de estereoSur. Formato comprobado en el navegador el 2026-11-15; Quickmap no lo documenta. */
+    var qp = E.estereoSur(Z[state.site].lat, Z[state.site].lon), qk = 6000;
+    $('qm').href = 'https://quickmap.lroc.im-ldi.com/?proj=27&prjExtent=' + [qp[0] - qk, qp[1] - qk, qp[0] + qk, qp[1] + qk].map(Math.round).join(',');
     $('hzSrc').textContent = (Z[state.site].aproximado ? 'LOLA 240 m, approx.' : 'LOLA') + ' · panel at ' + metros(sc.panelM) + ' · Horizons';
   }
   function tlSet(d) { tlT = Math.min(DAYS, Math.max(0, d)); drawTL(); }
