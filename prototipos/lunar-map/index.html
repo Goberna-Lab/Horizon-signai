@@ -183,7 +183,9 @@ a.brand { color: inherit; text-decoration: none; }
 .dlg-sub, .dlg-note { font-size: var(--t-label); color: var(--gris); }
 .dlg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
 .dlg-grid label { display: flex; flex-direction: column; gap: 4px; font-size: var(--t-label); color: var(--gris); }
-.dlg-grid .wide, .dlg-grid .checksf { grid-column: 1 / -1; }
+.dlg-grid .wide, .dlg-grid .checksf, .dlg-grid .presets { grid-column: 1 / -1; }
+.dlg-grid .presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dlg-grid .presets .pl { font-size: var(--t-label); color: var(--gris); margin-right: 4px; }
 .dlg-grid input[type=number], .dlg-grid input[type=datetime-local] { height: 40px; padding: 0 10px; border: 1px solid var(--borde-2); border-radius: 10px; background: var(--crema-2); font-family: var(--f-mono); font-size: var(--t-body); color: var(--tinta); }
 .dlg-grid input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 1px; }
 .checksf { display: flex; gap: 18px; flex-wrap: wrap; }
@@ -382,7 +384,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   <div class="dlg-back" data-close></div>
   <form class="paper dlg-box" id="scForm" role="dialog" aria-modal="true" aria-labelledby="dlgT">
     <h2 id="dlgT" class="disp">Landing scenario</h2>
-    <p class="dlg-sub">The equipment and requirements apply to all three zones, so they can be compared.</p>
+    <p class="dlg-sub">The equipment and requirements apply to every zone, so they can be compared.</p>
     <div class="dlg-grid">
       <label class="wide">Landing (UTC)<input type="datetime-local" id="fLanding" step="60" required></label>
       <label>Stay (days)<input type="number" id="fStay" min="1" max="60" step="1" required></label>
@@ -390,9 +392,10 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       <label>Panel height (m)<input type="number" id="fPanel" min="0" max="30" step="0.5" required></label>
       <label>Antenna height (m)<input type="number" id="fAntenna" min="0" max="30" step="0.5" required></label>
       <label>Minimum Earth during the stay (%)<input type="number" id="fEarth" min="0" max="100" step="1" required></label>
+      <span class="presets" role="group" aria-label="Panel mount"><span class="pl">Panel mount</span><button type="button" class="mini" data-panel="2" title="Panel on the lander deck">Lander · 2 m</button><button type="button" class="mini" data-panel="5" title="NASA VSAT threshold: mast height to the bottom of the array">VSAT minimum · 5 m</button><button type="button" class="mini" data-panel="10" title="NASA VSAT goal: mast height to the bottom of the array">VSAT goal · 10 m</button></span>
       <span class="checksf"><label class="chk"><input type="checkbox" id="fSun"> Sun in view at landing</label><label class="chk"><input type="checkbox" id="fEarthL"> Earth in view at landing</label></span>
     </div>
-    <p class="dlg-note">Assumptions of the team planner: the Sun is measured from the panel and Earth from the antenna, at the same terrain point; vertical panel that tracks the Sun. Dates from 2026 to 2030, in UTC.</p>
+    <p class="dlg-note">Team decisions: the Sun is measured from the panel and Earth from the antenna, at the same terrain point. The panel is vertical and turns in azimuth to face the Sun, as in NASA VSAT (single-axis tracking, 360°); 5 m and 10 m are the VSAT minimum and goal mast heights, measured to the bottom of the array. Dates from 2026 to 2030, in UTC.</p>
     <div class="dlg-acts"><button type="button" class="btn" id="fReset">CR-01 plan</button><span style="flex: 1"></span><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn red">Apply</button></div>
   </form>
 </div>
@@ -691,7 +694,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       cell('Both', Math.round(f.bothPct) + '%', 'Sun and Earth at the same time') +
       cell('Max night', horas(f.longestNightH), 'Longest night: longest run without the Sun visible; it is what the battery must last') +
       cell('Max silence', horas(f.longestSilenceH), 'Longest silence: longest run without Earth in view (no direct link)') +
-      cell('Mean panel', Math.round(f.meanPanelWm2) + ' W/m²', 'Vertical panel that tracks the Sun (assumed): 1361 W/m² × visible disc × cos(elevation), period average');
+      cell('Mean panel', Math.round(f.meanPanelWm2) + ' W/m²', 'Vertical panel turning in azimuth to face the Sun (as in NASA VSAT: single-axis tracking, 360°): 1361 W/m² / r² × visible disc × cos(elevation), r = real Sun distance; period average');
   }
   /* panorámica de 360° desde el norte: horizonte real visto desde el panel, el Sol y la Tierra en su posición real y el
    * recorrido del Sol en un día lunar alrededor del cursor. La silueta va encima: tapa lo que está bajo el horizonte. */
@@ -788,12 +791,20 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   function fromLocal(v) { var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5]) : NaN; }
   function fill(s) {
     $('fLanding').value = toLocal(s.landingMs); $('fStay').value = s.stayDays; $('fPanel').value = s.panelM; $('fAntenna').value = s.antennaM;
+    dlg.querySelectorAll('[data-panel]').forEach(function (b) { b.classList.toggle('strong', +b.dataset.panel === +s.panelM); });
     $('fBattery').value = s.requirements.batteryH; $('fEarth').value = s.requirements.minEarthPct; $('fSun').checked = s.requirements.sunAtLanding; $('fEarthL').checked = s.requirements.earthAtLanding;
   }
   function openDlg() { lastFocus = document.activeElement; fill(sc); $('fLanding').min = toLocal(TABLA.inicioMs); $('fLanding').max = toLocal(TABLA.finMs - DAY); dlg.hidden = false; $('fLanding').focus(); }
   function closeDlg() { dlg.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
   $('scBtn').addEventListener('click', openDlg);
   dlg.addEventListener('click', function (evt) { if (evt.target.closest('[data-close]')) closeDlg(); });
+  /* alturas de referencia del panel: en el módulo (2 m) o en un mástil tipo NASA VSAT (5 m mínimo, 10 m objetivo) */
+  dlg.addEventListener('click', function (evt) {
+    var b = evt.target.closest('[data-panel]'); if (!b) return;
+    var same = +$('fAntenna').value === +$('fPanel').value;
+    $('fPanel').value = b.dataset.panel; if (same) $('fAntenna').value = b.dataset.panel;
+    dlg.querySelectorAll('[data-panel]').forEach(function (x) { x.classList.toggle('strong', x === b); });
+  });
   $('fReset').addEventListener('click', function () { fill(sanitize(PLAN)); });
   $('scForm').addEventListener('submit', function (evt) {
     evt.preventDefault();

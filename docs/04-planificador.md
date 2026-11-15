@@ -159,7 +159,7 @@ Todas están en `calculos/motor/planificador.ts`.
 | Panel (instante) | Irradiancia sobre un panel vertical que gira en azimut para mirar al Sol: 1361 W/m² (FA cap. 20.4, p. 542) × fracción del disco visible × cos(elevación) | W/m² |
 | Panel medio | Promedio de la irradiancia del panel en todas las muestras del período. Las muestras sin Sol cuentan como 0 | W/m² |
 
-El panel vertical es un **supuesto**: es la disposición habitual cerca del polo, donde el Sol va casi rasante, pero cada misión tiene la suya (SPEC E23).
+El panel vertical que gira en azimut es el diseño de NASA VSAT para el polo sur (paneles verticales en mástil, seguimiento solar en un eje, 360°; mástil de 5 m mínimo y 10 m objetivo hasta el borde inferior del panel). Cada misión tiene el suyo. Fuentes y decisiones del equipo: `docs/referencias.md`. El planificador web (`prototipos/lunar-map/engine.js`) usa la distancia real al Sol (1361 / r²); este motor la usa solo en el instante, y en el barrido sigue a 1 UA hasta que se apruebe el cambio.
 
 ## 5. Precisión y validación
 
@@ -285,7 +285,7 @@ Simplificaciones declaradas:
 - En el barrido el Sol tiene un semidiámetro fijo de 0,266° y la energía se calcula a 1 UA. La distancia real la cambia ±3,4 % en el año. La tarjeta del instante sí usa la distancia real (SPEC E23).
 - El disco solar tiene brillo uniforme.
 - La Tierra cuenta por su centro, no por su disco.
-- El panel vertical que sigue al Sol es un **supuesto**.
+- El panel vertical que sigue al Sol en azimut sigue el diseño de NASA VSAT (`docs/referencias.md`).
 
 Límites:
 

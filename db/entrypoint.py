@@ -15,14 +15,16 @@ REPO = HERE.parent
 sys.path.insert(0, str(HERE))
 from dbconfig import connect  # noqa: E402
 
-FINGERPRINT_DIRS = ["db", "luna-recursos", "apps/web/scripts/mapa-3d"]
+FINGERPRINT_DIRS = ["db", "luna-recursos", "apps/web/scripts/mapa-3d", "prototipos/lunar-map/data/zonas.js"]
 SKIP_NAMES = {"__pycache__", "docker-compose.yml", "Dockerfile", "Dockerfile.dockerignore", "README.md"}
 
 
 def fingerprint() -> str:
     h = hashlib.sha256()
     for d in FINGERPRINT_DIRS:
-        for f in sorted(p for p in (REPO / d).rglob("*") if p.is_file()):
+        base = REPO / d
+        files = [base] if base.is_file() else sorted(p for p in base.rglob("*") if p.is_file())
+        for f in files:
             if SKIP_NAMES & set(f.parts) or f.suffix == ".pyc":
                 continue
             h.update(f.relative_to(REPO).as_posix().encode())
@@ -79,6 +81,7 @@ def main():
             print(f"loading (fingerprint {fp[:12]})")
             t1 = time.time()
             run("db/etl/load_map3d.py")
+            run("db/etl/load_zones.py")
             conn.execute("CALL moon.refresh_site_illumination()")
             conn.execute("INSERT INTO public.etl_run (fingerprint, duration_s) VALUES (%s, %s)",
                          (fp, round(time.time() - t1, 1)))

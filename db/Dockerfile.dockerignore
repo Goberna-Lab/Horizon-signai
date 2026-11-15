@@ -18,6 +18,8 @@
 !luna-recursos/datos/horizonte-catalogo-nobile-rim-2.json
 !luna-recursos/datos/horizonte-catalogo-leibnitz-beta.json
 !luna-recursos/datos/horizonte-catalogo-shoemaker.json
+!luna-recursos/datos/validacion-catalogo.json
+!prototipos/lunar-map/data/zonas.js
 !apps/web/scripts/mapa-3d/sitios.json
 !apps/web/scripts/mapa-3d/iau-nombres.json
 !apps/web/scripts/mapa-3d/gradiente16.webp

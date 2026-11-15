@@ -9,5 +9,6 @@ COPY luna-recursos/datos/ luna-recursos/datos/
 COPY apps/web/scripts/mapa-3d/sitios.json apps/web/scripts/mapa-3d/iau-nombres.json \
      apps/web/scripts/mapa-3d/gradiente16.webp apps/web/scripts/mapa-3d/tierra-bluemarble.jpg \
      apps/web/scripts/mapa-3d/mapa.src.html apps/web/scripts/mapa-3d/
+COPY prototipos/lunar-map/data/zonas.js prototipos/lunar-map/data/zonas.js
 ENV PYTHONUNBUFFERED=1
 CMD ["python", "-I", "db/entrypoint.py"]
