@@ -83,3 +83,10 @@ const cabecera = `/* Lunar Map · las 13 zonas candidatas del polo sur (las mism
 const salida = path.join(AQUI, 'data', 'zonas.js');
 fs.writeFileSync(salida, cabecera + 'window.LunarData = window.LunarData || {};\nLunarData.zonas = ' + JSON.stringify(zonas) + ';\n');
 console.log('->', salida, (fs.statSync(salida).size / 1024).toFixed(0), 'KB,', Object.keys(zonas).length, 'zonas');
+
+/* data/candidatas.js: solo las posiciones (para el radar de Missions, que no necesita los horizontes) */
+const posiciones = Object.entries(zonas).map(([z, v]) => ({ z, nombre: v.nombre, lat: v.lat, lon: v.lon, sitio: v.sitio, aproximado: !!v.aproximado }));
+const salida2 = path.join(AQUI, 'data', 'candidatas.js');
+fs.writeFileSync(salida2, '/* Lunar Map · posiciones de las 13 zonas candidatas (las de data/zonas.js, sin horizontes). Lo genera tools/zonas-candidatas.js. */\n' +
+  'window.LunarData = window.LunarData || {};\nLunarData.candidatas = ' + JSON.stringify(posiciones) + ';\n');
+console.log('->', salida2, (fs.statSync(salida2).size / 1024).toFixed(1), 'KB');
