@@ -359,3 +359,17 @@ Con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz
 | HZN | NASA/JPL Horizons On-Line Ephemeris System, efemérides DE441 |
 
 El modelo 3D del LM viene de NASA 3D Resources (clave NASA3D-LM). El registro completo, con enlaces y archivos, está en `investigacion/fuentes.md`.
+
+### 9.6 El plan completo por la URL
+- `&ruta=segura|corta|cientifica`: la caminata sigue esa ruta del Planificador (sin ruta, la científica de CR-02). La segura tiene una parada, la corta ninguna; las dos terminan al final de la ruta y vuelven al módulo.
+- `&eva=<h>`: la EVA sale esas horas después del alunizaje; al abrir la escotilla la escena pasa al Sol y la Tierra de ese momento (motor del Planificador). Un descenso nuevo vuelve a la luz del alunizaje.
+- `&tipo=rover&vel=<km/h>&parada=<h>`: en vez de caminar se despliega un rover genérico que recorre la ruta de ida, a la velocidad máxima y con las horas por parada del plan (referencia: VIPER de NASA, hasta 0,8 km/h). Se conduce desde la Tierra: sin enlace directo, se detiene. En más de 25° las ruedas patinan; avisa por encima de 15°. El tiempo se acelera con T (×1, ×10, ×60, ×240); E mide en cada parada.
+- `&tipo=fija`: módulo fijo; la misión es el alunizaje y termina en su informe.
+- El planificador de misiones (`/planificar-mision.html`) arma este enlace con el botón «Simular esta misión».
+
+### 9.7 Informe final y mini misiones
+- Al terminar (de vuelta en el módulo con todas las muestras, o en la última parada del rover), un **informe** compara lo planificado con lo que pasó: alunizaje (resultado, desvío, velocidad de contacto, combustible), ruta, distancia, tiempo, muestras, salidas de ruta, pulso máximo, recargas y consumibles del traje (con rover: tiempo parado sin enlace y pendiente máxima). Veredicto: **cumplida**, **cumplida con incidentes** (alunizaje duro o inclinado, salidas de ruta, pulso de más de 150 lpm, alertas de cráter), **incompleta** o **perdida** (`informe.ts`). Lo planificado sale de los tiempos del Planificador: 2,2 km/h y 20 min por parada, ida y vuelta.
+- **Mini misiones** (modo educativo, `retos.ts`): cinco retos de la caminata con su porqué: fiel a la ruta, corazón tranquilo (≤ 150 lpm), ahorro de oxígeno (volver con ≥ 70 % de O₂), a la oscuridad (muestra de sombra con lámparas) y ojo con los cráteres. Se puntúan en el informe y los logrados se guardan en el navegador.
+
+### 9.8 En el celular
+- En pantallas táctiles aparece una palanca (caminar o conducir), se mira arrastrando y hay botones con las teclas de cada momento; en el descenso, «Saltar» (`tactil.ts`). Con menos resolución y sombras más baratas para que vaya fluido.
