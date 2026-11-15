@@ -27,7 +27,7 @@ It matters because at the pole a small change of site or date changes power and 
 
 Pick one of the two (the form takes one link):
 
-- **Video, 30 seconds:** https://signal-horizon.goberna.us/spot.mp4 (exactly 30.0 s, English narration with burned-in English subtitles). Problem first (a launch slips; today the answer means specialist tools and raw data; at the pole a hill hides the Sun for days), then the solution in the app (what fails and why, fixed in one click, compare), proof (the 3D descent, the walk, EVA by voice, real NASA data) and the call to action.
+- **Video, 30 seconds:** https://signal-horizon.goberna.us/horizon-signai-spot.mp4 (exactly 30.0 s, English narration with burned-in English subtitles). Problem first (a launch slips; today the answer means specialist tools and raw data; at the pole a hill hides the Sun for days), then the solution in the app (what fails and why, fixed in one click, compare), proof (the 3D descent, the walk, EVA by voice, real NASA data) and the call to action.
 - **Slides, 7:** https://signal-horizon.goberna.us/demo.html, also as PDF: https://signal-horizon.goberna.us/demo.pdf
 
 Both name the team, the members and the challenge, and open without login; check them in a private window before pasting.
