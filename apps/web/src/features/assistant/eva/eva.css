@@ -111,6 +111,20 @@
 .eva-panel__icono[aria-pressed="true"] { background: var(--eva-tinta); color: var(--eva-papel); }
 .eva-panel__respuesta { margin: 0; max-height: 40vh; overflow: auto; white-space: pre-wrap; }
 .eva-panel__error { margin: 0; color: var(--eva-rojo); }
+/* Preguntas sugeridas: píldoras pequeñas, en varias filas. */
+.eva-panel__sugerencias { display: flex; flex-wrap: wrap; gap: 5px; }
+.eva-panel__sugerencias button {
+  padding: 4px 9px;
+  border: 1px solid var(--eva-gris);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--eva-tinta);
+  font: inherit;
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+}
+.eva-panel__sugerencias button:hover { border-color: var(--eva-tinta); }
 .eva-panel__form { display: flex; gap: 6px; }
 .eva-panel__form input {
   flex: 1;

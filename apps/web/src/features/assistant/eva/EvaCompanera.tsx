@@ -11,6 +11,7 @@ import { ejecutarAccion, estadoDePantalla } from "./acciones"
 import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, TEXTOS, type Comentario } from "./guion"
 import { detectarIdioma, nombreDe, type Idioma } from "./idioma"
 import { RECORRIDOS, type Recorrido } from "./recorridos"
+import { sugerenciasDe, type Sugerencia } from "./sugerencias"
 import "./eva.css"
 
 const EvaLienzo = lazy(() => import("@/shared/eva/EvaLienzo"))
@@ -618,10 +619,33 @@ export default function EvaCompanera() {
   }
 
   // Escribirle: responde con la voz en streaming (mismo turno que la voz, desde texto).
-  const enviar = async (ev: FormEvent) => {
-    ev.preventDefault()
-    const q = texto.trim()
-    if (!q || ocupada.current) return
+  /** Una sugerencia del panel: si es una acción, EVA la hace ella misma (sin IA) y lo dice; si es una pregunta, va a la IA. */
+  const alSugerencia = async (s: Sugerencia) => {
+    if (!s.accion) return enviar(null, s.texto[idiomaRef.current])
+    recorrido.current = null
+    cerrarPregunta()
+    quitarFoco()
+    habla.current?.abort()
+    const hecho = await ejecutarAccion(s.accion, (destino) => navegar(destino))
+    const dicho = hecho && s.dicho ? s.dicho[idiomaRef.current] : ""
+    // Queda en la conversación: si después le preguntan a la IA, sabe lo que se hizo.
+    hilo.current = [...hilo.current, { role: "user", content: s.texto[idiomaRef.current] }, { role: "assistant", content: dicho || "…" }]
+    if (dicho) await hablar(dicho, null)
+  }
+  // `directo`: una pregunta sugerida (./sugerencias.ts), que no pasa por el campo de texto.
+  const enviar = async (ev: FormEvent | null, directo?: string) => {
+    ev?.preventDefault()
+    const q = (directo ?? texto).trim()
+    if (!q) return
+    // Si estaba comentando la pantalla o en un recorrido, la pregunta de la persona pasa adelante: se calla y atiende.
+    // (Antes, con EVA hablando, la pregunta se perdía sin aviso.)
+    if (ocupada.current) {
+      recorrido.current = null
+      cerrarPregunta()
+      quitarFoco()
+      habla.current?.abort()
+      await esperar(250)
+    }
     setTexto("")
     const i = detectarIdioma(q)
     if (i && i !== idiomaRef.current) await reconfigurar(i)
@@ -807,6 +831,13 @@ export default function EvaCompanera() {
             </header>
             {globo && <p className="eva-panel__respuesta" aria-live="polite">{globo}</p>}
             {voz.error && <p className="eva-panel__error">{voz.error}</p>}
+            <div className="eva-panel__sugerencias">
+              {sugerenciasDe(pathname, paginaDelMarco()).map((s) => (
+                <button key={s.texto.en} type="button" onClick={() => void alSugerencia(s)}>
+                  {s.texto[idioma]}
+                </button>
+              ))}
+            </div>
             <form className="eva-panel__form" onSubmit={(e) => void enviar(e)}>
               <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={T.pregunta} aria-label={T.preguntaRotulo} autoFocus />
               <button type="submit" disabled={!texto.trim()}>
