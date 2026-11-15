@@ -68,7 +68,8 @@ computed by the planner's own `prototipos/lunar-map/engine.js` (run with Node by
 `engine_sha256` records which engine). The loader image installs `nodejs` for this.
 
 API (`apps/api/src/planner/`, same engine, inputs from this database: `eph.sample`, `moon.horizon_envelope`):
-`GET /api/planner/zones?height=2`, `GET /api/planner/power-systems`,
+`GET /api/planner/data` (ephemeris + zones with their horizons, the shape of the planner's `data/` files: the web planner
+boots from it and falls back to the files if the API fails), `GET /api/planner/zones?height=2`, `GET /api/planner/power-systems`,
 `GET /api/planner/evaluate?zone=C&landing=2026-12-18T09:00Z&stay=3&panel=2&antenna=2&battery=24&earth=40&sun=1&el=1`
 (verdict, landing margins, stay figures and checks; the planner's rule).
 

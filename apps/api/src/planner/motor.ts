@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { gzipSync } from "node:zlib"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import vm from "node:vm"
@@ -26,7 +27,8 @@ export function cargarMotor(): Motor {
   vm.createContext(ctx)
   vm.runInContext(src, ctx, { filename: "engine.js" })
   const E = (ctx.Lunar as { Engine: unknown }).Engine
-  motor = { E, sha256: createHash("sha256").update(src).digest("hex") }
+  /* el sha256 se toma con saltos de línea LF: igual en Windows (CRLF) que en el servidor */
+  motor = { E, sha256: createHash("sha256").update(src.replace(/\r\n/g, "\n")).digest("hex") }
   return motor
 }
 
@@ -39,6 +41,9 @@ export type Zona = {
   paso: number
   v: number[][]
   aproximado: boolean
+  sitio: string | null
+  mazarico: { sol: number; tierra: number } | null
+  alturaM: number | null
 }
 export type Tabla = { inicioMs: number; finMs: number; pasoMs: number; filas: number; datos: Float32Array }
 export type Datos = { tabla: Tabla; zonas: Record<string, Zona> }
@@ -64,8 +69,12 @@ async function leerDatos(): Promise<Datos> {
   const tabla: Tabla = { inicioMs, finMs: inicioMs + (n - 1) * pasoMs, pasoMs, filas: n, datos }
 
   const zs = await sql`
-    select c.id, c.code, c.slug, c.name, ST_Y(c.geom) as lat, c.lon_east as lon, c.horizon_quality
-    from moon.candidate_zone c order by c.sort_order`
+    select c.id, c.code, c.slug, c.name, ST_Y(c.geom) as lat, c.lon_east as lon, c.horizon_quality, c.ground_height_m,
+           s.slug as site_slug, ir.sun_pct, ir.earth_pct
+    from moon.candidate_zone c
+    left join moon.site s on s.id = c.site_id
+    left join ref.illumination_reference ir on ir.zone_id = c.id
+    order by c.sort_order`
   const env = await sql`select zone_id, az_index, az_step_deg, hull_m from moon.horizon_envelope order by zone_id, az_index`
   const porZona = new Map<number, { paso: number; v: number[][] }>()
   for (const e of env) {
@@ -80,6 +89,9 @@ async function leerDatos(): Promise<Datos> {
     zonas[String(z.code)] = {
       id: String(z.slug), code: String(z.code), nombre: String(z.name), lat: Number(z.lat), lon: Number(z.lon),
       paso: h.paso, v: h.v, aproximado: z.horizon_quality === "approximate",
+      sitio: z.site_slug == null ? null : String(z.site_slug),
+      mazarico: z.sun_pct == null ? null : { sol: Math.round(Number(z.sun_pct)), tierra: Math.round(Number(z.earth_pct)) },
+      alturaM: z.ground_height_m == null ? null : Math.round(Number(z.ground_height_m)),
     }
   }
   return { tabla, zonas }
@@ -87,3 +99,31 @@ async function leerDatos(): Promise<Datos> {
 
 /** Una hora en memoria: los datos solo cambian con un despliegue que recarga la base. */
 export const datos = () => enMemoria("planner-datos", 60 * 60_000, leerDatos)
+
+/**
+ * Los datos del planificador web, leídos de la base, con la misma forma que sus archivos `data/efemerides-luna.js` y
+ * `data/zonas.js` (LunarData.efemerides y LunarData.zonas): JSON comprimido una vez, con su ETag.
+ */
+export type Paquete = { gz: Buffer; etag: string; bytes: number }
+async function armarPaquete(): Promise<Paquete> {
+  const { tabla, zonas } = await datos()
+  const iso = (ms: number) => new Date(ms).toISOString()
+  const efemerides = {
+    meta: {
+      inicioUTC: iso(tabla.inicioMs), finUTC: iso(tabla.finMs), pasoS: tabla.pasoMs / 1000, filas: tabla.filas,
+      columnas: ["solX", "solY", "solZ", "solKm", "tierraX", "tierraY", "tierraZ", "tierraKm"],
+    },
+    b64: Buffer.from(tabla.datos.buffer, tabla.datos.byteOffset, tabla.datos.byteLength).toString("base64"),
+  }
+  const zs: Record<string, unknown> = {}
+  for (const [code, z] of Object.entries(zonas)) {
+    zs[code] = {
+      id: z.id, nombre: z.nombre, lat: z.lat, lon: z.lon, mazarico: z.mazarico, paso: z.paso, v: z.v, sitio: z.sitio,
+      ...(z.aproximado ? { alturaM: z.alturaM, aproximado: true } : {}),
+    }
+  }
+  const json = JSON.stringify({ source: "database", efemerides, zonas: zs })
+  const etag = `"${createHash("sha256").update(json).digest("hex").slice(0, 20)}"`
+  return { gz: gzipSync(json, { level: 9 }), etag, bytes: Buffer.byteLength(json) }
+}
+export const paquete = () => enMemoria("planner-paquete", 60 * 60_000, armarPaquete)

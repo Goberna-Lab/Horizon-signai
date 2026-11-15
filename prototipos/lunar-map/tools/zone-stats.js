@@ -25,7 +25,8 @@ vm.runInContext(engineSrc, ctx, { filename: 'engine.js' });
 const E = ctx.Lunar.Engine, Z = ctx.LunarData.zonas, T = E.tabla(ctx.LunarData.efemerides);
 const HEIGHTS = process.argv.slice(2).map(Number).filter((h) => isFinite(h) && h >= 0);
 const heights = HEIGHTS.length ? HEIGHTS : [2, 5, 10];
-const engineSha = crypto.createHash('sha256').update(engineSrc).digest('hex');
+/* el sha256 con saltos de línea LF, igual en Windows (CRLF) que en el servidor */
+const engineSha = crypto.createHash('sha256').update(engineSrc.replace(/\r\n/g, '\n')).digest('hex');
 const iso = (ms) => new Date(ms).toISOString();
 
 const rows = [];
