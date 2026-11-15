@@ -205,6 +205,8 @@ a.brand { color: inherit; text-decoration: none; }
 .cmp-empty { padding: 18px 0; font-size: var(--t-small); color: var(--gris); }
 /* punto propio */
 .glass-inner.picking svg.map { cursor: crosshair; }
+.zmark { cursor: pointer; }
+.glass-inner.picking .zmark { cursor: crosshair; }
 button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--tinta); }
 .card .aprox { color: #8A6D00; }
 #tl .estadia { fill: rgba(244,239,230,0.07); }
@@ -251,36 +253,27 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     <section class="screen monitor" aria-label="Main display">
       <div class="glass-inner">
         <canvas id="relief" width="1000" height="800" class="boot" aria-hidden="true"></canvas>
-        <canvas id="ovHaz" width="1000" height="800" class="ov" aria-hidden="true"></canvas>
-        <canvas id="ovLight" width="1000" height="800" class="ov" aria-hidden="true"></canvas>
-        <svg class="map" viewBox="0 -100 1000 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the lunar south pole in polar stereographic projection, with the pole next to the Shackleton rim and three real candidate zones from the PGDA catalogue">
+        <svg class="map" viewBox="0 -100 1000 800" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the lunar south pole with real LOLA relief, in polar projection, and the 13 candidate landing zones of the Mission log">
           <defs>
             <linearGradient id="altrack" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9BFFE4"></stop><stop offset="100%" stop-color="#22CCEE"></stop></linearGradient>
             <filter id="softglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
           </defs>
-          <g fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1">
-            <circle cx="444" cy="239" r="211"></circle><circle cx="444" cy="239" r="421"></circle>
-            <line x1="444" y1="-800" x2="444" y2="1400"></line><line x1="-1000" y1="239" x2="2000" y2="239"></line>
+          <!-- relieve real: LOLA LDEM 240 m sombreado (tools/mapa-polo.py), misma proyección que toMap(): r = colatitud · PX_DEG -->
+          <image href="data/polo-sur-lola.jpg" x="-320" y="-250" width="1700" height="1100" preserveAspectRatio="none"></image>
+          <image id="ovHaz" href="data/polo-sur-pendiente.png" x="-320" y="-250" width="1700" height="1100" preserveAspectRatio="none" style="opacity: 0; transition: opacity .3s ease"></image>
+          <g fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1">
+            <circle cx="531" cy="464" r="156"></circle><circle cx="531" cy="464" r="312"></circle><circle cx="531" cy="464" r="468"></circle>
+            <line x1="531" y1="-250" x2="531" y2="850"></line><line x1="-320" y1="464" x2="1380" y2="464"></line>
           </g>
-          <circle cx="555" cy="329" r="146" fill="none" stroke="rgba(240,242,248,0.28)" stroke-width="1.5" stroke-dasharray="3 5"></circle>
+          <circle cx="551" cy="480" r="27" fill="none" stroke="rgba(240,242,248,0.4)" stroke-width="1.2" stroke-dasharray="3 4"></circle>
           <g>
-            <line x1="436" y1="239" x2="452" y2="239" stroke="#F5F5F6" stroke-width="2"></line><line x1="444" y1="231" x2="444" y2="247" stroke="#F5F5F6" stroke-width="2"></line>
-            <rect x="346" y="212" width="76" height="20" rx="10" fill="rgba(7,8,11,0.78)"></rect><text x="384" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#F5F5F6" font-family="Inter, sans-serif">South Pole</text>
-            <rect x="505" y="158" width="100" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="555" y="173" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Shackleton</text>
+            <line x1="525" y1="464" x2="537" y2="464" stroke="#F5F5F6" stroke-width="2"></line><line x1="531" y1="458" x2="531" y2="470" stroke="#F5F5F6" stroke-width="2"></line>
+            <text x="582" y="474" font-size="10.5" font-weight="600" fill="#F5F5F6" font-family="Inter, sans-serif" paint-order="stroke" stroke="rgba(7,8,11,0.85)" stroke-width="3">Shackleton</text>
           </g>
-          <g id="sites">
-            <circle cx="294" cy="402" r="13" fill="none" stroke="rgba(245,245,246,0.6)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="294" cy="402" r="4.5" fill="#F5F5F6" stroke="#05060A" stroke-width="2"></circle>
-            <circle cx="862" cy="518" r="13" fill="none" stroke="rgba(245,245,246,0.6)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="862" cy="518" r="4.5" fill="#F5F5F6" stroke="#05060A" stroke-width="2"></circle>
-            <circle cx="407" cy="322" r="13" fill="none" stroke="rgba(245,245,246,0.6)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="407" cy="322" r="4.5" fill="#F5F5F6" stroke="#05060A" stroke-width="2"></circle>
-          </g>
-          <ellipse id="eA" cx="294" cy="402" rx="128" ry="35" transform="rotate(-32 294 402)" class="ell"></ellipse>
-          <ellipse id="eB" cx="862" cy="518" rx="128" ry="35" transform="rotate(-18 862 518)" class="ell"></ellipse>
-          <ellipse id="eP" cx="0" cy="0" rx="128" ry="35" class="ell" style="opacity: 0"></ellipse>
+          <g id="ells"></g>
+          <ellipse id="eP" cx="0" cy="0" rx="24" ry="6.5" class="ell" style="opacity: 0"></ellipse>
+          <g id="zones"></g>
           <g id="ptLayer"></g>
-          <ellipse id="eC" cx="407" cy="322" rx="128" ry="35" transform="rotate(-32 407 322)" class="ell"></ellipse>
-          <g><rect x="266" y="340" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="294" y="355" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zone A</text></g>
-          <g><rect x="834" y="456" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="862" y="471" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zone B</text></g>
-          <g><rect x="379" y="260" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="407" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">Zone C</text></g>
           <path id="trackGhost" d="" fill="none" stroke="rgba(155,255,228,0.25)" stroke-width="2" stroke-dasharray="4 6"></path>
           <path id="trackGlow" d="" fill="none" stroke="rgba(155,255,228,0.55)" stroke-width="7" stroke-linecap="round" filter="url(#softglow)" style="opacity:0"></path>
           <path id="track" d="" fill="none" stroke="url(#altrack)" stroke-width="3.5" stroke-linecap="round" style="opacity:0"></path>
@@ -291,24 +284,22 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
             </g>
           </g>
           <circle id="target" cx="294" cy="402" r="5" fill="#9BFFE4" stroke="#05060A" stroke-width="2"></circle>
-          <path d="M20 552 L 36 560 L 20 568 Z" fill="#9BFFE4"></path>
-          <text x="44" y="556" font-size="11" fill="rgba(244,239,230,0.75)" font-family="IBM Plex Mono, monospace">powered descent start · heading 026°</text>
+          <g id="descStart"><path d="M0 -8 L 16 0 L 0 8 Z" fill="#9BFFE4"></path><text x="22" y="4" font-size="11" fill="rgba(244,239,230,0.85)" font-family="IBM Plex Mono, monospace" paint-order="stroke" stroke="rgba(7,8,11,0.85)" stroke-width="3">powered descent start · heading 026°</text></g>
           <g font-family="IBM Plex Mono, monospace">
             <g stroke="rgba(244,239,230,0.35)" stroke-width="1.5" fill="none"><path d="M14 -70 L 14 -86 L 30 -86"></path><path d="M970 -86 L 986 -86 L 986 -70"></path><path d="M14 670 L 14 686 L 30 686"></path><path d="M986 670 L 986 686 L 970 686"></path></g>
-            <text x="452" y="-76" font-size="10.5" fill="rgba(244,239,230,0.6)">0° E</text>
-            <text x="946" y="232" font-size="10.5" fill="rgba(244,239,230,0.6)">90° E</text>
-            <text x="300" y="95" font-size="10" fill="rgba(255,255,255,0.45)">89.5° S</text>
-            <text x="28" y="233" font-size="10" fill="rgba(255,255,255,0.45)">89° S</text>
-            <text x="18" y="678" font-size="10.5" fill="rgba(244,239,230,0.6)">South polar stereographic · zone positions: PGDA (Barker 2021) · relief drawn to illustrate</text>
-            <g stroke="rgba(244,239,230,0.7)" stroke-width="2"><line x1="540" y1="572" x2="679" y2="572"></line><line x1="540" y1="566" x2="540" y2="578"></line><line x1="679" y1="566" x2="679" y2="578"></line></g>
-            <text x="609" y="560" text-anchor="middle" font-size="10.5" fill="rgba(244,239,230,0.7)">10 km</text>
+            <g font-size="10.5" fill="rgba(244,239,230,0.75)" paint-order="stroke" stroke="rgba(7,8,11,0.8)" stroke-width="3">
+              <text x="537" y="-76">0° E</text><text x="946" y="456">90° E</text><text x="537" y="690">180° E</text>
+              <text x="379" y="479">88° S</text><text x="223" y="479">86° S</text><text x="67" y="479">84° S</text>
+              <text x="18" y="678">South polar projection · relief: LOLA LDEM 240 m, shaded · zones: Mission log (PGDA, Barker 2021; LROC)</text>
+            </g>
+            <g stroke="rgba(244,239,230,0.8)" stroke-width="2"><line x1="760" y1="652" x2="889" y2="652"></line><line x1="760" y1="646" x2="760" y2="658"></line><line x1="889" y1="646" x2="889" y2="658"></line></g>
+            <text x="824" y="640" text-anchor="middle" font-size="10.5" fill="rgba(244,239,230,0.85)" paint-order="stroke" stroke="rgba(7,8,11,0.8)" stroke-width="3">50 km</text>
           </g>
         </svg>
         <div class="fx" aria-hidden="true"><div class="sweep"></div><div class="scan"></div><div class="vig"></div><div class="refl"></div><div class="bloom"></div></div>
         <div class="chips">
-          <span class="tag" title="These two overlays are drawn over generated relief to illustrate. They are not measurements, and the verdict does not use them.">Illustrative layers</span>
+          <span class="tag" title="Slope computed from the LOLA LDEM 240 m polar terrain: slopes over distances shorter than ~250 m do not appear. The verdict does not use it.">LOLA 240 m</span>
           <button type="button" class="tag" id="chipHaz" aria-pressed="false"><span class="sw" style="background: var(--alerta)"></span>Slope &gt; 15°</button>
-          <button type="button" class="tag" id="chipLight" aria-pressed="false"><span class="sw" style="background: var(--amarillo)"></span>High mean light</button>
           <button type="button" class="tag" id="chipPt" aria-pressed="false" aria-haspopup="dialog"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg><span id="chipPtTxt">Own point</span></button>
         </div>
         <div class="telem mono" id="telem" aria-live="off">
@@ -346,7 +337,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     </section>
   </div>
 
-  <p class="credits">Sun and Earth above the real horizon: JPL Horizons DE441 + LOLA / PGDA 5 m terrain (Barker 2021) · zone positions and mean illumination: PGDA, Mazarico 2011 · the map relief and its overlays are generated to illustrate · descent: Apollo 11 profile as an example vehicle (R-695, TN D-6846), 18.5 × 5 km dispersion ellipse</p>
+  <p class="credits">Sun and Earth above the real horizon: JPL Horizons DE441 + LOLA / PGDA 5 m terrain (Barker 2021) · zone positions: Mission log (PGDA, Barker 2021; LROC) · mean illumination: Mazarico 2011 · map: LOLA LDEM 240 m relief, shaded, and its slope · descent: Apollo 11 profile as an example vehicle (R-695, TN D-6846), 18.5 × 5 km dispersion ellipse</p>
 
   <section class="screen tline" aria-label="Mission timeline">
     <div class="glass-inner">
@@ -412,7 +403,6 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
 
 <script src="i18n.js"></script>
 <script src="i18n-es.js"></script>
-<script src="terrain.js"></script>
 <script src="data/efemerides-luna.js"></script>
 <script src="data/zonas.js"></script>
 <script src="engine.js"></script>
@@ -431,15 +421,24 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   function horas(h) { h = Math.round(h); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; }
   function metros(m) { return num(m, m % 1 ? 1 : 0) + ' m'; }
 
-  /* ---------- zonas en el mapa: regiones candidatas (RoI) de Barker et al. (2021) ---------- */
-  var ids = ['A', 'B', 'C'];
-  var MAP = {
-    A: { name: 'Connecting Ridge · RoI 6', pos: [294, 402], track: 'M20 560 C 110 540, 200 474, 294 402' },
-    B: { name: 'Peak near Shackleton · RoI 2', pos: [862, 518], track: 'M300 592 C 500 580, 700 556, 862 518' },
-    C: { name: 'Shackleton rim · RoI 4', pos: [407, 322], track: 'M20 560 C 160 520, 300 410, 407 322' }
-  };
+  /* ---------- zonas en el mapa: las 13 candidatas del polo sur de la Bitácora de misión (data/zonas.js) ----------
+   * A, B, C: RoI de Barker et al. (2021) dentro de Connecting Ridge, Peak near Shackleton y Shackleton Rim. D–J: el resto de
+   * sitios del catálogo (horizonte detallado). K, L, M: sitios de LROC, horizonte aproximado sobre LOLA 240 m. */
+  var PX_DEG = 78, POLE = [531, 464];   /* proyección del mapa (la misma de tools/mapa-polo.py): r = colatitud · PX_DEG, 0° E arriba */
+  function toMap(lat, lon) { var r = (90 + lat) * PX_DEG, a = lon * Math.PI / 180; return [POLE[0] + r * Math.sin(a), POLE[1] - r * Math.cos(a)]; }
+  function fromMap(x, y) { var dx = x - POLE[0], dy = y - POLE[1]; return [-(90 - Math.hypot(dx, dy) / PX_DEG), ((Math.atan2(dx, -dy) * 180 / Math.PI) % 360 + 360) % 360]; }
+  /* la trayectoria del descenso llega a la zona desde abajo a la izquierda (ilustrativa: el perfil es el del Apollo 11) */
+  function trackTo(q) {
+    var sx = Math.max(20, Math.min(980, q[0] - 200)), sy = Math.max(-60, Math.min(640, q[1] + 190));
+    return { start: [sx, sy], d: 'M' + sx.toFixed(0) + ' ' + sy.toFixed(0) + ' C ' + (sx + 80).toFixed(0) + ' ' + (sy - 20).toFixed(0) + ', ' + (q[0] - 90).toFixed(0) + ' ' + (q[1] + 70).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
+  }
+  var NAMES = { A: 'Connecting Ridge · RoI 6', B: 'Peak near Shackleton · RoI 2', C: 'Shackleton rim · RoI 4', D: 'de Gerlache Rim 2', E: 'Haworth', F: 'Malapert Massif', G: 'Nobile Rim 1',
+    H: 'Nobile Rim 2', I: 'Leibnitz Beta', J: 'Shoemaker', K: 'Mons Mouton', L: 'Mons Mouton Plateau', M: 'Peak near Cabeus B' };
+  var BASE = Object.keys(Z).filter(function (z) { return NAMES[z]; }), ids = BASE.slice();
+  var MAP = {};
+  BASE.forEach(function (z) { var q = toMap(Z[z].lat, Z[z].lon), t = trackTo(q); MAP[z] = { name: NAMES[z], pos: q, track: t.d, start: t.start }; });
   var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E' };
-  var state = { site: 'A', simulated: false, confirmed: false, haz: false, light: false, running: false };   /* las capas son ilustrativas (relieve generado): apagadas al abrir */
+  var state = { site: 'A', simulated: false, confirmed: false, haz: false, running: false };   /* la capa de pendiente (LOLA 240 m) va apagada al abrir */
 
   /* ---------- escenario: por defecto, el plan de CR-01; editable y recordado en este navegador ----------
    * Requisitos como en el planificador del equipo (model/evaluate.ts): Sol y Tierra a la vista al aterrizar, la noche más
@@ -479,7 +478,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   var sc;
   try { sc = sanitize((link && link.sc) || JSON.parse(localStorage.getItem(KEY)) || SLIP); } catch (e) { sc = sanitize(SLIP); }
   var linkZone = false;
-  if (link) ids.forEach(function (z) { if (link.zone === z || (link.site && Z[z].id === link.site)) { state.site = z; linkZone = true; } });
+  if (link) ids.forEach(function (z) { if (link.zone === z || (link.site && (Z[z].id === link.site || Z[z].sitio === link.site))) { state.site = z; linkZone = true; } });
   function save() { try { localStorage.setItem(KEY, JSON.stringify(sc)); } catch (e) { /* sin almacenamiento: el escenario vale para esta visita */ } }
   function isPlan() { return JSON.stringify(sc) === JSON.stringify(sanitize(PLAN)); }
 
@@ -505,12 +504,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     return [t, 'bad'];
   }
 
-  /* ---------- relieve del polo sur ---------- */
-  var terrain = L.polarScene();
-  $('relief').getContext('2d').drawImage(L.renderRelief(terrain, { grain: 6 }), 0, 0);
-  var slope = terrain.slope, tone = terrain.tone;
-  $('ovHaz').getContext('2d').drawImage(L.renderMask(terrain, function (i) { var s = slope[i] * 57.3; return s < 15 ? 0 : Math.min(0.3, (s - 15) / 16); }, [255, 77, 61]), 0, 0);
-  $('ovLight').getContext('2d').drawImage(L.renderMask(terrain, function (i) { var v = tone[i]; return v < 0.74 ? 0 : Math.min(0.22, (v - 0.74) * 1.1); }, [253, 230, 138]), 0, 0);
+  /* ---------- relieve del polo sur: imagen real de LOLA en el SVG (data/polo-sur-lola.jpg, tools/mapa-polo.py) ---------- */
 
   /* ---------- tarjetas: cifras de la estadía del escenario ---------- */
   var cards = $('cards'), metLabels = ['Sunlight', 'Earth visible', 'Sun + Earth', 'Longest night'];
@@ -518,8 +512,8 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     cards.innerHTML = ids.map(function (z) {
       var e = ev[z], f = e.figures, m = e.means, mz = Z[z].mazarico || null, stay = 'Stay of ' + sc.stayDays + ' d from landing';
       var nh = Math.round(f.longestNightH), vals = [Math.round(f.sunPct) + '%', Math.round(f.earthPct) + '%', Math.round(f.bothPct) + '%', nh < 100 ? nh + ' h' : Math.round(nh / 24) + ' d'];
-      var tips = [stay + ' · 2026–2030 mean with the panel at ' + metros(sc.panelM) + ': ' + Math.round(m.sunPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.sol + '%' : ' · approximate horizon'),
-        stay + ' · 2026–2030 mean with the antenna at ' + metros(sc.antennaM) + ': ' + Math.round(m.earthPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.tierra + '%' : ' · approximate horizon'),
+      var tips = [stay + ' · 2026–2030 mean with the panel at ' + metros(sc.panelM) + ': ' + Math.round(m.sunPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.sol + '%' : Z[z].aproximado ? ' · approximate horizon' : ''),
+        stay + ' · 2026–2030 mean with the antenna at ' + metros(sc.antennaM) + ': ' + Math.round(m.earthPct) + '%' + (mz ? ' · Mazarico 2011, at ground level: ' + mz.tierra + '%' : Z[z].aproximado ? ' · approximate horizon' : ''),
         stay + ' · 2026–2030 mean: ' + Math.round(m.bothPct) + '%', 'Longest run without Sun during the stay; the battery lasts ' + sc.requirements.batteryH + ' h'];
       var nt = noteOf(e);
       return '<button type="button" class="card" role="radio" data-site="' + z + '" aria-checked="' + (z === state.site) + '">' +
@@ -903,10 +897,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
    * 0° E arriba y 90° E a la derecha, 421,15 px por grado de colatitud (72 m/px). */
   var ptName = (link && link.pt && link.name) || '';   /* nombre del punto, si llegó en el enlace */
   var PKEY = 'lunarmap.punto', demObj = null, demLoading = [], maskCache = {}, pt = null, picking = false;
-  var PX_DEG = 421.15, POLE = [444, 239];
   function coordTxt(lat, lon) { return Math.abs(lat).toFixed(2) + '° S · ' + lon.toFixed(2) + '° E'; }
-  function toMap(lat, lon) { var r = (90 + lat) * PX_DEG, a = lon * Math.PI / 180; return [POLE[0] + r * Math.sin(a), POLE[1] - r * Math.cos(a)]; }
-  function fromMap(x, y) { var dx = x - POLE[0], dy = y - POLE[1]; return [-(90 - Math.hypot(dx, dy) / PX_DEG), ((Math.atan2(dx, -dy) * 180 / Math.PI) % 360 + 360) % 360]; }
   function loadDem(cb) {
     if (demObj) { cb(); return; }
     demLoading.push(cb);
@@ -923,20 +914,21 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     var q = toMap(pt.lat, pt.lon), x = q[0].toFixed(1), y = q[1].toFixed(1), vis = q[0] > -20 && q[0] < 1020 && q[1] > -120 && q[1] < 720;
     lay.innerHTML = vis ? '<circle cx="' + x + '" cy="' + y + '" r="13" fill="none" stroke="rgba(253,230,138,0.8)" stroke-width="1.5" stroke-dasharray="4 4"></circle><circle cx="' + x + '" cy="' + y + '" r="4.5" fill="#FDE68A" stroke="#05060A" stroke-width="2"></circle>' +
       '<g><rect x="' + (q[0] - 28) + '" y="' + (q[1] - 62) + '" width="56" height="22" rx="11" fill="rgba(7,8,11,0.78)"></rect><text x="' + x + '" y="' + (q[1] - 47) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#FDE68A" font-family="Space Grotesk, Inter, sans-serif">Point P</text></g>' : '';
-    eP.setAttribute('cx', x); eP.setAttribute('cy', y); eP.setAttribute('transform', 'rotate(-28 ' + x + ' ' + y + ')');
+    eP.setAttribute('cx', x); eP.setAttribute('cy', y); eP.setAttribute('transform', 'rotate(-32 ' + x + ' ' + y + ')');
   }
   function setPoint(lat, lon, select) {
     Z.P = maskCache[lat + ',' + lon] || (maskCache[lat + ',' + lon] = E.mascaraPolar(demObj, lat, lon));
     var q = toMap(lat, lon);
-    MAP.P = { name: ptName || 'Own point', pos: [q[0], q[1]], track: 'M20 560 C 160 520, ' + (q[0] - 120).toFixed(0) + ' ' + (q[1] + 60).toFixed(0) + ', ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) };
+    var t = trackTo(q);
+    MAP.P = { name: ptName || 'Own point', pos: [q[0], q[1]], track: t.d, start: t.start };
     pt = { lat: lat, lon: lon };
-    ids = ['A', 'B', 'C', 'P'];
+    ids = BASE.concat('P');
     try { localStorage.setItem(PKEY, JSON.stringify(pt)); } catch (e) { /* sin almacenamiento */ }
     if (select) state.site = 'P';
     drawPoint();
   }
   function removePoint() {
-    pt = null; delete Z.P; delete MAP.P; ids = ['A', 'B', 'C'];
+    pt = null; delete Z.P; delete MAP.P; ids = BASE.slice();
     try { localStorage.removeItem(PKEY); } catch (e) { /* sin almacenamiento */ }
     if (state.site === 'P') state.site = 'A';
     drawPoint(); apply();
@@ -974,6 +966,39 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     if (!usePoint(ll[0], ll[1])) openPt();
   });
 
+  /* ---------- las zonas en el mapa ----------
+   * Marcador con el color del veredicto (blanco GO, ámbar REVIEW, rojo NO GO), letra al lado (desplazada a mano donde
+   * hay varias juntas: junto a Shackleton y en Mons Mouton), elipse de dispersión de 18,5 × 5 km y el nombre de la elegida. */
+  var KM = PX_DEG / (Math.PI / 180 * 1737.4);   /* píxeles del SVG por km */
+  var BADGE = { A: [-22, 16], B: [18, 13], C: [-17, -17], G: [20, 12], I: [-21, -14], K: [0, -24], L: [18, -12] };
+  $('ells').innerHTML = BASE.map(function (z) { var q = MAP[z].pos, c = q[0].toFixed(1) + ' ' + q[1].toFixed(1); return '<ellipse id="e' + z + '" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" rx="' + (9.25 * KM).toFixed(1) + '" ry="' + (2.5 * KM).toFixed(1) + '" transform="rotate(-32 ' + c + ')" class="ell" style="opacity: 0"></ellipse>'; }).join('');
+  $('eP').setAttribute('rx', (9.25 * KM).toFixed(1)); $('eP').setAttribute('ry', (2.5 * KM).toFixed(1));
+  function drawZones() {
+    var h = '', label = '';
+    BASE.forEach(function (z) {
+      var q = MAP[z].pos, o = BADGE[z] || [14, -14], bx = q[0] + o[0], by = q[1] + o[1], sel = z === state.site, v = ev[z] ? ev[z].verdict : 'GO';
+      var c = v === 'NO GO' ? '#FF5A4A' : v === 'REVIEW' ? '#F2C14E' : '#F5F5F6', x = q[0].toFixed(1), y = q[1].toFixed(1);
+      h += '<g class="zmark" data-site="' + z + '"><title>Zone ' + z + ' · ' + MAP[z].name + ' · ' + v + '</title>' +
+        '<line x1="' + x + '" y1="' + y + '" x2="' + bx.toFixed(1) + '" y2="' + by.toFixed(1) + '" stroke="rgba(245,245,246,0.5)" stroke-width="1"></line>' +
+        '<circle cx="' + x + '" cy="' + y + '" r="7" fill="none" stroke="' + c + '" stroke-opacity="0.75" stroke-width="1.4" stroke-dasharray="3 3"></circle>' +
+        '<circle cx="' + x + '" cy="' + y + '" r="3.4" fill="' + c + '" stroke="#05060A" stroke-width="1.5"></circle>' +
+        '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="11" fill="' + (sel ? '#9BFFE4' : 'rgba(7,8,11,0.86)') + '" stroke="' + (sel ? '#05060A' : c) + '" stroke-width="1.5"></circle>' +
+        '<text x="' + bx.toFixed(1) + '" y="' + (by + 4.4).toFixed(1) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + (sel ? '#05060A' : '#F5F5F6') + '" font-family="Space Grotesk, Inter, sans-serif">' + z + '</text></g>';
+      if (sel) {
+        var w = MAP[z].name.length * 6.4 + 22, lx = Math.max(8, Math.min(992 - w, bx - w / 2)), ly = by + (o[1] > 0 ? 16 : -38);
+        label = '<g pointer-events="none"><rect x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" width="' + w.toFixed(1) + '" height="22" rx="11" fill="rgba(7,8,11,0.86)" stroke="#9BFFE4" stroke-width="1"></rect>' +
+          '<text x="' + (lx + w / 2).toFixed(1) + '" y="' + (ly + 15).toFixed(1) + '" text-anchor="middle" font-size="11.5" font-weight="700" fill="#F5F5F6" font-family="Space Grotesk, Inter, sans-serif">' + MAP[z].name + '</text></g>';
+      }
+    });
+    $('zones').innerHTML = h + label;
+  }
+  /* elegir una zona tocando su marcador (salvo mientras se elige un punto propio) */
+  $('zones').addEventListener('click', function (evt) {
+    var g = evt.target.closest('.zmark'); if (!g || picking) return;
+    evt.stopPropagation(); pick(g.dataset.site);
+    var c = cards.querySelector('[data-site="' + g.dataset.site + '"]'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+
   /* ---------- render ---------- */
   function render() {
     var cur = ev[state.site], m = MAP[state.site];
@@ -982,6 +1007,8 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
       $('e' + id).setAttribute('style', id === state.site ? 'fill: rgba(34,204,238,0.16); stroke: #9BFFE4; stroke-width: 3; filter: drop-shadow(0 0 8px rgba(124,240,213,0.6))' : 'opacity: 0');
     });
     $('target').setAttribute('cx', m.pos[0]); $('target').setAttribute('cy', m.pos[1]);
+    $('descStart').setAttribute('transform', 'translate(' + m.start[0].toFixed(0) + ' ' + m.start[1].toFixed(0) + ')');
+    drawZones();
     trackGhost.setAttribute('d', m.track); track.setAttribute('d', m.track); trackGlow.setAttribute('d', m.track);
     track.style.opacity = state.simulated ? 1 : 0; trackGlow.style.opacity = state.simulated ? 1 : 0;
     if (!state.simulated) { $('tminus').textContent = 'T– 00:11:50'; }
@@ -1009,9 +1036,8 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     $('clockDot').style.background = state.confirmed ? '#C8102E' : (state.simulated ? '#111111' : '#857D72');
     $('clockDot').style.boxShadow = state.confirmed ? '0 0 8px rgba(200,16,46,0.8)' : 'none';
     $('tlZona').textContent = state.site; drawTL(); renderCmp();
-    $('ovHaz').style.opacity = state.haz ? 1 : 0; $('ovLight').style.opacity = state.light ? 1 : 0;
+    $('ovHaz').style.opacity = state.haz ? 1 : 0;
     $('chipHaz').classList.toggle('on', state.haz); $('chipHaz').setAttribute('aria-pressed', state.haz);
-    $('chipLight').classList.toggle('on', state.light); $('chipLight').setAttribute('aria-pressed', state.light);
   }
 
   var icoPlay = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>';
@@ -1021,7 +1047,6 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
     else if (!state.running && !state.confirmed && ev[state.site].verdict === 'GO') { state.confirmed = true; render(); }
   });
   $('chipHaz').addEventListener('click', function () { state.haz = !state.haz; render(); });
-  $('chipLight').addEventListener('click', function () { state.light = !state.light; render(); });
 
   /* teclado: A/B/C eligen zona; Escape cierra el escenario */
   document.addEventListener('keydown', function (evt) {
@@ -1078,7 +1103,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
        * se mide el cambio de calendario, y `reset` vacía la comparación y cierra los diálogos de la misión anterior. */
       var pm = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(a.plan || '');
       if (pm) PLAN.landingMs = Date.UTC(+pm[1], pm[2] - 1, +pm[3], +pm[4], +pm[5]);
-      if (a.reset) { cmpList = []; saveCmp(); if (!cmp.hidden) closeCmp(); if (!dlg.hidden) closeDlg(); if (pt) { pt = null; delete Z.P; delete MAP.P; ids = ['A', 'B', 'C']; drawPoint(); } }
+      if (a.reset) { cmpList = []; saveCmp(); if (!cmp.hidden) closeCmp(); if (!dlg.hidden) closeDlg(); if (pt) { pt = null; delete Z.P; delete MAP.P; ids = BASE.slice(); drawPoint(); } }
       if (a.zone && ids.indexOf(a.zone) >= 0) state.site = a.zone;
       if (a.date || a.time) {
         var cur = new Date(sc.landingMs), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(a.date || ''), h = /^(\d{2}):(\d{2})$/.exec(a.time || '');
@@ -1117,6 +1142,8 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
   window.LunarPlanner = { text: aiText, run: aiRun };
 
   evaluateAll(); renderCards(); render();
+  /* la zona que llega en el enlace (p. ej. una candidata desde el mapa 3D) queda a la vista en la lista */
+  if (linkZone) { var cz = cards.querySelector('[data-site="' + state.site + '"]'); if (cz && cz.scrollIntoView) cz.scrollIntoView({ block: 'nearest' }); }
   /* un punto que llega en el enlace (p. ej. desde el mapa 3D) se calcula y queda elegido */
   if (link && link.pt && !linkZone) {
     if (E.dentroDelDominio(link.pt.lat, link.pt.lon)) loadDem(function () { setPoint(Math.round(link.pt.lat * 1e5) / 1e5, Math.round(link.pt.lon * 1e5) / 1e5, true); apply(); });

@@ -107,12 +107,13 @@ Copias en base64 de `luna-recursos/datos`, sin cambios, para que la página func
 | Archivo | Contenido | Tamaño |
 |---|---|---|
 | `efemerides-luna.js` | Tabla global de JPL Horizons DE441, 2026–2030 | 624 KB |
-| `zonas.js` | Envolventes de horizonte de las tres RoI del catálogo y sus valores de Mazarico | 306 KB |
+| `zonas.js` | Las 13 zonas candidatas del polo sur (las de la Bitácora de misión): A–C, RoI de Barker; D–J, sitios del catálogo con horizonte detallado; K–M, sitios de LROC con horizonte aproximado sobre LOLA 240 m. Con sus valores de Mazarico. Lo genera `tools/zonas-candidatas.js` | 1,6 MB (630 KB comprimido) |
+| `polo-sur-lola.jpg`, `polo-sur-pendiente.png` | Mapa de Alunizaje: relieve real de LOLA (LDEM_75S_240M) sombreado en la proyección del mapa, y su pendiente > 15°. Lo genera `tools/mapa-polo.py` | 655 KB y 188 KB |
 | `dem-polo.js` | Relieve polar de LOLA (240 m y 960 m), solo para el punto propio | 8,4 MB |
 
 ### Supuestos y límites
 
 - Son los mismos que declara el equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno, y el panel es vertical y sigue al Sol.
-- Los mapas (polo sur en Alunizaje y relieve local en Caminata) son **relieve generado** para ilustrar.
+- El mapa de Alunizaje es el **relieve real** de LOLA a 240 m (sombreado con luz de cartografía, no la del Sol en una fecha) y marca las 13 candidatas; la capa de pendiente sale de ese relieve. El relieve local de Caminata y el mapa de sitios de Missions son **relieve generado** para ilustrar.
 - Las rutas de la caminata y sus cifras salen de ese relieve generado, no del DTM real.
 - El perfil de descenso y el combustible son los del Apollo 11 (R-695 y TN D-6846), no los de una misión real.

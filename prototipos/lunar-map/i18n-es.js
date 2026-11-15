@@ -63,13 +63,12 @@ LunarI18n.add({
 
     /* ---------- pantalla central: mapa ---------- */
     'Main display': 'Pantalla principal',
-    'Map of the lunar south pole in polar stereographic projection, with the pole next to the Shackleton rim and three real candidate zones from the PGDA catalogue': 'Mapa del polo sur lunar en estereográfica polar, con el polo junto al borde de Shackleton y tres zonas candidatas reales del catálogo de PGDA',
+    'Map of the lunar south pole with real LOLA relief, in polar projection, and the 13 candidate landing zones of the Mission log': 'Mapa del polo sur lunar con el relieve real de LOLA, en proyección polar, y las 13 zonas candidatas de alunizaje de la Bitácora de misión',
     'South Pole': 'Polo sur',
     'Point P': 'Punto P',
     'powered descent start · heading 026°': 'inicio del descenso motorizado · rumbo 026°',
-    'South polar stereographic · zone positions: PGDA (Barker 2021) · relief drawn to illustrate': 'Estereográfica polar sur · posiciones de las zonas: PGDA (Barker 2021) · relieve dibujado para ilustrar',
+    'South polar projection · relief: LOLA LDEM 240 m, shaded · zones: Mission log (PGDA, Barker 2021; LROC)': 'Proyección polar sur · relieve: LOLA LDEM 240 m, sombreado · zonas: Bitácora de misión (PGDA, Barker 2021; LROC)',
     'Slope > 15°': 'Pendiente > 15°',
-    'High mean light': 'Luz media alta',
     'Permanent shadow': 'Sombra permanente',
     'Click on the map': 'Haz clic en el mapa',
     'ALTITUDE': 'ALTITUD',
@@ -117,7 +116,7 @@ LunarI18n.add({
     'Earth during the stay': 'Tierra en la estadía',
 
     /* ---------- créditos ---------- */
-    'Sun and Earth above the real horizon: JPL Horizons DE441 + LOLA / PGDA 5 m terrain (Barker 2021) · zone positions and mean illumination: PGDA, Mazarico 2011 · the map relief and its overlays are generated to illustrate · descent: Apollo 11 profile as an example vehicle (R-695, TN D-6846), 18.5 × 5 km dispersion ellipse': 'Sol y Tierra sobre el horizonte real: JPL Horizons DE441 + relieve LOLA / PGDA de 5 m (Barker 2021) · posiciones de las zonas e iluminación media: PGDA, Mazarico 2011 · el relieve del mapa y sus capas se generan para ilustrar · descenso: perfil del Apollo 11 como vehículo de ejemplo (R-695, TN D-6846), elipse de dispersión de 18.5 × 5 km',
+    'Sun and Earth above the real horizon: JPL Horizons DE441 + LOLA / PGDA 5 m terrain (Barker 2021) · zone positions: Mission log (PGDA, Barker 2021; LROC) · mean illumination: Mazarico 2011 · map: LOLA LDEM 240 m relief, shaded, and its slope · descent: Apollo 11 profile as an example vehicle (R-695, TN D-6846), 18.5 × 5 km dispersion ellipse': 'Sol y Tierra sobre el horizonte real: JPL Horizons DE441 + relieve LOLA / PGDA de 5 m (Barker 2021) · posiciones de las zonas: Bitácora de misión (PGDA, Barker 2021; LROC) · iluminación media: Mazarico 2011 · mapa: relieve LOLA LDEM 240 m sombreado y su pendiente · descenso: perfil del Apollo 11 como vehículo de ejemplo (R-695, TN D-6846), elipse de dispersión de 18.5 × 5 km',
 
     /* ---------- línea de tiempo ---------- */
     'Mission timeline': 'Línea de tiempo de la misión',
@@ -259,6 +258,11 @@ LunarI18n.add({
     /* ---------- trozos: nombres de zona dentro de una frase y meses de las fechas ---------- */
     [/\bPeak near Shackleton\b/, 'Pico cerca de Shackleton'],
     [/\bShackleton rim\b/, 'Borde de Shackleton'],
+    [/\bde Gerlache Rim 2\b/, 'Borde de de Gerlache 2'],
+    [/\bMalapert Massif\b/, 'Macizo Malapert'],
+    [/\bNobile Rim (\d)\b/, 'Borde de Nobile $1'],
+    [/\bMons Mouton Plateau\b/, 'Meseta de Mons Mouton'],
+    [/\bPeak near Cabeus B\b/, 'Pico cerca de Cabeus B'],
     [/\bOwn point\b/, 'Punto propio'],
     [/\b(\d{1,2}) Jan\b/g, '$1 ene'],
     [/\b(\d{1,2}) Feb\b/g, '$1 feb'],
@@ -287,8 +291,8 @@ LunarI18n.add({
 LunarI18n.add({
   exact: {
     'Compare': 'Comparar',
-    'Illustrative layers': 'Capas ilustrativas',
-    'These two overlays are drawn over generated relief to illustrate. They are not measurements, and the verdict does not use them.': 'Estas dos capas se dibujan sobre relieve generado, para ilustrar. No son mediciones y el veredicto no las usa.',
+    'LOLA 240 m': 'LOLA 240 m',
+    'Slope computed from the LOLA LDEM 240 m polar terrain: slopes over distances shorter than ~250 m do not appear. The verdict does not use it.': 'Pendiente calculada sobre el relieve polar LOLA LDEM 240 m: las pendientes en distancias menores de ~250 m no aparecen. El veredicto no la usa.',
     'Descent (Apollo 11 example)': 'Descenso (ejemplo del Apollo 11)',
     '496 kg spare · the same for every zone and date · TN D-6846': 'sobran 496 kg · igual para toda zona y fecha · TN D-6846'
   },

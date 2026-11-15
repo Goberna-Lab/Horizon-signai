@@ -1220,8 +1220,9 @@ function mostrarFicha(f, refrescar) {
     nota = `<p class="nota">${t('centroSol')}</p>`
     acciones = `<div class="acciones"><button class="prim" data-acc="ir">${t('ir')}</button></div>`
   }
-  // El planificador cubre hasta 190 km del polo sur (latitud ≤ −83,74°): ahí la ficha ofrece abrir el punto en él.
-  if (lat <= LAT_PLANIFICADOR) acciones = acciones.replace('</div>', `<button data-acc="plan" title="${t('planificarT')}">${t('planificar')}</button></div>`)
+  // El planificador cubre hasta 190 km del polo sur (latitud ≤ −83,74°): ahí la ficha ofrece abrir el punto en él. Las 13
+  // candidatas del polo sur son zonas del planificador (también Peak near Cabeus B, a 194 km): siempre lo ofrecen.
+  if (lat <= LAT_PLANIFICADOR || f.sitio?.cat === 'candidata') acciones = acciones.replace('</div>', `<button data-acc="plan" title="${t('planificarT')}">${t('planificar')}</button></div>`)
   if (lat < -78 && !poloListo) { esperarPolo(() => { if (fichaActual === f) mostrarFicha(f, refrescar) }); return } // elevación y pendiente polares piden el polo
   const a = alturaFina(lat, lon), p = pendienteFina(lat, lon)
   F.innerHTML = `<button class="cerrar" aria-label="${t('quitar')}" data-acc="cerrar">×</button>${cab}
