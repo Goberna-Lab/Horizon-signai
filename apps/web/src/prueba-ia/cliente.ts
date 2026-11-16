@@ -143,7 +143,7 @@ const leerEventos = async (r: Response, alEvento: (e: EventoTurno) => void) => {
  */
 export const escuchar = async (
   audio: Blob,
-  contexto: { iaHabla: boolean; dicho?: string; hablado?: string; pregunta?: string; messages?: Mensaje[] },
+  contexto: { iaHabla: boolean; dicho?: string; hablado?: string; pregunta?: string; messages?: Mensaje[]; eco?: boolean },
   alEvento: (e: EventoTurno) => void,
   signal?: AbortSignal,
 ) => {

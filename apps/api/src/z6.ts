@@ -1021,7 +1021,8 @@ export const z6 = new Hono()
     }
     const historial = Array.isArray(ctx.messages) ? ctx.messages : []
     const msgs = limpiarMensajes({ messages: [...historial, { role: "user", content: oido.texto }] })
-    return msgs ? turnoDeVoz(msgs, formato, c.req.raw.signal, personaDe(ctx), "", evento) : ndjson([evento])
+    // `eco` (EVA con micrófono abierto): la frase de espera con las palabras clave, como en /voz/turno.
+    return msgs ? turnoDeVoz(msgs, formato, c.req.raw.signal, personaDe(ctx), "", evento, ctx.eco === true) : ndjson([evento])
   })
   // Oído: audio crudo (webm/opus, ogg, wav) → texto.
   .post("/transcribir", async (c) => {

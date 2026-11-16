@@ -26,15 +26,32 @@ const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/"
  */
 export type Cronometro = {
   empezar: (haceMs: number) => void
-  marcar: (m: "vad" | "oido" | "primerTexto" | "respuestaLlega" | "respuestaSuena" | "fin", en?: number) => void
+  marcar: (
+    m: "vad" | "oido" | "murmullo" | "ecoLlega" | "ecoSuena" | "primerTexto" | "respuestaLlega" | "respuestaSuena" | "fin",
+    en?: number,
+  ) => void
   dato: (k: string, v: string | number | boolean) => void
   pregunta: (texto: string) => void
   cerrar: (fin?: string) => void
 }
 
+/**
+ * Para que la espera no sea silencio (EVA; /prueba-ia no lo usa). `murmullo` encola al instante una frase grabada
+ * («Mmm, let's see.») en la cola del turno; `eco` pide al API la frase que repite el tema de la pregunta; `pausa` da el
+ * silencio antes de cada frase según lo que sonó antes; `respetarPuntuacion`, los silencios en comas y puntos.
+ */
+export type Naturalidad = {
+  murmullo?: (cola: ReturnType<typeof crearColaDeVoz>, corte: AbortSignal) => Promise<unknown>
+  eco?: boolean
+  pausa?: (antes: "murmullo" | "eco" | "frase") => number
+  respetarPuntuacion?: boolean
+}
+
 type Opciones = {
   /** Anota los tiempos de cada turno (opcional: /prueba-ia no lo usa). */
   cronometro?: Cronometro
+  /** Murmullo, eco y pausas (opcional: /prueba-ia no lo usa). */
+  naturalidad?: Naturalidad
   /** Quién responde: VERA (misión) o EVA (guía). Decide cómo suena (personajes.ts). */
   asistente: AssistantMode
   /** Historial con el que arranca la conversación (el del chat de texto). */
@@ -43,7 +60,18 @@ type Opciones = {
   alMensaje: (m: Mensaje) => void
 }
 
-type Turno = { corte: AbortController; cola: ReturnType<typeof crearColaDeVoz>; cortado: boolean }
+type Turno = {
+  corte: AbortController
+  cola: ReturnType<typeof crearColaDeVoz>
+  cortado: boolean
+  /** Lo que tiene que sonar antes de la próxima frase de la IA (el murmullo): las frases se encolan detrás. */
+  antes: Promise<unknown>
+  /** Qué sonó justo antes de la próxima frase de la IA, para la pausa; y si la próxima frase es el eco. */
+  antesSono: "murmullo" | "eco" | "frase"
+  esEco: boolean
+  /** Qué es cada frase de la cola (lo que no está aquí es el murmullo). */
+  tipoDe: WeakMap<object, "eco" | "respuesta">
+}
 
 /**
  * Conversación por voz con el micrófono SIEMPRE abierto: puedes hablar mientras la IA piensa o
@@ -51,7 +79,7 @@ type Turno = { corte: AbortController; cola: ReturnType<typeof crearColaDeVoz>; 
  * la IA vuelve a responder con lo que agregaste (lo que alcanzó a decir queda en el historial).
  * Expone el volumen del micrófono o de la voz (`nivel`, 0..1) para animar el orbe.
  */
-export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones) {
+export function useVoz({ asistente, historial, alMensaje, cronometro, naturalidad }: Opciones) {
   const [estado, setEstado] = useState<EstadoVoz>("reposo")
   const [nivel, setNivel] = useState(0)
   const [error, setError] = useState("")
@@ -78,8 +106,8 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
     setEncima(e)
     if (e && fugaz) chipFugaz.current = setTimeout(() => setEncima(null), CHIP_FUGAZ_MS)
   }, [])
-  const opciones = useRef({ asistente, historial, alMensaje, cronometro })
-  opciones.current = { asistente, historial, alMensaje, cronometro }
+  const opciones = useRef({ asistente, historial, alMensaje, cronometro, naturalidad })
+  opciones.current = { asistente, historial, alMensaje, cronometro, naturalidad }
   const crono = () => opciones.current.cronometro
 
   const cambiar = useCallback((e: EstadoVoz) => {
@@ -130,17 +158,25 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
 
   // Crea el turno de la IA: su cola de voz y el corte del pedido que la alimenta.
   const nuevoTurno = useCallback(
-    (corte: AbortController, t0: number, oidoMs: number): Turno => {
+    (corte: AbortController, t0: number, oidoMs: number, conMurmullo = true): Turno => {
+      const nat = opciones.current.naturalidad
       const t: Turno = {
         corte,
         cortado: false,
+        antes: Promise.resolve(),
+        antesSono: "frase",
+        esEco: false,
+        tipoDe: new WeakMap(),
         cola: crearColaDeVoz({
           ctx: audioCtx.current,
           asistente: opciones.current.asistente,
           alHablar: setHablado,
           alNivel: setNivel,
-          alAgendar: (_, empieza) => {
-            if (turno.current === t) crono()?.marcar("respuestaSuena", empieza)
+          respetarPuntuacion: nat?.respetarPuntuacion,
+          alAgendar: (f, empieza) => {
+            if (turno.current !== t) return
+            const tipo = t.tipoDe.get(f)
+            crono()?.marcar(tipo === "eco" ? "ecoSuena" : tipo === "respuesta" ? "respuestaSuena" : "murmullo", empieza)
           },
           alEmpezar: () => {
             if (turno.current !== t) return
@@ -153,6 +189,11 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
           },
         }),
       }
+      // El murmullo suena ya, sin esperar al servidor; el eco y la respuesta se encolan detrás.
+      if (nat?.murmullo && conMurmullo) {
+        t.antesSono = "murmullo"
+        t.antes = nat.murmullo(t.cola, corte.signal).catch(() => 0)
+      }
       return t
     },
     [cambiar, mostrarEncima],
@@ -161,9 +202,16 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
   // Eventos del turno → cola de voz. `guardar` recibe la respuesta completa al final.
   const alimentar = (t: Turno, guardar: (r: string) => void) => (e: EventoTurno) => {
     if (e.t === "texto") crono()?.marcar("primerTexto")
-    else if (e.t === "frase") {
-      crono()?.marcar("respuestaLlega")
-      t.cola.agregar(e)
+    else if (e.t === "eco") {
+      t.esEco = true
+      crono()?.marcar("ecoLlega")
+    } else if (e.t === "frase") {
+      const pausa = opciones.current.naturalidad?.pausa?.(t.antesSono) ?? 0
+      t.tipoDe.set(e, t.esEco ? "eco" : "respuesta")
+      if (!t.esEco) crono()?.marcar("respuestaLlega")
+      t.antesSono = t.esEco ? "eco" : "frase"
+      t.esEco = false
+      t.antes = t.antes.then(() => t.cola.agregar(e, pausa))
     } else if (e.t === "fin") {
       // Lo que midió el servidor (ver turnoDeVoz en apps/api/src/z6.ts).
       crono()?.dato("servidorMs", e.ms)
@@ -179,6 +227,7 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
       let respuesta = ""
       try {
         respuesta = await flujo
+        await t.antes
         await t.cola.terminada()
       } catch (err) {
         if (t.cortado) return // lo cortó quien interrumpió, que ya ordenó el historial
@@ -211,10 +260,12 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
     (texto: string, t0: number, oidoMs: number, acuse?: string) => {
       sumar({ role: "user", content: texto })
       cambiar("pensando")
-      const t = nuevoTurno(new AbortController(), t0, oidoMs)
+      // Con acuse (habló encima y el 8B ya tiene qué decir enseguida) no hace falta murmullo; el API tampoco pone eco.
+      const t = nuevoTurno(new AbortController(), t0, oidoMs, !acuse)
       turno.current = t
       let respuesta = ""
-      const flujo = turnoDeVoz(hilo.current, alimentar(t, (r) => (respuesta = r)), t.corte.signal, acuse).then(
+      const eco = opciones.current.naturalidad?.eco
+      const flujo = turnoDeVoz(hilo.current, alimentar(t, (r) => (respuesta = r)), t.corte.signal, acuse, eco).then(
         () => respuesta,
       )
       return seguirTurno(t, flujo)
@@ -251,7 +302,7 @@ export function useVoz({ asistente, historial, alMensaje, cronometro }: Opciones
         empezar()
         const flujo = escucharApi(
           wav,
-          { iaHabla: false, messages: hilo.current },
+          { iaHabla: false, messages: hilo.current, eco: opciones.current.naturalidad?.eco },
           (e) => {
             if (e.t === "oido") {
               alOir(e)

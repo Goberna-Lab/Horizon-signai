@@ -391,6 +391,13 @@ export default function EvaCompanera() {
       pregunta: tiempos.pregunta,
       cerrar: tiempos.cerrar,
     },
+    // Como al escribirle o con manos libres: murmullo grabado al instante, eco con las palabras clave y pausas.
+    naturalidad: {
+      murmullo: (cola, corte) => decirGuion(otroPuente(PUENTES[idiomaRef.current]), idiomaRef.current, cola, corte, PAUSA.frase),
+      eco: true,
+      pausa: (antes) => (antes === "murmullo" ? PAUSA.pensar() : antes === "eco" ? PAUSA.idea() : PAUSA.frase()),
+      respetarPuntuacion: true,
+    },
     asistente: "educational",
     historial: () => hilo.current,
     alMensaje: (m) => {
