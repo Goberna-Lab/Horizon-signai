@@ -166,6 +166,7 @@
     'No movements match these filters.': 'No hay movimientos con estos filtros.',
     'Open in Planner · Landing': 'Abrir en Planificador · Alunizaje',
     'Open in Planner · Walk': 'Abrir en Planificador · Caminata',
+    'Open in the Planner': 'Abrir en el Planificador',
     /* bitácora (campaign.js) */
     'Opens the draft: sampling at the de Gerlache rim': 'Abre el borrador: muestreo en el borde de de Gerlache',
     'Loads the 5 m DTM of Connecting Ridge and the LOLA LDEM_75S': 'Carga el DTM de 5 m de Connecting Ridge y el LDEM_75S de LOLA',

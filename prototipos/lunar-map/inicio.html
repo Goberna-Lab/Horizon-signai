@@ -11,8 +11,6 @@
 <!-- Íconos: Lineicons Free 5.2, autoalojado (apps/web/public/ui/lineicons.css); un ícono, un significado (README) -->
 <link rel="stylesheet" href="/ui/lineicons.css">
 <link rel="stylesheet" href="shared.css">
-<!-- El flujo guiado pasa de aquí al planificador: sus archivos se piden ya, con la página en reposo, para que abra sin espera. -->
-<link rel="prefetch" href="index.html"><link rel="prefetch" href="data/efemerides-luna.js"><link rel="prefetch" href="data/zonas.js"><link rel="prefetch" href="engine.js"><link rel="prefetch" href="terrain.js"><link rel="prefetch" href="i18n-es.js">
 <style>
 /* Centro de misiones: dashboard de la campaña. A la izquierda, próximo hito y firma; a la derecha, indicadores y una carpeta con dos pestañas: sitios y misiones, o calendario y bitácora */
 .app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 20px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); background: radial-gradient(ellipse 90% 70% at 50% 10%, var(--crema-2) 0%, var(--crema) 55%, var(--crema-3) 100%); }
@@ -495,7 +493,7 @@
             <span class="kp bad" title="O₂ on return"><span class="o2">O₂</span>26%<span class="mb" aria-hidden="true"><i style="width: 26%"></i><b style="left: 30%"></b></span><small>min 30%</small></span>
           </div>
           <div class="acts">
-            <a class="btn" href="planificar.html"><i class="lni lni-arrow-right" aria-hidden="true"></i>Open walk</a>
+            <a class="btn" id="openWalk" href="/planificar-mision.html" target="_top"><i class="lni lni-arrow-right" aria-hidden="true"></i>Open walk</a>
             <button type="button" class="btn dark approve" data-approve>Approve</button>
           </div>
         </div>
@@ -619,7 +617,9 @@
   'use strict';
   var L = window.Lunar, M = L.Mission, C = L.Campaign, $ = function (id) { return document.getElementById(id); };
   var col = { ok: '#111111', warn: '#857D72', fail: '#C8102E', none: '#DCD4C8' };
-  var PAGES = { 'index.html': 'Planner · Landing', 'planificar.html': 'Planner · Walk' };
+  /* El planificador antiguo (index.html, planificar.html) se retiró: la bitácora y «Open walk» abren el Planificador de
+   * misiones, en el idioma de esta página y en la ventana entera (esta página va dentro de un iframe en /planner). */
+  var PLANNER = '/planificar-mision.html?lang=' + (function () { try { return localStorage.getItem('horizon-signai.lang') === 'es' ? 'es' : 'en'; } catch (e) { return 'en'; } })();
   var two = C.two, hhmm = C.hhmm;
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
@@ -1307,7 +1307,7 @@
       html += '<li class="ev' + (v.t > now ? ' sched' : '') + (v.fresh ? ' fresh' : '') + '">' +
         '<span class="mono tm">' + hhmm(v.t) + '</span><span class="idb">' + v.id + '</span><span class="ty ' + v.type + '" title="' + ty.label + '">' + ty.short + '</span>' +
         '<span class="tx"><p>' + esc(v.text) + '</p><small>' + esc(v.who) + ' · ' + ty.label + (v.t > now ? ' · scheduled' : '') + '</small></span>' +
-        '<a class="go" href="' + v.href + '" aria-label="Open in ' + PAGES[v.href] + '" title="Open in ' + PAGES[v.href] + '">' + arrow + '</a></li>';
+        '<a class="go" href="' + PLANNER + '" target="_top" aria-label="Open in the Planner" title="Open in the Planner">' + arrow + '</a></li>';
     });
     if (!divider && logF.when === 'all' && items.length && items[items.length - 1].t <= now) html += nowTag;
     if (!items.length) html = '<li class="empty">No movements match these filters.</li>';
@@ -1384,6 +1384,7 @@
   (function () {
     var l = 'en'; try { if (localStorage.getItem('horizon-signai.lang') === 'es') l = 'es'; } catch (e) { /* sin almacenamiento: inglés */ }
     document.querySelector('.addm').href = '/planificar-mision.html?nueva&lang=' + l;
+    $('openWalk').href = '/planificar-mision.html?lang=' + l;
   })();
 
   /* interacción de paneles */
