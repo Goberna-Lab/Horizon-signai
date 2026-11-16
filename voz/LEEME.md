@@ -195,3 +195,47 @@ Qué se hizo:
 Lo que queda: cada paso del turno sigue cruzando el Atlántico desde VPS2 (primer token de la Z6,
 voz de cada frase en Geografo). Llevar la coordinación del turno a Perú (o un túnel de Cloudflare
 directo a Geografo) ahorraría ~0,3-0,5 s más, pero cambia la infraestructura.
+
+## IA en la nube: Claude y ElevenLabs (opcional, 2026-11-15)
+
+Con claves en el `.env`, el API cambia el cerebro y la boca de EVA y VERA por servicios en la nube. Sin claves,
+todo sigue como arriba. El oído (Whisper en Geografo) y los embeddings del RAG (bge-m3) no cambian.
+
+| Ruta | Sin claves | Con `ANTHROPIC_API_KEY` / `ELEVENLABS_API_KEY` |
+|---|---|---|
+| Turno de voz, clasificador de lo que dices encima, eco | 27B en la Z6, 8B en Geografo | **Claude Haiku 5.5**, sin pensamiento extendido, esfuerzo bajo (lo más rápido) |
+| Chat de texto (`/chat/stream`) | 8B en Geografo | **Claude Sonnet 5.5**, pensamiento adaptativo, esfuerzo bajo, respaldo del servidor si declina |
+| Voz de cada frase (`/voz/turno`, `/decir`, `/hablar`) | Kokoro (inglés) y Piper (español) | **ElevenLabs** `eleven_flash_v2_5`, mp3, la misma voz en los dos idiomas |
+
+- **Código:** `apps/api/src/assistant/claude.ts` (SDK oficial `@anthropic-ai/sdk`) y `assistant/elevenlabs.ts`; `z6.ts`
+  elige en cada pedido. La parte fija del prompt (personaje, hechos, reglas) va con caché de Claude; los recuerdos y
+  la pantalla no (`partesVoz` / `partesTexto` en `asistentes.ts`, que unidas dan el mismo texto que recibe Ollama).
+- **Tiempos por palabra con ElevenLabs:** su endpoint `with-timestamps` da el tiempo de cada carácter y el API los
+  junta en el mismo `[[texto, espacio, inicio, fin], …]` de horizon-voz. Las palabras que lee mal («Signai», «NO GO»,
+  «EVA», «DE441») se le mandan escritas como se dicen y el subtítulo muestra el original (`partesParaDecir`, con prueba).
+- **Si algo falla, vuelve solo a lo local:** ElevenLabs con error → Kokoro/Piper y no lo reintenta por 2 min.
+  Topes diarios (en memoria, UTC): `CLAUDE_MAX_PEDIDOS_DIA` (3000) y `ELEVENLABS_MAX_CARACTERES_DIA` (60000); pasado el
+  tope, Ollama y voz local hasta el día siguiente. El sitio es público: el tope es lo que acota el gasto.
+- **Costo aproximado** (precios de lista de Anthropic, nov. 2026): un turno de voz con Haiku ~0,05 centavos de dólar;
+  un mensaje de texto con Sonnet ~0,6 centavos. ElevenLabs cobra por carácter según el plan.
+- **Qué motor atiende:** `GET /api/z6/motores` (sin claves; modelos y contadores del día).
+
+### Encender, apagar, verificar
+
+```bash
+scripts/configurar-ia-nube.sh             # pide las claves (no se ven), las prueba, elige voces, sube a VPS2 y reinicia sin cortes
+scripts/configurar-ia-nube.sh --estado    # qué cerebro y qué voz atienden ahora
+scripts/configurar-ia-nube.sh --apagar    # IA_MOTOR=ollama y VOZ_MOTOR=local: vuelve a lo local sin borrar las claves
+scripts/configurar-ia-nube.sh --encender
+scripts/configurar-ia-nube.sh --local     # mismas claves en apps/api/.env para `npm run dev` (ignorado por git y Docker)
+```
+
+El script entra por `ssh vps2` (otro host: `HORIZON_SSH=usuario@host`) y usa `sudo` para el `.env`. Las claves viajan
+por stdin; el respaldo del `.env` anterior queda en `/var/backups/horizon-signai/`, **fuera** de `/srv/horizon-signai`
+(ahí entraría en la imagen: `.dockerignore` solo excluía `.env`). Variables para no preguntar o cambiar modelos y
+topes: ver la cabecera del script.
+
+**Tras encender ElevenLabs:** las frases fijas de EVA (`apps/web/public/eva-voz/`) siguen grabadas con Kokoro y Piper,
+así que sonarían distinto de sus respuestas en vivo. Regrabarlas (unos 31 000 caracteres, los dos idiomas):
+`node apps/web/scripts/grabar-voz-eva.ts --todo` y subir los archivos. Si ElevenLabs falla a mitad, esa frase queda con
+la voz local: revisar `--comprobar` o volver a grabarla.
