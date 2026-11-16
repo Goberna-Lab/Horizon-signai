@@ -138,7 +138,12 @@
  * «Details» (sitios de misión y misiones) y «Tracking» (calendario y movimientos). La pestaña elegida tiene el color
  * del cuerpo y tapa su borde de arriba, así parece la misma pieza; la otra queda detrás, más apagada. */
 .folder { display: flex; flex-direction: column; min-width: 0; }
-.ftabs { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 4px; padding-left: 18px; margin-bottom: -1px; }
+.ftabs { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 4px; height: 44px; flex: none; padding-left: 18px; margin-bottom: -1px; }
+/* La fila de pestañas tiene alto fijo: la elegida crece hacia arriba sin empujar la tarjeta (antes daba un salto de unos px). */
+/* Al cambiar de pestaña, su contenido entra suave: aparece y sube 6 px. */
+.fpane.entra { animation: fpane-in 260ms var(--ease-enter) both; }
+@keyframes fpane-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .fpane.entra { animation: none; } }
 .ftab { position: relative; height: 38px; padding: 0 22px; border: 1px solid var(--borde); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--crema-4); color: var(--gris); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background-color .18s ease, color .18s ease, height .18s ease; }
 .ftab:hover { color: var(--tinta); }
 .ftab[aria-selected="true"] { height: 44px; background: var(--crema-3); color: var(--tinta); }
@@ -939,7 +944,10 @@
   /* carpeta: «Details» (sitios y misiones) o «Tracking» (calendario y bitácora); clic, o flechas izquierda/derecha, Inicio y Fin */
   var ftabs = [].slice.call(document.querySelectorAll('.ftabs [role="tab"]'));
   function showTab(tb, focus) {
+    var antes = ftabs.filter(function (x) { return x.getAttribute('aria-selected') === 'true'; })[0];
     ftabs.forEach(function (x) { var on = x === tb; x.setAttribute('aria-selected', on); x.tabIndex = on ? 0 : -1; $(x.getAttribute('aria-controls')).hidden = !on; });
+    /* el contenido nuevo entra suave (solo si de verdad cambió de pestaña) */
+    if (antes !== tb) { var pane = $(tb.getAttribute('aria-controls')); pane.classList.remove('entra'); void pane.offsetWidth; pane.classList.add('entra'); }
     if (focus) tb.focus();
     /* la bitácora, oculta, no tenía alto: al mostrarla se lleva otra vez a «ahora» */
     if (tb.id === 'tab-seg') renderLog(true);
