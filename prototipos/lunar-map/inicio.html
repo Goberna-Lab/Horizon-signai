@@ -116,22 +116,11 @@
 
 .upcoming .ph .aux { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .upcoming .ph .aux span { display: inline-flex; align-items: center; gap: 5px; }
-/* luna de adorno en el hueco de abajo a la derecha del panel: una silueta tenue que gira sobre su eje.
- * fitMissions() le da el diámetro según el hueco que dejan las tarjetas (hasta 200 px) y la oculta si no cabe.
- * El disco no se mueve; dentro, una tira de cráteres (dos vueltas de 2 diámetros) se desliza con transform en 240 s
- * y todo se desvanece hacia el borde para que parezca una esfera. Detrás de las tarjetas, sin eventos; quieta con «reducir movimiento». */
+/* luna de adorno en el hueco de abajo a la derecha del panel: la Luna real (albedo y relieve de LOLA,
+ * data/luna-global.jpg) girando despacio sobre su eje, dibujada en un canvas por lunaGira() y fundida con el papel de la
+ * card (multiply: lo claro de la Luna se vuelve el papel). fitLuna() le da el diámetro según el hueco bajo las tarjetas. */
 .upcoming .mlist { position: relative; z-index: 1; }
-.luna { --d: 168px; position: absolute; right: 24px; bottom: 24px; z-index: 0; width: var(--d); height: var(--d); border-radius: 50%; overflow: hidden; pointer-events: none;
-  background: radial-gradient(circle at 36% 32%, rgba(17,17,17,0.015), rgba(17,17,17,0.06) 72%, rgba(17,17,17,0.09));
-  box-shadow: inset 0 0 0 1px rgba(17,17,17,0.10);
-  -webkit-mask-image: radial-gradient(circle, #000 52%, rgba(0,0,0,0.4) 100%); mask-image: radial-gradient(circle, #000 52%, rgba(0,0,0,0.4) 100%); }
-.luna::before { content: ""; position: absolute; top: 0; left: 0; width: 400%; height: 100%; will-change: transform;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='336' height='168'%3E%3Cg fill='rgba(17,17,17,0.07)'%3E%3Cellipse cx='70' cy='62' rx='34' ry='24'/%3E%3Cellipse cx='112' cy='104' rx='26' ry='18'/%3E%3Cellipse cx='232' cy='70' rx='40' ry='22'/%3E%3Cellipse cx='268' cy='118' rx='22' ry='14'/%3E%3C/g%3E%3Cg fill='rgba(17,17,17,0.05)' stroke='rgba(17,17,17,0.16)' stroke-width='1'%3E%3Ccircle cx='38' cy='120' r='11'/%3E%3Ccircle cx='150' cy='46' r='8'/%3E%3Ccircle cx='170' cy='132' r='14'/%3E%3Ccircle cx='196' cy='28' r='5'/%3E%3Ccircle cx='300' cy='40' r='10'/%3E%3Ccircle cx='310' cy='146' r='6'/%3E%3Ccircle cx='92' cy='150' r='5'/%3E%3Ccircle cx='24' cy='30' r='6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(var(--d) * 2) var(--d) repeat-x;
-  animation: luna-gira 240s linear infinite; }
-.luna::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.35), transparent 55%), radial-gradient(circle at 50% 50%, transparent 58%, rgba(17,17,17,0.05) 100%); }
-@keyframes luna-gira { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
-@media (prefers-reduced-motion: reduce) { .luna::before { animation: none; } }
+.luna { --d: 168px; position: absolute; right: 24px; bottom: 24px; z-index: 0; width: var(--d); height: var(--d); pointer-events: none; mix-blend-mode: multiply; }
 @media (max-width: 1000px) { .luna { display: none !important; } }
 .mrow { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
 .mrow .r1 .sym { margin-right: 2px; }
@@ -443,7 +432,7 @@
               <section class="paper panel upcoming" aria-labelledby="up-t">
                 <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="mono aux" id="mix"></span></div>
                 <div class="mlist" id="mlist"></div>
-                <div class="luna" aria-hidden="true"></div>
+                <canvas class="luna" aria-hidden="true"></canvas>
               </section>
             </div>
           </div>
@@ -624,6 +613,85 @@
     var d = Math.min(200, ml.offsetParent.clientHeight - fin - 40);
     lu.style.display = d < 90 ? 'none' : '';
     lu.style.setProperty('--d', Math.max(d, 90) + 'px');
+    if (d >= 90) lunaGira(lu, Math.round(d));
+  }
+  /* ---------- la Luna que gira ----------
+   * Esfera vista desde 18° bajo el ecuador (asoma el polo sur, el de la campaña), con la luz desde la izquierda: fase
+   * gibosa y terminador suave a la derecha (sin oscurecer el limbo: la Luna casi no lo hace). Cada píxel del disco guarda su latitud/longitud y su luz una sola vez; en
+   * cada cuadro solo se desplaza la longitud (una vuelta cada 150 s, la superficie avanza hacia la derecha como la Luna).
+   * Colores, como la Luna de día: lo iluminado lleva el gris real del suelo (los mares oscuros, FUERZA) y la cara a
+   * oscuras se funde con el papel de la card (multiply: blanco = papel), con un velo apenas visible.
+   * A ~30 fps, solo mientras se ve; quieta con «reducir movimiento». */
+  var luna = { quieta: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches), tex: null, cargando: false, cv: null, d: 0, tabla: null, t0: 0, ult: 0, raf: 0, visible: true };
+  function lunaGira(cv, d) {
+    luna.cv = cv;
+    if (!luna.tex) {
+      if (!luna.cargando) {
+        luna.cargando = true;
+        var im = new Image();
+        im.onload = function () {
+          var c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+          var g = c.getContext('2d'); g.drawImage(im, 0, 0);
+          var px = g.getImageData(0, 0, im.width, im.height).data, gris = new Uint8Array(im.width * im.height);
+          for (var i = 0; i < gris.length; i++) gris[i] = px[i * 4];
+          luna.tex = { w: im.width, h: im.height, g: gris };
+          if (luna.d) { var dd = luna.d; luna.d = 0; lunaGira(luna.cv, dd); }
+        };
+        im.src = 'data/luna-global.jpg';
+      }
+      luna.d = d; return;
+    }
+    if (d !== luna.d || !luna.tabla) lunaTabla(d);
+    if (window.IntersectionObserver && !luna.io) {
+      luna.io = new IntersectionObserver(function (es) { luna.visible = es[0].isIntersecting; if (luna.visible) lunaPide(); });
+      luna.io.observe(cv);
+    }
+    lunaCuadro(performance.now());
+    if (!luna.quieta) lunaPide();
+  }
+  function lunaTabla(d) {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), n = Math.round(d * dpr), T = luna.tex, cv = luna.cv;
+    cv.width = n; cv.height = n; luna.d = d;
+    var inc = -18 * Math.PI / 180, si = Math.sin(inc), co = Math.cos(inc);
+    var L = [-0.62, 0.28, 0.73], ll = Math.hypot(L[0], L[1], L[2]); L = [L[0] / ll, L[1] / ll, L[2] / ll];
+    var idx = [], bu = [], f0 = [], f1 = [], fv = [], luz = [], alfa = [], r = n / 2;
+    for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+      var sx = (x + 0.5 - r) / r, sy = (r - y - 0.5) / r, q = sx * sx + sy * sy;
+      if (q >= 1) continue;
+      var sz = Math.sqrt(1 - q);
+      var by = sy * co + sz * si, bz = -sy * si + sz * co;                     /* al marco de la Luna (y = norte) */
+      var lat = Math.asin(Math.max(-1, Math.min(1, by))), lon = Math.atan2(sx, bz);
+      var v = (0.5 - lat / Math.PI) * T.h - 0.5, v0 = Math.max(0, Math.min(T.h - 1, Math.floor(v)));
+      var k = sx * L[0] + sy * L[1] + sz * L[2];
+      var lz = Math.max(0, Math.min(1, (k + 0.06) / 0.5)); lz = lz * lz * (3 - 2 * lz);   /* terminador suave */
+      idx.push(y * n + x); bu.push(((lon / (2 * Math.PI)) + 1) % 1 * T.w);
+      f0.push(v0 * T.w); f1.push(Math.min(T.h - 1, v0 + 1) * T.w); fv.push(Math.max(0, Math.min(1, v - v0)));
+      luz.push(lz);
+      alfa.push(Math.max(0, Math.min(1, (1 - Math.sqrt(q)) * r / 1.2)) * 255);      /* borde con antialias */
+    }
+    luna.tabla = { n: n, idx: idx, bu: Float32Array.from(bu), f0: Int32Array.from(f0), f1: Int32Array.from(f1), fv: Float32Array.from(fv), luz: Float32Array.from(luz), alfa: Uint8Array.from(alfa), img: cv.getContext('2d').createImageData(n, n) };
+  }
+  function lunaPide() { if (!luna.raf && luna.visible && !luna.quieta) luna.raf = requestAnimationFrame(lunaTick); }
+  function lunaTick(t) {
+    luna.raf = 0;
+    if (!luna.cv || !luna.cv.offsetParent || !luna.visible || luna.cv.style.display === 'none') return;
+    if (t - luna.ult > 33) lunaCuadro(t);
+    lunaPide();
+  }
+  var FUERZA = 0.65;
+  function lunaCuadro(t) {
+    var T = luna.tex, B = luna.tabla; if (!T || !B) return;
+    luna.ult = t;
+    var w = T.w, g = T.g, d = B.img.data, off = ((t / 150000) % 1) * w;
+    for (var i = 0; i < B.idx.length; i++) {
+      var u = B.bu[i] - off; if (u < 0) u += w;
+      var u0 = u | 0, fu = u - u0, u1 = u0 + 1 === w ? 0 : u0 + 1, a = B.f0[i], b = B.f1[i], fv = B.fv[i];
+      var top = g[a + u0] + (g[a + u1] - g[a + u0]) * fu, bot = g[b + u0] + (g[b + u1] - g[b + u0]) * fu;
+      var br = (top + (bot - top) * fv) / 255, lz = B.luz[i];
+      var c = 255 * (1 - lz * (0.07 + FUERZA * (1 - br)) - (1 - lz) * 0.035), o = B.idx[i] * 4;
+      d[o] = c; d[o + 1] = c; d[o + 2] = c * 0.985; d[o + 3] = B.alfa[i];
+    }
+    luna.cv.getContext('2d').putImageData(B.img, 0, 0);
   }
   if (window.ResizeObserver) new ResizeObserver(function () { fitMissions(); }).observe(document.querySelector('.sites .screen'));
   /* ---------- Mission sites: radar a distancia real, de 50, 100 o 200 km ----------
