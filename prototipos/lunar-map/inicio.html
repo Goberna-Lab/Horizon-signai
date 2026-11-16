@@ -344,7 +344,7 @@
 .lw .pct { padding-top: 16px; text-align: right; font: 600 13px var(--f-mono); }
 .lw .pct small { display: block; font: 400 10px var(--f-mono); color: var(--gris-2); letter-spacing: .04em; }
 .lw .on { background: rgba(17,17,17,0.04); }
-/* ---- 2026-11-16: próxima ventana por sitio arriba, línea de tiempo que llena el alto, otros candidatos abajo ---- */
+/* ---- 2026-11-16: próxima ventana por sitio arriba, línea de tiempo que llena el alto ---- */
 .lwp { position: relative; display: flex; flex-direction: column; }
 .lw-regla { cursor: help; }
 .lw-prox { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -372,19 +372,6 @@
 .lw .bar .pin { top: calc(50% + 9px); }
 .lw .bar .pin::after { top: auto; bottom: 100%; height: 7px; }
 .lw .pct { padding-top: 0; align-self: center; }
-.lw-otros { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--borde); }
-.lw-otros-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.lw-otros-h .aux { font-size: 10.5px; color: var(--gris-2); }
-.lw-otros-l { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; }
-.lwo { display: grid; gap: 3px; min-width: 0; font-size: 12px; }
-.lwo-t { display: flex; justify-content: space-between; gap: 6px; }
-.lwo-t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lwo-t em { flex: none; font: 600 11px var(--f-mono); font-style: normal; }
-.lwo-bar { position: relative; height: 6px; background: var(--crema-4); }
-.lwo-bar span { position: absolute; top: 0; bottom: 0; }
-.lwo-bar .g { background: var(--tinta-2); }
-.lwo-bar .s { background: rgba(31,95,168,0.35); }
-.lwo small { font: 10px var(--f-mono); color: var(--gris-2); }
 .lw-tip { position: absolute; z-index: 5; pointer-events: none; padding: 5px 8px; background: var(--tinta); color: var(--crema); font: 11px var(--f-mono); white-space: nowrap; transform: translate(-50%, -130%); }
 .lww { overflow-x: auto; }
 .lww .lw { min-width: 720px; }
@@ -548,7 +535,6 @@
                 <span><i class="lni lni-flag-1"></i>Milestone</span>
               </div>
               <div class="lww"><div class="lw" id="lw"></div></div>
-              <div class="lw-otros"><div class="lw-otros-h"><span class="lbl">Other candidates</span><span class="mono aux">by days with a window in the next 6 months</span></div><div class="lw-otros-l" id="lw-otros"></div></div>
               <div class="lw-tip" id="lw-tip" hidden></div>
             </section>
           </div>
@@ -1095,13 +1081,6 @@
       var ms = missions.filter(function (m) { return m.site === z; }).sort(byAttention), on = sel && sel.site === z ? ' on' : '';
       return '<div class="lwc' + on + '" data-z="' + z + '" role="button" tabindex="0"><span class="lwc-h"><i class="sym ' + symCls(ms[0].status) + '" aria-hidden="true"></i><b>' + z + ' · ' + C.SITES[z].name + '</b></span>' +
         estado(z) + '<ul>' + ms.map(function (m) { return lineaMision(m, z); }).join('') + '</ul></div>';
-    }).join('');
-    /* abajo: los demás candidatos del planificador, por días con ventana */
-    var resto = Object.keys(V.zonas).filter(function (z) { return zones.indexOf(z) < 0; }).sort(function (a, b) { return abiertos(V.zonas[b].dias) - abiertos(V.zonas[a].dias); });
-    $('lw-otros').innerHTML = resto.map(function (z) {
-      var zv = V.zonas[z], p = proxima(z);
-      var sig = !p ? T('no window', 'sin ventana') : p.abierta ? T('open now · closes ', 'abierta · cierra el ') + dmL(V0 + (p.t.j - 1) * DAY) : T('next ', 'próxima ') + rango(p.t);
-      return '<div class="lwo"><div class="lwo-t"><span><b>' + z + '</b> ' + zv.nombre + '</span><em>' + abiertos(zv.dias) + ' d</em></div><span class="lwo-bar">' + segs(zv.dias) + '</span><small>' + sig + '</small></div>';
     }).join('');
   }
   function selZone(z) {
