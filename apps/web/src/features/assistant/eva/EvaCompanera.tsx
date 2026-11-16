@@ -1251,10 +1251,14 @@ export default function EvaCompanera() {
     manosRef.current = ok
     setManos(ok)
   }
-  // EVA escucha solo cuando espera algo (el nombre, la oferta, un camino, el repaso o un paso del flujo).
+  // EVA escucha solo cuando espera algo (el nombre, la oferta, un camino, el repaso o un paso del flujo) y nunca mientras
+  // habla o piensa (2026-11-15, medido en el log de producción): con parlantes su voz vuelve por el micrófono y Whisper
+  // la convierte en palabras que no son suyas («Thank you»…), que ningún filtro de eco reconoce; pasaban como preguntas y
+  // la cortaban a media frase. Mientras habla se la interrumpe escribiendo o con los botones; al callar, vuelve a oír.
+  const hablandoEva = estado === "hablando" || estado === "alerta" || estado === "pensando"
   useEffect(() => {
-    oidoEva.escuchar(manos && !!pregunta && pregunta !== "idioma")
-  }, [manos, pregunta, oidoEva])
+    oidoEva.escuchar(manos && !!pregunta && pregunta !== "idioma" && !hablandoEva)
+  }, [manos, pregunta, hablandoEva, oidoEva])
 
   /** Las opciones de lo que está esperando, con sus palabras en los dos idiomas (para reconocerlas por voz). */
   const opcionesDe = (espera: string | null): string[][] => {
@@ -1699,7 +1703,7 @@ export default function EvaCompanera() {
               </div>
             )}
             <p aria-live="polite">{globo}</p>
-            {manos && pregunta !== "idioma" && (
+            {manos && pregunta !== "idioma" && oidoEva.estado !== "apagado" && (
               <p className="eva-escucha" data-estado={oidoEva.estado}>
                 <i aria-hidden="true" />
                 <span>
