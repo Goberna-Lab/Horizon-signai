@@ -88,3 +88,18 @@ export function vozGrabada(idioma: Idioma, oracion: string): Promise<VozDeOracio
 export const precargarVoz = (idioma: Idioma, frase: string) => {
   for (const oracion of enOraciones(frase)) void vozGrabada(idioma, oracion)
 }
+
+/**
+ * Lo que falta por decir de `frase` cuando ya sonó `hablado` (el texto que la cola de voz fue revelando): desde la
+ * oración que quedó a medias, entera. Si no sonó nada, la frase completa; si sonó toda, "".
+ */
+export function restoPorDecir(frase: string, hablado: string): string {
+  const n = hablado.trim() ? hablado.trim().split(/\s+/).length : 0
+  const oraciones = enOraciones(frase)
+  let hasta = 0
+  for (let k = 0; k < oraciones.length; k++) {
+    hasta += oraciones[k]!.trim().split(/\s+/).length
+    if (hasta > n) return oraciones.slice(k).join(" ")
+  }
+  return ""
+}

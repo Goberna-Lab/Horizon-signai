@@ -4,7 +4,7 @@ import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 import { frasesDelGuion, oracionesDelGuion } from "./frasesGrabables.ts"
 import { GRABADAS } from "./vozGrabada.indice.ts"
-import { claveDe, enOraciones, estaGrabada, sinVocativo } from "./vozGrabada.ts"
+import { claveDe, enOraciones, estaGrabada, restoPorDecir, sinVocativo } from "./vozGrabada.ts"
 
 const CARPETA = fileURLToPath(new URL("../../../../public/eva-voz/", import.meta.url))
 
@@ -55,4 +55,13 @@ test("avisa de las oraciones del guion que no tienen voz grabada", (t) => {
   t.diagnostic(`${oracionesDelGuion().length - faltan.length} de ${oracionesDelGuion().length} oraciones del guion tienen voz grabada`)
   for (const o of faltan.slice(0, 12)) t.diagnostic(`sin grabar [${o.idioma}] ${o.de}: ${o.oracion}`)
   for (const f of frasesDelGuion().filter((x) => x.sinTraducir)) t.diagnostic(`sin traducción al español: ${f.de}`)
+})
+
+test("restoPorDecir: desde la oración que quedó a medias", () => {
+  const f = "Uno dos tres. Cuatro cinco. Seis siete ocho."
+  assert.equal(restoPorDecir(f, ""), f)
+  assert.equal(restoPorDecir(f, "Uno dos"), f)
+  assert.equal(restoPorDecir(f, "Uno dos tres."), "Cuatro cinco. Seis siete ocho.")
+  assert.equal(restoPorDecir(f, "Uno dos tres. Cuatro"), "Cuatro cinco. Seis siete ocho.")
+  assert.equal(restoPorDecir(f, "Uno dos tres. Cuatro cinco. Seis siete ocho."), "")
 })

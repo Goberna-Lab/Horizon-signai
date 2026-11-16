@@ -18,7 +18,7 @@ import { CONTROL, ELEGIR, ETAPAS, LANDING, OFERTA, recorridoParaRetomar, seGuard
 import { useOido, type FraseOida } from "./oido"
 import * as tiempos from "./tiempos"
 import { sugerenciasDe, type Sugerencia } from "./sugerencias"
-import { enOraciones, estaGrabada, precargarVoz, sinVocativo, vozGrabada, type VozDeOracion } from "./vozGrabada"
+import { enOraciones, estaGrabada, precargarVoz, restoPorDecir, sinVocativo, vozGrabada, type VozDeOracion } from "./vozGrabada"
 import "./eva.css"
 
 const EvaLienzo = lazy(() => import("@/shared/eva/EvaLienzo"))
@@ -352,6 +352,9 @@ export default function EvaCompanera() {
   const caminoActual = useRef<Opcion | null>(null)
   const opcionesDelPasoRef = useRef<() => Opcion[]>(() => [])
   const darPasoRef = useRef<() => Promise<void>>(async () => {})
+  // El paso que EVA está diciendo y cuánto lleva dicho (lo que la cola de voz ya hizo sonar): si la interrumpen con una
+  // pregunta, al volver al guion termina desde la oración que cortaron (ver `volverAlGuion`).
+  const pasoHablado = useRef<{ t: { r: Recorrido; i: number }; i: number; frase: string; hablado: string; completo: boolean } | null>(null)
   const narrarRef = useRef<(tipo: string, frase: string) => boolean>(() => false)
   const [elegida, setElegida] = useState("")
   // El recorrido guiado en curso (./recorridos.ts) y el rótulo de por dónde va («3 / 10»).
@@ -651,7 +654,11 @@ export default function EvaCompanera() {
       const cola = crearColaDeVoz({
         ctx,
         asistente: "educational",
-        alHablar: mostrar,
+        alHablar: (texto) => {
+          mostrar(texto)
+          const h = pasoHablado.current
+          if (h && h.frase === frase) h.hablado = texto
+        },
         alNivel: (v) => (nivel.current = v),
         alEmpezar: () => {},
         respetarPuntuacion: true,
@@ -1069,9 +1076,11 @@ export default function EvaCompanera() {
     setAvance(`${t.i + 1} / ${t.r.pasos.length}`)
     setRiel(p.etapa ? { etapa: p.etapa, camino: caminoActual.current } : null)
     setOido("")
+    pasoHablado.current = { t, i: t.i, frase, hablado: "", completo: false }
     const dicho = hablar(frase, null)
     setPregunta(tipoDe(p))
     if (!(await dicho) || recorrido.current !== t) return
+    if (pasoHablado.current?.frase === frase) pasoHablado.current.completo = true
     esperarEnPaso(frase)
   }
   darPasoRef.current = darPaso
@@ -1265,6 +1274,40 @@ export default function EvaCompanera() {
       ocupada.current = false
     }
   }
+  /**
+   * Regla de Manuel (2026-11-15, «muy importante»): si la interrumpen con una pregunta, contesta y, pasado 1 s, avisa que
+   * sigue y retoma el guion donde quedó: si cortaron un paso a media frase, lo termina desde la oración cortada; si el
+   * paso ya estaba dicho, sigue con el siguiente; si esperaba una respuesta (nombre, oferta, una opción, el repaso), la
+   * vuelve a pedir.
+   */
+  const volverAlGuion = async (enPausa: { r: Recorrido; i: number } | null, espera: string | null) => {
+    const mio = turno.current
+    await esperar(1000)
+    if (turno.current !== mio) return // otra pregunta u otra frase tomó la palabra
+    const idioma = idiomaRef.current
+    if (enPausa && recorrido.current === enPausa) {
+      if (!(await hablar(SEGUIMOS[idioma], null)) || recorrido.current !== enPausa) return
+      const p = enPausa.r.pasos[enPausa.i]!
+      const frase = fraseDelPaso(p)
+      const h = pasoHablado.current
+      const cortado = h && h.t === enPausa && h.i === enPausa.i && !h.completo
+      if (cortado || p.elige || p.repaso) {
+        // Desde la oración que cortaron (o la pregunta entera, si esperaba una respuesta).
+        const resto = cortado ? restoPorDecir(frase, h.hablado) : frase
+        pasoHablado.current = { t: enPausa, i: enPausa.i, frase: resto, hablado: "", completo: false }
+        setPregunta(tipoDe(p))
+        if (!(await hablar(resto, null)) || recorrido.current !== enPausa) return
+        if (pasoHablado.current?.frase === resto) pasoHablado.current = { t: enPausa, i: enPausa.i, frase, hablado: frase, completo: true }
+        esperarEnPaso(frase)
+        return
+      }
+      void alPaso(true) // el paso ya estaba dicho: sigue el protocolo
+      return
+    }
+    if (espera === "oferta") await preguntar(TEXTOS[idioma].quien, "oferta")
+    else if (espera === "nombre") await preguntar(TEXTOS[idioma].hola, "nombre")
+    else ocupada.current = false
+  }
   /** Contesta con la respuesta grabada de una pregunta frecuente y vuelve a lo que estaba esperando. */
   const contestarGrabada = async (id: string, q: string, espera: string | null) => {
     const p = PREGUNTAS.find((x) => x.id === id)
@@ -1275,15 +1318,14 @@ export default function EvaCompanera() {
     const idioma = idiomaRef.current
     recordar(q)
     hilo.current = [...hilo.current, { role: "user", content: q }, { role: "assistant", content: p.respuesta[idioma] }]
-    const frase = enPausa ? `${p.respuesta[idioma]} ${SEGUIMOS[idioma]}` : p.respuesta[idioma]
+    const frase = p.respuesta[idioma]
     tiempos.dato("tipo", "faq")
     tiempos.dato("faq", id)
     const dicha = await hablar(frase, null)
     tiempos.marcar("fin")
     tiempos.cerrar(dicha ? "ok" : "interrumpida")
     if (!dicha) return
-    if (enPausa && recorrido.current === enPausa) esperarEnPaso(fraseDelPaso(enPausa.r.pasos[enPausa.i]))
-    else if (espera === "oferta") void preguntar(TEXTOS[idiomaRef.current].quien, "oferta")
+    void volverAlGuion(enPausa, espera)
   }
   /**
    * Una frase dicha: el API la transcribe y busca la pregunta frecuente parecida (dos líneas, en ese orden). Con el
@@ -1311,7 +1353,9 @@ export default function EvaCompanera() {
           tiempos.dato("oidoServidorMs", e.ms)
           texto = e.texto.trim()
           // Su propia voz colándose por los parlantes: se ignora.
-          if (!texto || (Date.now() < fraseActual.current.hasta && esEco(texto, fraseActual.current.frase))) {
+          const hablando = fraseActual.current.hasta === Infinity
+          const eco = Date.now() < fraseActual.current.hasta && esEco(texto, fraseActual.current.frase) && (hablando || texto.split(/\s+/).length >= 3)
+          if (!texto || eco) {
             texto = ""
             tiempos.dato("tipo", "ignorado")
             tiempos.cerrar(texto ? "su propio eco" : "nada que oír")
@@ -1403,6 +1447,7 @@ export default function EvaCompanera() {
     tiempos.dato("tipo", "ia")
     tiempos.pregunta(q)
     const enPausa = recorrido.current
+    const esperaba = preguntaRef.current
     cerrarPregunta()
     if (!enPausa) quitarFoco()
     tomarTurno() // se calla ya, antes de mirar si pide otro idioma
@@ -1520,8 +1565,8 @@ export default function EvaCompanera() {
     if (turno.current !== mio) return // otra frase u otra pregunta tomó la palabra
     setEstado("reposo")
     finHabla.current = Date.now()
-    if (enPausa && recorrido.current === enPausa) esperarEnPaso(escrito || TEXTOS[idiomaRef.current].sinSenal)
-    else ocupada.current = false
+    if (!escrito) mostrar(TEXTOS[idiomaRef.current].sinSenal)
+    void volverAlGuion(enPausa, esperaba)
   }
   // Escribirle en su panel, o tocar una pregunta sugerida (`directo`, que no pasa por el campo de texto).
   const enviar = async (ev: FormEvent | null, directo?: string) => {

@@ -68,5 +68,13 @@ test("la oferta, el nombre y el eco", () => {
   assert.deepEqual(entender("skip", "nombre"), { tipo: "nombre", nombre: "" })
   assert.equal(esEco("press next when we are down", "Press next when we are down."), true)
   assert.equal(esEco("next please", "Three candidate zones. Each card answers one question."), false)
+  // Pedazos de su voz mal transcritos: siguen siendo eco (antes pasaban como pregunta y la cortaban).
+  const oferta = "This is Horizon Signal, by Goberna: a platform to plan and simulate lunar missions. Would you like to experience planning a lunar mission?"
+  assert.equal(esEco("planning a lunar machine", oferta), true)
+  assert.equal(esEco("horizon signal by gobernar", oferta), true)
+  assert.equal(esEco("say next when we are down", "Listen to the radio. Say next when we are down."), true)
+  // Una pregunta de verdad, aunque comparta palabras vacías, no es eco.
+  assert.equal(esEco("why is the sun so low at the pole", oferta), false)
+  assert.equal(esEco("yes", oferta), false)
   assert.equal(opcionDe("dos", palabrasDeOpciones(REPASO)), 1)
 })
