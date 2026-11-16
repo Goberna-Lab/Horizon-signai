@@ -122,7 +122,8 @@
 .mrow.quiet .nm, .mrow.quiet .kp { color: var(--gris); }
 .mrow.quiet .kp { background: transparent; }
 .mrow:hover { background: rgba(255,255,255,0.4); }
-.mrow:active { transform: translateY(1px); }
+/* Al pulsar, la tarjeta se encoge un poco hacia dentro: bajarla 1 px hacía desbordar la lista con la última tarjeta y asomaba la barra de desplazamiento (parpadeo) */
+.mrow:active { transform: scale(.99); }
 .mrow[aria-pressed="true"] { border-color: var(--tinta); background: rgba(255,255,255,0.62); }
 .mrow .r1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .idb { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 22px; padding: 0 7px; border-radius: 7px; font-family: var(--f-mono); font-size: 11px; font-weight: 600; background: rgba(17,17,17,0.07); white-space: nowrap; }
