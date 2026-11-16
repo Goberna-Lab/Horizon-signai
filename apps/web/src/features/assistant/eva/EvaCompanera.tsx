@@ -352,6 +352,8 @@ export default function EvaCompanera() {
   const caminoActual = useRef<Opcion | null>(null)
   const opcionesDelPasoRef = useRef<() => Opcion[]>(() => [])
   const darPasoRef = useRef<() => Promise<void>>(async () => {})
+  const sinSonar = useRef("") // lo último que dijo sin audio (antes del primer toque)
+  const hablarRef = useRef<(frase: string, remate: "bromeando" | "alegre" | null) => Promise<boolean>>(async () => false)
   // El paso que EVA está diciendo y cuánto lleva dicho (lo que la cola de voz ya hizo sonar): si la interrumpen con una
   // pregunta, al volver al guion termina desde la oración que cortaron (ver `volverAlGuion`).
   const pasoHablado = useRef<{ t: { r: Recorrido; i: number }; i: number; frase: string; hablado: string; completo: boolean } | null>(null)
@@ -445,11 +447,24 @@ export default function EvaCompanera() {
     if (!conversando && !dormida.current) setEstado("reposo")
   }, [conversando])
 
-  // Audio: el primer toque en cualquier parte de la página habilita su voz.
+  // Audio: el primer toque (o tecla) en cualquier parte de la página habilita su voz. Lo que dijo antes en silencio y
+  // sigue esperando respuesta (el saludo con «¿Cuál es tu nombre?», la oferta…) lo dice entonces en voz alta; al
+  // terminar se abre el micrófono (no escucha mientras habla).
   useEffect(() => {
     const habilitar = () => {
+      window.removeEventListener("pointerdown", habilitar)
+      window.removeEventListener("keydown", habilitar)
       if (!audioCtx.current || audioCtx.current.state === "closed") audioCtx.current = new AudioContext()
       void audioCtx.current.resume()
+      const pendiente = sinSonar.current
+      sinSonar.current = ""
+      if (pendiente && preguntaRef.current && preguntaRef.current !== "idioma") {
+        const espera = preguntaRef.current
+        void (async () => {
+          await esperar(250) // que el audio termine de arrancar
+          if (preguntaRef.current === espera) await hablarRef.current(pendiente, null)
+        })()
+      }
       // Ya eligió manos libres en esta visita (la página se recargó al cambiar de idioma): el primer toque lo reabre.
       let quiso = false
       try {
@@ -459,8 +474,12 @@ export default function EvaCompanera() {
       }
       if (quiso) void encenderManosRef.current()
     }
-    window.addEventListener("pointerdown", habilitar, { once: true })
-    return () => window.removeEventListener("pointerdown", habilitar)
+    window.addEventListener("pointerdown", habilitar)
+    window.addEventListener("keydown", habilitar)
+    return () => {
+      window.removeEventListener("pointerdown", habilitar)
+      window.removeEventListener("keydown", habilitar)
+    }
   }, [])
 
   // Vuelo: un resorte hacia `meta`; la velocidad la inclina en 3D. En el mismo cuadro se mueve el rayo.
@@ -647,6 +666,9 @@ export default function EvaCompanera() {
     const ctx = await audioListo()
     if (turno.current !== mio) return false
     if (silencioRef.current || !ctx || ctx.state !== "running") {
+      // Sin audio todavía (nadie tocó la página: los navegadores no dejan sonar antes): queda anotada para decirla en voz
+      // alta con el primer toque, si su pregunta sigue abierta (ver `habilitar`).
+      if (!silencioRef.current) sinSonar.current = frase
       mostrar(frase)
       await esperar(lectura, corte.signal)
     } else {
@@ -695,6 +717,7 @@ export default function EvaCompanera() {
     soltarGlobo()
     return true
   }, [])
+  hablarRef.current = hablar
 
   /**
    * Va hasta una parte de la pantalla y le dispara el rayo. Dónde se pone y hacia qué lado abre el globo lo decide
