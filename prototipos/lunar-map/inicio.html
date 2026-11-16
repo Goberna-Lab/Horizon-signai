@@ -116,10 +116,11 @@
 
 .upcoming .ph .aux { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .upcoming .ph .aux span { display: inline-flex; align-items: center; gap: 5px; }
-/* luna de adorno en el hueco de abajo a la derecha del panel: una silueta tenue que gira sobre su eje.
- * fitMissions() le da el diámetro según el hueco que dejan las tarjetas (hasta 200 px) y la oculta si no cabe.
- * El disco no se mueve; dentro, una tira de cráteres (dos vueltas de 2 diámetros) se desliza con transform en 240 s
- * y todo se desvanece hacia el borde para que parezca una esfera. Detrás de las tarjetas, sin eventos; quieta con «reducir movimiento». */
+/* luna de adorno en el hueco bajo las tarjetas del panel: la Luna real (albedo de LOLA y relieve LDEM_16,
+ * data/luna-global.jpg) vista de cerca y «echada»: una esfera enorme cuyo borde cruza el hueco en diagonal, de abajo a
+ * la izquierda hasta arriba a la derecha, y gira despacio sobre su eje. La dibuja lunaGira() en un canvas del tamaño del
+ * hueco (.lunaesq, que fitLuna() empieza 16 px bajo la última tarjeta: nunca pisa los bloques), fundida con el papel
+ * de la card (multiply, sin z-index en .lunaesq para que mezcle con el papel) y al 15 %. */
 .upcoming .mlist { position: relative; z-index: 1; }
 /* Misiones reales (data/bitacoras.js): debajo de las nuestras, con su bitácora para descargar y su simulación */
 .real { position: relative; z-index: 1; flex: none; display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--tinta); background: rgba(255,255,255,0.62); }
@@ -132,18 +133,9 @@
 .macts .none { font-size: 10.5px; color: var(--gris); padding: 2px 4px; }
 .real .acts, .macts { display: flex; gap: 8px; }
 .real .acts .btn, .macts .btn { flex: 1 1 0; min-width: 0; height: 36px; font-size: 13px; padding: 0 10px; }
-.luna { --d: 168px; position: absolute; right: 24px; bottom: 24px; z-index: 0; width: var(--d); height: var(--d); border-radius: 50%; overflow: hidden; pointer-events: none;
-  background: radial-gradient(circle at 36% 32%, rgba(17,17,17,0.015), rgba(17,17,17,0.06) 72%, rgba(17,17,17,0.09));
-  box-shadow: inset 0 0 0 1px rgba(17,17,17,0.10);
-  -webkit-mask-image: radial-gradient(circle, #000 52%, rgba(0,0,0,0.4) 100%); mask-image: radial-gradient(circle, #000 52%, rgba(0,0,0,0.4) 100%); }
-.luna::before { content: ""; position: absolute; top: 0; left: 0; width: 400%; height: 100%; will-change: transform;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='336' height='168'%3E%3Cg fill='rgba(17,17,17,0.07)'%3E%3Cellipse cx='70' cy='62' rx='34' ry='24'/%3E%3Cellipse cx='112' cy='104' rx='26' ry='18'/%3E%3Cellipse cx='232' cy='70' rx='40' ry='22'/%3E%3Cellipse cx='268' cy='118' rx='22' ry='14'/%3E%3C/g%3E%3Cg fill='rgba(17,17,17,0.05)' stroke='rgba(17,17,17,0.16)' stroke-width='1'%3E%3Ccircle cx='38' cy='120' r='11'/%3E%3Ccircle cx='150' cy='46' r='8'/%3E%3Ccircle cx='170' cy='132' r='14'/%3E%3Ccircle cx='196' cy='28' r='5'/%3E%3Ccircle cx='300' cy='40' r='10'/%3E%3Ccircle cx='310' cy='146' r='6'/%3E%3Ccircle cx='92' cy='150' r='5'/%3E%3Ccircle cx='24' cy='30' r='6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(var(--d) * 2) var(--d) repeat-x;
-  animation: luna-gira 240s linear infinite; }
-.luna::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.35), transparent 55%), radial-gradient(circle at 50% 50%, transparent 58%, rgba(17,17,17,0.05) 100%); }
-@keyframes luna-gira { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
-@media (prefers-reduced-motion: reduce) { .luna::before { animation: none; } }
-@media (max-width: 1000px) { .luna { display: none !important; } }
+.lunaesq { position: absolute; left: 0; right: 0; bottom: 0; top: 100%; overflow: hidden; pointer-events: none; }
+.luna { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.15; mix-blend-mode: multiply; }
+@media (max-width: 1000px) { .lunaesq { display: none !important; } }
 .mrow { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
 .mrow .r1 .sym { margin-right: 2px; }
 .mrow .r1 .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -208,6 +200,48 @@
 .tip { position: absolute; top: 0; left: 0; z-index: 5; max-width: 280px; padding: 8px 10px; border-radius: 10px; background: var(--tinta); color: var(--crema); font-size: 12px; line-height: 1.4; white-space: pre-line; pointer-events: none; box-shadow: 0 8px 18px rgba(17,17,17,0.28); opacity: 0; transform: translateY(4px); transition: opacity .12s ease, transform .12s ease; }
 .tip.on { opacity: 1; transform: none; }
 .tip b { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; color: rgba(244,239,230,0.7); }
+
+/* ---------- el mes en cuadrícula, bajo el Gantt: llena el alto que sobraba en el panel ----------
+ * Cada día: su número, los movimientos (● registrado, ○ programado, ◆ hito) y qué misiones los tienen. El fondo pinta las
+ * fases de la misión elegida con los colores del Gantt (preparación, en superficie, ventana posible). Hoy, recuadro de
+ * tinta. Un clic en un día filtra la bitácora de al lado a ese día. */
+.cal { display: flex; flex-direction: column; }
+.mes { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--borde); }
+.mes-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.mes-h b { min-width: 168px; text-align: center; font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+.mes-nav { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--borde); background: transparent; color: var(--tinta); cursor: pointer; }
+.mes-nav:hover:not(:disabled) { border-color: var(--tinta); }
+.mes-nav:disabled { opacity: .35; cursor: default; }
+.mes-nav:focus-visible, .dia:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
+.mes-h .aux { margin-left: auto; font: 500 10.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: rgba(17,17,17,0.68); }
+.mes-sem, .mes-g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.mes-sem span { padding: 0 0 5px 7px; font: 600 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--gris-2); }
+.mes-g { flex: 1 1 auto; grid-auto-rows: minmax(30px, 1fr); border-top: 1px solid var(--borde); border-left: 1px solid var(--borde); }
+.dia { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-width: 0; padding: 5px 7px 7px; border: 0; border-right: 1px solid var(--borde); border-bottom: 1px solid var(--borde); background: transparent; color: var(--tinta); font: inherit; text-align: left; cursor: pointer; container-type: inline-size; }
+.dia:hover { background-color: rgba(17,17,17,0.04); }
+.dia .n { font: 600 12px var(--f-mono); }
+.dia.fuera { cursor: default; }
+.dia.fuera .n { color: var(--gris-3); font-weight: 400; }
+.dia.prep { background-color: rgba(201,193,182,0.24); }
+.dia.sup::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--tinta); }
+.dia.ven { background-image: repeating-linear-gradient(135deg, rgba(133,125,114,0.22) 0 2px, rgba(0,0,0,0) 2px 6px); }
+.dia.hoy { box-shadow: inset 0 0 0 2px var(--tinta); }
+.dia.hoy .n::after { content: attr(data-hoy); margin-left: 6px; padding: 1px 4px; background: var(--tinta); color: var(--crema); font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; }
+.dia[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+.dia[aria-pressed="true"] .mk .dot { background: var(--crema); box-shadow: none; }
+.dia[aria-pressed="true"] .mk .dot.o { background: var(--tinta); box-shadow: inset 0 0 0 2px var(--crema); }
+.dia[aria-pressed="true"] .ids { color: rgba(244,239,230,0.75); }
+.mk { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; min-height: 9px; }
+.mk .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tinta); }
+.mk .dot.o { background: var(--crema); box-shadow: inset 0 0 0 2px var(--tinta); }
+.mk .h { width: 8px; height: 8px; margin: 0 1px; background: var(--rojo); transform: rotate(45deg); }
+.mk small { font: 600 10px var(--f-mono); color: var(--gris-2); }
+.ids { overflow: hidden; font: 10px var(--f-mono); color: var(--gris-2); white-space: nowrap; text-overflow: ellipsis; }
+@container (max-width: 84px) { .ids { display: none; } .dia.hoy .n::after { display: none; } }
+/* apilado (calendario encima de la bitácora): el panel ya no tiene alto fijo, los días toman el suyo */
+@media (max-width: 1300px) { .mes-g { grid-auto-rows: minmax(56px, auto); } }
+.mes .tip div + div { margin-top: 3px; }
+.fday { gap: 6px; }
 
 /* ---------- bitácora de movimientos ---------- */
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -307,7 +341,48 @@
 .lw .pct { padding-top: 16px; text-align: right; font: 600 13px var(--f-mono); }
 .lw .pct small { display: block; font: 400 10px var(--f-mono); color: var(--gris-2); letter-spacing: .04em; }
 .lw .on { background: rgba(17,17,17,0.04); }
-.lwp .rule { display: flex; align-items: center; gap: 6px; margin-top: 10px; font: 10.5px var(--f-mono); color: var(--gris-2); }
+/* ---- 2026-11-16: próxima ventana por sitio arriba, línea de tiempo que llena el alto, otros candidatos abajo ---- */
+.lwp { position: relative; display: flex; flex-direction: column; }
+.lw-regla { cursor: help; }
+.lw-prox { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.lwc { display: grid; gap: 6px; align-content: start; padding: 10px 12px; border: 1px solid var(--borde); cursor: pointer; min-width: 0; transition: border-color 140ms, background-color 140ms; }
+.lwc:hover { border-color: var(--tinta); background: rgba(17,17,17,0.03); }
+.lwc.on { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.lwc:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.lwc-h { display: flex; align-items: center; gap: 7px; font-size: 13px; min-width: 0; }
+.lwc-h b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lwc .est { margin: 0; display: grid; gap: 1px; font: 11px var(--f-mono); color: var(--gris); }
+.lwc .est b { font: 700 15px var(--f-ui); letter-spacing: -.01em; color: var(--tinta); }
+.lwc .est.abierta b::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; background: var(--tinta); vertical-align: 1px; }
+.lwc .est.nada b { color: var(--rojo); }
+.lwc ul { list-style: none; margin: 0; padding: 6px 0 0; border-top: 1px solid var(--borde); display: grid; gap: 3px; font: 10.5px/1.35 var(--f-mono); color: var(--gris); }
+.lwc li b { margin-right: 4px; font-weight: 600; color: var(--tinta); }
+.lwc li .ok { color: var(--tinta); }
+.lwc li .no { font-weight: 600; color: var(--rojo); }
+.lww { flex: 1 1 auto; min-height: 0; }
+.lw { height: 100%; }
+.lw .lab { height: auto; padding: 0 10px 0 4px; align-self: stretch; }
+.lw .lab b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; }
+.lw .bar { height: auto; min-height: 52px; align-self: stretch; }
+.lw .bar .bg, .lw .bar .g, .lw .bar .s { top: calc(50% - 12px); height: 14px; }
+.lw .bar .s { background: repeating-linear-gradient(135deg, rgba(31,95,168,0.65) 0 2px, rgba(0,0,0,0) 2px 5px); }
+.lw .bar .pin { top: calc(50% + 9px); }
+.lw .bar .pin::after { top: auto; bottom: 100%; height: 7px; }
+.lw .pct { padding-top: 0; align-self: center; }
+.lw-otros { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--borde); }
+.lw-otros-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.lw-otros-h .aux { font-size: 10.5px; color: var(--gris-2); }
+.lw-otros-l { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; }
+.lwo { display: grid; gap: 3px; min-width: 0; font-size: 12px; }
+.lwo-t { display: flex; justify-content: space-between; gap: 6px; }
+.lwo-t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lwo-t em { flex: none; font: 600 11px var(--f-mono); font-style: normal; }
+.lwo-bar { position: relative; height: 6px; background: var(--crema-4); }
+.lwo-bar span { position: absolute; top: 0; bottom: 0; }
+.lwo-bar .g { background: var(--tinta-2); }
+.lwo-bar .s { background: rgba(31,95,168,0.35); }
+.lwo small { font: 10px var(--f-mono); color: var(--gris-2); }
+.lw-tip { position: absolute; z-index: 5; pointer-events: none; padding: 5px 8px; background: var(--tinta); color: var(--crema); font: 11px var(--f-mono); white-space: nowrap; transform: translate(-50%, -130%); }
 .lww { overflow-x: auto; }
 .lww .lw { min-width: 720px; }
 
@@ -455,21 +530,23 @@
                 <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="mono aux" id="mix"></span></div>
                 <div class="mlist" id="mlist"></div>
                 <div class="real" id="realLog" hidden></div>
-                <div class="luna" aria-hidden="true"></div>
+                <div class="lunaesq" aria-hidden="true"><canvas class="luna"></canvas></div>
               </section>
             </div>
           </div>
           <div class="fpane" id="win-p" role="tabpanel" aria-labelledby="tab-win" hidden>
             <section class="paper panel lwp" aria-labelledby="win-t">
-              <div class="ph"><h2 id="win-t" class="display-caps">Landing windows</h2><span class="mono aux">next 6 months · by site and day</span></div>
+              <div class="ph"><h2 id="win-t" class="display-caps">Landing windows</h2><span class="mono aux lw-regla" tabindex="0" title="Rule of CR-01: land at 09:00 UTC · 3-day stay · panel and antenna at 2 m · battery 24 h · Earth ≥ 40% · planner engine: JPL Horizons DE441 and LOLA horizons">ⓘ 09:00 UTC · 3-day stay · 2 m · battery 24 h · Earth ≥ 40%</span></div>
+              <div class="lw-prox" id="lw-prox"></div>
               <div class="legend" aria-hidden="true">
                 <span><i class="sw" style="background: var(--tinta-2)"></i>Can land</span>
-                <span><i class="sw" style="background: repeating-linear-gradient(135deg, var(--borde-2) 0 2px, rgba(0,0,0,0) 2px 5px); box-shadow: inset 0 0 0 1px var(--borde)"></i><i class="lni lni-globe-1"></i>Sun, but Earth hidden</span>
+                <span><i class="sw" style="background: repeating-linear-gradient(135deg, rgba(31,95,168,0.65) 0 2px, rgba(0,0,0,0) 2px 5px); box-shadow: inset 0 0 0 1px var(--borde)"></i><i class="lni lni-globe-1"></i>Sun, but Earth hidden</span>
                 <span><i class="sw" style="background: var(--crema-4)"></i><i class="lni lni-moon-half-right-5"></i>No Sun, or a night longer than the battery</span>
                 <span><i class="lni lni-flag-1"></i>Milestone</span>
               </div>
               <div class="lww"><div class="lw" id="lw"></div></div>
-              <p class="rule"><i class="lni lni-sliders-horizontal-square-2" aria-hidden="true"></i><span>Rule of CR-01: land at 09:00 UTC · 3-day stay · panel and antenna at 2 m · battery 24 h · Earth ≥ 40% · planner engine: JPL Horizons DE441 and LOLA horizons</span></p>
+              <div class="lw-otros"><div class="lw-otros-h"><span class="lbl">Other candidates</span><span class="mono aux">by days with a window in the next 6 months</span></div><div class="lw-otros-l" id="lw-otros"></div></div>
+              <div class="lw-tip" id="lw-tip" hidden></div>
             </section>
           </div>
           <div class="fpane" id="seg-p" role="tabpanel" aria-labelledby="tab-seg" hidden>
@@ -486,6 +563,17 @@
                   <span><i class="lg-now"></i>Today</span>
                 </div>
                 <div class="calw" id="calw"><svg id="cal" viewBox="0 0 860 238" role="img" aria-label="Campaign calendar with the Sun windows, preparation, the stay on the surface and the movements of each mission"></svg><div class="tip" id="tip" role="tooltip"></div></div>
+                <div class="mes" id="mes">
+                  <div class="mes-h">
+                    <button type="button" class="mes-nav" id="mesPrev" aria-label="Previous month"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+                    <b id="mesT" aria-live="polite">—</b>
+                    <button type="button" class="mes-nav" id="mesNext" aria-label="Next month"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+                    <span class="mono aux" id="mesFase"></span>
+                  </div>
+                  <div class="mes-sem" id="mesSem" aria-hidden="true"></div>
+                  <div class="mes-g" id="mesG"></div>
+                  <div class="tip" id="tipMes" role="tooltip"></div>
+                </div>
               </section>
               <section class="paper panel movs" aria-labelledby="mv-t">
                 <div class="ph"><h2 id="mv-t" class="display-caps">Mission movements</h2><span class="mono aux">logged and scheduled</span></div>
@@ -498,6 +586,7 @@
                     <button type="button" class="chip" data-v="past" aria-pressed="false">Logged</button>
                     <button type="button" class="chip" data-v="next" aria-pressed="false">Scheduled</button>
                   </div>
+                  <button type="button" class="chip mono fday" id="fDay" aria-pressed="true" hidden></button>
                   <span class="mono count" id="logCount" aria-live="polite"></span>
                 </div>
                 <ul class="log" id="log"><li class="empty">Measuring the routes over the terrain…</li></ul>
@@ -530,7 +619,7 @@
 
   var state = { sel: 'CR-02', approved: C.approvedAt() !== null, route: null };
   var missions = C.missions(), movs = null;
-  var logF = { mission: 'all', type: 'all', when: 'all' };
+  var logF = { mission: 'all', type: 'all', when: 'all', day: null };
   function current() { return missions.filter(function (m) { return m.id === state.sel; })[0]; }
 
   /* ---------- reloj y cuenta regresiva ---------- */
@@ -667,14 +756,103 @@
     if (used) { ml.style.flex = 'none'; ml.style.height = used + 'px'; }
     fitLuna();
   }
-  /* la luna de adorno ocupa el hueco bajo la última tarjeta: diámetro = hueco − márgenes, hasta 200 px; oculta si no llega a 90 */
+  /* la luna de adorno ocupa el hueco bajo la última tarjeta, de lado a lado, desde 16 px por debajo de ella; oculta si
+   * el hueco no llega a 70 px */
   function fitLuna() {
-    var lu = document.querySelector('.luna'), ml = $('mlist'), last = ml.lastElementChild;
-    if (!lu || !ml.offsetParent) return;
-    var fin = ml.offsetTop + Math.min(ml.clientHeight, last ? last.offsetTop + last.offsetHeight : 0);
-    var d = Math.min(200, ml.offsetParent.clientHeight - fin - 40);
-    lu.style.display = d < 90 ? 'none' : '';
-    lu.style.setProperty('--d', Math.max(d, 90) + 'px');
+    var lu = document.querySelector('.luna'), esq = lu && lu.parentNode, ml = $('mlist'), last = ml.lastElementChild;
+    if (!lu || !ml.offsetParent || !esq.offsetParent) return;
+    var top = ml.offsetTop + Math.min(ml.clientHeight, last ? last.offsetTop + last.offsetHeight : 0) + 16;
+    var real = $('realLog'); if (real && !real.hidden) top = Math.max(top, real.offsetTop + real.offsetHeight + 16);   /* tampoco pisa las misiones reales */
+    var w = esq.offsetParent.clientWidth, h = esq.offsetParent.clientHeight - top;
+    esq.style.top = top + 'px'; esq.style.display = h < 70 ? 'none' : '';
+    if (h >= 70) lunaGira(lu, w, h);
+  }
+  /* ---------- la Luna que gira, vista de cerca ----------
+   * El borde de la esfera pasa por abajo a la izquierda y por arriba a la derecha del hueco; el radio es 1,3 veces esa
+   * cuerda, así el borde se curva poco, como visto desde cerca. El eje de giro va a lo largo de ese borde (el polo sur
+   * arriba a la derecha, inclinado 25° hacia quien mira): la superficie asoma por el horizonte y rueda despacio hacia
+   * el frente, una vuelta cada 12 min. La luz del sombreado de la textura (del oeste) queda así siempre del mismo lado.
+   * Cada píxel guarda su latitud/longitud y su luz una sola vez; en cada cuadro solo se desplaza la longitud.
+   * Colores: el gris real del suelo sobre el papel (multiply: blanco = papel). A ~15 fps, solo mientras se ve; quieta
+   * con «reducir movimiento». */
+  var luna = { quieta: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches), tex: null, cargando: false, cv: null, w: 0, h: 0, tabla: null, ult: 0, raf: 0, visible: true };
+  function lunaGira(cv, w, h) {
+    luna.cv = cv;
+    if (!luna.tex) {
+      if (!luna.cargando) {
+        luna.cargando = true;
+        var im = new Image();
+        im.onload = function () {
+          var c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+          var g = c.getContext('2d'); g.drawImage(im, 0, 0);
+          var px = g.getImageData(0, 0, im.width, im.height).data, gris = new Uint8Array(im.width * im.height);
+          for (var i = 0; i < gris.length; i++) gris[i] = px[i * 4];
+          luna.tex = { w: im.width, h: im.height, g: gris };
+          if (luna.w) { var ww = luna.w, hh = luna.h; luna.w = 0; lunaGira(luna.cv, ww, hh); }
+        };
+        im.src = 'data/luna-global.jpg';
+      }
+      luna.w = w; luna.h = h; return;
+    }
+    if (w !== luna.w || h !== luna.h || !luna.tabla) lunaTabla(w, h);
+    if (window.IntersectionObserver && !luna.io) {
+      luna.io = new IntersectionObserver(function (es) { luna.visible = es[0].isIntersecting; if (luna.visible) lunaPide(); });
+      luna.io.observe(cv);
+    }
+    lunaCuadro(performance.now());
+    if (!luna.quieta) lunaPide();
+  }
+  function lunaTabla(w, h) {
+    /* resolución: hasta 1,25 px por px de CSS y nunca más de 300 000 px en el canvas (la textura ya es suave) */
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.25, Math.sqrt(300000 / (w * h))), W = Math.round(w * dpr), H = Math.round(h * dpr), T = luna.tex, cv = luna.cv;
+    cv.width = W; cv.height = H; luna.w = w; luna.h = h;
+    function nor(v) { var l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; }
+    function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+    function cruz(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    /* el borde: de P1 (abajo a la izquierda) a P2 (arriba a la derecha); el centro queda abajo a la derecha, fuera */
+    var p1x = -0.02 * W, p1y = 0.98 * H, p2x = 1.02 * W, p2y = 0.03 * H, cx = p2x - p1x, cy = p2y - p1y, lc = Math.hypot(cx, cy);
+    var R = 1.3 * lc, dist = Math.sqrt(R * R - lc * lc / 4), Cx = (p1x + p2x) / 2 - cy / lc * dist, Cy = (p1y + p2y) / 2 + cx / lc * dist;
+    /* marco de pantalla con y hacia arriba y z hacia quien mira */
+    var d = [cx / lc, -cy / lc, 0], tau = 25 * Math.PI / 180;
+    var norte = nor([-d[0] * Math.cos(tau), -d[1] * Math.cos(tau), -Math.sin(tau)]);
+    var xb = nor([-norte[2] * norte[0], -norte[2] * norte[1], 1 - norte[2] * norte[2]]), yb = cruz(norte, xb);
+    var fuera = nor([cy / lc, cx / lc, 0]);                          /* hacia el borde, en el plano */
+    var L = nor([fuera[0] * 0.5 + d[0] * 0.25, fuera[1] * 0.5 + d[1] * 0.25, 0.8]);
+    var idx = [], bu = [], f0 = [], f1 = [], fv = [], luz = [], alfa = [];
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      var sx = (x + 0.5 - Cx) / R, sy = (Cy - y - 0.5) / R, q = sx * sx + sy * sy;
+      if (q >= 1) continue;
+      var n = [sx, sy, Math.sqrt(1 - q)];
+      var lat = Math.asin(Math.max(-1, Math.min(1, dot(n, norte)))), lon = Math.atan2(dot(n, yb), dot(n, xb));
+      var v = (0.5 - lat / Math.PI) * T.h - 0.5, v0 = Math.max(0, Math.min(T.h - 1, Math.floor(v)));
+      idx.push(y * W + x); bu.push(((lon / (2 * Math.PI)) + 1) % 1 * T.w);
+      f0.push(v0 * T.w); f1.push(Math.min(T.h - 1, v0 + 1) * T.w); fv.push(Math.max(0, Math.min(1, v - v0)));
+      luz.push(0.6 + 0.4 * Math.max(0, dot(n, L)));
+      alfa.push(Math.max(0, Math.min(1, (1 - Math.sqrt(q)) * R / 1.2)) * 255);      /* borde con antialias */
+    }
+    luna.tabla = { idx: Int32Array.from(idx), bu: Float32Array.from(bu), f0: Int32Array.from(f0), f1: Int32Array.from(f1), fv: Float32Array.from(fv), luz: Float32Array.from(luz), alfa: Uint8Array.from(alfa), img: cv.getContext('2d').createImageData(W, H) };
+  }
+  function lunaPide() { if (!luna.raf && luna.visible && !luna.quieta) luna.raf = requestAnimationFrame(lunaTick); }
+  function lunaTick(t) {
+    luna.raf = 0;
+    if (!luna.cv || !luna.cv.offsetParent || !luna.visible) return;
+    if (t - luna.ult > 66) lunaCuadro(t);
+    lunaPide();
+  }
+  var FUERZA = 0.85;
+  function lunaCuadro(t) {
+    var T = luna.tex, B = luna.tabla; if (!T || !B) return;
+    luna.ult = t;
+    var w = T.w, g = T.g, d = B.img.data, off = ((t / 720000) % 1) * w;
+    for (var i = 0; i < B.idx.length; i++) {
+      var u = B.bu[i] - off; if (u < 0) u += w;
+      var u0 = u | 0, fu = u - u0, u1 = u0 + 1 === w ? 0 : u0 + 1, a = B.f0[i], b = B.f1[i], fv = B.fv[i];
+      var top = g[a + u0] + (g[a + u1] - g[a + u0]) * fu, bot = g[b + u0] + (g[b + u1] - g[b + u0]) * fu;
+      var br = (top + (bot - top) * fv) / 255 * B.luz[i];
+      var c = 255 * (1 - FUERZA * (1 - br)), o = B.idx[i] * 4;
+      d[o] = c; d[o + 1] = c; d[o + 2] = c * 0.985; d[o + 3] = B.alfa[i];
+    }
+    luna.cv.getContext('2d').putImageData(B.img, 0, 0);
   }
   if (window.ResizeObserver) new ResizeObserver(function () { fitMissions(); }).observe(document.querySelector('.sites .screen'));
   /* ---------- Mission sites: radar a distancia real, de 50, 100 o 200 km ----------
@@ -815,6 +993,51 @@
   /* ---------- «Landing windows»: una fila por sitio de la campaña; cada día, si se puede alunizar ----------
    * Los datos los calcula tools/ventanas-aterrizaje.js con el motor del planificador (regla de CR-01). Sobre cada fila,
    * las misiones de ese sitio en su fecha (PS-03, en su plazo para elegirla); arriba, hoy y el Go/No-Go final. */
+  /* El texto de este panel se escribe ya en el idioma de la página (las fechas y las cifras cambian, no van al diccionario). */
+  var ES_LW = (function () { try { return localStorage.getItem('horizon-signai.lang') === 'es'; } catch (e) { return false; } })();
+  function T(en, es) { return ES_LW ? es : en; }
+  var MES_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function dmL(ms) { var d = new Date(ms); return d.getUTCDate() + ' ' + (ES_LW ? MES_ES : C.MONTHS)[d.getUTCMonth()]; }
+  function diaDe(ms) { return Math.floor((ms - V0) / DAY); }
+  function diasTxt(n) { return T(n + (n === 1 ? ' day' : ' days'), n + (n === 1 ? ' día' : ' días')); }
+  /* tramos seguidos con el mismo código (G se puede alunizar, S Sol sin Tierra, N sin Sol o noche larga); j no se incluye */
+  function tramos(dias) { var out = [], N = V.dias; for (var i = 0; i < N;) { var c = dias[i], j = i; while (j < N && dias[j] === c) j++; out.push({ c: c, i: i, j: j }); i = j; } return out; }
+  function segs(dias) { return tramos(dias).filter(function (t) { return t.c !== 'N'; }).map(function (t) { return '<span class="' + (t.c === 'G' ? 'g' : 's') + '" style="left:' + (t.i / V.dias * 100).toFixed(3) + '%;width:' + ((t.j - t.i) / V.dias * 100).toFixed(3) + '%"></span>'; }).join(''); }
+  function rango(t) { var a = V0 + t.i * DAY, b = V0 + (t.j - 1) * DAY; return t.j - t.i === 1 ? dmL(a) : dmL(a) + '–' + dmL(b); }
+  function abiertos(dias) { var n = 0; for (var i = 0; i < V.dias; i++) if (dias[i] === 'G') n++; return n; }
+  /* hoy: ¿hay ventana abierta (y cuántos días le quedan) o cuándo abre la próxima y cuánto dura? */
+  function proxima(z) {
+    var tr = tramos(V.zonas[z].dias), hoy = diaDe(Date.now());
+    var ahora = tr.filter(function (t) { return t.c === 'G' && t.i <= hoy && hoy < t.j; })[0];
+    if (ahora) return { abierta: true, t: ahora, quedan: ahora.j - hoy };
+    var sig = tr.filter(function (t) { return t.c === 'G' && t.i > hoy; })[0];
+    return sig ? { abierta: false, t: sig, en: sig.i - hoy } : null;
+  }
+  function fechaMision(m) { return m.id === 'CR-01' ? C.CONTACT : m.id === 'CR-02' ? C.EVA : m.t; }
+  /* cada misión del sitio: si su fecha cae dentro de una ventana; si no, cuál es la más cercana */
+  function lineaMision(m, z) {
+    if (m.id === 'PS-03') return '<li><b>' + m.id + '</b>' + T('choose a date by ', 'elegir fecha antes del ') + dmL(PS03_DEADLINE) + '</li>';
+    var t = fechaMision(m);
+    if (!t || m.status === 'DRAFT') return '<li><b>' + m.id + '</b>' + T('no date yet', 'sin fecha') + '</li>';
+    var d = diaDe(t), dias = V.zonas[z].dias, dentro = d >= 0 && d < V.dias && dias[d] === 'G';
+    var txt = '<b>' + m.id + '</b>' + dmL(t) + ' ' + (dentro ? '<span class="ok">✓ ' + T('inside a window', 'dentro de una ventana') + '</span>' : '<span class="no">✗ ' + T('outside', 'fuera') + '</span>');
+    if (!dentro) {
+      var dist = function (q) { return d < q.i ? q.i - d : d >= q.j ? d - q.j + 1 : 0; };
+      var cerca = tramos(dias).filter(function (q) { return q.c === 'G'; }).sort(function (a, b) { return dist(a) - dist(b); })[0];
+      if (cerca) txt += ' · ' + T('window ', 'ventana ') + rango(cerca);
+    }
+    return '<li>' + txt + '</li>';
+  }
+  function estado(z) {
+    var p = proxima(z);
+    if (!p) return '<p class="est nada"><b>' + T('No window', 'Sin ventana') + '</b>' + T('in the next 6 months', 'en los próximos 6 meses') + '</p>';
+    if (p.abierta) return '<p class="est abierta"><b>' + T('Open now', 'Abierta ahora') + '</b>' + T('closes ', 'cierra el ') + dmL(V0 + (p.t.j - 1) * DAY) + ' · ' + T(diasTxt(p.quedan) + ' left', (p.quedan === 1 ? 'queda ' : 'quedan ') + diasTxt(p.quedan)) + '</p>';
+    return '<p class="est"><b>' + T('Next: ', 'Próxima: ') + dmL(V0 + p.t.i * DAY) + '</b>' + T('in ', 'en ') + diasTxt(p.en) + ' · ' + T('lasts ', 'dura ') + diasTxt(p.t.j - p.t.i) + '</p>';
+  }
+
+  /* ---------- «Landing windows»: arriba, la próxima ventana de cada sitio de la campaña; en medio, la línea de tiempo
+   * (sus filas se estiran hasta llenar el alto de la carpeta); abajo, los demás candidatos del planificador. Los datos
+   * los calcula tools/ventanas-aterrizaje.js con el motor del planificador (regla de CR-01). ---------- */
   function renderWindows() {
     var box = $('lw'); if (!box || !V) return;
     var N = V.dias, sel = current();
@@ -832,17 +1055,12 @@
     zones.forEach(function (z) {
       var ms = missions.filter(function (m) { return m.site === z; }).sort(byAttention), zv = V.zonas[z], on = sel && sel.site === z ? ' on' : '';
       h += '<div class="lab' + on + '" data-z="' + z + '"><i class="sym ' + symCls(ms[0].status) + '" aria-hidden="true"></i><span><b>' + z + ' · ' + C.SITES[z].name + '</b><small>' + ms.map(function (m) { return m.id; }).join(' · ') + '</small></span></div>';
-      h += '<div class="bar' + on + '" data-z="' + z + '"><span class="bg"></span>';
-      for (var i = 0; i < N;) {
-        var c = zv.dias[i], j = i; while (j < N && zv.dias[j] === c) j++;
-        if (c !== 'N') h += '<span class="' + (c === 'G' ? 'g' : 's') + '" style="left:' + (i / N * 100).toFixed(3) + '%;width:' + ((j - i) / N * 100).toFixed(3) + '%"></span>';
-        i = j;
-      }
+      h += '<div class="bar' + on + '" data-z="' + z + '"><span class="bg"></span>' + segs(zv.dias);
       if (inRange) h += '<span class="vline" style="left:' + pc(now) + '"></span>';
       h += '<span class="gline" style="left:' + pc(C.GONOGO) + '"></span>';
-      /* marcas: misiones con fecha (las que caen a menos de 3 días, juntas) y el plazo de PS-03 */
+      /* marcas, debajo de la barra: misiones con fecha (las que caen a menos de 3 días, juntas) y el plazo de PS-03 */
       var pins = [];
-      ms.map(function (m) { return { m: m, t: m.id === 'CR-01' ? C.CONTACT : m.id === 'CR-02' ? C.EVA : m.id === 'PS-03' ? PS03_DEADLINE : m.t }; })
+      ms.map(function (m) { return { m: m, t: m.id === 'PS-03' ? PS03_DEADLINE : fechaMision(m) }; })
         .filter(function (x) { return x.t && x.m.status !== 'DRAFT'; }).sort(function (a, b) { return a.t - b.t; })
         .forEach(function (x) {
           var last = pins[pins.length - 1];
@@ -850,18 +1068,46 @@
           pins.push({ t: x.t, ids: [x.m.id], st: x.m.status, deadline: x.m.id === 'PS-03' });
         });
       pins.forEach(function (p) {
-        var label = p.deadline ? '<i class="lni lni-alarm-1" aria-hidden="true"></i>' + p.ids[0] + ' · choose by ' + dm(p.t) : p.ids.join(' · ') + ' · ' + dm(p.t);
+        var label = p.deadline ? '<i class="lni lni-alarm-1" aria-hidden="true"></i>' + p.ids[0] + ' · ' + T('choose by ', 'elegir antes del ') + dmL(p.t) : p.ids.join(' · ') + ' · ' + dmL(p.t);
         h += '<span class="pin ' + p.st + '" style="left:' + pc(p.t) + '">' + label + '</span>';
       });
-      h += '</div><div class="pct">' + zv.abiertas + '%<small>days open</small></div>';
+      h += '</div><div class="pct">' + abiertos(zv.dias) + '<small>' + T('of ' + N + ' days', 'de ' + N + ' días') + '</small></div>';
     });
     box.innerHTML = h;
+    box.style.gridTemplateRows = '46px repeat(' + zones.length + ', minmax(52px, 1fr))';
+    /* arriba: la próxima ventana de cada sitio y si sus misiones caen dentro */
+    $('lw-prox').innerHTML = zones.map(function (z) {
+      var ms = missions.filter(function (m) { return m.site === z; }).sort(byAttention), on = sel && sel.site === z ? ' on' : '';
+      return '<div class="lwc' + on + '" data-z="' + z + '" role="button" tabindex="0"><span class="lwc-h"><i class="sym ' + symCls(ms[0].status) + '" aria-hidden="true"></i><b>' + z + ' · ' + C.SITES[z].name + '</b></span>' +
+        estado(z) + '<ul>' + ms.map(function (m) { return lineaMision(m, z); }).join('') + '</ul></div>';
+    }).join('');
+    /* abajo: los demás candidatos del planificador, por días con ventana */
+    var resto = Object.keys(V.zonas).filter(function (z) { return zones.indexOf(z) < 0; }).sort(function (a, b) { return abiertos(V.zonas[b].dias) - abiertos(V.zonas[a].dias); });
+    $('lw-otros').innerHTML = resto.map(function (z) {
+      var zv = V.zonas[z], p = proxima(z);
+      var sig = !p ? T('no window', 'sin ventana') : p.abierta ? T('open now · closes ', 'abierta · cierra el ') + dmL(V0 + (p.t.j - 1) * DAY) : T('next ', 'próxima ') + rango(p.t);
+      return '<div class="lwo"><div class="lwo-t"><span><b>' + z + '</b> ' + zv.nombre + '</span><em>' + abiertos(zv.dias) + ' d</em></div><span class="lwo-bar">' + segs(zv.dias) + '</span><small>' + sig + '</small></div>';
+    }).join('');
   }
-  $('lw').addEventListener('click', function (e) {
-    var r = e.target.closest('[data-z]'); if (!r) return;
-    var m = missions.filter(function (x) { return x.site === r.dataset.z; }).sort(byAttention)[0];
+  function selZone(z) {
+    var m = missions.filter(function (x) { return x.site === z; }).sort(byAttention)[0];
     if (m) select(m.id, true);
+  }
+  $('lw').addEventListener('click', function (e) { var r = e.target.closest('[data-z]'); if (r) selZone(r.dataset.z); });
+  $('lw-prox').addEventListener('click', function (e) { var r = e.target.closest('[data-z]'); if (r) selZone(r.dataset.z); });
+  $('lw-prox').addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; var r = e.target.closest('[data-z]'); if (r) { e.preventDefault(); selZone(r.dataset.z); } });
+  /* al pasar sobre una barra: el día, su estado y, si se puede alunizar, la ventana completa */
+  $('lw').addEventListener('mousemove', function (e) {
+    var tip = $('lw-tip'), bar = e.target.closest('.bar');
+    if (!bar || !V) { tip.hidden = true; return; }
+    var r = bar.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * V.dias);
+    if (i < 0 || i >= V.dias) { tip.hidden = true; return; }
+    var dias = V.zonas[bar.dataset.z].dias, c = dias[i], tr = tramos(dias).filter(function (q) { return q.i <= i && i < q.j; })[0];
+    tip.textContent = dmL(V0 + i * DAY) + ' · ' + (c === 'G' ? T('can land · window ', 'se puede alunizar · ventana ') + rango(tr) : c === 'S' ? T('Sun, but Earth hidden', 'Sol, pero sin Tierra') : T('no Sun, or the night outlasts the battery', 'sin Sol, o la noche dura más que la batería'));
+    var pr = $('win-p').querySelector('.lwp').getBoundingClientRect();
+    tip.style.left = (e.clientX - pr.left) + 'px'; tip.style.top = (r.top - pr.top + r.height / 2 - 10) + 'px'; tip.hidden = false;
   });
+  $('lw').addEventListener('mouseleave', function () { $('lw-tip').hidden = true; });
   fitRadar();
   if (window.ResizeObserver) new ResizeObserver(function () { fitRadar(); if (reduceMotion) drawRadar(0); }).observe(radar);
   if (reduceMotion) drawRadar(0);
@@ -884,6 +1130,7 @@
     return '<rect x="' + x.toFixed(1) + '" y="' + (cy - 5) + '" width="' + w.toFixed(1) + '" height="10" rx="4" fill="' + fill + '"' + (extra || '') + ' data-tip="' + esc(tip) + '"></rect>';
   }
   function tipOf(v) { return C.fmtDay(v.t) + ' · ' + hhmm(v.t) + ' UTC\n' + v.text; }
+  var HITOS = { 'CR-01': [C.CONTACT, C.U(2026, 12, 15, 16)], 'CR-02': [C.EVA] };        /* movimientos que son hitos (◆) */
   function renderCal() {
     var now = Date.now(), rows = [{ id: 'sun', label: 'Sun', sub: 'zone A · panel at 2 m' }].concat(missions.map(function (m) { return { id: m.id, label: m.id, sub: C.STATUS_LABEL[m.status].toLowerCase() }; }));
     var H = TOP + rows.length * RH + 8, g = '';
@@ -910,7 +1157,7 @@
       g += '</g>';
       if (r.id === 'sun' || !movs) return;
       /* movimientos de la misión, agrupados cuando caen a menos de 7 px */
-      var hits = { 'CR-01': [C.CONTACT, C.U(2026, 12, 15, 16)], 'CR-02': [C.EVA] }[r.id] || [];
+      var hits = HITOS[r.id] || [];
       var items = movs.filter(function (v) { return v.id === r.id; }).map(function (v) { return { x: X(v.t), v: v, hit: hits.indexOf(v.t) >= 0, sched: v.t > now }; });
       var groups = [];
       items.forEach(function (it) { var last = groups[groups.length - 1]; if (last && it.x - last.x0 < 7) last.items.push(it); else groups.push({ x0: it.x, items: [it] }); });
@@ -928,7 +1175,74 @@
     g += '<line x1="' + xn.toFixed(1) + '" y1="' + (TOP - 6) + '" x2="' + xn.toFixed(1) + '" y2="' + (H - 6) + '" stroke="#111111" stroke-width="1.5" stroke-dasharray="4 3"></line>' +
       '<rect x="' + (xn - 20).toFixed(1) + '" y="' + (TOP - 24) + '" width="40" height="18" rx="9" fill="#111111"></rect><text x="' + xn.toFixed(1) + '" y="' + (TOP - 11) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="#F4EFE6" font-family="IBM Plex Mono, monospace">today</text>';
     $('cal').innerHTML = g;
+    renderMes();
   }
+
+  /* ---------- el mes en cuadrícula ----------
+   * Sus textos se escriben ya en el idioma de la página (meses y días cambian, no van al diccionario). */
+  var CAL_ES = !!(window.LunarI18n && window.LunarI18n.lang === 'es');
+  var MES_L = CAL_ES ? ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+                     : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var mesV = (function () { var d = new Date(Math.min(D1 - 1, Math.max(D0, Date.now()))); return C.U(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); })();
+  /* las fases que pinta el fondo de los días: las mismas fechas que las barras del Gantt */
+  function fasesDe(id) {
+    if (id === 'CR-01') return [[C.U(2026, 10, 6), C.CONTACT - 18 * 3600000, 'prep'], [C.CONTACT, C.STAY_END, 'sup']];
+    if (id === 'CR-02') return [[C.U(2026, 11, 2), C.EVA - 18 * 3600000, 'prep'], [C.EVA, C.EVA + 4.45 * 3600000, 'sup']];
+    if (id === 'PS-03') return [[C.SUN_B[0], C.SUN_B[1], 'ven']];
+    return [];
+  }
+  function dm(t) { var d = new Date(t); return d.getUTCDate() + ' ' + (CAL_ES ? MES_L[d.getUTCMonth()].slice(0, 3) : C.MONTHS[d.getUTCMonth()]); }
+  function renderMes() {
+    var d0 = new Date(mesV), y = d0.getUTCFullYear(), mo = d0.getUTCMonth(), fin = C.U(y, mo + 2, 1);
+    var lead = (d0.getUTCDay() + 6) % 7, start = mesV - lead * DAY, n = Math.ceil((lead + Math.round((fin - mesV) / DAY)) / 7) * 7;
+    var now = Date.now(), hoy = Math.floor(now / DAY) * DAY, fases = fasesDe(state.sel), h = '';
+    $('mesT').textContent = MES_L[mo] + ' ' + y;
+    $('mesPrev').disabled = mesV <= D0; $('mesNext').disabled = fin >= D1;
+    $('mesFase').textContent = fases.length ? (CAL_ES ? 'fases de ' : 'phases of ') + state.sel : '';
+    for (var i = 0; i < n; i++) {
+      var t = start + i * DAY, dentro = t >= mesV && t < fin, num = new Date(t).getUTCDate();
+      if (!dentro) { h += '<span class="dia fuera" aria-hidden="true"><span class="n">' + num + '</span></span>'; continue; }
+      var cls = 'dia', evs = movs ? movs.filter(function (v) { return v.t >= t && v.t < t + DAY; }) : [];
+      fases.forEach(function (f) { if (f[0] < t + DAY && f[1] > t && cls.indexOf(f[2]) < 0) cls += ' ' + f[2]; });
+      if (t === hoy) cls += ' hoy';
+      var mk = evs.slice(0, 6).map(function (v) { return (HITOS[v.id] || []).indexOf(v.t) >= 0 ? '<i class="h"></i>' : '<i class="dot' + (v.t > now ? ' o' : '') + '"></i>'; }).join('') + (evs.length > 6 ? '<small>+' + (evs.length - 6) + '</small>' : '');
+      var ids = evs.map(function (v) { return v.id; }).filter(function (x, k, a) { return a.indexOf(x) === k; });
+      var tip = evs.map(function (v) { return hhmm(v.t) + ' · ' + v.id + '\n' + v.text; }).join('\n');
+      h += '<button type="button" class="' + cls + '" data-t="' + t + '" aria-pressed="' + (logF.day === t) + '"' + 
+        ' data-tip="' + esc(C.fmtDayLong(t) + (tip ? '\n' + tip : '')) + '" aria-label="' + esc(C.fmtDayLong(t) + ' · ' + evs.length + (CAL_ES ? ' movimientos' : ' movements')) + '">' +
+        '<span class="n"' + (t === hoy ? ' data-hoy="' + (CAL_ES ? 'hoy' : 'today') + '"' : '') + '>' + num + '</span><span class="mk">' + mk + '</span><span class="ids">' + ids.join(' · ') + '</span></button>';
+    }
+    $('mesG').innerHTML = h;
+  }
+  (function () {
+    $('mesSem').innerHTML = (CAL_ES ? ['lu', 'ma', 'mi', 'ju', 'vi', 'sá', 'do'] : ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']).map(function (s) { return '<span>' + s + '</span>'; }).join('');
+    if (CAL_ES) { $('mesPrev').setAttribute('aria-label', 'Mes anterior'); $('mesNext').setAttribute('aria-label', 'Mes siguiente'); }
+    function paso(k) { var d = new Date(mesV); mesV = C.U(d.getUTCFullYear(), d.getUTCMonth() + 1 + k, 1); renderMes(); }
+    $('mesPrev').addEventListener('click', function () { paso(-1); });
+    $('mesNext').addEventListener('click', function () { paso(1); });
+    /* un clic en un día filtra la bitácora a ese día; otro clic, o la ✕ del filtro, lo quita */
+    $('mesG').addEventListener('click', function (e) {
+      var b = e.target.closest('button.dia'); if (!b) return;
+      var t = +b.dataset.t; logF.day = logF.day === t ? null : t;
+      renderMes(); renderLog(true);
+    });
+    $('fDay').addEventListener('click', function () { logF.day = null; renderMes(); renderLog(true); });
+    /* tooltip del día: la fecha y, debajo, cada movimiento (hora · misión y su texto, cada uno en su línea para traducirlo) */
+    var w = $('mes'), tip = $('tipMes');
+    w.addEventListener('pointermove', function (e) {
+      var el = e.target.closest('[data-tip]');
+      if (!el) { tip.classList.remove('on'); return; }
+      var l = el.getAttribute('data-tip').split('\n'), html = '<div><b>' + esc(l[0]) + '</b></div>';
+      for (var k = 1; k < l.length; k += 2) html += '<div><b>' + esc(l[k]) + '</b><br><span>' + esc(l[k + 1] || '') + '</span></div>';
+      if (l.length === 1) html += '<div><span>' + (CAL_ES ? 'Sin movimientos' : 'No movements') + '</span></div>';
+      tip.innerHTML = html;
+      var r = w.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      tip.style.left = Math.max(4, Math.min(x + 14, w.clientWidth - tip.offsetWidth - 4)) + 'px';
+      tip.style.top = (y - tip.offsetHeight - 12 < 0 ? y + 18 : y - tip.offsetHeight - 12) + 'px';
+      tip.classList.add('on');
+    });
+    w.addEventListener('pointerleave', function () { tip.classList.remove('on'); });
+  })();
   /* tooltip del calendario */
   (function () {
     var w = $('calw'), tip = $('tip');
@@ -959,8 +1273,11 @@
     var now = Date.now();
     var items = movs.filter(function (v) {
       return (logF.mission === 'all' || v.id === logF.mission) && (logF.type === 'all' || v.type === logF.type) &&
-        (logF.when === 'all' || (logF.when === 'past' ? v.t <= now : v.t > now));
+        (logF.when === 'all' || (logF.when === 'past' ? v.t <= now : v.t > now)) && (logF.day === null || (v.t >= logF.day && v.t < logF.day + DAY));
     });
+    var fd = $('fDay'); fd.hidden = logF.day === null;
+    if (logF.day !== null) fd.innerHTML = esc(dm(logF.day)) + ' <span aria-hidden="true">✕</span>';
+    fd.setAttribute('aria-label', (CAL_ES ? 'Quitar el filtro del día ' : 'Clear the day filter ') + (logF.day !== null ? dm(logF.day) : ''));
     var html = '', lastDay = null, divider = false, nowTag = '<li class="now" id="nowLine">NOW · ' + C.fmtDay(now) + ' · ' + hhmm(now) + ' UTC</li>';
     items.forEach(function (v) {
       if (!divider && v.t > now && logF.when === 'all') { html += nowTag; divider = true; lastDay = null; }

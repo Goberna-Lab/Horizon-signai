@@ -355,3 +355,12 @@ LunarI18n.add({
     [/\bde Gerlache rim\b/, 'Borde de de Gerlache']
   ]
 });
+
+/* ventanas de aterrizaje: próxima ventana, otros candidatos (2026-11-16) */
+LunarI18n.add({
+  exact: {
+    'ⓘ 09:00 UTC · 3-day stay · 2 m · battery 24 h · Earth ≥ 40%': 'ⓘ 09:00 UTC · estadía de 3 días · 2 m · batería 24 h · Tierra ≥ 40 %',
+    'Other candidates': 'Otros candidatos',
+    'by days with a window in the next 6 months': 'por días con ventana en los próximos 6 meses'
+  }
+});
