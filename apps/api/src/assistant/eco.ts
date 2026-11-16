@@ -5,6 +5,8 @@
 // No toca la Z6 (pisaría la caché del 27B). Medido el 2026-11-15 desde Geografo: ~0,45 s el texto y ~0,55 s con la
 // voz de Kokoro. Nunca lanza: si tarda o falla, no hay eco y la respuesta llega como siempre.
 
+import { jsonClaude, usaClaude } from "./claude.js"
+
 const SISTEMA: Record<"en" | "es", string> = {
   en: `You help a voice assistant fill the silence while it thinks. Read the person's message and write the TOPIC of their question as a short phrase (2 to 10 words) that reuses their key words, the way someone repeats a question back before answering. Say it from the assistant's side: their "you/your" becomes "I/my" or "we/our". Never answer it, never add facts, numbers, yes or no. If the message is not a question or request (a greeting, thanks, "ok", a single word), the topic is "". Reply only with JSON: {"topic": "..."}.
 Examples:
@@ -27,16 +29,27 @@ Ejemplos:
 // Pasado esto el eco ya no gana tiempo. Si llega tarde pero antes que la primera frase del 27B, igual suena (z6.ts
 // lo calla si el 27B ya empezó). A veces el primer pedido tras un rato tarda ~1,5 s aunque el modelo esté cargado.
 const TIMEOUT_MS = 2500
+const ESQUEMA = { type: "object", properties: { topic: { type: "string" } }, required: ["topic"], additionalProperties: false }
 
 /** El tema de `pregunta` según el modelo chico, o "" (sin tema, lento o con error). Sin limpiar: ver `armarEco`. */
 export async function temaDeEco(pregunta: string, idioma: "en" | "es", url: string, modelo: string, señal?: AbortSignal): Promise<string> {
   const q = pregunta.replace(/\s+/g, " ").trim().slice(0, 300)
   if (q.split(" ").length < 3) return "" // «hola», «gracias», «sí»: nada que repetir
+  const limite = señal ? AbortSignal.any([señal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS)
+  // Con Claude (claude.ts) el tema lo escribe Haiku en lugar del 8B de Geografo.
+  if (usaClaude()) {
+    try {
+      const { topic } = await jsonClaude<{ topic?: unknown }>(SISTEMA[idioma], q, ESQUEMA, limite)
+      return typeof topic === "string" ? topic : ""
+    } catch {
+      return ""
+    }
+  }
   try {
     const r = await fetch(`${url}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: señal ? AbortSignal.any([señal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS),
+      signal: limite,
       body: JSON.stringify({
         model: modelo,
         stream: false,

@@ -3,9 +3,25 @@ import { timingSafeEqual } from "node:crypto"
 import { armarEco, atenuarWav, clasificarOido, filtroDeNotas, paraKokoro, paraPiper, SIN_RESPUESTA, sinNotas, type Z6Respuesta } from "@horizon-signai/shared"
 import { filtroDeAcciones, RECORDATORIO_ACCIONES } from "./acciones.js"
 import { parecida, precalentarParecidas } from "./assistant/parecidas.js"
+import { estadoClaude, jsonClaude, modeloClaude, responderClaude, textoClaude, usaClaude } from "./assistant/claude.js"
 import { temaDeEco } from "./assistant/eco.js"
+import { estadoElevenLabs, modeloElevenLabs, usaElevenLabs, vozElevenLabs } from "./assistant/elevenlabs.js"
 import { contextoRag } from "./assistant/rag.js"
-import { ACUSE_FIJO, ESTILO_ACUSE, VOZ_SEGURA, notaDeIdioma, personaDe, sistemaTexto, sistemaVoz, vozDe, type Idioma, type Persona } from "./asistentes.js"
+import {
+  ACUSE_FIJO,
+  ESTILO_ACUSE,
+  VOZ_SEGURA,
+  notaDeIdioma,
+  partesTexto,
+  partesVoz,
+  personaDe,
+  sistemaTexto,
+  sistemaVoz,
+  vozDe,
+  type Idioma,
+  type PartesDelSistema,
+  type Persona,
+} from "./asistentes.js"
 
 // Cliente de la Z6 (Ollama, solo escucha en la IP del tailnet). VPS2 llega por Tailscale.
 const z6Url = () => process.env.Z6_URL ?? "http://100.82.117.21:11434"
@@ -43,7 +59,10 @@ const MAX_TTS = 600
 // y el timbre robóticos se le ponen en el navegador (apps/web/src/prueba-ia/personajes.ts).
 const TIMEOUT_VOZ_MS = 60_000 // Ryan va a ~1,6× tiempo real: una frase larga puede tardar
 
-const PUBLICAS = new Set(["/eva/tiempos", "/voz/entender", "/chat", "/chat/stream", "/transcribir", "/hablar", "/decir", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
+// Hay boca: ElevenLabs (assistant/elevenlabs.ts) o el servicio de voz propio con su token.
+const hayVoz = () => usaElevenLabs() || Boolean(servicioVoz().token)
+
+const PUBLICAS = new Set(["/motores", "/eva/tiempos", "/voz/entender", "/chat", "/chat/stream", "/transcribir", "/hablar", "/decir", "/voz", "/voz/turno", "/voz/clasificar", "/voz/escuchar"])
 // Un turno de voz son ~5 pedidos: oír, responder y una voz por frase.
 const MAX_POR_MINUTO = Number(process.env.Z6_MAX_POR_MINUTO ?? 60)
 const MAX_EN_VUELO = Number(process.env.Z6_MAX_EN_VUELO ?? 4)
@@ -78,6 +97,9 @@ const SISTEMA_VOZ_ES =
   "responde de nuevo con ella. Si pregunta algo nuevo, respóndelo y, solo si la respuesta anterior " +
   "quedó a medias, ofrece al final volver a ella. Nunca repitas lo que ya dijiste ni escribas notas entre corchetes."
 const sistemaDeVoz = (p: Persona) => (servicioVoz().idioma === "en" ? sistemaVoz(p) : SISTEMA_VOZ_ES)
+// Lo mismo en dos partes, para Claude (la fija se cachea).
+const partesDeVoz = (p: Persona): PartesDelSistema =>
+  servicioVoz().idioma === "en" ? partesVoz(p) : { fijo: SISTEMA_VOZ_ES, variable: "" }
 
 type Mensaje = { role: "user" | "assistant"; content: string }
 
@@ -116,8 +138,10 @@ const limpiarAcuse = (tipo: string, acuse: string, persona: Persona) => {
 const TIMEOUT_CLASIFICAR_MS = 4000
 // Que el modelo siga cargado en la GPU entre turnos: frío, el primer pedido tardó 28 s.
 const KEEP_ALIVE_CLASIFICAR = "2h"
-const precalentarClasificador = () =>
-  fetch(`${textoUrl()}/api/chat`, {
+// Con Claude (assistant/claude.ts) el clasificador y el eco no usan Geografo: no hay nada que calentar.
+const precalentarClasificador = async () => {
+  if (usaClaude()) return
+  await fetch(`${textoUrl()}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(60_000),
@@ -130,6 +154,7 @@ const precalentarClasificador = () =>
       messages: [{ role: "system", content: SISTEMA_CLASIFICAR }, { role: "user", content: "ok" }],
     }),
   }).catch(() => {})
+}
 
 // Corta en un final de frase para no pasar del tope del servicio de voz.
 const paraHablar = (t: string) => {
@@ -152,6 +177,11 @@ const limpiarMensajes = (cuerpo: unknown): Mensaje[] | null => {
 }
 
 const preguntar = async (mensajes: Mensaje[], voz: boolean, persona: Persona) => {
+  if (usaClaude()) {
+    const ruta = voz ? "voz" : "texto"
+    const respuesta = await responderClaude(ruta, voz ? partesDeVoz(persona) : partesTexto(persona), mensajes, AbortSignal.timeout(TIMEOUT_MS))
+    return { respuesta: respuesta || SIN_RESPUESTA[persona.idioma], modelo: modeloClaude(ruta), equipo: "Claude" }
+  }
   const url = voz ? z6Url() : textoUrl()
   const modelo = voz ? z6Modelo() : textoModelo()
   const r = await fetch(`${url}/api/chat`, {
@@ -224,7 +254,16 @@ export const cortarFrases = (buffer: string, esPrimera: boolean): [string[], str
 
 // Voz de UNA frase con la voz de la asistente (si su voz no está en el servicio, con la segura):
 // audio en base64 y los tiempos de cada palabra. La usan el turno de voz y /decir.
+// Con ElevenLabs (assistant/elevenlabs.ts): esa voz, en los dos idiomas, en mp3. Si falla, sigue con la de siempre.
 const vozDeFrase = async (texto: string, formato: string, persona: Persona, señal: AbortSignal) => {
+  if (usaElevenLabs()) {
+    try {
+      return await vozElevenLabs(texto, persona.idioma, persona.asistente, señal)
+    } catch (e) {
+      if (señal.aborted || !servicioVoz().token) throw e
+      console.warn(`ElevenLabs falló, sigo con la voz local: ${String(e)}`)
+    }
+  }
   const base = servicioVoz()
   const pedirVoz = (voz: ServicioVoz, v: string, limite: number) =>
     fetch(`${voz.url}/v1/hablar`, {
@@ -263,6 +302,42 @@ const vozDeFrase = async (texto: string, formato: string, persona: Persona, señ
   return { texto, mime: r.headers.get("content-type"), audio, palabras, dur }
 }
 
+// El texto de la respuesta de voz, trozo a trozo: de Claude (assistant/claude.ts) o del 27B de la Z6.
+async function* respuestaDeVoz(conClaude: boolean, persona: Persona, msgs: Mensaje[], señal: AbortSignal): AsyncGenerator<string> {
+  if (conClaude) {
+    yield* textoClaude("voz", partesDeVoz(persona), msgs, señal)
+    return
+  }
+  const r = await fetch(`${z6Url()}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal: señal,
+    body: JSON.stringify({
+      model: z6Modelo(),
+      stream: true,
+      think: false,
+      messages: [{ role: "system", content: sistemaDeVoz(persona) }, ...msgs],
+    }),
+  })
+  if (!r.ok || !r.body) throw new Error(`Z6 respondió ${r.status}`)
+  const lector = r.body.getReader()
+  const dec = new TextDecoder()
+  let lineas = ""
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) return
+    lineas += dec.decode(value, { stream: true })
+    const partes = lineas.split("\n")
+    lineas = partes.pop() ?? ""
+    for (const l of partes) {
+      if (!l.trim()) continue
+      const d = JSON.parse(l) as { message?: { content?: string }; error?: string }
+      if (d.error) throw new Error(d.error)
+      if (d.message?.content) yield d.message.content
+    }
+  }
+}
+
 // Con `acuse` (del 8B, ver /voz/clasificar): suena primero, mientras el 27B genera. El 27B no lo
 // recibe como prefill (en modo chat con think:false se corta o sale vacío: medido) sino como nota
 // al final del último mensaje, que no rompe la caché. La respuesta final incluye el acuse.
@@ -279,6 +354,7 @@ const turnoDeVoz = (
   eco = false,
 ): Response => {
   const voz = servicioVoz()
+  const conClaude = usaClaude() // se decide una vez por turno (el tope diario puede cambiarlo a mitad)
   const enc = new TextEncoder()
   const corte = new AbortController()
   señal.addEventListener("abort", () => corte.abort())
@@ -326,7 +402,8 @@ const turnoDeVoz = (
     // Tiempos del servidor para el registro de EVA (eva/tiempos.ts en la web), en ms desde que llegó el pedido.
     const tiempos: Record<string, number | boolean> = {}
     const desde = () => Math.round(performance.now() - t0)
-    const conEco = eco && !acuse && voz.idioma === "en" && persona.idioma === "en"
+    // Con ElevenLabs la voz es rápida también en español (la misma voz en los dos idiomas).
+    const conEco = eco && !acuse && (usaElevenLabs() || (voz.idioma === "en" && persona.idioma === "en"))
     if (conEco) {
       const i = n++
       const listo = temaDeEco(msgs[msgs.length - 1].content, persona.idioma, textoUrl(), textoModelo(), corte.signal)
@@ -338,7 +415,8 @@ const turnoDeVoz = (
           tiempos.ecoTema = desde()
           if (!t) calentarEco()
           const frase = armarEco(t, persona.idioma, vecesEco)
-          if (!frase) return null
+          // Si la respuesta ya empezó, el eco no va a sonar: no se pide su voz (con ElevenLabs, cada carácter se paga).
+          if (!frase || empezoRespuesta) return null
           vecesEco++ // solo cuenta el que se usó: así nunca suena la misma plantilla dos veces seguidas
           return { frase, f: await vozDeFrase(frase, formato, persona, corte.signal) }
         })
@@ -391,21 +469,6 @@ const turnoDeVoz = (
       msgs = [...msgs.slice(0, -1), { ...ultimo, content: `${ultimo.content}\n${notas.join("\n")}` }]
     }
     try {
-      const r = await fetch(`${z6Url()}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.any([corte.signal, AbortSignal.timeout(TIMEOUT_MS)]),
-        body: JSON.stringify({
-          model: z6Modelo(),
-          stream: true,
-          think: false,
-          messages: [{ role: "system", content: sistemaDeVoz(persona) }, ...msgs],
-        }),
-      })
-      if (!r.ok || !r.body) throw new Error(`Z6 respondió ${r.status}`)
-      const lector = r.body.getReader()
-      const dec = new TextDecoder()
-      let lineas = ""
       let buffer = ""
       let respuesta = ""
       // Las órdenes que el modelo pone al final («<<planner zone=B>>») no se muestran ni se pronuncian: salen como evento.
@@ -417,36 +480,27 @@ const turnoDeVoz = (
       // Y las notas entre corchetes que a veces imita de las nuestras («[Note from the system: …]»): ni se muestran,
       // ni se pronuncian, ni vuelven al historial (packages/shared/src/notas.ts).
       const notas = filtroDeNotas()
-      for (;;) {
-        const { done, value } = await lector.read()
-        if (done) break
-        lineas += dec.decode(value, { stream: true })
-        const partes = lineas.split("\n")
-        lineas = partes.pop() ?? ""
-        for (const l of partes) {
-          if (!l.trim()) continue
-          const d = JSON.parse(l) as { message?: { content?: string }; error?: string }
-          if (d.error) throw new Error(d.error)
-          const delta = notas.pasar(filtro.pasar(d.message?.content ?? ""))
-          if (!delta) continue
-          tiempos.primerToken ??= desde()
-          respuesta += delta
-          buffer += delta
-          emitir({ t: "texto", d: delta })
-          const [listas, resto] = cortarFrases(buffer, n === 0)
-          buffer = resto
-          if (listas.length) {
-            empezoRespuesta = true
-            tiempos.primeraFrase ??= desde()
-          }
-          for (const f of listas) {
-            // Primera frase del 27B tras un acuse: si lo repite, se dice sin él (ya sonó).
-            const sin: string | null = acuse && n === 1 && !repetida ? quitarAcuse(f, acuse) : null
-            if (sin === null) hablarFrase(f)
-            else {
-              repetida = [f, sin]
-              if (sin) hablarFrase(sin)
-            }
+      const fuente = respuestaDeVoz(conClaude, persona, msgs, AbortSignal.any([corte.signal, AbortSignal.timeout(TIMEOUT_MS)]))
+      for await (const crudo of fuente) {
+        const delta = notas.pasar(filtro.pasar(crudo))
+        if (!delta) continue
+        tiempos.primerToken ??= desde()
+        respuesta += delta
+        buffer += delta
+        emitir({ t: "texto", d: delta })
+        const [listas, resto] = cortarFrases(buffer, n === 0)
+        buffer = resto
+        if (listas.length) {
+          empezoRespuesta = true
+          tiempos.primeraFrase ??= desde()
+        }
+        for (const f of listas) {
+          // Primera frase del 27B tras un acuse: si lo repite, se dice sin él (ya sonó).
+          const sin: string | null = acuse && n === 1 && !repetida ? quitarAcuse(f, acuse) : null
+          if (sin === null) hablarFrase(f)
+          else {
+            repetida = [f, sin]
+            if (sin) hablarFrase(sin)
           }
         }
       }
@@ -463,7 +517,7 @@ const turnoDeVoz = (
       respuesta = sinNotas(respuesta)
       if (repetida) respuesta = respuesta.replace(repetida[0], repetida[1])
       if (acuse) respuesta = `${acuse} ${respuesta.trim()}`
-      emitir({ t: "fin", respuesta, modelo: z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs, tiempos })
+      emitir({ t: "fin", respuesta, modelo: conClaude ? modeloClaude("voz") : z6Modelo(), ms: Math.round(performance.now() - t0), primeraVozMs, tiempos })
     } catch (e) {
       if (!corte.signal.aborted) emitir({ t: "error", msg: String(e) })
     } finally {
@@ -528,6 +582,20 @@ const transcribirAudio = async (audio: ArrayBuffer, tipo: string, idioma: Idioma
 // Qué quiso el usuario al hablar encima de la respuesta, y el acuse que se le dice enseguida.
 const clasificarEncima = async (pregunta: string, dicho: string, oido: string, persona: Persona) => {
   const t = performance.now()
+  const sistema = `${SISTEMA_CLASIFICAR}\n${ESTILO_ACUSE[persona.asistente]}${persona.idioma === "es" ? "\nWrite the acuse in Spanish." : ""}`
+  const usuario = `User's request: ${JSON.stringify(pregunta.slice(-1000))}\nAssistant was saying: ${JSON.stringify(dicho.slice(-1000))}\nUser just said: ${JSON.stringify(oido.slice(-1000))}`
+  if (usaClaude()) {
+    const esquema = {
+      type: "object",
+      properties: { tipo: { type: "string", enum: ETIQUETAS_CLASIFICAR }, acuse: { type: "string" } },
+      required: ["tipo", "acuse"],
+      additionalProperties: false,
+    }
+    const salida = await jsonClaude<{ tipo?: string; acuse?: string }>(sistema, usuario, esquema, AbortSignal.timeout(TIMEOUT_CLASIFICAR_MS))
+    const tipo = salida.tipo ?? ""
+    if (!ETIQUETAS_CLASIFICAR.includes(tipo)) throw new Error(`etiqueta rara: ${tipo}`)
+    return { tipo, acuse: limpiarAcuse(tipo, salida.acuse ?? "", persona), ms: Math.round(performance.now() - t) }
+  }
   const r = await fetch(`${textoUrl()}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -544,11 +612,8 @@ const clasificarEncima = async (pregunta: string, dicho: string, oido: string, p
         required: ["tipo", "acuse"],
       },
       messages: [
-        { role: "system", content: `${SISTEMA_CLASIFICAR}\n${ESTILO_ACUSE[persona.asistente]}${persona.idioma === "es" ? "\nWrite the acuse in Spanish." : ""}` },
-        {
-          role: "user",
-          content: `User's request: ${JSON.stringify(pregunta.slice(-1000))}\nAssistant was saying: ${JSON.stringify(dicho.slice(-1000))}\nUser just said: ${JSON.stringify(oido.slice(-1000))}`,
-        },
+        { role: "system", content: sistema },
+        { role: "user", content: usuario },
       ],
     }),
   })
@@ -558,6 +623,45 @@ const clasificarEncima = async (pregunta: string, dicho: string, oido: string, p
   const tipo = salida.tipo ?? ""
   if (!ETIQUETAS_CLASIFICAR.includes(tipo)) throw new Error(`etiqueta rara: ${tipo}`)
   return { tipo, acuse: limpiarAcuse(tipo, salida.acuse ?? "", persona), ms: Math.round(performance.now() - t) }
+}
+
+// /chat/stream con Claude: el mismo contrato que con Geografo (texto plano en trozos, error a mitad como «\n[error] …»).
+const chatDeClaude = (msgs: Mensaje[], persona: Persona, extra: string, señal: AbortSignal) => {
+  const corte = new AbortController()
+  señal.addEventListener("abort", () => corte.abort())
+  const fuente = textoClaude("texto", partesTexto(persona, extra), msgs, AbortSignal.any([corte.signal, AbortSignal.timeout(TIMEOUT_MS)]))
+  const enc = new TextEncoder()
+  let algo = false
+  const salida = new ReadableStream<Uint8Array>({
+    async pull(ctl) {
+      try {
+        const { done, value } = await fuente.next()
+        if (!done) {
+          algo ||= value.trim().length > 0
+          ctl.enqueue(enc.encode(value))
+          return
+        }
+        if (!algo) ctl.enqueue(enc.encode(SIN_RESPUESTA[persona.idioma])) // Claude declinó: una frase, no un globo vacío
+        ctl.close()
+      } catch (e) {
+        if (!corte.signal.aborted) ctl.enqueue(enc.encode(`\n[error] ${String(e)}`))
+        ctl.close()
+      }
+    },
+    cancel: () => {
+      corte.abort()
+      void fuente.return(undefined)
+    },
+  })
+  return new Response(salida, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Accel-Buffering": "no",
+      "X-Modelo": modeloClaude("texto"),
+      "X-Equipo": "Claude",
+    },
+  })
 }
 
 const ndjson = (eventos: unknown[]) =>
@@ -658,8 +762,9 @@ export const z6 = new Hono()
     const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; asistente?: unknown; recuerdos?: unknown } | null
     const msgs = limpiarMensajes(cuerpo)
     if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
-    const modelo = textoModelo()
     const extra = await contextoRag(msgs[msgs.length - 1].content) // documentación del proyecto para esta pregunta
+    if (usaClaude()) return chatDeClaude(msgs, personaDe(cuerpo), extra, c.req.raw.signal)
+    const modelo = textoModelo()
     let r: Response
     try {
       r = await fetch(`${textoUrl()}/api/chat`, {
@@ -733,6 +838,7 @@ export const z6 = new Hono()
     precalentarParecidas()
     void fetch(`${z6Url()}/api/version`, { signal: AbortSignal.timeout(5000) }).catch(() => {}) // abre ya la conexión a la Z6
     const v = servicioVoz()
+    if (usaElevenLabs()) return c.json({ idioma: v.idioma, voz: "ElevenLabs", motor: modeloElevenLabs(), equipo: "ElevenLabs" })
     if (v.idioma === "es") return c.json({ idioma: "es", voz: "Ivi", motor: "Piper", equipo: "Z6" })
     const NOMBRES: Record<string, string> = { kokoro: "Kokoro-82M", qwen: "Qwen3-TTS 0.6B" }
     try {
@@ -748,6 +854,17 @@ export const z6 = new Hono()
       return c.json({ idioma: "en", voz: "?", motor: "sin respuesta", equipo: "Geografo" })
     }
   })
+  // Qué cerebro y qué boca atienden ahora (lo usa scripts/configurar-ia-nube.sh para verificar). Sin claves ni datos
+  // de nadie: solo nombres de modelos y los contadores contra el tope diario.
+  .get("/motores", (c) =>
+    c.json({
+      ia: usaClaude() ? "claude" : "ollama",
+      claude: estadoClaude(),
+      ollama: { voz: z6Modelo(), texto: textoModelo() },
+      voz: usaElevenLabs() ? "elevenlabs" : "local",
+      elevenlabs: estadoElevenLabs(),
+    }),
+  )
   // Tiempos de una conversación con EVA (apps/web/src/features/assistant/eva/tiempos.ts), uno por pregunta: se escriben
   // en el log como «[eva-tiempos] {json}» para medir la latencia real que viven las personas. Solo números y etiquetas
   // cortas: nunca el texto de la pregunta ni la IP. Para sacarlos y resumirlos: apps/api/scripts/tiempos-eva.ts.
@@ -791,7 +908,7 @@ export const z6 = new Hono()
     const cuerpo = (await c.req.json().catch(() => null)) as { messages?: Mensaje[]; formato?: string; acuse?: unknown; eco?: unknown; asistente?: unknown; recuerdos?: unknown } | null
     const msgs = limpiarMensajes(cuerpo)
     if (!msgs) return c.json({ ok: false, error: "messages debe terminar en un mensaje de user" }, 400)
-    if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    if (!hayVoz()) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const formato = FORMATOS_VOZ.has(cuerpo?.formato ?? "") ? cuerpo!.formato! : "opus"
     const acuse = typeof cuerpo?.acuse === "string" ? cuerpo.acuse.replace(/[[\]"«»]/g, "").trim().slice(0, 80) : ""
     return turnoDeVoz(msgs, formato, c.req.raw.signal, personaDe(cuerpo), acuse, undefined, cuerpo?.eco === true)
@@ -921,7 +1038,7 @@ export const z6 = new Hono()
   // Una frase hecha (la guía de EVA): texto → NDJSON con {t:"frase", …} por frase, como /voz/turno pero sin
   // modelo de lenguaje. Lleva los tiempos por palabra, que la web usa para la entonación y los subtítulos.
   .post("/decir", async (c) => {
-    if (!servicioVoz().token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    if (!hayVoz()) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
     const cuerpo = (await c.req.json().catch(() => null)) as { texto?: string; formato?: string; asistente?: unknown; recuerdos?: unknown } | null
     const texto = paraHablar(cuerpo?.texto ?? "")
     if (!texto) return c.json({ ok: false, error: "texto vacío" }, 400)
@@ -937,13 +1054,22 @@ export const z6 = new Hono()
       return c.json({ ok: false, error: `No se pudo hablar con la voz: ${String(e)}` }, 502)
     }
   })
-  // Boca: texto → audio/wav.
+  // Boca: texto → audio/wav (audio/mpeg con ElevenLabs).
   .post("/hablar", async (c) => {
     const voz = servicioVoz()
-    if (!voz.token) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
-    const cuerpo = (await c.req.json().catch(() => null)) as { texto?: string; asistente?: unknown } | null
+    if (!hayVoz()) return c.json({ ok: false, error: "Token de voz sin configurar" }, 503)
+    const cuerpo = (await c.req.json().catch(() => null)) as { texto?: string; asistente?: unknown; idioma?: unknown } | null
     const texto = paraHablar(cuerpo?.texto ?? "")
     if (!texto) return c.json({ ok: false, error: "texto vacío" }, 400)
+    if (usaElevenLabs()) {
+      const persona = personaDe(cuerpo)
+      try {
+        const f = await vozElevenLabs(texto, persona.idioma, persona.asistente, c.req.raw.signal)
+        return new Response(Buffer.from(f.audio, "base64"), { headers: { "Content-Type": f.mime } })
+      } catch (e) {
+        if (!voz.token) return c.json({ ok: false, error: `No se pudo hablar con ElevenLabs: ${String(e)}` }, 502)
+      }
+    }
     try {
       const r = await fetch(`${voz.url}/v1/hablar`, {
         method: "POST",

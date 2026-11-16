@@ -125,10 +125,20 @@ const TEXTO = (idioma: Idioma) =>
 // crecen con cada pregunta, y lo que hay en pantalla). Los trozos de documentación del RAG no van aquí: van como nota
 // junto a la pregunta (ver turnoDeVoz en z6.ts), para no invalidar todo el historial en cada turno (medido: con el
 // RAG dentro del sistema el turno pasaba de ~1,4 s a ~6 s).
-export const sistemaVoz = (p: Persona) =>
-  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}\n\n${VOZ(p.idioma)}${p.acciones ? `\n\n${INSTRUCCIONES_ACCIONES}` : ""}\n\n${p.recuerdos}\n\n${IDIOMA_AL_FINAL[p.idioma]}`
-export const sistemaTexto = (p: Persona, extra = "") =>
-  `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}${extra ? `\n\n${extra}` : ""}\n\n${p.recuerdos}\n\n${TEXTO(p.idioma)}`
+// Las dos partes van por separado para Claude (assistant/claude.ts): la fija se cachea y la variable no. Unidas con una
+// línea en blanco dan exactamente el mismo texto que recibe Ollama.
+export type PartesDelSistema = { fijo: string; variable: string }
+export const partesVoz = (p: Persona): PartesDelSistema => ({
+  fijo: `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}\n\n${VOZ(p.idioma)}${p.acciones ? `\n\n${INSTRUCCIONES_ACCIONES}` : ""}`,
+  variable: `${p.recuerdos}\n\n${IDIOMA_AL_FINAL[p.idioma]}`,
+})
+export const partesTexto = (p: Persona, extra = ""): PartesDelSistema => ({
+  fijo: `${PERSONAJE[p.asistente]}\n\n${PROYECTO}\n\n${REGLAS}`,
+  variable: `${extra ? `${extra}\n\n` : ""}${p.recuerdos}\n\n${TEXTO(p.idioma)}`,
+})
+const unir = ({ fijo, variable }: PartesDelSistema) => `${fijo}\n\n${variable}`
+export const sistemaVoz = (p: Persona) => unir(partesVoz(p))
+export const sistemaTexto = (p: Persona, extra = "") => unir(partesTexto(p, extra))
 
 /** Cómo suena el acuse rápido del 8B (lo que dice apenas la interrumpes) según quién habla. */
 export const ESTILO_ACUSE: Record<AssistantMode, string> = {
