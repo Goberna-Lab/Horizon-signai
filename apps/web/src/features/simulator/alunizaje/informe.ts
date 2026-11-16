@@ -62,7 +62,7 @@ const TITULO = {
   incompleta: () => tr('Mission incomplete', 'Misión incompleta'),
   perdida: () => tr('Mission lost', 'Misión perdida'),
 };
-const RUTA = { cientifica: () => tr('science route (CR-02)', 'ruta científica (CR-02)'), segura: () => tr('safe route', 'ruta segura'), corta: () => tr('short route', 'ruta corta') };
+const RUTA = { prueba: () => tr('test route (< 100 m, not from the Planner)', 'ruta de prueba (< 100 m, no es del Planificador)'), cientifica: () => tr('science route (CR-02)', 'ruta científica (CR-02)'), segura: () => tr('safe route', 'ruta segura'), corta: () => tr('short route', 'ruta corta') };
 
 /** Muestra el informe sobre la escena. `acciones`: { volar, planificador } */
 export function mostrarInforme(view, d, acciones = {}) {

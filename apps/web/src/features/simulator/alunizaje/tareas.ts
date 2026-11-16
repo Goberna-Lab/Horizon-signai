@@ -21,6 +21,9 @@ const RUTAS = {
   cientifica: { d: RUTA_CIENTIFICA, paradas: PARADAS_PX, muestras: ['sol', 'sombra'], vueltaEn: 1 },
   segura: { d: 'M430 640 C 520 660, 640 660, 760 620 S 860 560, 890 500 S 905 400, 1000 300', paradas: [{ x: 760, y: 620 }], muestras: ['sol'] },
   corta: { d: 'M430 640 C 520 590, 620 510, 700 450 L 830 330 C 880 300, 950 296, 1000 300', paradas: [], muestras: [] },
+  // Ruta de PRUEBA (no es del Planificador): todo a menos de 100 m del módulo, para probar una misión completa en minutos.
+  // Parada 1 a ~46 m (muestra al Sol), parada 2 a ~80 m (muestra en sombra) y regreso obligatorio en la 2. 4,7 m por píxel.
+  prueba: { d: 'M430 640 L 437 633 L 445 633 L 443 629', paradas: [{ x: 437, y: 633 }, { x: 443, y: 629 }], muestras: ['sol', 'sombra'], vueltaEn: 1 },
 };
 const FUERA_DE_RUTA_M = 40;
 
@@ -127,7 +130,7 @@ export class Tareas {
     const mat = new THREE.MeshStandardMaterial({ color: 0x4a4640, roughness: 1, flatShading: true });
     const anillo = new THREE.MeshBasicMaterial({ color: 0x9fe4f2, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
     const parada = (pPx, name, want) => {
-      const plan = aEscena(pPx, o), sitio = this._cerca(plan.x, plan.z, 150, want);
+      const plan = aEscena(pPx, o), sitio = this._cerca(plan.x, plan.z, clave === 'prueba' ? 30 : 150, want) // en la prueba, la muestra no se aleja de los 100 m;
       const p = sitio ?? plan, y = v.groundY(p.x, p.z);
       const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), mat); m.position.set(p.x, y + 0.1, p.z); m.rotation.set(1.1, p.x, 0.4); m.scale.set(1.2, 0.8, 1); m.castShadow = true;
       const r = new THREE.Mesh(new THREE.RingGeometry(2.6, 3, 40).rotateX(-Math.PI / 2), anillo); r.position.set(p.x, y + 0.08, p.z);
@@ -147,7 +150,7 @@ export class Tareas {
       ];
     } else {
       // Ruta segura o corta: cada parada con su muestra, el final de la ruta (hacia el borde de Shackleton) y el regreso
-      const finPos = this.ruta[this.ruta.length - 1], meta = new THREE.Vector3(finPos.x, v.groundY(finPos.x, finPos.z), finPos.z), nombre = clave === 'segura' ? tr('safe route', 'ruta segura') : tr('short route', 'ruta corta');
+      const finPos = this.ruta[this.ruta.length - 1], meta = new THREE.Vector3(finPos.x, v.groundY(finPos.x, finPos.z), finPos.z), nombre = clave === 'segura' ? tr('safe route', 'ruta segura') : clave === 'prueba' ? tr('test route', 'ruta de prueba') : tr('short route', 'ruta corta');
       this.steps = [
         ...this.samples.map((m, k) => ({ text: () => (this._near(k) ? tr(`Stop ${k + 1}: sample within reach · press E`, `Parada ${k + 1}: muestra a tu alcance · pulsa E`) : tr(`Follow the ${nombre} to stop ${k + 1} · ${dist(m.mesh.position)} m`, `Sigue la ${nombre} hasta la parada ${k + 1} · ${dist(m.mesh.position)} m`)),
           target: () => m.mesh.position, ok: () => m.taken, msg: tr(`Stop ${k + 1}: sample stowed`, `Parada ${k + 1}: muestra guardada`), kind: m.name === 'sombra' ? 'sampleSombra' : 'sampleSol' })),
