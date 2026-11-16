@@ -223,17 +223,24 @@ todo sigue como arriba. El oído (Whisper en Geografo) y los embeddings del RAG 
 ### Encender, apagar, verificar
 
 ```bash
-scripts/configurar-ia-nube.sh             # pide las claves (no se ven), las prueba, elige voces, sube a VPS2 y reinicia sin cortes
+scripts/configurar-ia-nube.sh             # pide las claves (no se ven), las prueba, elige voces, las guarda en GitHub y despliega
 scripts/configurar-ia-nube.sh --estado    # qué cerebro y qué voz atienden ahora
 scripts/configurar-ia-nube.sh --apagar    # IA_MOTOR=ollama y VOZ_MOTOR=local: vuelve a lo local sin borrar las claves
 scripts/configurar-ia-nube.sh --encender
 scripts/configurar-ia-nube.sh --local     # mismas claves en apps/api/.env para `npm run dev` (ignorado por git y Docker)
+scripts/configurar-ia-nube.sh --ssh       # sin GitHub: directo al .env de VPS2 por ssh vps2 + sudo
 ```
 
-El script entra por `ssh vps2` (otro host: `HORIZON_SSH=usuario@host`) y usa `sudo` para el `.env`. Las claves viajan
-por stdin; el respaldo del `.env` anterior queda en `/var/backups/horizon-signai/`, **fuera** de `/srv/horizon-signai`
-(ahí entraría en la imagen: `.dockerignore` solo excluía `.env`). Variables para no preguntar o cambiar modelos y
-topes: ver la cabecera del script.
+**Cómo llegan a producción (sin ssh):** las claves quedan como secretos del repo (`ANTHROPIC_API_KEY`,
+`ELEVENLABS_API_KEY`) y las voces y los interruptores como variables (`ELEVENLABS_VOZ_*`, `IA_MOTOR`, `VOZ_MOTOR`).
+El deploy (`.github/workflows/deploy.yml`, que corre dentro de VPS2) las escribe en cada corrida en
+`/srv/horizon-signai/ia-nube.env` (600) y el compose lo suma después del `.env`, así que lo pisa. El script lanza ese
+deploy a mano y espera a que termine. Hace falta `gh` con una cuenta admin del repo. Borrar un secreto en GitHub lo
+saca de producción en el deploy siguiente. `ia-nube.env` está en `.dockerignore`: nunca entra en la imagen.
+
+Con `--ssh`, el `.env` anterior se respalda en `/var/backups/horizon-signai/`, **fuera** de `/srv/horizon-signai` (ahí
+entraría en la imagen: `.dockerignore` solo excluía `.env`). Variables para no preguntar o cambiar modelos y topes: ver
+la cabecera del script.
 
 **Tras encender ElevenLabs:** las frases fijas de EVA (`apps/web/public/eva-voz/`) siguen grabadas con Kokoro y Piper,
 así que sonarían distinto de sus respuestas en vivo. Regrabarlas (unos 31 000 caracteres, los dos idiomas):

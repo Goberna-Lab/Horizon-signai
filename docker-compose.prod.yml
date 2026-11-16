@@ -12,6 +12,10 @@ x-app: &app
   env_file:
     - path: .env
       required: false
+    # Claves de la IA en la nube (Claude, ElevenLabs): las escribe el deploy desde los secretos del repo
+    # (.github/workflows/deploy.yml). Va después del .env, así que lo pisa.
+    - path: ia-nube.env
+      required: false
   # Base del mapa 3D (PostGIS): la API entra con el rol de solo lectura map_api (lo crea db-loader).
   # POSTGRES_DB y MAP_API_PASSWORD salen del .env (contraseñas URL-safe).
   environment:

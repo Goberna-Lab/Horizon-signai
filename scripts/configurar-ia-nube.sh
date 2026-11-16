@@ -1,30 +1,35 @@
 #!/usr/bin/env bash
 # Deja lista la IA en la nube de EVA y VERA: Claude (Anthropic) como cerebro y ElevenLabs como voz.
-# Pide las claves sin mostrarlas, las prueba contra cada servicio, deja elegir la voz de cada asistente, las sube al
-# .env de producción (VPS2) y reinicia las dos copias de la app de a una, sin cortes (deploy/README.md).
-# Qué usa cada ruta, cuánto cuesta y cómo volver atrás: voz/LEEME.md, «IA en la nube».
+# Pide las claves sin mostrarlas, las prueba contra cada servicio, deja elegir la voz de cada asistente, las guarda
+# como secretos del repo en GitHub y lanza el deploy: el deploy (que corre dentro de VPS2) las escribe en
+# /srv/horizon-signai/ia-nube.env y reinicia las dos copias de la app de a una, sin cortes. No hace falta ssh: basta
+# `gh` con una cuenta admin del repo. Qué usa cada ruta, cuánto cuesta y cómo volver atrás: voz/LEEME.md, «IA en la nube».
 #
 # Uso:
-#   scripts/configurar-ia-nube.sh             claves → prueba → voces → VPS2 → reinicio → verificación
-#   scripts/configurar-ia-nube.sh --local     lo mismo, pero las guarda en apps/api/.env (para `npm run dev`)
+#   scripts/configurar-ia-nube.sh             claves → prueba → voces → GitHub → deploy → verificación
 #   scripts/configurar-ia-nube.sh --estado    qué cerebro y qué voz atienden ahora en producción
 #   scripts/configurar-ia-nube.sh --apagar    vuelve a Ollama y a la voz local sin borrar las claves (gasto cero)
 #   scripts/configurar-ia-nube.sh --encender  vuelve a Claude y ElevenLabs
+#   scripts/configurar-ia-nube.sh --local     las guarda en apps/api/.env (para `npm run dev`)
+#   scripts/configurar-ia-nube.sh --ssh       las escribe directo en el .env de VPS2 por ssh + sudo, sin GitHub
 #
 # Variables, todas opcionales:
-#   HORIZON_SSH                  host de ssh de VPS2 (por defecto `vps2`, el alias del equipo)
 #   ANTHROPIC_API_KEY, ELEVENLABS_API_KEY                     si ya están exportadas, no se preguntan
 #   ELEVENLABS_VOZ_EDUCATIONAL, ELEVENLABS_VOZ_ASSISTANT      ID de la voz de EVA y de VERA, sin preguntar
+#   HORIZON_REPO                 repo de GitHub (por defecto Goberna-Lab/Horizon-signai)
+#   HORIZON_SSH                  con --ssh: host de VPS2 (por defecto `vps2`, el alias del equipo)
+#   Solo con --ssh y --local (por GitHub valen los de por defecto del API):
 #   CLAUDE_MODELO_VOZ (claude-haiku-5-5), CLAUDE_MODELO_TEXTO (claude-sonnet-5-5), ELEVENLABS_MODELO (eleven_flash_v2_5)
 #   CLAUDE_MAX_PEDIDOS_DIA (3000), ELEVENLABS_MAX_CARACTERES_DIA (60000)
 #                                topes diarios: pasado el tope, el API vuelve a la IA y la voz locales hasta mañana
 #
 # Las claves nunca se imprimen ni van en una línea de comandos (no aparecen en `ps` ni en el historial): viajan por
-# stdin. En VPS2 pasan unos segundos por un archivo 600 en tu home, que se borra al terminar.
+# stdin a `gh secret set` (o, con --ssh, a un archivo 600 en tu home de VPS2 que se borra al terminar).
 set -euo pipefail
 
 SITIO="${HORIZON_SITIO:-https://signal-horizon.goberna.us}"
 HOST="${HORIZON_SSH:-vps2}"
+REPO="${HORIZON_REPO:-Goberna-Lab/Horizon-signai}"
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANTHROPIC="${ANTHROPIC_BASE_URL:-https://api.anthropic.com}"
 ELEVEN="${ELEVENLABS_URL:-https://api.elevenlabs.io}"
@@ -223,6 +228,60 @@ guardar_local() { # $1: nuevas, $2: quitar
   ok "Listo. \`npm run dev\` las lee de apps/api/.env (no se sube a git ni entra en la imagen)."
 }
 
+# ── GitHub: secretos y variables del repo, que el deploy escribe en ia-nube.env ────────────────────────────────────
+github_listo() {
+  command -v gh >/dev/null || { mal "falta GitHub CLI: brew install gh && gh auth login"; exit 1; }
+  local admin
+  admin="$(gh api "repos/$REPO" --jq .permissions.admin 2>/dev/null || echo false)"
+  if [ "$admin" != true ]; then
+    mal "tu cuenta de GitHub no es admin de $REPO (o falta \`gh auth login\`): no puede guardar los secretos"
+    exit 1
+  fi
+}
+
+# $1: líneas CLAVE=valor; $2: variables a borrar. Las claves van como secretos y lo demás como variables; el deploy
+# solo lee las de deploy.yml (claves, voces, IA_MOTOR, VOZ_MOTOR): modelos y topes quedan con los del API.
+guardar_en_github() {
+  local linea k v
+  while IFS= read -r linea; do
+    [ -n "$linea" ] || continue
+    k="${linea%%=*}"
+    v="${linea#*=}"
+    case "$k" in
+      *_API_KEY)
+        if printf '%s' "$v" | gh secret set "$k" -R "$REPO" >/dev/null; then ok "GitHub: secreto $k guardado"; else mal "GitHub no guardó $k"; exit 1; fi
+        ;;
+      ELEVENLABS_VOZ_* | IA_MOTOR | VOZ_MOTOR)
+        if gh variable set "$k" -R "$REPO" --body "$v" >/dev/null; then ok "GitHub: $k=$v"; else mal "GitHub no guardó $k"; exit 1; fi
+        ;;
+    esac
+  done <<<"$1"
+  for k in $2; do
+    gh variable delete "$k" -R "$REPO" >/dev/null 2>&1 && ok "GitHub: $k borrada" || true
+  done
+}
+
+# Lanza el deploy de main y espera a que termine (unos minutos: reconstruye y reinicia las dos copias).
+desplegar() {
+  local desde id="" i
+  desde="$(node -e 'console.log(new Date(Date.now() - 60000).toISOString())')"
+  gh workflow run deploy.yml -R "$REPO" --ref main >/dev/null
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    sleep 3
+    id="$(gh run list -R "$REPO" --workflow deploy.yml --event workflow_dispatch -L 5 --json databaseId,createdAt \
+      --jq "[.[] | select(.createdAt >= \"$desde\")][0].databaseId // empty")"
+    [ -z "$id" ] || break
+  done
+  [ -n "$id" ] || { mal "GitHub no muestra el deploy que lancé: míralo en https://github.com/$REPO/actions"; exit 1; }
+  info "Desplegando a producción (3 a 5 minutos): https://github.com/$REPO/actions/runs/$id"
+  if gh run watch "$id" -R "$REPO" --exit-status --interval 10 >/dev/null 2>&1; then
+    ok "Deploy terminado"
+  else
+    mal "el deploy falló: https://github.com/$REPO/actions/runs/$id (la app sigue con la versión anterior)"
+    exit 1
+  fi
+}
+
 # ── Verificar ───────────────────────────────────────────────────────────────────────────────────────────────────────
 estado() {
   local codigo
@@ -265,9 +324,10 @@ probar_en_vivo() {
 }
 
 # ── Pasos ───────────────────────────────────────────────────────────────────────────────────────────────────────────
-configurar() { # $1: subir | local
+configurar() { # $1: github | ssh | local
   local nuevas="" quitar="" r
-  echo "IA en la nube para EVA y VERA. Enter en una clave = no tocar esa parte."
+  [ "$1" != github ] || github_listo
+  echo "IA en la nube para EVA y VERA. Pega cada clave y Enter (no se ve al pegarla). Enter sin nada = saltar esa parte."
   echo
   pedir_secreto ANTHROPIC_API_KEY "Clave de Anthropic para Claude (sk-ant-…)"
   if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
@@ -293,16 +353,24 @@ configurar() { # $1: subir | local
     exit 0
   fi
   echo
-  echo "Se va a escribir (las claves no se muestran):"
-  printf '%s\n' "$nuevas" | sed -E 's/^([A-Z_]*API_KEY)=.*/\1=••••••••/; s/^/  /'
+  echo "Se va a guardar (las claves no se muestran):"
+  printf '%s\n' "$nuevas" | { if [ "$1" = github ]; then grep -E '^(ANTHROPIC_API_KEY|ELEVENLABS_API_KEY|ELEVENLABS_VOZ_)'; else cat; fi; } |
+    sed -E 's/^([A-Z_]*API_KEY)=.*/\1=••••••••/; s/^/  /'
   echo
   if [ "$1" = local ]; then
     guardar_local "$nuevas" "$quitar"
     return
   fi
-  read -r -p "¿Subir a $HOST y reiniciar la app (una copia por vez, sin cortes)? [s/N] " r || true
-  case "$r" in s | S | si | sí | y | Y) ;; *) info "No se subió nada."; exit 0 ;; esac
-  subir "$nuevas" "$quitar"
+  if [ "$1" = github ]; then
+    read -r -p "¿Guardar en GitHub y poner en producción? [s/N] " r || true
+    case "$r" in s | S | si | sí | y | Y) ;; *) info "No se guardó nada."; exit 0 ;; esac
+    guardar_en_github "$nuevas" "$quitar"
+    desplegar
+  else
+    read -r -p "¿Subir a $HOST y reiniciar la app (una copia por vez, sin cortes)? [s/N] " r || true
+    case "$r" in s | S | si | sí | y | Y) ;; *) info "No se subió nada."; exit 0 ;; esac
+    subir "$nuevas" "$quitar"
+  fi
   echo
   if estado; then probar_en_vivo; fi
 }
@@ -310,15 +378,20 @@ configurar() { # $1: subir | local
 principal() {
   TMP="$(mktemp -d)"
   case "${1:-}" in
-    "") configurar subir ;;
+    "") configurar github ;;
+    --ssh) configurar ssh ;;
     --local) configurar local ;;
     --estado) estado ;;
     --apagar)
-      subir $'IA_MOTOR=ollama\nVOZ_MOTOR=local' ""
+      github_listo
+      guardar_en_github $'IA_MOTOR=ollama\nVOZ_MOTOR=local' ""
+      desplegar
       estado || true
       ;;
     --encender)
-      subir "" "IA_MOTOR VOZ_MOTOR"
+      github_listo
+      guardar_en_github "" "IA_MOTOR VOZ_MOTOR"
+      desplegar
       estado || true
       ;;
     -h | --help) sed -n '2,/^set -euo/p' "$0" | sed -e '$d' -e 's/^# \{0,1\}//' ;;
