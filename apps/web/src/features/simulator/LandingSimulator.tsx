@@ -69,10 +69,15 @@ export function LandingSimulator() {
       <div ref={host} className="sim-alz" aria-label={tr("Apollo landing simulation at the lunar south pole", "Simulación del alunizaje del Apollo en el polo sur lunar")} />
       {sinPaquete && (
         <p className="sim-sin-paquete" role="alert">
-          {tr(
-            `The simulator does not have this site yet (${sinPaquete}): it needs its LOLA relief pack and its horizon in the Planner engine.`,
-            `El simulador todavía no tiene este sitio (${sinPaquete}): le faltan su paquete de relieve LOLA y su horizonte en el motor del Planificador.`,
-          )}
+          {sinPaquete === "punto-propio"
+            ? tr(
+                "An own point from the Planner cannot be flown in 3D yet: the simulator only has the relief of the catalog sites. Its Sun and Earth figures are in the Planner, with the approximate horizon.",
+                "Un punto propio del Planificador todavía no se puede volar en 3D: el simulador solo tiene el relieve de los sitios del catálogo. Sus cifras de Sol y Tierra están en el Planificador, con el horizonte aproximado.",
+              )
+            : tr(
+                `The simulator does not have this site yet (${sinPaquete}): it needs its LOLA relief pack and its horizon in the Planner engine.`,
+                `El simulador todavía no tiene este sitio (${sinPaquete}): le faltan su paquete de relieve LOLA y su horizonte en el motor del Planificador.`,
+              )}
         </p>
       )}
     </section>

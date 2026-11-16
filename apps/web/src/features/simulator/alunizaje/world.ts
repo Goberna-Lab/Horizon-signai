@@ -14,6 +14,7 @@ import { Rover } from './rover';
 import { Tactil, esTactil } from './tactil';
 import { abrirEva, estadoSimulador } from './paraEva';
 import { Estacion } from './estacion';
+import { avisarSitio } from './avisoSitio';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -205,6 +206,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   const sim = new LandingSim(view);
   const tactil = movil ? new Tactil(view, { sim, caminata, rover }) : null;
   await sim.start();
+  const quitarAviso = avisarSitio(host, view, site.id); // pendiente real peligrosa: se dice antes de bajar
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
 
   const onKey = (e) => {
@@ -243,6 +245,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   });
 
   return () => {
+    quitarAviso();
     document.querySelector('.sim-informe')?.remove(); // el informe vive en el body
     delete window.HorizonSimulador;
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);

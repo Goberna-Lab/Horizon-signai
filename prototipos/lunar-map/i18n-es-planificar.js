@@ -97,6 +97,9 @@
     patterns: [
       /* rótulo del perfil: «0–3.8 km · lander in RoI 6 · 89.47° S · 222.61° E» */
       [/^(0–[\d.,]+ km) · lander in RoI 6 · /, '$1 · módulo en la RoI 6 · '],
+      /* destino del simulador, bajo «Start simulator»: «Lands at zone D · de Gerlache Rim 2 · 2027-04-03 09:00 UTC» */
+      [/^Lands at zone (\w) · /, 'Aluniza en la zona $1 · '],
+      [/ · CR-01 plan$/, ' · plan CR-01'],
       /* trozo: mes abreviado después del día */
       [/\b(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, function (m, d, mes) { return d + ' ' + MES[mes]; }]
     ]
