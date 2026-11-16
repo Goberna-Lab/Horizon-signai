@@ -706,14 +706,22 @@
     fitLuna();
   }
   /* la luna de adorno ocupa el hueco bajo la última tarjeta, de lado a lado, desde 16 px por debajo de ella; oculta si
-   * el hueco no llega a 70 px */
+   * el hueco no llega a 70 px. El panel ya no tiene borde: a la derecha y abajo llega hasta la línea de la carpeta
+   * (.fbody), para que el corte caiga en un borde que se ve y no en medio del papel. */
   function fitLuna() {
     var lu = document.querySelector('.luna'), esq = lu && lu.parentNode, ml = $('mlist'), last = ml.lastElementChild;
     if (!lu || !ml.offsetParent || !esq.offsetParent) return;
     var top = ml.offsetTop + Math.min(ml.clientHeight, last ? last.offsetTop + last.offsetHeight : 0) + 16;
-    var w = esq.offsetParent.clientWidth, h = esq.offsetParent.clientHeight - top;
-    esq.style.top = top + 'px'; esq.style.display = h < 70 ? 'none' : '';
-    if (h >= 70) lunaGira(lu, w, h);
+    var pn = esq.offsetParent, pr = pn.getBoundingClientRect(), fb = pn.closest('.fbody'), exR = 0, exB = 0;
+    if (fb) {
+      var fr = fb.getBoundingClientRect();
+      exR = Math.max(0, Math.round((fr.left + fb.clientLeft + fb.clientWidth) - (pr.left + pn.clientLeft + pn.clientWidth)));
+      exB = Math.max(0, Math.round((fr.top + fb.clientTop + fb.clientHeight) - (pr.top + pn.clientTop + pn.clientHeight)));
+    }
+    var w = pn.clientWidth + exR, h = pn.clientHeight - top + exB;
+    esq.style.top = top + 'px'; esq.style.right = -exR + 'px'; esq.style.bottom = -exB + 'px';
+    esq.style.display = h - exB < 70 ? 'none' : '';
+    if (h - exB >= 70) lunaGira(lu, w, h);
   }
   /* ---------- la Luna que gira, vista de cerca ----------
    * El borde de la esfera pasa por abajo a la izquierda y por arriba a la derecha del hueco; el radio es 1,3 veces esa
@@ -757,8 +765,9 @@
     function nor(v) { var l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; }
     function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
     function cruz(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
-    /* el borde: de P1 (abajo a la izquierda) a P2 (arriba a la derecha); el centro queda abajo a la derecha, fuera */
-    var p1x = -0.02 * W, p1y = 0.98 * H, p2x = 1.02 * W, p2y = 0.03 * H, cx = p2x - p1x, cy = p2y - p1y, lc = Math.hypot(cx, cy);
+    /* el borde: de P1 (abajo, apenas dentro por la izquierda: no toca el lado izquierdo, que ya no tiene borde) a P2
+     * (arriba a la derecha); el centro queda abajo a la derecha, fuera */
+    var p1x = 0.03 * W, p1y = 1.01 * H, p2x = 1.02 * W, p2y = 0.03 * H, cx = p2x - p1x, cy = p2y - p1y, lc = Math.hypot(cx, cy);
     var R = 1.3 * lc, dist = Math.sqrt(R * R - lc * lc / 4), Cx = (p1x + p2x) / 2 - cy / lc * dist, Cy = (p1y + p2y) / 2 + cx / lc * dist;
     /* marco de pantalla con y hacia arriba y z hacia quien mira */
     var d = [cx / lc, -cy / lc, 0], tau = 25 * Math.PI / 180;
