@@ -118,10 +118,16 @@ export function entender(texto: string, espera: QueEspera, opciones: string[][] 
   return { tipo: "nada" }
 }
 
-/** Cuántas palabras de lo oído son de la frase que EVA está diciendo: si casi todas, es su propia voz (eco). */
-export function esEco(oido: string, frase: string): boolean {
-  const o = limpiar(oido).split(" ").filter(Boolean)
-  if (!o.length || !frase) return false
+/**
+ * ¿Lo oído es su propia voz colándose por los parlantes? Cuenta las palabras con significado (sin vacías ni cortas) de
+ * lo oído que están en la frase que EVA dice: desde `umbral` (40 % por defecto), es eco. Whisper transcribe mal pedazos de
+ * su voz, por eso no se pide que coincida todo. Sin palabras con significado («ok», «yes»), cuenta todas.
+ */
+export function esEco(oido: string, frase: string, umbral = 0.4): boolean {
+  const todas = limpiar(oido).split(" ").filter(Boolean)
+  if (!todas.length || !frase) return false
   const f = new Set(limpiar(frase).split(" "))
-  return o.filter((p) => f.has(p)).length / o.length >= 0.6
+  const llenas = todas.filter((p) => p.length >= 3 && !VACIAS.has(p))
+  const o = llenas.length ? llenas : todas
+  return o.filter((p) => f.has(p)).length / o.length >= umbral
 }

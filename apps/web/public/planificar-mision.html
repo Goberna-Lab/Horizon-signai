@@ -134,17 +134,6 @@ a.btn.primary { color: #f4efe6 }
 .verdict .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px }
 @media (max-width: 560px) { .verdict { grid-template-columns: minmax(0, 1fr) } }
 
-.checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 20px }
-.check { display: grid; grid-template-columns: 12px 1fr auto; gap: 2px 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--shade); min-width: 0 }
-.check i { width: 12px; height: 12px; align-self: center; background: var(--ink) }
-.check.st-warn i { background: none; border: 2px solid var(--signal) }
-.check.st-nogo i { background: var(--signal) }
-.check b { font-size: 14px; font-weight: 600 }
-.check .v { font: 500 13px var(--f-mono); white-space: nowrap }
-.check.st-nogo b, .check.st-nogo .v { color: var(--signal) }
-.check.st-info i { background: none; border: 1.5px solid var(--ink-soft) }
-.check.st-info b { font-weight: 500 }
-.check span { grid-column: 2 / -1; font: 400 11.5px/1.35 var(--f-mono); color: var(--ink-soft) }
 
 .two.solo { grid-template-columns: minmax(0, 1fr) }
 .two.solo canvas { max-width: 760px }
@@ -212,21 +201,41 @@ svg text { font-family: var(--f-mono) }
 .wz-falta { font: 400 12px var(--f-mono); color: var(--ink-soft); align-self: center }
 .mision-nombre { font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--signal) }
 @media (prefers-reduced-motion: no-preference) { .vista { animation: sube .45s cubic-bezier(.16, 1, .3, 1) } }
-.luzq { display: grid; grid-template-columns: minmax(0, 378px) minmax(0, 1fr); gap: 20px; align-items: start }
+/* paso 3: mapa | calendario (misma altura), debajo una banda con el momento, Sol, Tierra y estadía, y la línea de tiempo */
+.luzq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch }
 @media (max-width: 720px) { .luzq { grid-template-columns: minmax(0, 1fr) } }
-.luzq-mapa canvas { width: 100%; aspect-ratio: 1; background: var(--umbra) }
-.luzq-ley { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.luzq-mapa { display: flex; flex-direction: column; border: 1px solid var(--ink); min-width: 0 }
+.luzq-mapa canvas { width: 100%; aspect-ratio: 1; background: var(--umbra); border: 0 }
+.luzq-ley { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: auto; padding: 0 12px; min-height: 36px; border-top: 1px solid var(--ink); font: 400 11px var(--f-mono); color: var(--ink-soft) }
 .luzq-ley span { display: flex; gap: 6px; align-items: center }
-.luzq-ley i { width: 12px; height: 12px; display: inline-block }
-.luzq-lado { display: grid; gap: 14px; align-content: start }
-.luzq-hora b { display: block; font: 700 22px var(--f-display); letter-spacing: var(--track) }
-.luzq-cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 0; border-block: 1px solid var(--shade) }
-.luzq-cifras b { display: block; font: 800 20px var(--f-display); letter-spacing: var(--track) }
-.luzq-cifras small { font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.luzq-ley i { width: 10px; height: 10px; display: inline-block }
+.luzq-datos { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); border-block: 1px solid var(--ink) }
+.luzq-datos > div { display: grid; gap: 3px; align-content: start; padding: 10px 12px; min-width: 0 }
+.luzq-datos > div + div { border-left: 1px solid var(--shade) }
+.luzq-datos b { display: block; font: 800 18px/1.25 var(--f-display); letter-spacing: var(--track); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.luzq-datos small { font: 400 11px var(--f-mono); color: var(--ink-soft); white-space: nowrap }
+.luzq-datos .range output { font: 800 18px/1.25 var(--f-display); letter-spacing: var(--track) }
+@media (max-width: 720px) { .luzq-datos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) } .luzq-datos > div:nth-child(3) { border-left: 0 } .luzq-datos > div:nth-child(n+3) { border-top: 1px solid var(--shade) } }
 .luzq-tl { display: grid; gap: 8px }
 .luzq-tl canvas { border: 0; width: 100%; cursor: ew-resize; touch-action: none }
 .luzq-ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
 .luzq-ctl .btn { padding: 5px 10px; font-family: var(--f-mono) }
+/* calendario de alunizaje, siempre abierto: el mes ocupa el alto que deja la hora, sin filas vacías */
+.cal { display: flex; flex-direction: column; border: 1px solid var(--ink); min-width: 0 }
+.cal-mes { flex: 1; display: flex; flex-direction: column; min-height: 0 }
+.cal-cab { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 36px; padding: 0 4px 0 12px; border-bottom: 1px solid var(--shade) }
+.cal-hrs .cal-cab { border-top: 1px solid var(--ink); padding-right: 12px }
+.cal-cab b { font: 700 14px var(--f-display); letter-spacing: var(--track) }
+.cal-cab .num { font: 700 14px var(--f-mono) }
+.cal-cab .btn { border: 0; padding: 4px 10px; font-family: var(--f-mono) }
+.cal-dias { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 22px; grid-auto-rows: minmax(22px, 1fr); gap: 2px; padding: 6px }
+.cal-horas { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 28px; gap: 2px; padding: 6px }
+.cal-dias > span { display: grid; place-items: center; font: 500 10px var(--f-mono); letter-spacing: .06em; color: var(--ink-soft) }
+.cal-dias button, .cal-horas button { border: 0; background: none; color: inherit; cursor: pointer; font: 400 13px var(--f-mono); font-variant-numeric: tabular-nums }
+.cal-horas button { font-size: 12px }
+.cal-dias button:hover:not(:disabled), .cal-horas button:hover:not(:disabled) { background: var(--tint) }
+.cal-dias button[aria-pressed="true"], .cal-horas button[aria-pressed="true"] { background: var(--ink); color: var(--paper); font-weight: 700 }
+.cal button:disabled { opacity: .25; cursor: default }
 details.foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--ink); font: 400 12px/1.5 var(--f-mono); color: var(--ink-soft); max-width: 100ch }
 details.foot summary { cursor: pointer; color: var(--ink); text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 8px 14px; font: 400 13px var(--f-mono) }
@@ -234,8 +243,6 @@ details.foot summary { cursor: pointer; color: var(--ink); text-transform: upper
   .stack div, .gauge .bar i { transition: width .6s cubic-bezier(.16, 1, .3, 1), background-color .3s }
   .verdict.pop .badge { animation: pop .55s cubic-bezier(.16, 1, .3, 1) }
   .verdict.pop h2 { animation: sube .5s cubic-bezier(.16, 1, .3, 1) }
-  .check.cambio { animation: destello 1.1s ease-out }
-  .check.cambio i { animation: pop .5s cubic-bezier(.16, 1, .3, 1) }
   .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: trazo 1.1s cubic-bezier(.65, 0, .35, 1) forwards }
   .draw.lento { animation-duration: 1.6s }
   .aparece { animation: sube .45s cubic-bezier(.16, 1, .3, 1) both }
@@ -254,8 +261,6 @@ details.foot summary { cursor: pointer; color: var(--ink); text-transform: upper
 
 /* ---------- detalle de la misión más entendible (2026-11-16): qué falla, el porqué primero, los KPI al final ---------- */
 .verdict p.falla { margin: 6px 0 0; font: 600 14px/1.4 var(--f-display); color: var(--signal) }
-.mas-lugares summary { cursor: pointer; font: 500 11.5px var(--f-mono); color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px }
-.mas-lugares[open] summary { margin-bottom: 6px }
 .kpi .kpi-s { font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
 details.foot dl { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 8px 18px; margin: 12px 0 0 }
 details.foot dt { color: var(--ink); font-weight: 500 }
@@ -278,15 +283,67 @@ details.foot dd { margin: 0 }
 .kpi[data-st="no"] strong { color: var(--signal) }
 .kpi-m { font: 500 12px var(--f-mono) }
 .kpi small { font: 400 11px/1.4 var(--f-mono); color: var(--ink-soft) }
-table.comp { width: 100%; border-collapse: collapse; font: 400 12.5px var(--f-mono); font-variant-numeric: tabular-nums; min-width: 620px }
-table.comp th, table.comp td { padding: 7px 8px; border-bottom: 1px solid var(--shade); text-align: left; white-space: nowrap }
-table.comp thead th { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 1px solid var(--ink) }
-table.comp tbody th { font-family: var(--f-display); font-weight: 500 }
-table.comp td.mal { color: var(--signal); font-weight: 500 }
-table.comp tr[data-actual="true"] { background: var(--tint) }
-table.comp thead th small { font-size: 9px; letter-spacing: .04em; opacity: .7 }
 .comp-usar { padding: 4px 9px; font-size: 12px; white-space: nowrap }
 .comp-act { font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
+/* «Comparar sitios»: las mismas piezas que la landing (features/landing/sections/product/product.css), con el plan de
+   quien planifica: tarjetas unidas, cielo polar, luz solar, noche más larga, Tierra en el día lunar y veredicto. */
+.cz { --sw-bg: var(--paper); --sw-ink: var(--ink); --sw-soft: var(--ink-soft); --sw-rule: var(--ink); --sw-hair: var(--shade); --sw-terrain: var(--ink); --sw-sun: var(--signal); --sw-earth: var(--earth); --sw-hatch: rgb(17 17 17 / .34) }
+.cz-head { display: flex; align-items: center; gap: 18px; margin-bottom: 16px }
+.cz-head h3 { margin: 0; font: 900 clamp(1.75rem, 2.6vw, 2.5rem) / 1 var(--f-display); letter-spacing: var(--track); white-space: nowrap }
+.cz-head::after { content: ""; order: 1; flex: 1; border-top: 1px solid var(--sw-ink) }
+.cz-head .sw-field { order: 2 }
+.cz .sw-field { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border: 1px solid var(--sw-rule); font-size: 13px; white-space: nowrap }
+.cz .sw-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--sw-rule); background: var(--sw-rule) }
+.cz .sw-card { display: flex; flex-direction: column; min-width: 0; padding: clamp(14px, 1.6vw, 22px); background: var(--sw-bg) }
+.cz .sw-card.act { background: color-mix(in srgb, var(--sw-ink) 4%, var(--sw-bg)) }
+.cz .sw-card__name { min-height: 2.1em; margin: 0; font: 700 clamp(1.125rem, 1.6vw, 1.5rem) / 1.05 var(--f-display); letter-spacing: -0.01em }
+.cz .sw-card__where { margin: 6px 0 0; font-size: 12.5px; color: var(--sw-soft) }
+.cz .sw-card__main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: center; gap: clamp(8px, 1vw, 16px); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sw-hair) }
+.cz .sw-card dt { font-weight: 600; font-size: 11px; line-height: 1.2; letter-spacing: .14em; text-transform: uppercase; color: var(--sw-soft) }
+.cz .sw-card__figures { display: grid; gap: clamp(12px, 1.4vw, 20px); margin: 0 }
+.cz .sw-card__figures > div { display: grid; gap: 6px }
+.cz .sw-card__figures dd { margin: 0; font: 700 clamp(1.125rem, 1.6vw, 1.5rem) / 1 var(--f-display); font-variant-numeric: lining-nums tabular-nums }
+.cz .sw-card__big { justify-self: start; padding-bottom: 6px; border-bottom: 3px solid var(--sw-sun); font: 900 clamp(1.75rem, 2.5vw, 2.5rem) / 1 var(--f-display) !important; letter-spacing: -0.02em; white-space: nowrap }
+.cz .sw-card__gauge { height: 7px; border-bottom: 1px solid var(--sw-rule) }
+.cz .sw-card__gauge i { display: block; height: 6px; background: var(--sw-ink) }
+.cz .sw-card__earth { margin-top: clamp(12px, 1.4vw, 20px); padding-top: 12px; border-top: 1px solid var(--sw-hair) }
+.cz .sw-card__earth p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 10px; font-size: 13px }
+.cz .sw-card__earth p span:first-child { margin-right: auto }
+.cz .sw-key { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; white-space: nowrap }
+.cz .sw-key::before { content: ""; width: 12px; height: 12px; background: var(--sw-ink) }
+.cz .sw-key[data-key="earth"]::before { background: var(--sw-earth) }
+.cz .sw-key[data-key="none"]::before { border: 1px solid var(--sw-rule); background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 5px) }
+.cz .sw-strip { position: relative; height: 16px; background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 5px) }
+.cz .sw-strip i { position: absolute; top: 0; bottom: 0; background: var(--sw-earth) }
+.cz .sw-strip b { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 1.5px solid var(--sw-ink) }
+.cz .sw-card__verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; margin-top: auto; padding-top: clamp(14px, 1.6vw, 22px) }
+.cz .sw-card__verdict p { margin: 0; padding-left: 12px; border-left: 1px solid var(--sw-rule); font-size: 13px; line-height: 1.35 }
+.cz .sw-chip { display: inline-flex; align-items: center; gap: 9px; height: 36px; padding: 0 13px; border: 1.5px solid var(--sw-ink); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap }
+.cz .sw-chip::before { font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols", system-ui, sans-serif; font-size: 1.05em; letter-spacing: 0 }
+.cz .sw-chip[data-state="on"] { background: var(--sw-ink); color: var(--sw-bg) }
+.cz .sw-chip[data-state="on"]::before { content: "\2713"; content: "\2713" / "" }
+.cz .sw-chip[data-state="limited"]::before { content: "\25D0"; content: "\25D0" / "" }
+.cz .sw-chip[data-state="off"] { border-color: var(--sw-rule); background: repeating-linear-gradient(135deg, var(--sw-hatch) 0 1.5px, transparent 1.5px 6px) }
+.cz .sw-chip[data-state="off"]::before { content: "\2715"; content: "\2715" / "" }
+.cz .sw-card__falla { margin: 10px 0 0; font-size: 12.5px; line-height: 1.35; color: var(--signal) }
+.cz .sw-card__usar { display: flex; align-items: center; min-height: 30px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--sw-hair) }
+.cz .sw-polar { display: block; width: 100%; height: auto }
+.cz .sw-polar__sky { fill: none }
+.cz .sw-polar__ring, .cz .sw-polar__level { fill: none; stroke: var(--sw-soft); stroke-width: 2; stroke-dasharray: 0.1 5; stroke-linecap: round }
+.cz .sw-polar__level { stroke: var(--sw-ink); stroke-dasharray: 5 4; stroke-linecap: butt }
+.cz .sw-polar__centre, .cz .sw-polar__tick { fill: none; stroke: var(--sw-ink); stroke-width: 1.25 }
+.cz .sw-polar__terrain { fill: var(--sw-terrain) }
+.cz .sw-polar__rim { fill: none; stroke: var(--sw-ink); stroke-width: 3 }
+.cz .sw-polar__path { fill: none; stroke-width: 6; stroke-dasharray: 0.1 13; stroke-linecap: round }
+.cz .sw-polar__path--sun { stroke: var(--sw-sun) }
+.cz .sw-polar__path--earth { stroke: var(--sw-earth) }
+.cz .sw-polar__path[data-hidden="true"] { opacity: .55 }
+.cz .sw-polar__az { font-weight: 600; font-size: 30px; fill: var(--sw-ink) }
+.cz .sw-polar__body circle { stroke: var(--sw-bg); stroke-width: 2 }
+.cz .sw-polar__body--sun circle { fill: var(--sw-sun) }
+.cz .sw-polar__body--earth circle { fill: var(--sw-earth) }
+.cz .sw-polar__body[data-seen="false"] circle { fill-opacity: .4; stroke: var(--sw-ink); stroke-width: 1 }
+@media (max-width: 860px) { .cz .sw-cards { grid-template-columns: minmax(0, 1fr) } .cz-head h3 { white-space: normal } }
 
 .seg button { color: var(--ink) }
 .seg button[aria-pressed="true"] { color: var(--paper) }
@@ -358,8 +415,9 @@ table.comp thead th small { font-size: 9px; letter-spacing: .04em; opacity: .7 }
 
 
       <section class="card">
-        <h3><span data-en="Why · the checks">Por qué · las comprobaciones</span><span class="lbl" id="checks-n"></span></h3>
-        <ul class="checks" id="checks"></ul>
+        <h3><span data-en="Technical indicators (KPI)">Indicadores técnicos (KPI)</span><span class="lbl" id="kpis-n"></span></h3>
+        <div id="kpis" class="kpis"></div>
+        <p class="nota" id="kpis-sin"></p>
       </section>
 
       <div class="two" id="dos">
@@ -389,16 +447,12 @@ table.comp thead th small { font-size: 9px; letter-spacing: .04em; opacity: .7 }
       </section>
 
       <section class="card">
-        <h3><span data-en="The same plan in each zone">El mismo plan en cada zona</span></h3>
-        <div class="svgbox"><table class="comp" id="comparativo"></table></div>
-        <details class="mas-lugares" id="nlp-det"><summary id="nlp-sum"></summary><p class="nota" id="nlp-lista"></p></details>
+        <div class="cz">
+          <header class="cz-head"><h3 data-en="Compare sites">Comparar sitios</h3><span class="sw-field" id="cz-periodo"></span></header>
+          <div class="sw-cards" id="cz"></div>
+        </div>
       </section>
 
-      <section class="card">
-        <h3><span data-en="Technical indicators (KPI)">Indicadores técnicos (KPI)</span><span class="lbl" id="kpis-n"></span></h3>
-        <div id="kpis" class="kpis"></div>
-        <p class="nota" id="kpis-sin"></p>
-      </section>
     </main>
   </div>
   </div>
@@ -550,7 +604,7 @@ function marcarFoco(el) {
 function elegirMision(id) { abrirLista(false); const m = leerMisiones().find((x) => x.id === id); if (m && m.id !== planId) abrirMision(m); $('mis-btn').focus(); }
 function abrirMision(m) {
   plan = Object.assign({}, PLAN_EJEMPLO, m.plan); planId = m.id;
-  antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
+  antes = { ok: null, ruta: '', luz: '', terreno: '' };
   ver('consola'); pintar(); pintarMisiones();
 }
 
@@ -677,8 +731,7 @@ function primeraFecha(p, desde) {
 /* ====================================================================================================================
    Pantalla de resultado
    ==================================================================================================================== */
-let R = null, antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
-const ORDEN_ST = { nogo: 0, warn: 1, go: 2, info: 3 };
+let R = null, antes = { ok: null, ruta: '', luz: '', terreno: '' };
 function pintar() {
   R = evaluar(plan);
   const { z, checks, ok, w, luz, ter } = R, tipo = plan.tipo;
@@ -705,11 +758,6 @@ function pintar() {
   $('copiar').onclick = copiar; $('guardar').onclick = guardar; pintarGuardar();
   if ($('v-mejor')) $('v-mejor').onclick = () => $('mejor').click();
 
-  // comprobaciones
-  const cuenta = checks.filter((c) => c.s !== 'info');
-  $('checks-n').textContent = cuenta.filter((c) => c.s === 'go').length + '/' + cuenta.length + ' ' + L('cumplen', 'pass');
-  const prev = antes.checks; antes.checks = {}; checks.forEach((c) => (antes.checks[c.es] = c.s));
-  $('checks').innerHTML = [...checks].sort((a, b) => ORDEN_ST[a.s] - ORDEN_ST[b.s]).map((c) => '<li class="check st-' + c.s + (prev[c.es] && prev[c.es] !== c.s ? ' cambio' : '') + '"><i></i><b>' + L(c.es, c.en) + '</b><span class="v">' + c.v + '</span><span>' + c.d + '</span></li>').join('');
 
   // terreno
   const kT = z.id;
@@ -742,6 +790,7 @@ function pintar() {
   }
 
   pintarKpis();
+  pintarComparar();
 
   // Sol y Tierra
   dibujarLuz();
@@ -924,11 +973,77 @@ function kpisDe(z, p) {
   return { c, ws: irradiancia(z, p), nh: alturaNecesaria(z, p), pend: terreno(z).punto };
 }
 const META = { NLP: 10, NH: 16, NRC: 5, AMR: 1500, EC: 50, EW: 90, WS: 1325, CD: '1200k', OD: 5 }; // pizarra del equipo
+/* «Comparar sitios», con las piezas de la landing (CompareView + PolarSky): las tres zonas en el día lunar de tu alunizaje
+   (14,75 d antes y después). El horizonte de cada rumbo sale de los mismos datos del Planificador: elevación del Sol menos su
+   margen sobre el horizonte, con el Sol dando la vuelta completa en el día lunar. La Tierra se ve hacia el meridiano 0
+   (rumbo 360° − longitud; la libración la mueve ±8°) y su altura es ese horizonte más su margen. */
+const LON = { A: 222.6146, B: 123.7775, C: 188.1301 }; // public/simulador/sitios/<id>.json
+const SOL_RADIO = 0.27; // semidiámetro aparente del Sol (°): solEl mide el borde superior
+function horizonteZona(z, t0) {
+  const n = 180, suma = new Float64Array(n), cuenta = new Uint16Array(n);
+  for (let t = t0 - 16 * D; t <= t0 + 16 * D; t += DATOS.paso / 2) { const k = Math.floor(solAz(z, t) / 2) % n; suma[k] += solGeo(z, t) + SOL_RADIO - solEl(z, t); cuenta[k]++; }
+  const h = Array.from(suma, (v, k) => (cuenta[k] ? v / cuenta[k] : null));
+  for (let k = 0; k < n; k++) if (h[k] === null) { let i = 1, j = 1; while (h[(k - i + n) % n] === null && i < n) i++; while (h[(k + j) % n] === null && j < n) j++; const p = h[(k - i + n) % n], q = h[(k + j) % n]; h[k] = p + (q - p) * i / (i + j); }
+  return (az) => { const x = ((az % 360) + 360) % 360 / 2, i = Math.floor(x) % n, u = x - Math.floor(x); return h[i] * (1 - u) + h[(i + 1) % n] * u; };
+}
+function cieloPolar(hz, sol, tierra, ahora, nombre) { // PolarSky, variante mini
+  const CX = 300, CY = 290, R = 200, RIM = -5, CEN = 15;
+  const radio = (el) => R * (CEN - Math.min(Math.max(el, RIM), CEN)) / (CEN - RIM);
+  const pt = (az, el, r = radio(el)) => { const a = az * rad; return (CX + r * Math.sin(a)).toFixed(1) + ' ' + (CY - r * Math.cos(a)).toFixed(1); };
+  let anillo = 'M' + CX + ' ' + (CY - R) + 'A' + R + ' ' + R + ' 0 1 1 ' + (CX - 0.01) + ' ' + (CY - R) + 'Z';
+  for (let az = 0; az < 360; az++) anillo += (az ? 'L' : 'M') + pt(az, hz(az));
+  const traza = (c) => { const o = { si: '', no: '' }; let abierto = null; for (let i = 0; i < c.length - 1; i++) { const k = c[i].ve ? 'si' : 'no'; if (abierto !== k) o[k] += 'M' + pt(c[i].az, c[i].el); o[k] += 'L' + pt(c[i + 1].az, c[i + 1].el); abierto = k; } return o; };
+  const ts = traza(sol), tt = traza(tierra);
+  const marca = (c, cls) => '<g class="sw-polar__body sw-polar__body--' + cls + '" data-seen="' + c.ve + '"><circle cx="' + pt(c.az, c.el).split(' ')[0] + '" cy="' + pt(c.az, c.el).split(' ')[1] + '" r="13"></circle></g>';
+  const card = [0, 90, 180, 270].map((az) => { const a = pt(az, 0, R).split(' '), b = pt(az, 0, R + 7).split(' '), c = pt(az, 0, R + 30).split(' '); return '<line class="sw-polar__tick" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"></line><text class="sw-polar__az" x="' + c[0] + '" y="' + c[1] + '" text-anchor="middle" dominant-baseline="middle">' + { 0: 'N', 90: 'E', 180: 'S', 270: L('O', 'W') }[az] + '</text>'; }).join('');
+  return '<svg class="sw-polar sw-polar--mini" viewBox="50 40 500 500" role="img" aria-label="' + L('Cielo en ', 'Sky at ') + nombre + '"><circle class="sw-polar__sky" cx="' + CX + '" cy="' + CY + '" r="' + R + '"></circle>' +
+    [0, 5, 10].map((el) => '<circle class="' + (el ? 'sw-polar__ring' : 'sw-polar__level') + '" cx="' + CX + '" cy="' + CY + '" r="' + radio(el).toFixed(1) + '"></circle>').join('') +
+    '<path class="sw-polar__centre" d="M' + (CX - 7) + ' ' + CY + 'H' + (CX + 7) + 'M' + CX + ' ' + (CY - 7) + 'V' + (CY + 7) + '"></path><path class="sw-polar__terrain" fill-rule="evenodd" d="' + anillo + 'Z"></path><circle class="sw-polar__rim" cx="' + CX + '" cy="' + CY + '" r="' + R + '"></circle>' +
+    '<path class="sw-polar__path sw-polar__path--sun" data-hidden="true" d="' + ts.no + '"></path><path class="sw-polar__path sw-polar__path--earth" data-hidden="true" d="' + tt.no + '"></path><path class="sw-polar__path sw-polar__path--sun" d="' + ts.si + '"></path><path class="sw-polar__path sw-polar__path--earth" d="' + tt.si + '"></path>' +
+    card + marca(ahora.tierra, 'earth') + marca(ahora.sol, 'sun') + '</svg>';
+}
+function pintarComparar() {
+  ALT.v = plan.altura;
+  const MEDIO = 14.75 * D, t0 = plan.t, desde = t0 - MEDIO, hasta = t0 + MEDIO, paso = DATOS.paso, total = (hasta - desde) / H;
+  const pct = (v) => (Math.abs(v - Math.round(v)) < 0.05 ? fmt(v) : fmt(v, 1)) + '%';
+  const filas = Object.keys(ZONAS).map((kz) => {
+    const z = ZONAS[kz], r = evaluar(Object.assign({}, plan, { zona: kz })); ALT.v = plan.altura;
+    const hz = horizonteZona(z, t0), azT = (360 - LON[kz]) % 360;
+    const sol = [], tierra = []; let solN = 0, tierN = 0, n = 0, noche = 0, nocheMax = 0;
+    for (let t = desde; t <= hasta + 1; t += paso) {
+      const s = solEl(z, t), e = tierraEl(z, t); n++;
+      sol.push({ az: solAz(z, t), el: solGeo(z, t), ve: s > 0 }); tierra.push({ az: azT, el: hz(azT) + e, ve: e > 0, t });
+      if (s > 0) { solN++; noche = 0; } else { noche += paso / H; nocheMax = Math.max(nocheMax, noche); }
+      if (e > 0) tierN++;
+    }
+    const ahora = { sol: { az: solAz(z, t0), el: solGeo(z, t0), ve: solEl(z, t0) > 0 }, tierra: { az: azT, el: hz(azT) + tierraEl(z, t0), ve: tierraEl(z, t0) > 0 } };
+    return { kz, z, r, hz, sol, tierra, ahora, solPct: solN / n * 100, tierraPct: tierN / n * 100, nocheMax };
+  });
+  const franja = (c) => { let h = '', ini = -1; const m = c.length; for (let i = 0; i <= m; i++) { const v = i < m && c[i].ve; if (v && ini < 0) ini = i; if (!v && ini >= 0) { h += '<i style="left:' + (ini / m * 100).toFixed(2) + '%;width:' + ((i - ini) / m * 100).toFixed(2) + '%"></i>'; ini = -1; } } return h; };
+  const dia = (t) => new Date(t).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  $('cz-periodo').textContent = dia(desde) + ' – ' + dia(hasta) + ' ' + new Date(hasta).getUTCFullYear();
+  $('cz').innerHTML = filas.map((f) => {
+    const fallan = f.r.checks.filter((c) => c.s === 'nogo'), estado = f.r.ok ? 'on' : fallan.length === 1 ? 'limited' : 'off';
+    const chip = f.r.ok ? L('Cumple', 'Passes') : fallan.length === 1 ? L('Falla 1', '1 fails') : L('No cumple', 'Fails');
+    const luz = f.nocheMax === 0 ? L('Luz solar todo el día lunar', 'Sunlight all lunar day') : L('Luz solar el ' + pct(f.solPct) + ' del tiempo, noche más larga de ' + fmt(Math.round(f.nocheMax)) + ' h', 'Sunlight ' + pct(f.solPct) + ' of the time, longest night ' + fmt(Math.round(f.nocheMax)) + ' h');
+    const tierra = f.tierraPct === 0 ? L('sin vista directa de la Tierra', 'no direct view of Earth') : L('Tierra a la vista el ' + pct(f.tierraPct), 'Earth in view ' + pct(f.tierraPct));
+    const motivo = luz + '; ' + tierra + '.', falla = f.r.ok ? '' : '<p class="sw-card__falla">' + L('Con tu plan falla: ', 'With your plan it fails: ') + fallan.map((c) => L(c.es, c.en).toLowerCase()).join(', ') + '.</p>';
+    return '<article class="sw-card' + (f.kz === plan.zona ? ' act' : '') + '"><h4 class="sw-card__name">' + f.kz + ' · ' + f.z.nombre.replace(/ · RoI (\d+)/, ' RoI $1') + '</h4>' +
+      '<p class="sw-card__where">' + fmt(Math.abs(f.z.lat), 2) + '° S, ' + fmt(LON[f.kz], 2) + '° E</p>' +
+      '<div class="sw-card__main">' + cieloPolar(f.hz, f.sol, f.tierra, f.ahora, f.z.nombre) +
+      '<dl class="sw-card__figures"><div><dt>' + L('Sol a la vista', 'Sun in view') + '</dt><dd class="sw-card__big">' + pct(f.solPct) + '</dd></div>' +
+      '<div><dt>' + L('Noche más larga', 'Longest night') + '</dt><dd>' + fmt(Math.round(f.nocheMax)) + ' h</dd><dd class="sw-card__gauge" aria-hidden="true"><i style="width:' + Math.min(100, f.nocheMax / total * 100).toFixed(1) + '%"></i></dd></div></dl></div>' +
+      '<div class="sw-card__earth"><p><span>' + L('Tierra · día lunar', 'Earth · lunar day') + '</span><span class="sw-key" data-key="earth">' + L('A la vista', 'In view') + '</span><span class="sw-key" data-key="none">' + L('Oculta', 'Hidden') + '</span></p>' +
+      '<div class="sw-strip" role="img" aria-label="' + L('Tierra a la vista el ', 'Earth in view ') + pct(f.tierraPct) + '">' + franja(f.tierra) + '<b style="left:50%" title="' + L('tu alunizaje', 'your landing') + '"></b></div></div>' +
+      '<div class="sw-card__verdict"><span class="sw-chip" data-state="' + estado + '">' + chip + '</span><p>' + motivo + '</p></div>' + falla +
+      '<div class="sw-card__usar">' + (f.kz === plan.zona ? '<span class="comp-act">' + L('tu zona', 'your zone') + '</span>' : '<button type="button" class="btn comp-usar" data-usar="' + f.kz + '">' + L('Usar esta zona', 'Use this zone') + '</button>') + '</div></article>';
+  }).join('');
+}
 function pintarKpis() {
   const p = plan, z = ZONAS[p.zona], k = kpisDe(z, p);
   ALT.v = p.altura;
-  let nlp = 0; const pasan = [];
-  for (const s of SITIOS28) { const r = cumple(lector(s[p.altura], 2, DATOS2.n2, 2 * H), p, 2); if (r.ok) { nlp++; pasan.push(s.nombre); } }
+  let nlp = 0;
+  for (const s of SITIOS28) { const r = cumple(lector(s[p.altura], 2, DATOS2.n2, 2 * H), p, 2); if (r.ok) nlp++; }
   const rutasOk = Object.values(RUTAS).filter((r) => r.pend[z.id] <= CAMINAR.pendMax).length;
   const largo = Math.max(...Object.values(RUTAS).map((r) => r.m)) / 1000;
   const T = (sigla, nombre, valor, meta, ok, nota) => ({ sigla, nombre, valor, meta, ok, nota });
@@ -957,17 +1072,6 @@ function pintarKpis() {
     '<strong>' + t.valor + '</strong><span class="kpi-m">' + (t.meta == null ? L('sin meta definida', 'no target set') : L('meta ', 'target ') + t.meta) + '</span><span class="kpi-s">' + t.sigla + ' · ' + t.grupo + '</span></div>').join('') + '</div>';
   const sinMedir = tarjetas.filter((t) => t.ok == null).map((t) => t.sigla);
   $('kpis-sin').textContent = sinMedir.length ? L('Sin medición todavía: ', 'Not measured yet: ') + sinMedir.join(' · ') + L(' (el plan aún no tiene esos datos). Pasa el ratón por una tarjeta para ver qué mide.', ' (the plan has no such data yet). Hover a card to see what it measures.') : '';
-  // comparativo de las tres zonas con el mismo plan
-  const filas = Object.entries(ZONAS).map(([kz, zz]) => { const q = kpisDe(zz, p); return { kz, zz, q, ok: q.c.ok && q.pend < ALUNIZAJE.vuelco }; });
-  ALT.v = p.altura;
-  const celda = (txt, ok) => '<td' + (ok === false ? ' class="mal"' : '') + '>' + txt + '</td>';
-  $('comparativo').innerHTML = '<thead><tr><th>' + L('Zona', 'Zone') + '</th><th>' + L('Veredicto', 'Verdict') + '</th><th>' + L('Tierra', 'Earth') + ' <small>EC</small></th><th>' + L('Sol', 'Sun') + ' <small>EW</small></th><th>' + L('Energía solar', 'Solar power') + ' <small>WS</small></th><th>' + L('Mástil', 'Mast') + ' <small>NH</small></th><th>' + L('Noche máx.', 'Max night') + '</th><th>' + L('Pendiente', 'Slope') + '</th><th></th></tr></thead><tbody>' +
-    filas.map(({ kz, zz, q, ok }) => '<tr' + (kz === p.zona ? ' data-actual="true"' : '') + '><th><b>' + kz + '</b> ' + zz.nombre + '</th>' + celda(ok ? 'GO' : 'NO-GO', ok) +
-      celda(fmt(q.c.tierraPct) + '%', q.c.tierraPct >= META.EC) + celda(fmt(q.c.solPct) + '%', q.c.solPct >= META.EW) + celda(fmt(q.ws) + ' W/m²', q.ws >= META.WS) + celda(q.nh == null ? '> 30 m' : q.nh + ' m', q.nh != null && q.nh <= META.NH) +
-      celda(horas(q.c.nocheMax)) + celda(fmt(q.pend, 1) + '°', q.pend < ALUNIZAJE.vuelco) + '<td>' + (kz === p.zona ? '<span class="comp-act">' + L('tu zona', 'your zone') + '</span>' : '<button type="button" class="btn comp-usar" data-usar="' + kz + '">' + L('Usar esta zona', 'Use this zone') + '</button>') + '</td></tr>').join('') + '</tbody>';
-  $('nlp-det').hidden = false;
-  $('nlp-sum').textContent = pasan.length ? L('Ver los ' + pasan.length + ' lugares del Planificador que cumplen con este plan', 'See the ' + pasan.length + ' Planner sites that pass with this plan') : L('Ningún lugar del Planificador cumple con estos requisitos en esta fecha.', 'No Planner site passes with these requirements on this date.');
-  $('nlp-lista').textContent = pasan.join(' · ');
 }
 
 /* ---------- controles de la pantalla de resultado ---------- */
@@ -1047,9 +1151,9 @@ function pintarWz() {
       '<p class="wz-q">' + L('Mueve la línea de tiempo para ver la luz sobre el relieve. Suelta para alunizar en ese momento.', 'Scrub the timeline to see light on the terrain. Release to land at that moment.') + '</p>' +
       '<div class="luzq"><div class="luzq-mapa"><canvas id="lq-mapa" width="378" height="378" aria-label="' + L('Luz y sombra sobre el relieve', 'Light and shadow on the terrain') + '"></canvas>' +
       '<div class="luzq-ley"><span><i style="background:var(--lit)"></i>' + L('al Sol', 'sunlit') + '</span><span><i style="background:var(--umbra)"></i>' + L('en sombra', 'in shadow') + '</span><span>20 × 20 km · LOLA</span></div></div>' +
-      '<div class="luzq-lado"><div class="luzq-hora"><span class="lbl">' + L('Momento', 'Moment') + '</span><b id="lq-hora"></b></div><div class="luzq-cifras"><div id="lq-sol"></div><div id="lq-tierra"></div></div>' +
-      rango('wz-estadia', L('Estadía', 'Stay'), wz.estadia, horas(wz.estadia), 24, 336, 12) +
-      '<label class="field"><span class="lbl">' + L('Alunizaje (UTC)', 'Landing (UTC)') + '</span><input type="datetime-local" id="wz-fecha" min="2026-01-01T00:00" max="2030-12-31T23:00" step="3600" value="' + (wz.t ? isoLocal(wz.t) : '') + '"></label></div></div>' +
+      '<div class="cal" role="group" aria-label="' + L('Alunizaje (UTC)', 'Landing (UTC)') + '"><div class="cal-mes" id="lq-cal-dias">' + calDias() + '</div><div class="cal-hrs" id="lq-cal-horas" role="group" aria-label="' + L('Hora (UTC)', 'Hour (UTC)') + '">' + calHoras() + '</div></div></div>' +
+      '<div class="luzq-datos"><div><span class="lbl">' + L('Momento', 'Moment') + '</span><b id="lq-hora"></b></div><div id="lq-sol"></div><div id="lq-tierra"></div>' +
+      rango('wz-estadia', L('Estadía', 'Stay'), wz.estadia, horas(wz.estadia), 24, 336, 12) + '</div>' +
       '<div class="luzq-tl"><div class="luzq-ctl"><button type="button" class="btn" id="lq-atras" title="' + L('15 días antes', '15 days earlier') + '">◀ 15 d</button><button type="button" class="btn" id="lq-play" title="' + L('Ver pasar las horas', 'Watch the hours go by') + '">▶</button><button type="button" class="btn" id="lq-adel" title="' + L('15 días después', '15 days later') + '">15 d ▶</button><span class="lbl" id="lq-rango"></span></div>' +
       '<canvas id="lq-tl" height="104" aria-label="' + L('Línea de tiempo del Sol y la Tierra', 'Sun and Earth timeline') + '"></canvas></div>';
     if (wz.t != null) { const luz = luzEstadia(ZONAS[wz.zona], wz.t, wz.estadia);
@@ -1085,14 +1189,17 @@ function siguiente() {
   parar();
   if (wz.paso < PS.length - 1) { wz.paso++; pintarWz(); return; }
   plan = { nombre: wz.nombre.trim(), tipo: wz.tipo, energia: wz.energia, bateriaH: wz.bateriaH, minTierra: wz.minTierra, altura: wz.altura, zona: wz.zona, t: wz.t, estadia: wz.estadia, ruta: wz.ruta || 'segura', eva: wz.eva, roverKmh: wz.roverKmh, roverParadaH: wz.roverParadaH };
-  antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
+  antes = { ok: null, ruta: '', luz: '', terreno: '' };
   planId = null;
   ver('consola'); pintar(); pintarMisiones();
 }
 $('wz').addEventListener('submit', (e) => { e.preventDefault(); siguiente(); });
 $('wz').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.campo) { const c = b.dataset.campo, v = b.dataset.valor; wz[c] = c === 'altura' ? +v : v; pintarWz(); }
+  if (b.dataset.mes) { const id = b.id; lq.mes = +b.dataset.mes; $('lq-cal-dias').innerHTML = calDias(); const nb = $(id); if (nb && !nb.disabled) nb.focus(); }
+  else if (b.dataset.dia) { const hr = wz.t != null ? new Date(wz.t).getUTCHours() : 12; elegirFecha(+b.dataset.dia + hr * H, 'dia'); }
+  else if (b.dataset.hora) { elegirFecha(calDiaBase() + +b.dataset.hora * H, 'hora'); }
+  else if (b.dataset.campo) { const c = b.dataset.campo, v = b.dataset.valor; wz[c] = c === 'altura' ? +v : v; pintarWz(); }
   else if (b.dataset.ir != null && !b.disabled) { parar(); wz.paso = +b.dataset.ir; pintarWz(); }
   else if (b.id === 'wz-atras') { parar(); if (wz.paso === 0) { const m = previa(); if (m) abrirMision(m); } else { wz.paso--; pintarWz(); } }
   else if (b.id === 'wz-usar-rec') { wz.energia = recomendarEnergia(wz, luzEstadia(ZONAS[wz.zona], wz.t, wz.estadia)).k; pintarWz(); }
@@ -1107,7 +1214,41 @@ $('wz').addEventListener('input', (e) => {
   else if (t.id === 'wz-rvel') re('roverKmh', 'wz-rvel');
   else if (t.id === 'wz-rpar') re('roverParadaH', 'wz-rpar');
 });
-$('wz').addEventListener('change', (e) => { if (e.target.id === 'wz-fecha') { const t = Date.parse(e.target.value + ':00Z'); if (Number.isFinite(t)) { wz.t = Math.min(T_MAX - wz.estadia * H, Math.max(T_MIN, t)); lq.cursor = wz.t; pintarWz(); } } });
+/* Calendario de alunizaje (paso 3), siempre abierto: un clic en un día conserva la hora; un clic en una hora conserva el día. */
+const mesDe = (t) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
+const refLuz = () => wz.t ?? lq.cursor ?? Math.max(T_MIN, Math.min(T_MAX - VENTANA, Math.floor(Date.now() / H) * H));
+const calDiaBase = () => Math.floor(refLuz() / D) * D;
+function calDias() {
+  const tope = T_MAX - wz.estadia * H, loc = lang === 'en' ? 'en-GB' : 'es-ES';
+  if (lq.mes == null) lq.mes = mesDe(refLuz());
+  const d0 = new Date(lq.mes), y = d0.getUTCFullYear(), mo = d0.getUTCMonth();
+  const ant = Date.UTC(y, mo - 1, 1), sig = Date.UTC(y, mo + 1, 1), nDias = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate(), hueco = (d0.getUTCDay() + 6) % 7;
+  const diaSel = wz.t != null ? Math.floor(wz.t / D) * D : null, nombre = d0.toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  let h = '<div class="cal-cab"><b>' + nombre.charAt(0).toUpperCase() + nombre.slice(1) + '</b><span>' +
+    '<button type="button" class="btn" id="cal-ant" data-mes="' + ant + '" aria-label="' + L('Mes anterior', 'Previous month') + '"' + (lq.mes <= mesDe(T_MIN) ? ' disabled' : '') + '>◀</button>' +
+    '<button type="button" class="btn" id="cal-sig" data-mes="' + sig + '" aria-label="' + L('Mes siguiente', 'Next month') + '"' + (sig > tope ? ' disabled' : '') + '>▶</button></span></div>';
+  h += '<div class="cal-dias">' + (lang === 'en' ? ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] : ['LU', 'MA', 'MI', 'JU', 'VI', 'SÁ', 'DO']).map((s) => '<span aria-hidden="true">' + s + '</span>').join('') + '<i></i>'.repeat(hueco);
+  for (let k = 1; k <= nDias; k++) {
+    const t = Date.UTC(y, mo, k), fuera = t + D - H < T_MIN || t > tope;
+    h += '<button type="button" data-dia="' + t + '" aria-pressed="' + (t === diaSel) + '"' + (fuera ? ' disabled' : '') + ' aria-label="' + new Date(t).toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) + '">' + k + '</button>';
+  }
+  return h + '</div>';
+}
+function calHoras() {
+  const tope = T_MAX - wz.estadia * H, base = calDiaBase(), hh = (k) => String(k).padStart(2, '0') + ':00';
+  let h = '<div class="cal-cab"><span class="lbl">' + L('Hora (UTC)', 'Hour (UTC)') + '</span><b class="num">' + (wz.t != null ? hh(new Date(wz.t).getUTCHours()) : '—') + '</b></div><div class="cal-horas">';
+  for (let k = 0; k < 24; k++) {
+    const t = base + k * H, fuera = t < T_MIN || t > tope;
+    h += '<button type="button" data-hora="' + k + '" aria-pressed="' + (wz.t === t) + '"' + (fuera ? ' disabled' : '') + '>' + hh(k) + '</button>';
+  }
+  return h + '</div>';
+}
+function elegirFecha(t, tipo) {
+  parar();
+  wz.t = Math.min(T_MAX - wz.estadia * H, Math.max(T_MIN, t)); lq.cursor = wz.t; lq.mes = mesDe(wz.t);
+  pintarWz();
+  const sel = document.querySelector(tipo === 'dia' ? '#lq-cal-dias [data-dia="' + Math.floor(wz.t / D) * D + '"]' : '#lq-cal-horas [data-hora="' + new Date(wz.t).getUTCHours() + '"]'); if (sel) sel.focus();
+}
 const empezar = () => { wz = nuevoWz(); ver('wz'); pintarWz(); };
 $('nueva').addEventListener('click', empezar);
 
@@ -1189,8 +1330,8 @@ function dibujarLuzTl() {
 function leerLuz() {
   const z = ZONAS[wz.zona], t = lq.cursor, s = solEl(z, t), e = tierraEl(z, t);
   $('lq-hora').textContent = fechaTxt(t);
-  $('lq-sol').innerHTML = '<span class="lbl">' + L('Sol', 'Sun') + '</span><b style="color:' + (s > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (s > 0 ? L('visible', 'visible') : L('oculto', 'hidden')) + '</b><small>' + fmt(s, 1) + '° ' + L('sobre el horizonte', 'above horizon') + ' · az ' + fmt(solAz(z, t)) + '°</small>';
-  $('lq-tierra').innerHTML = '<span class="lbl">' + L('Tierra', 'Earth') + '</span><b style="color:' + (e > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (e > 0 ? L('en contacto', 'in contact') : L('sin enlace', 'no link')) + '</b><small>' + fmt(e, 1) + '° ' + L('sobre el horizonte', 'above horizon') + '</small>';
+  $('lq-sol').innerHTML = '<span class="lbl">' + L('Sol', 'Sun') + '</span><b style="color:' + (s > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (s > 0 ? L('visible', 'visible') : L('oculto', 'hidden')) + '</b><small>alt. ' + fmt(s, 1) + '° · az ' + fmt(solAz(z, t)) + '°</small>';
+  $('lq-tierra').innerHTML = '<span class="lbl">' + L('Tierra', 'Earth') + '</span><b style="color:' + (e > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (e > 0 ? L('en contacto', 'in contact') : L('sin enlace', 'no link')) + '</b><small>alt. ' + fmt(e, 1) + '°</small>';
 }
 function refrescarLuz(mapa = true) { if (mapa) dibujarLuzMapa(lq.cursor); dibujarLuzTl(); leerLuz(); }
 function iniciarLuz() {
@@ -1203,7 +1344,7 @@ function iniciarLuz() {
   let ultimo = 0;
   tl.addEventListener('pointerdown', (ev) => { lq.arrastre = true; tl.setPointerCapture(ev.pointerId); parar(); lq.cursor = tAt(ev); refrescarLuz(); });
   tl.addEventListener('pointermove', (ev) => { if (!lq.arrastre) return; lq.cursor = tAt(ev); const now = performance.now(), m = now - ultimo > 40; refrescarLuz(m); if (m) ultimo = now; });
-  tl.addEventListener('pointerup', () => { if (!lq.arrastre) return; lq.arrastre = false; wz.t = Math.min(T_MAX - wz.estadia * H, lq.cursor); pintarWz(); });
+  tl.addEventListener('pointerup', () => { if (!lq.arrastre) return; lq.arrastre = false; wz.t = Math.min(T_MAX - wz.estadia * H, lq.cursor); lq.mes = mesDe(wz.t); pintarWz(); });
   const mover = (d) => { parar(); lq.ini = Math.max(T_MIN, Math.min(T_MAX - VENTANA, lq.ini + d)); lq.cursor = Math.max(lq.ini, Math.min(lq.ini + VENTANA, lq.cursor)); refrescarLuz(); };
   $('lq-atras').onclick = () => mover(-15 * D); $('lq-adel').onclick = () => mover(15 * D);
   $('lq-play').onclick = () => { if (lq.play) { parar(); return; } lq.play = true; $('lq-play').textContent = '❚❚';
@@ -1215,7 +1356,7 @@ function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('l
 
 /* ---------- idioma y arranque ---------- */
 const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); pintarMisiones(); };
-$('comparativo').addEventListener('click', (e) => { const b = e.target.closest('[data-usar]'); if (!b) return; const z = $('zones').querySelector('[data-k="' + b.dataset.usar + '"]'); if (z) { z.click(); $('verdict').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
+$('cz').addEventListener('click', (e) => { const b = e.target.closest('[data-usar]'); if (!b) return; const z = $('zones').querySelector('[data-k="' + b.dataset.usar + '"]'); if (z) { z.click(); $('verdict').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
 $('mis-btn').addEventListener('click', () => abrirLista($('mis-lista').hidden));
 $('mis-btn').addEventListener('keydown', (e) => {
   const l = $('mis-lista'), ops = [...l.querySelectorAll('.mis-op')], i = ops.findIndex((o) => o.classList.contains('foco'));

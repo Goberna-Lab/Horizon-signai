@@ -55,6 +55,9 @@ export function useOido(alOir: (wav: Blob, info: FraseOida) => void) {
         negativeSpeechThreshold: 0.4,
         minSpeechMs: 250,
         submitUserSpeechOnPause: false,
+        // No empieza a escuchar sola al crearse (la librería lo hace por defecto): escucha solo cuando EVA lo pide
+        // (`escuchar`), y nunca mientras habla. Antes oía su propia voz desde el primer toque y la cortaba.
+        startOnLoad: false,
         onSpeechStart: () => setEstado("oyendo"),
         onVADMisfire: () => setEstado("escuchando"),
         onSpeechEnd: (audio) => {
@@ -74,6 +77,7 @@ export function useOido(alOir: (wav: Blob, info: FraseOida) => void) {
         },
       })
       if (quiere.current) await vad.current.start()
+      else await vad.current.pause().catch(() => {}) // por si la versión de la librería igual arrancó
       setEstado(quiere.current ? "escuchando" : "apagado")
       return true
     } catch {

@@ -4,7 +4,7 @@
 // grabación (vozGrabada.test.ts). Sin React ni DOM.
 import { EVENTOS, fraseDe, guionDe, TEXTOS } from "./guion.ts"
 import type { Idioma } from "./idioma"
-import { frasesSueltas, RECORRIDOS, variantesDePaso } from "./recorridos.ts"
+import { frasesSueltas, RECORRIDOS, retomadas, variantesDePaso } from "./recorridos.ts"
 import { PREGUNTAS, PUENTES, RESCATE, SEGUIMOS } from "../../../../../../packages/shared/src/preguntas.ts"
 import { sugerenciasDe } from "./sugerencias.ts"
 import { claveDe, enOraciones, sinVocativo } from "./vozGrabada.ts"
@@ -92,7 +92,7 @@ export function frasesDelGuion(): FraseDelGuion[] {
     for (const frase of AVISOS_AJENOS[idioma]) agregar(idioma, frase, "aviso del simulador")
 
     // Los recorridos guiados.
-    for (const r of RECORRIDOS) {
+    for (const r of [...RECORRIDOS, ...retomadas()]) {
       r.pasos.forEach((p, k) => {
         for (const frase of variantesDePaso(p, idioma)) agregar(idioma, frase, `recorrido ${r.id} ${k + 1}`)
       })

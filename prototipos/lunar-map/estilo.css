@@ -31,7 +31,11 @@ body { font-family: var(--f-ui); }
 .screen { border: var(--rule); }
 .fbody { border: var(--rule); background: var(--crema); }
 /* Dentro de la carpeta, «Mission sites», «Missions» y «Landing windows» van sin borde: la carpeta ya los encuadra */
-.fbody .sites, .fbody .upcoming, .fbody .lwp { border-color: transparent; }
+.fbody .sites, .fbody .upcoming, .fbody .lwp, .fbody .cal, .fbody .movs { border-color: transparent; }
+/* «Tracking»: entre el calendario y la bitácora, una línea de tinta en medio del hueco (vertical a la par; horizontal
+   cuando se apilan, ≤ 1300 px). El hueco entre ambos es de 16 px: la línea va a 8 px de cada uno. */
+.fbody .movs::before { content: ""; position: absolute; top: 16px; bottom: 16px; left: -9px; border-left: var(--rule); pointer-events: none; }
+@media (max-width: 1300px) { .fbody .movs::before { top: -9px; bottom: auto; left: 16px; right: 16px; border-left: 0; border-top: var(--rule); } }
 
 /* ---------- tipografía: títulos en Archivo; rótulos y cifras en mono pequeña (el «.lbl» del Planificador) ---------- */
 :is(.ph h2, .who-m, .mrow .nm, .pending .t) { font-family: var(--f-ui); letter-spacing: -0.03em; }

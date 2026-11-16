@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
+import { esInterno, sinInterno } from "./interno.js"
 
 // Recuperación (RAG) sobre la documentación del proyecto. El índice va junto a este archivo y la ruta
 // sale de aquí, no del cwd: en producción la imagen corre el API desde el código (`tsx apps/api/src/index.ts`),
@@ -49,7 +50,9 @@ const CABECERA =
   "Reference excerpts from the project's own documentation, retrieved for this question. They may be in Spanish; " +
   "answer in the user's language. They can describe the earlier prototype or plans as well as the current app: " +
   "for what the app does today, the facts above win. Use an excerpt only if it answers the question; when you do, " +
-  "say where it comes from in a few words (for example 'the planner notes say'). Do not read file paths aloud."
+  "say where it comes from in a few words (for example 'the planner notes say'). They are internal notes: never quote " +
+  "file or folder names, code, function names or how the app is built inside; use only the facts about the Moon, the " +
+  "missions and what the app shows."
 
 // Nombre corto de cada documento, para que el modelo pueda decir de dónde sale sin leer la ruta.
 const NOMBRES: Record<string, string> = {
@@ -220,6 +223,9 @@ const vectorDe = (pregunta: string): Promise<Float32Array> => {
  * Los `k` trozos de la documentación más parecidos a la pregunta, de mayor a menor (`puntaje` es el coseno).
  * Devuelve [] si el mejor no pasa el piso (ver PISO) y nunca lanza: si falla el índice o el embedding, [].
  */
+let internosDe: Trozo[] | null = null
+let internos: boolean[] = []
+
 export async function buscar(pregunta: string, k: number = K, piso: number = PISO, margen: number = MARGEN): Promise<Hallazgo[]> {
   try {
     const texto = pregunta.normalize("NFKC").replace(/\s+/g, " ").trim().slice(0, MAX_PREGUNTA)
@@ -229,14 +235,17 @@ export async function buscar(pregunta: string, k: number = K, piso: number = PIS
     const q = await vectorDe(texto)
     if (q.length !== idx.dims) return []
     const { dims, vectores, normas, puntajes, trozos } = idx
+    // Lo del proyecto por dentro no se entrega nunca (./interno.ts): queda fuera de la búsqueda.
+    if (internosDe !== trozos) [internosDe, internos] = [trozos, trozos.map(esInterno)]
     // Coseno de la pregunta (longitud 1) contra cada fila int8. Sin await ni objetos dentro del bucle.
     let suma = 0
     let mejor = -1
     for (let i = 0, base = 0; i < puntajes.length; i++, base += dims) {
       let punto = 0
       for (let j = 0; j < dims; j++) punto += q[j]! * vectores[base + j]!
-      const p = punto / normas[i]!
+      const p = internos[i] ? -1 : punto / normas[i]!
       puntajes[i] = p
+      if (internos[i]) continue
       suma += p
       if (p > mejor) mejor = p
     }
@@ -269,7 +278,7 @@ const recortar = (texto: string, max: number): string => {
 
 const etiqueta = (h: Hallazgo): string => {
   const titulo = h.titulo.length <= 90 ? h.titulo : recortar(h.titulo.split(" › ").pop() ?? h.titulo, 90)
-  return `[${nombreDe(h.ruta)} · ${h.ruta} › ${titulo}]`
+  return `[${nombreDe(h.ruta)} › ${sinInterno(titulo)}]` // sin la ruta del archivo: lo interno no sale (./interno.ts)
 }
 
 const armarBloque = (hallazgos: Hallazgo[], K: number, MAX_BLOQUE: number): string => {
@@ -299,7 +308,7 @@ const armarBloque = (hallazgos: Hallazgo[], K: number, MAX_BLOQUE: number): stri
     }
     resto -= largos[i]!
   }
-  return [CABECERA, ...elegidos.map((h, i) => `${etiquetas[i]}\n${recortar(h.texto, tope)}`)].join("\n\n")
+  return [CABECERA, ...elegidos.map((h, i) => `${etiquetas[i]}\n${recortar(sinInterno(h.texto), tope)}`)].join("\n\n")
 }
 
 /**

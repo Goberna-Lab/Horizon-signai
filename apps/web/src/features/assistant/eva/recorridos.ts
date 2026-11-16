@@ -520,3 +520,44 @@ export const frasesSueltas = (idioma: Idioma): string[] =>
 /** Las variantes de un paso con cuenta regresiva que se graban (0 a DIAS_GRABADOS días y la de sin número). */
 export const variantesDePaso = (p: Paso, idioma: Idioma): string[] =>
   p.cuenta ? [null, ...Array.from({ length: DIAS_GRABADOS + 1 }, (_, k) => k)].map((d) => textoDePaso(p, idioma, d)) : [p.texto[idioma]]
+
+// ----- Retomar tras recargar (pedido de Manuel, 2026-11-15) -----
+// En la landing, recargar empieza de cero. Desde que se entra a una sección del recorrido, EVA la guarda (sessionStorage,
+// ver EvaCompanera); si la página se recarga ahí, saluda, dice dónde quedaron y ofrece seguir desde el inicio de esa
+// sección o empezar el recorrido de nuevo.
+const DONDE: Record<string, Bi> = {
+  control: { en: "We left off at mission control.", es: "Nos quedamos en el control de misión." },
+  decidir: { en: "We left off at what you decide to approve a mission.", es: "Nos quedamos en lo que se decide para aprobar una misión." },
+  real: { en: "We left off at the real mission, Apollo eleven.", es: "Nos quedamos en la misión real, el Apollo once." },
+  elegir: { en: "We left off at your turn: see, create or fly.", es: "Nos quedamos en tu turno: ver, crear o volar." },
+}
+DONDE.ver = DONDE.elegir!
+DONDE.crear = DONDE.elegir!
+const SEGUIR_DESDE_AHI: Bi = { en: "Shall we pick up from there?", es: "¿Seguimos desde ahí?" }
+
+/** Las secciones que se guardan para retomar (las de la landing no: ahí se empieza de cero). */
+export const seGuarda = (id: string) => id in DONDE
+
+/** El paso que ofrece retomar la sección `id`; con `nombre`, empieza con «Welcome back, …» (esa oración va en vivo). */
+export function recorridoParaRetomar(id: string, nombre = ""): Recorrido | null {
+  const seccion = RECORRIDOS.find((r) => r.id === (id === "ver" || id === "crear" ? "elegir" : id))
+  const donde = DONDE[id]
+  if (!seccion || !donde) return null
+  const hola = { en: nombre ? `Welcome back, ${nombre}. ` : "", es: nombre ? `Hola de nuevo, ${nombre}. ` : "" }
+  return {
+    id: "retomar",
+    fin: { en: "", es: "" },
+    pasos: [
+      {
+        texto: { en: `${hola.en}${donde.en} ${SEGUIR_DESDE_AHI.en}`, es: `${hola.es}${donde.es} ${SEGUIR_DESDE_AHI.es}` },
+        elige: [
+          { id: "seguir", boton: { en: "Yes, let us continue", es: "Sí, sigamos" }, palabras: ["continue", "there", "seguir", "sigamos", "seguimos", "ahi"], recorrido: seccion },
+          { id: "cero", boton: { en: "Start the tour over", es: "Empezar el recorrido de nuevo" }, palabras: ["over", "start", "again", "scratch", "empezar", "nuevo", "cero", "inicio"], recorrido: CONTROL },
+        ],
+      },
+    ],
+  }
+}
+
+/** Las variantes de retomar sin nombre (para grabar su voz). */
+export const retomadas = (): Recorrido[] => Object.keys(DONDE).flatMap((id) => recorridoParaRetomar(id) ?? [])
