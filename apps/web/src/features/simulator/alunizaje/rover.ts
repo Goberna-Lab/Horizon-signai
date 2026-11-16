@@ -284,16 +284,16 @@ export class Rover {
 
   _pantalla(enlace, pend) {
     const v = this.view, now = v.now, t = this.tasks, ui = this.ui;
-    ui.classList.toggle('navcam', this.vista === 'navcam');
+    ui.classList.toggle('navcam', this.vista === 'navcam' && !this.perfora);
     const sol = now ? (now.sun.frac > 0.5 && t.lit(this.pos.x, this.pos.z)) : false;
-    this.$('cam').textContent = this.vista === 'navcam' ? tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m') : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
+    this.$('cam').textContent = this.perfora ? tr('OUTSIDE VIEW · DRILL', 'VISTA EXTERIOR · TALADRO') : this.vista === 'navcam' ? tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m') : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
     this.$('hora').textContent = v.time ? ' ' + new Date(v.time).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
     // Brújula: rumbo del rover (0° = norte, sentido horario; x este, z sur)
     const rumbo = ((Math.atan2(Math.sin(this.heading), -Math.cos(this.heading)) * 180) / Math.PI + 360) % 360;
     this.$('cinta').innerHTML = Array.from({ length: 25 }, (_, i) => { const a = Math.round(rumbo / 15) * 15 + (i - 12) * 15, n = ((a % 360) + 360) % 360, dx = (a - rumbo) * 6; return `<span style="left:calc(50% + ${dx}px)">${n % 45 === 0 ? PUNTOS[n / 45] : n % 30 === 0 ? n : '·'}</span>`; }).join('');
     // Objetivo en la imagen (o flecha al borde)
     const obj = this.$('obj'), fl = this.$('flecha'), tg = t.target;
-    if (tg && !t.done) {
+    if (tg && !t.done && !this.perfora) {
       const p = new THREE.Vector3(tg.x, (tg.y ?? v.groundY(tg.x, tg.z)) + 1, tg.z), d = Math.hypot(tg.x - this.pos.x, tg.z - this.pos.z);
       const s = p.clone().project(v.camera), W = ui.clientWidth, H = ui.clientHeight, dentro = s.z < 1 && Math.abs(s.x) < 0.92 && Math.abs(s.y) < 0.9;
       const nombre = t.step?.kind === 'sampleSombra' ? tr('SHADOW STOP', 'PARADA EN SOMBRA') : t.step?.kind === 'sampleSol' ? tr('LIT STOP', 'PARADA AL SOL') : tr('END OF ROUTE', 'FIN DE RUTA');
@@ -310,7 +310,7 @@ export class Rover {
       const me = this.$('medir'); me.hidden = !cerca;
       if (this.perfora) { me.hidden = false; me.innerHTML = tr('Drilling…', 'Perforando…'); }
     else if (cerca) me.innerHTML = cerca.name === 'sombra' && t.darkReal && !this.lamps ? tr('Too dark: turn on the lights <b>L</b>', 'Está oscuro: enciende las luces <b>L</b>') : tr('Press <b>E</b> to drill and collect the sample', 'Pulsa <b>E</b> para perforar y recoger la muestra');
-    } else { obj.hidden = true; fl.hidden = true; this.$('medir').hidden = true; }
+    } else { obj.hidden = true; fl.hidden = true; const me = this.$('medir'); me.hidden = !this.perfora; if (this.perfora) me.innerHTML = tr('Drilling…', 'Perforando…'); }
     // Telemetría
     this.$('tele').innerHTML = `
       <div><span>${tr('SPEED', 'VELOCIDAD')}</span><b>${fmt(Math.abs(this.vel) * 3.6, 2)}</b><i>/ ${fmt(this.vmax * 3.6, 1)} km/h</i></div>
