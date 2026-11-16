@@ -287,6 +287,37 @@ details.foot dd { margin: 0 }
 .comp-act { font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
 /* «Comparar sitios»: las mismas piezas que la landing (features/landing/sections/product/product.css), con el plan de
    quien planifica: tarjetas unidas, cielo polar, luz solar, noche más larga, Tierra en el día lunar y veredicto. */
+/* «Horizonte real»: el panorama del Planificador antiguo (prototipos/lunar-map, #hz) */
+.hz { display: block; background: var(--tint) }
+.hz .sil { fill: var(--ink) } .hz .sol { fill: var(--signal) } .hz .halo { fill: var(--signal); opacity: .16 }
+.hz .grid { stroke: rgb(17 17 17 / .10) } .hz .cero { stroke: rgb(17 17 17 / .35); stroke-dasharray: 3 3 }
+.hz text { font: 400 12px var(--f-mono); fill: var(--ink-soft) } .hz text.az { fill: var(--paper) }
+.hz .tierra { fill: var(--earth); stroke: var(--paper); stroke-width: 1.5 } .hz text.tierra-t { fill: var(--earth); paint-order: stroke; stroke: rgb(244 239 230 / .9); stroke-width: 3px }
+.hz .pasado { fill: none; stroke: var(--signal); stroke-width: 1.8; opacity: .6 }
+.hz .futuro { fill: none; stroke: var(--signal); stroke-width: 1.8; stroke-dasharray: 3 4; opacity: .5 }
+.hz text.prox { font: 500 13px var(--f-display); fill: var(--ink) }
+/* Línea de tiempo del Planificador antiguo (prototipos/lunar-map, #tl): 90 días, arrastrable y con reproducción */
+.tlx { margin-top: 14px; padding: 14px 16px 12px; background: var(--ink); color: var(--paper) }
+.tlx-cab { display: flex; align-items: center; gap: 12px; margin-bottom: 8px }
+.tlx-cab > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; min-width: 0 }
+.tlx-cab b { font: 700 15px var(--f-display); letter-spacing: var(--track) }
+.tlx-now { font: 500 12.5px var(--f-mono) } .tlx-st { font: 400 12px var(--f-mono); color: rgb(244 239 230 / .65) }
+.tlx-play { flex: none; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: var(--signal) }
+.tlx-play svg { width: 12px; height: 12px; fill: var(--paper) }
+.tlx-play:focus-visible, .tlx-svg:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px }
+.tlx-svg { display: block; width: 100%; height: 76px; cursor: ew-resize; touch-action: none; user-select: none }
+.tlx-svg text { font: 400 12px var(--f-mono); fill: rgb(244 239 230 / .62) } .tlx-svg text.fuerte { fill: var(--paper); font-weight: 600 }
+.tlx-svg .grid { stroke: rgb(244 239 230 / .12) } .tlx-svg .fondo { fill: #26241f }
+.tlx-svg .sol { fill: var(--signal) } .tlx-svg .tierra { fill: #6f9fd0 } .tlx-svg .ambos { fill: var(--paper) } .tlx-svg .noche { fill: url(#tlx-rayado) }
+.tlx-svg .ray-fondo { fill: #26241f } .tlx-svg .ray-linea { stroke: rgb(244 239 230 / .45); stroke-width: 2 }
+.tlx-svg .estadia { fill: rgb(244 239 230 / .08) } .tlx-svg .contacto { stroke: #ff8a9b; stroke-width: 1.5; stroke-dasharray: 3 3 }
+.tlx-svg .cursor { stroke: var(--paper); stroke-width: 1.5 } .tlx-svg .mango { fill: var(--paper) }
+.tlx-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 8px }
+.tlx-cap { margin: 0; font: 400 11.5px var(--f-mono); color: rgb(244 239 230 / .62) }
+.tlx-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-left: 18px; border-left: 1px solid rgb(244 239 230 / .14) }
+.tlx-sum span { display: flex; flex-direction: column; gap: 1px }
+.tlx-sum small { font: 400 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: rgb(244 239 230 / .6) }
+.tlx-sum b { font: 600 13px var(--f-mono) }
 .cz { --sw-bg: var(--paper); --sw-ink: var(--ink); --sw-soft: var(--ink-soft); --sw-rule: var(--ink); --sw-hair: var(--shade); --sw-terrain: var(--ink); --sw-sun: var(--signal); --sw-earth: var(--earth); --sw-hatch: rgb(17 17 17 / .34) }
 .cz-head { display: flex; align-items: center; gap: 18px; margin-bottom: 16px }
 .cz-head h3 { margin: 0; font: 900 clamp(1.75rem, 2.6vw, 2.5rem) / 1 var(--f-display); letter-spacing: var(--track); white-space: nowrap }
@@ -440,9 +471,17 @@ details.foot dd { margin: 0 }
       </div>
 
       <section class="card">
-        <h3><span data-en="Sun and Earth">Sol y Tierra</span><span class="lbl" data-en="above the real horizon · stay days">sobre el horizonte real · días de estadía</span></h3>
-        <div class="svgbox"><svg id="luz" viewBox="0 0 860 220" width="100%" role="img" aria-label="Sol y Tierra durante la estadía"></svg></div>
+        <h3><span id="hz-t"></span><span class="lbl" id="hz-src"></span></h3>
+        <div class="svgbox"><svg id="luz" class="hz" viewBox="0 0 860 190" width="100%" role="img"></svg></div>
         <div class="legend" id="luz-ley"></div>
+        <div class="tlx">
+          <div class="tlx-cab">
+            <button type="button" class="tlx-play" id="tl-play"></button>
+            <div><b id="tl-t"></b><span class="tlx-now" id="tl-now"></span><span class="tlx-st" id="tl-st"></span></div>
+          </div>
+          <svg id="tlx" class="tlx-svg" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="90"></svg>
+          <div class="tlx-pie"><p class="tlx-cap" id="tl-cap"></p><div class="tlx-sum" id="tl-sum"></div></div>
+        </div>
         <div class="kv" id="luz-kv"></div>
       </section>
 
@@ -891,34 +930,100 @@ function dibujarMapa() {
 
 function leyendaLuz() {
   const it = (estilo, t) => '<div><i style="' + estilo + '"></i>' + t + '</div>';
-  $('luz-ley').innerHTML = it('height:3px;background:var(--signal)', L('Sol: grados sobre el horizonte', 'Sun: degrees above the horizon')) + it('height:3px;background:var(--earth)', L('Tierra', 'Earth')) +
-    it('background:var(--hatch);opacity:.6', L('noche: el Sol no se ve', 'night: the Sun is not in view')) +
-    (plan.tipo === 'fija' ? '' : it('background:var(--ink);opacity:.25', plan.tipo === 'rover' ? L('recorrido del rover', 'rover traverse') : L('tu caminata (EVA)', 'your walk (EVA)')));
+  $('luz-ley').innerHTML = it('height:2px;background:var(--signal);opacity:.6', L('Sol: camino recorrido', 'Sun: path so far')) + it('height:0;border-top:2px dashed var(--signal);opacity:.6', L('Sol: lo que viene', 'Sun: what comes next')) +
+    it('background:var(--earth);border-radius:50%', L('Tierra', 'Earth')) + it('background:var(--ink)', L('relieve que tapa', 'terrain that blocks the view'));
 }
-function dibujarLuz() {
-  leyendaLuz();
-  const s = $('luz'); s.textContent = '';
-  const { sol, tierra } = R.luz, n = sol.length - 1, x0 = 40, x1 = 850, y0 = 16, y1 = 190;
-  const vals = sol.concat(tierra), lo = Math.min(-2, Math.floor(Math.min(...vals))), hi = Math.max(2, Math.ceil(Math.max(...vals)));
-  const X = (i) => x0 + (x1 - x0) * i / n, Y = (v) => y1 - (y1 - y0) * (v - lo) / (hi - lo);
-  let ini = -1;
-  for (let i = 0; i <= n + 1; i++) { const osc = i <= n && sol[i] <= 0; if (osc && ini < 0) ini = i; if (!osc && ini >= 0) { s.appendChild(el('rect', { x: X(ini), y: y0, width: Math.max(1, X(i - 1) - X(ini)), height: y1 - y0, fill: 'var(--hatch)', 'fill-opacity': 0.5 })); ini = -1; } }
-  const paso = hi - lo > 10 ? 4 : hi - lo > 5 ? 2 : 1;
-  for (let v = Math.ceil(lo / paso) * paso; v <= hi; v += paso) {
-    s.appendChild(el('line', { x1: x0, x2: x1, y1: Y(v), y2: Y(v), stroke: v === 0 ? 'var(--ink)' : 'var(--shade)', 'stroke-width': v === 0 ? 1.2 : 1 }));
-    s.appendChild(el('text', { x: x0 - 6, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink-soft)' }, v + '°'));
-  }
-  const dP = n > 200 ? 2 : 1;
-  for (let d = 0; d * 24 <= n; d += dP) s.appendChild(el('text', { x: X(d * 24), y: 208, 'text-anchor': X(d * 24) > x1 - 24 ? 'end' : d === 0 ? 'start' : 'middle', 'font-size': 11, fill: 'var(--ink-soft)' }, L('día ', 'day ') + d));
-  const linea = (arr) => arr.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
-  const nueva = antes.luz !== plan.zona + plan.t + plan.altura; antes.luz = plan.zona + plan.t + plan.altura;
-  s.appendChild(el('path', { d: linea(tierra), fill: 'none', stroke: 'var(--earth)', 'stroke-width': 2, pathLength: 1, class: nueva ? 'draw lento' : '' }));
-  s.appendChild(el('path', { d: linea(sol), fill: 'none', stroke: 'var(--signal)', 'stroke-width': 2.5, pathLength: 1, class: nueva ? 'draw lento' : '' }));
-  if (plan.tipo !== 'fija') { const e0 = plan.eva, e1 = Math.min(n, plan.eva + R.w.total);
-    if (e0 <= n) { s.appendChild(el('rect', { x: X(e0), y: y0, width: Math.max(3, X(e1) - X(e0)), height: y1 - y0, fill: 'var(--ink)', 'fill-opacity': 0.12 })); s.appendChild(el('text', { x: X(e0) + 4, y: y0 + 12, 'font-size': 11, fill: 'var(--ink)' }, plan.tipo === 'rover' ? 'ROVER' : 'EVA')); } }
-  s.appendChild(el('text', { x: x1, y: y0 + 12, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--signal)' }, L('Sol', 'Sun')));
-  s.appendChild(el('text', { x: x1, y: y0 + 26, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--earth)' }, L('Tierra', 'Earth')));
+/* «Horizonte real» y la línea de tiempo, como en el Planificador antiguo: 90 días desde 30 antes del alunizaje con las
+   franjas de Sol, Tierra y ambos (rayado: noches más largas que la batería), la estadía y un cursor que se arrastra o se
+   reproduce. El horizonte muestra el horizonte de la zona en 360° desde el norte, el camino del Sol medio día lunar antes
+   (continuo) y después (a trazos) del cursor, el Sol y la Tierra en ese instante y cuándo cambia. */
+const TL = { dias: 90, t: null, play: false, raf: 0, ultimo: 0, clave: '', per: null, hz: null };
+const icoPlay = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5 L10.5 6 L3 10.5 Z"></path></svg>';
+const icoPausa = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9"></rect><rect x="7" y="1.5" width="3" height="9"></rect></svg>';
+const durTxt = (h) => { h = Math.round(h); return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d ' + (h % 24) + ' h'; };
+function periodo() {
+  const z = R.z, clave = plan.zona + '|' + plan.t + '|' + plan.altura + '|' + plan.estadia + '|' + plan.energia + '|' + plan.bateriaH;
+  if (TL.clave === clave) return TL.per;
+  TL.clave = clave; TL.t = null; ALT.v = plan.altura;
+  const t0 = Math.floor(Math.max(T_MIN, plan.t - 30 * D) / H) * H, n = TL.dias * 24, sol = [], tierra = [];
+  for (let h = 0; h <= n; h++) { sol.push(solEl(z, t0 + h * H) > 0); tierra.push(tierraEl(z, t0 + h * H) > 0); }
+  const ventanas = (arr) => { const w = []; let i0 = -1; for (let h = 0; h <= n + 1; h++) { const v = h <= n && arr[h]; if (v && i0 < 0) i0 = h; if (!v && i0 >= 0) { w.push([i0 / 24, h / 24]); i0 = -1; } } return w; };
+  const ambosA = sol.map((v, h) => v && tierra[h]), largo = (arr, val) => { let m = 0, r = 0; for (const v of arr) { r = v === val ? r + 1 : 0; m = Math.max(m, r); } return m; };
+  const vs = ventanas(sol), noches = [];
+  if (plan.energia === 'solar') for (let i = 0; i <= vs.length; i++) { const a = i ? vs[i - 1][1] : 0, c = i < vs.length ? vs[i][0] : TL.dias; if ((c - a) * 24 > plan.bateriaH) noches.push([a, c]); }
+  const pc = (arr) => arr.filter(Boolean).length / arr.length * 100;
+  TL.hz = horizonteZona(z, plan.t);
+  return (TL.per = { t0, sol: vs, tierra: ventanas(tierra), ambos: ventanas(ambosA), noches, contacto: (plan.t - t0) / D,
+    fig: { sol: pc(sol), tierra: pc(tierra), ambos: pc(ambosA), noche: largo(sol, false), silencio: largo(tierra, false) } });
 }
+const fechaTL = (p, d, hora) => new Date(p.t0 + d * D).toLocaleString(lang === 'en' ? 'en-GB' : 'es-ES', Object.assign({ day: 'numeric', month: 'short', timeZone: 'UTC' }, hora ? { year: 'numeric', hour: '2-digit', minute: '2-digit' } : {})) + (hora ? ' UTC' : '');
+const dentroTL = (w, d) => w.some(([a, b]) => d >= a && d < b);
+function dibujarTL() {
+  const p = periodo(), svg = $('tlx'), W = Math.max(320, svg.clientWidth || 800), LW = 118, RP = 12, ROW = 14, GAP = 5, Y0 = 20, Hh = Y0 + 3 * ROW + 2 * GAP + 4;
+  if (TL.t == null) TL.t = p.contacto;
+  const X = (d) => LW + Math.min(Math.max(d, 0), TL.dias) / TL.dias * (W - LW - RP);
+  let o = '<defs><pattern id="tlx-rayado" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" class="ray-fondo"></rect><line x1="0" y1="0" x2="0" y2="6" class="ray-linea"></line></pattern></defs>';
+  const s0 = new Date(p.t0), ticks = [];
+  for (let m = 0; m < 5; m++) { const d = (Date.UTC(s0.getUTCFullYear(), s0.getUTCMonth() + m, 1) - p.t0) / D; if (d >= 0 && d <= TL.dias) ticks.push(d); }
+  if (!ticks.length || ticks[0] >= 8) ticks.unshift(0);
+  for (const d of ticks) o += '<line x1="' + X(d) + '" x2="' + X(d) + '" y1="16" y2="' + (Hh - 2) + '" class="grid"></line><text x="' + X(d) + '" y="12" text-anchor="' + (d < 3 ? 'start' : d > TL.dias - 6 ? 'end' : 'middle') + '">' + fechaTL(p, d) + '</text>';
+  [[L('Sol', 'Sunlight'), 'sol'], [L('Tierra', 'Earth'), 'tierra'], [L('Sol + Tierra', 'Sun + Earth'), 'ambos']].forEach(([nom, k], i) => {
+    const y = Y0 + i * (ROW + GAP);
+    o += '<text x="0" y="' + (y + ROW - 2) + '"' + (i === 2 ? ' class="fuerte"' : '') + '>' + nom + '</text><rect x="' + X(0) + '" y="' + y + '" width="' + (X(TL.dias) - X(0)) + '" height="' + ROW + '" rx="2" class="fondo"></rect>';
+    if (i === 0) for (const [a, b] of p.noches) o += '<rect x="' + X(a) + '" y="' + y + '" width="' + Math.max(1, X(b) - X(a)) + '" height="' + ROW + '" class="noche"><title>' + L('Noche más larga que la batería (', 'Night longer than the battery (') + horas(plan.bateriaH) + ')</title></rect>';
+    for (const [a, b] of p[k]) o += '<rect x="' + X(a) + '" y="' + y + '" width="' + Math.max(1, X(b) - X(a)) + '" height="' + ROW + '" rx="2" class="' + k + '"></rect>';
+  });
+  const xc = X(p.contacto), xe = X(p.contacto + plan.estadia / 24), xt = X(TL.t);
+  o += '<rect x="' + xc + '" y="16" width="' + Math.max(1, xe - xc) + '" height="' + (Hh - 18) + '" class="estadia"><title>' + L('Estadía: ', 'Stay: ') + horas(plan.estadia) + '</title></rect><line x1="' + xc + '" x2="' + xc + '" y1="16" y2="' + (Hh - 2) + '" class="contacto"></line>';
+  o += '<line x1="' + xt + '" x2="' + xt + '" y1="15" y2="' + Hh + '" class="cursor"></line><path d="M' + (xt - 5) + ',14 L' + (xt + 5) + ',14 L' + xt + ',20 Z" class="mango"></path>';
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Hh); svg.innerHTML = o;
+  svg.setAttribute('aria-label', L('Fecha en la línea de tiempo: arrastra o usa las flechas', 'Date on the timeline: drag or use the arrow keys'));
+  svg.setAttribute('aria-valuenow', TL.t.toFixed(1)); svg.setAttribute('aria-valuetext', fechaTL(p, TL.t, true));
+  $('tl-t').textContent = L('Línea de tiempo · Zona ', 'Timeline · Zone ') + plan.zona;
+  $('tl-now').textContent = fechaTL(p, TL.t, true);
+  $('tl-st').textContent = (Math.abs(TL.t - p.contacto) < 0.05 ? L('Alunizaje · ', 'Landing · ') : '') + L('Sol ', 'Sun ') + (dentroTL(p.sol, TL.t) ? L('visible', 'visible') : L('oculto', 'hidden')) + ' · ' + L('Tierra ', 'Earth ') + (dentroTL(p.tierra, TL.t) ? L('visible', 'visible') : L('oculta', 'hidden'));
+  $('tl-play').innerHTML = TL.play ? icoPausa : icoPlay; $('tl-play').setAttribute('aria-label', TL.play ? L('Pausa', 'Pause') : L('Reproducir', 'Play'));
+  $('tl-cap').textContent = L('Ventana de ' + TL.dias + ' días · ', TL.dias + '-day window · ') + fechaTL(p, 0) + ' – ' + fechaTL(p, TL.dias) + ' ' + new Date(p.t0 + TL.dias * D).getUTCFullYear();
+  const c = (l, v, t) => '<span title="' + t + '"><small>' + l + '</small><b>' + v + '</b></span>', f = p.fig;
+  $('tl-sum').innerHTML = c(L('Sol', 'Sun'), fmt(f.sol) + '%', L('Alguna parte del disco del Sol sobre el horizonte real', 'Any part of the Sun\'s disc above the real horizon')) + c(L('Tierra', 'Earth'), fmt(f.tierra) + '%', L('El centro de la Tierra sobre el horizonte real', 'Earth\'s centre above the real horizon')) +
+    c(L('Ambos', 'Both'), fmt(f.ambos) + '%', L('Sol y Tierra a la vez', 'Sun and Earth at the same time')) + c(L('Noche máx.', 'Max night'), horas(f.noche), L('Lo más largo sin Sol: lo que debe aguantar la batería', 'Longest run without the Sun: what the battery must last')) +
+    c(L('Silencio máx.', 'Max silence'), horas(f.silencio), L('Lo más largo sin la Tierra a la vista (sin enlace directo)', 'Longest run without Earth in view (no direct link)'));
+  dibujarHz(p.t0 + TL.t * D);
+}
+function dibujarLuz() { leyendaLuz(); TL.play = false; cancelAnimationFrame(TL.raf); dibujarTL(); }
+function dibujarHz(tc) {
+  const z = R.z, kz = plan.zona, W = 860, Hh = 190, G = 34, DIA = 29.53 * D;
+  ALT.v = plan.altura;
+  const hz = TL.hz, azT = (360 - LON[kz]) % 360, tierraE = hz(azT) + tierraEl(z, tc), solA = solAz(z, tc), solE = solGeo(z, tc);
+  const prof = []; for (let a = 0; a <= 360; a++) prof.push(hz(a));
+  const camino = []; for (let t = tc - DIA / 2; t <= tc + DIA / 2; t += H) camino.push({ t, az: solAz(z, t), el: solGeo(z, t) });
+  const lo = Math.min(0, ...prof) - 0.6, hi = Math.max(...prof, tierraE, ...camino.map((c) => c.el)) + 0.9;
+  const Y = (e) => Hh - 22 - (e - lo) / (hi - lo) * (Hh - 34), X = (az) => G + az / 360 * (W - G);
+  const span = hi - lo, paso = [1, 2, 5, 10, 20].find((v) => span / v <= 4) || 20;
+  let o = '';
+  for (let v = Math.ceil(lo / paso) * paso; v < hi; v += paso) o += '<line x1="' + G + '" x2="' + W + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="' + (v === 0 ? 'cero' : 'grid') + '"></line><text x="' + (G - 5) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end">' + v + '°</text>';
+  const traza = (lista, cls) => { let d = '', prev = null; for (const c of lista) { const x = X(c.az); d += (prev !== null && Math.abs(x - prev) < W / 2 ? 'L' : 'M') + x.toFixed(1) + ' ' + Y(c.el).toFixed(1); prev = x; } return '<path class="' + cls + '" d="' + d + '"></path>'; };
+  o += traza(camino.filter((c) => c.t <= tc), 'pasado') + traza(camino.filter((c) => c.t >= tc), 'futuro');
+  o += '<circle class="tierra" cx="' + X(azT).toFixed(1) + '" cy="' + Y(tierraE).toFixed(1) + '" r="6"></circle>';
+  o += '<circle class="halo" cx="' + X(solA).toFixed(1) + '" cy="' + Y(solE).toFixed(1) + '" r="14"></circle><circle class="sol" cx="' + X(solA).toFixed(1) + '" cy="' + Y(solE).toFixed(1) + '" r="7.5"></circle>';
+  o += '<path class="sil" d="M' + G + ' ' + Hh + prof.map((e, a) => 'L' + X(a).toFixed(1) + ' ' + Y(e).toFixed(1)).join('') + 'L' + W + ' ' + Hh + 'Z"></path>';
+  o += [0, 90, 180, 270, 360].map((a) => '<text class="az" x="' + X(a).toFixed(1) + '" y="' + (Hh - 6) + '" text-anchor="' + (a === 0 ? 'start' : a === 360 ? 'end' : 'middle') + '">' + { 0: 'N', 90: 'E', 180: 'S', 270: L('O', 'W'), 360: 'N' }[a] + '</text>').join('');
+  if (tierraEl(z, tc) > 0) o += '<text class="tierra-t" x="' + (X(azT) + 10).toFixed(1) + '" y="' + (Y(tierraE) + 4).toFixed(1) + '">' + L('Tierra', 'Earth') + '</text>';
+  // ¿cuándo se pone (o sale) el Sol desde el cursor? Se busca hora a hora durante un día lunar.
+  const visto = solEl(z, tc) > 0; let cambio = null;
+  for (let h = 1; h <= DIA / H; h++) if ((solEl(z, tc + h * H) > 0) !== visto) { cambio = h; break; }
+  const prox = cambio == null ? (visto ? L('El Sol no se pone en el día lunar', 'The Sun does not set in the lunar day') : L('El Sol no sale en el día lunar', 'The Sun does not rise in the lunar day'))
+    : (visto ? L('Se pone en ', 'Sets in ') : L('Sale en ', 'Rises in ')) + durTxt(cambio);
+  o += '<text class="prox" x="' + (W - 10) + '" y="18" text-anchor="end">' + prox + '</text>';
+  const s = $('luz'); s.setAttribute('aria-label', L('Horizonte real de la zona en 360° desde el norte, con el Sol y la Tierra', 'Real horizon of the zone, 360° from north, with the Sun and Earth'));
+  s.innerHTML = '<title>' + L('Panorama de 360° desde el norte. La escala vertical está exagerada y los discos no están a escala.', '360° panorama from the north. The vertical scale is exaggerated and the discs are not to scale.') + '</title>' + o;
+  $('hz-t').textContent = L('Horizonte real · Zona ', 'Real horizon · Zone ') + kz;
+  $('hz-src').textContent = 'LOLA · ' + L('panel a ', 'panel at ') + plan.altura + ' m · Horizons';
+}
+function tlSet(d) { TL.t = Math.min(TL.dias, Math.max(0, d)); dibujarTL(); }
+function tlParar() { TL.play = false; cancelAnimationFrame(TL.raf); dibujarTL(); }
+function tlPaso(ahora) { TL.t += (ahora - TL.ultimo) / 1000 * (TL.dias / 14); TL.ultimo = ahora; if (TL.t >= TL.dias) { TL.t = TL.dias; tlParar(); return; } dibujarTL(); TL.raf = requestAnimationFrame(tlPaso); } // 90 días en 14 s
+function tlDesdeX(cx) { const svg = $('tlx'), r = svg.getBoundingClientRect(), W = Math.max(320, svg.clientWidth || 800); tlSet(((cx - r.left) / r.width * W - 118) / (W - 118 - 12) * TL.dias); }
 
 function copiar() {
   const { z, checks, ok, w } = R;
@@ -1356,6 +1461,11 @@ function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('l
 
 /* ---------- idioma y arranque ---------- */
 const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); pintarMisiones(); };
+$('tl-play').addEventListener('click', () => { if (TL.play) { tlParar(); return; } if (TL.t >= TL.dias - 0.5) TL.t = 0; TL.play = true; TL.ultimo = performance.now(); TL.raf = requestAnimationFrame(tlPaso); dibujarTL(); });
+$('tlx').addEventListener('pointerdown', (e) => { if (TL.play) tlParar(); $('tlx').setPointerCapture(e.pointerId); tlDesdeX(e.clientX); });
+$('tlx').addEventListener('pointermove', (e) => { if (e.buttons) tlDesdeX(e.clientX); });
+$('tlx').addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') { e.preventDefault(); tlSet(TL.t + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); tlSet(TL.t - 1); } });
+window.addEventListener('resize', () => { if (R && !$('consola').hidden) dibujarTL(); });
 $('cz').addEventListener('click', (e) => { const b = e.target.closest('[data-usar]'); if (!b) return; const z = $('zones').querySelector('[data-k="' + b.dataset.usar + '"]'); if (z) { z.click(); $('verdict').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
 $('mis-btn').addEventListener('click', () => abrirLista($('mis-lista').hidden));
 $('mis-btn').addEventListener('keydown', (e) => {
