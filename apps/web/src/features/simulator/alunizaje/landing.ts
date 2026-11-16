@@ -307,7 +307,8 @@ export class LandingSim {
     // Dónde se posa de verdad: el guiado sigue la trayectoria hasta el contacto, sin desvío ni control manual, y deja la
     // nave donde la lleva su error de navegación; el resultado depende del terreno ahí (aterrizaje.ts)
     this.rocks = v.detail?.rocks ?? []; // esta escena no tiene rocas sueltas: solo cuenta el relieve LOLA
-    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5, fallos: !!v.plan?.fallos });
+    // `/simulador?nominal`: el flujo guiado de EVA pide el descenso sin error de navegación ni fallos (aterrizaje.ts)
+    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5, fallos: !!v.plan?.fallos, nominal: new URLSearchParams(location.search).has('nominal') });
     const A = this.plan.final;
     this.target = new THREE.Vector3(A.x, A.hz.y - 0.103 * S - 0.02, A.z);
     this.result = null; this.tiltDeg = 0; this.touchH = 0; this.hzNow = null; this._zc = null;
@@ -805,7 +806,8 @@ export class LandingSim {
     const alt = this.altitude();
     const ev = (k, fn) => { if (!this.events.has(k)) { this.events.add(k); fn(); } };
     if (this.t > 6) ev('alarm', () => { this.say('Armstrong', tr('Program alarm. It\'s a 1202.', 'Alarma de programa. Es una 1202.')); this.flash(tr('ALARM 1202', 'ALARMA 1202'), 2500); });
-    if (this.t > 12) ev('go', () => this.say('Houston', tr('We\'re go on that alarm.', 'Seguimos adelante con esa alarma.'), true));
+    // EVA cuenta la historia real de la alarma después del «go» de Houston (el flujo guiado de assistant/eva la narra).
+    if (this.t > 12) ev('go', () => { this.say('Houston', tr('We\'re go on that alarm.', 'Seguimos adelante con esa alarma.'), true); avisarEva('apolo-1202'); });
     if (this.phase === 1) ev('p66', () => {
       // Aviso del terreno donde nos va a dejar el guiado (sin control manual: solo se informa)
       const P = this.plan, a = P.final.hz, g = gravedad(a), rocks = a.rock > ROCK_SMALL;
@@ -817,6 +819,7 @@ export class LandingSim {
       else if (g === 2) avisarEva('aviso-critico', a.rock > ROCK_BIG ? tr('Danger. The landing point has a large boulder. We could tip over.', 'Peligro. En el punto de alunizaje hay una roca grande. Podríamos volcar.')
         : tr(`Danger. The landing point has a ${Math.round(a.tilt)} degree slope. We could tip over.`, `Peligro. El punto de alunizaje tiene ${Math.round(a.tilt)} grados de inclinación. Podríamos volcar.`));
       else if (g === 1) avisarEva('aviso-critico', tr(`Caution. We will land tilted about ${Math.round(a.tilt)} degrees.`, `Cuidado. Quedaremos inclinados unos ${Math.round(a.tilt)} grados.`));
+      else avisarEva('apolo-p66'); // sin aviso de peligro: EVA cuenta el control manual de Armstrong en la misión real
       this._zc = P.lit ? g : null;
     });
     // Durante P66, si lo que hay justo debajo pasa a ser peligroso, EVA lo dice (solo informa: no hay nada que pilotar)

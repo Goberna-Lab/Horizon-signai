@@ -75,7 +75,7 @@
   white-space: nowrap;
   cursor: pointer;
 }
-/* «¿Quién nos visita?»: tres recorridos y «ahora no», en dos filas si no caben. */
+/* «¿Quieres aprender a hacer una misión lunar?»: sí, solo la landing y «ahora no», en dos filas si no caben. */
 .eva-pregunta--quien { flex-wrap: wrap; }
 .eva-pregunta .eva-pregunta__suave { background: transparent; color: var(--eva-tinta); border-color: var(--eva-gris); }
 .eva-pregunta button:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -280,6 +280,24 @@
 .eva-pregunta--lista button:hover:not(:disabled) { background: var(--eva-tinta); color: var(--eva-papel); }
 .eva-pregunta--lista button:disabled { opacity: 0.55; cursor: default; border-style: dashed; }
 .eva-pregunta--lista small { opacity: 0.75; font-size: 0.9em; }
+/* La opción elegida (con el botón o diciéndola) queda marcada un instante antes de seguir; las otras se apagan. */
+.eva-pregunta button[data-elegida],
+.eva-pregunta--lista button[data-elegida] {
+  opacity: 1;
+  background: var(--eva-tinta);
+  color: var(--eva-papel);
+  border-style: solid;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--eva-tinta) 30%, transparent);
+  animation: eva-elegida 0.65s ease-out;
+}
+@keyframes eva-elegida {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eva-pregunta button[data-elegida] { animation: none; }
+}
 
 /* Manos libres: un punto que late mientras escucha (rojo mientras oye a la persona), la pista y lo que entendió. */
 .eva-escucha { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; font-size: 0.7rem; color: #6b655c; }

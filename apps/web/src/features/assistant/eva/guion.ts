@@ -200,8 +200,8 @@ export function guionDe(ruta: string, pagina = ""): Guion {
           id: "lm-misiones",
           selector: "#mlist",
           // Elegir una misión la resalta en esta página (bitácora, calendario y mapa); no abre el planificador.
-          texto: "The missions of this example campaign. Pick one to see its log, its dates and its place on the map. To plan a landing, open Planner, up top.",
-          es: { texto: "Las misiones de esta campaña de ejemplo. Elige una para ver su bitácora, sus fechas y su lugar en el mapa. Para planificar un alunizaje, abre Planificador, arriba." },
+          texto: "The missions of this example campaign. Pick one to see its log, its dates and its place on the map. To plan a new one, press New mission, up top.",
+          es: { texto: "Las misiones de esta campaña de ejemplo. Elige una para ver su bitácora, sus fechas y su lugar en el mapa. Para planear una nueva, pulsa Nueva misión, arriba." },
         },
       ],
     }
@@ -371,6 +371,18 @@ export function guionDe(ruta: string, pagina = ""): Guion {
  * hayan pasado 90 s, y siempre en serio. `festejo`: algo salió bien; al terminar pone ojos contentos en vez de guiñar.
  */
 export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean; /** Indicación útil (qué tecla, qué mirar): no espera los 90 s, pero no interrumpe. */ guia?: boolean; /** Narración guiada: el paso nuevo corta al anterior (sin tono de peligro). */ interrumpe?: boolean }> = {
+  // La bitácora real del Apollo 11 (julio de 1969), que el simulador vuela sobre nuestro sitio: los avisa
+  // features/simulator/alunizaje/landing.ts y el flujo guiado los narra (`narra` en ./recorridos.ts).
+  "apolo-1202": {
+    texto: "That is the real alarm from nineteen sixty-nine. The guidance computer was overloaded. Mission Control checked it in seconds and said go, so they kept descending.",
+    es: { texto: "Esa es la alarma real de mil novecientos sesenta y nueve. La computadora de guiado estaba sobrecargada. Control de misión lo revisó en segundos y dijo adelante, así que siguieron bajando." },
+    guia: true,
+  },
+  "apolo-p66": {
+    texto: "Final descent. In the real mission, Armstrong took over by hand at this point, because the computer was taking them into a field of boulders.",
+    es: { texto: "Descenso final. En la misión real, Armstrong tomó el control a mano en este punto, porque la computadora los llevaba a un campo de rocas." },
+    guia: true,
+  },
   "aterrizaje-nominal": { texto: "Welcome to the lunar south pole. Population: you.", es: { texto: "Bienvenido al polo sur lunar. Población: tú." }, festejo: true },
   "primeros-pasos": {
     texto: "Your first steps. Footprints here last millions of years, so no pressure on the style.",
@@ -541,17 +553,16 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
 /** El saludo al encenderse, el cambio de idioma y los rótulos de su globo y su panel, en los dos idiomas. */
 export const TEXTOS = {
   en: {
-    hola: "Hi, I am EVA. What is your name?",
-    deNuevo: (nombre: string) => `Welcome back, ${nombre}. We have three missions to get ready, step by step. First, who is visiting today?`,
-    oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. We have three missions to get ready, step by step. First, who is visiting today?` : "We have three missions to get ready, step by step. First, who is visiting today?"),
-    /** El recorrido guiado: la pregunta desde el panel y los botones de cada paso. */
-    quien: "We have three missions to get ready, step by step. First, who is visiting today?",
-    etapas: "Steps of the mission flow",
+    hola: "Hi, my name is EVA. I will guide you through the whole process. What is your name?",
+    deNuevo: (nombre: string) => `Welcome back, ${nombre}. Would you like to experience planning a lunar mission?`,
+    // La introducción del guion del equipo: qué es, de quién y para qué reto (features/landing/content.ts, `brand`).
+    oferta: (nombre: string) => `${nombre ? `Nice to meet you, ${nombre}. ` : ""}This is Horizon Signal, by Goberna: a platform to plan and simulate lunar missions, made for the Lunar Landing Site Navigator challenge of the NASA Space Apps Challenge. It compares landing sites and dates by sunlight and by Earth in view. Would you like to experience planning a lunar mission?`,
+    /** El flujo guiado: la oferta sin nombre (desde el panel, tras la landing) y los botones de cada paso. */
+    quien: "Would you like to experience planning a lunar mission?",
+    etapas: "Steps of the guided flow",
     escuchando: "Listening",
     teOigo: "I hear you…",
     noEntendi: "I did not catch that",
-    lista: "ready",
-    listas: "missions ready",
     /** Lo primero que pregunta, antes de saludar: en qué idioma seguir. Se contesta con dos botones. */
     cualIdioma: "English or Spanish?",
     /** Lo que muestra mientras toda la app pasa a este idioma (la página se recarga). */
@@ -561,7 +572,7 @@ export const TEXTOS = {
     /** El campo para preguntarle en medio de un recorrido: una pregunta la contesta la IA y el recorrido sigue donde iba. */
     duda: "Ask me about this…",
     dudaRotulo: "Your question for EVA about this step",
-    recorrido: "Mission flow",
+    recorrido: "Guide me",
     leccion: "Great. This is Mission control. I will walk you through it, one part at a time.",
     luego: "No problem. Tap me whenever you want to talk.",
     /** Lo que dice, todavía en este idioma, al notar que le hablan en el otro. */
@@ -596,23 +607,21 @@ export const TEXTOS = {
     nota: "Synthetic voice. EVA can be wrong; figures come from the planner.",
   },
   es: {
-    hola: "Hola, soy EVA. ¿Cómo te llamas?",
-    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?`,
-    oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?` : "Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?"),
-    quien: "Tenemos tres misiones que preparar, paso a paso. Primero, ¿quién nos visita hoy?",
-    etapas: "Pasos del flujo de misión",
+    hola: "Hola, mi nombre es EVA. Voy a guiarte en todo el proceso. ¿Cuál es tu nombre?",
+    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. ¿Quieres vivir la experiencia de planificar una misión lunar?`,
+    oferta: (nombre: string) => `${nombre ? `Mucho gusto, ${nombre}. ` : ""}Esto es Horizon Signal, de Goberna: una plataforma para planificar y simular misiones lunares, hecha para el reto Lunar Landing Site Navigator del NASA Space Apps Challenge. Compara lugares y fechas según la luz del Sol y la visibilidad de la Tierra. ¿Quieres vivir la experiencia de planificar una misión lunar?`,
+    quien: "¿Quieres vivir la experiencia de planificar una misión lunar?",
+    etapas: "Pasos del flujo guiado",
     escuchando: "Escuchando",
     teOigo: "Te escucho…",
     noEntendi: "no te entendí",
-    lista: "lista",
-    listas: "misiones listas",
     cualIdioma: "¿Inglés o español?",
     reconfigurando: "Reconfigurando idioma…",
     siguiente: "Siguiente",
     parar: "Parar",
     duda: "Pregúntame sobre esto…",
     dudaRotulo: "Tu pregunta para EVA sobre este paso",
-    recorrido: "Flujo de misiones",
+    recorrido: "Guíame",
     leccion: "Genial. Este es el control de misión. Te lo muestro parte por parte.",
     luego: "No hay problema. Tócame cuando quieras hablar.",
     detectado: "Inglés detectado. Reconfigurando idioma…",
@@ -650,15 +659,15 @@ export const TEXTOS = {
 export const PISTAS: Record<"en" | "es", Record<string, string>> = {
   en: {
       nombre: "Say your name",
-      oferta: "Say “I plan missions”, “I teach” or “I am curious”",
-      mision: "Say the mission name or number",
+      oferta: "Say “yes” or “just the landing”",
+      camino: "Say your choice, or tap it",
       repaso: "Say your answer",
       paso: "Say “next”, “again” or ask me anything",
     },
   es: {
       nombre: "Di tu nombre",
-      oferta: "Di «planifico misiones», «enseño» o «tengo curiosidad»",
-      mision: "Di el nombre o el número de la misión",
+      oferta: "Di «sí» o «solo la landing»",
+      camino: "Di tu elección, o tócala",
       repaso: "Di tu respuesta",
       paso: "Di «siguiente», «otra vez» o pregúntame",
     },

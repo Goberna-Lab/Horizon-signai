@@ -14,7 +14,7 @@ import { entender as entenderFrase, esEco, type QueEspera } from "./escucha"
 import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, PISTAS, TEXTOS, type Comentario } from "./guion"
 import { nombreDe, pideOtroIdioma, type Idioma } from "./idioma"
 import { intencionDe } from "./intencion"
-import { ETAPAS, FINAL, INICIO, MISIONES, NO_ESA, PERFILES, VUELTA, YA_LISTA, type Mision, type Paso, type Recorrido } from "./recorridos"
+import { CONTROL, ELEGIR, ETAPAS, LANDING, OFERTA, textoDePaso, type Opcion, type Paso, type Recorrido } from "./recorridos"
 import { useOido, type FraseOida } from "./oido"
 import * as tiempos from "./tiempos"
 import { sugerenciasDe, type Sugerencia } from "./sugerencias"
@@ -40,24 +40,10 @@ const SILENCIO = "horizon-signai.eva.silencio.v1"
 const IDIOMA = "horizon-signai.eva.idioma.v1"
 const SALUDO = "horizon-signai.eva.saludo.v1" // en sessionStorage: saluda una vez por visita
 const MANOS = "horizon-signai.eva.manos-libres.v1" // en sessionStorage: ya se encendió el micrófono en esta visita
-const MISIONES_LISTAS = "horizon-signai.eva.misiones.v1" // en sessionStorage: las misiones del flujo ya preparadas en esta visita
-const leerListas = (): string[] => {
-  try {
-    const v: unknown = JSON.parse(sessionStorage.getItem(MISIONES_LISTAS) ?? "[]")
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []
-  } catch {
-    return []
-  }
-}
-const guardarListas = (ids: string[]) => {
-  try {
-    sessionStorage.setItem(MISIONES_LISTAS, JSON.stringify(ids))
-  } catch {
-    /* sin almacenamiento: el avance vale mientras no se recargue */
-  }
-}
-/** Cómo se sigue en un paso del flujo: con «Next», eligiendo una misión o acertando la pregunta de repaso. */
-const tipoDe = (p: Paso) => (p.elige ? "mision" : p.repaso ? "repaso" : "paso")
+/** Cómo se sigue en un paso del flujo: con «Next», eligiendo uno de los tres caminos o acertando la pregunta de repaso. */
+const tipoDe = (p: Paso) => (p.elige ? "camino" : p.repaso ? "repaso" : "paso")
+/** Cuánto se ve marcada la opción elegida (botón o voz) antes de seguir. */
+const MARCA_MS = 650
 const IDIOMA_ELEGIDO = "horizon-signai.eva.idioma-elegido.v1" // en sessionStorage: ya contestó «English or Spanish?»
 const MARGEN = 16
 
@@ -327,15 +313,14 @@ export default function EvaCompanera() {
   // EVA arranca en el idioma de la app (el selector EN / ES de cada pantalla). Si en la conversación le hablan en el
   // otro idioma, cambia ella sola para esa visita (fijarIdioma), sin recargar la página ni tocar el de la app.
   const [idioma, setIdioma] = useState<Idioma>(lang)
-  const [pregunta, setPregunta] = useState<"idioma" | "nombre" | "oferta" | "paso" | "mision" | "repaso" | null>(null)
-  // El flujo de misiones (./recorridos.ts): en qué etapa va y con qué misión (el riel del globo), las misiones ya
-  // preparadas, la misión en curso y quién llegó (solo cambia la primera frase).
-  const [riel, setRiel] = useState<{ etapa: number; mision: Mision | null } | null>(null)
-  const [listas, setListas] = useState<string[]>(leerListas)
-  const listasRef = useRef(listas)
-  listasRef.current = listas
-  const misionActual = useRef<Mision | null>(null)
-  const perfil = useRef<(typeof PERFILES)[number] | null>(null)
+  const [pregunta, setPregunta] = useState<"idioma" | "nombre" | "oferta" | "paso" | "camino" | "repaso" | null>(null)
+  // El flujo guiado (./recorridos.ts): en qué etapa va y por qué camino (el riel del globo), y la opción que se acaba de
+  // elegir (queda marcada un instante, con botón o con voz, antes de seguir).
+  const [riel, setRiel] = useState<{ etapa: number; camino: Opcion | null } | null>(null)
+  const caminoActual = useRef<Opcion | null>(null)
+  const opcionesDelPasoRef = useRef<() => Opcion[]>(() => [])
+  const narrarRef = useRef<(tipo: string, frase: string) => boolean>(() => false)
+  const [elegida, setElegida] = useState("")
   // El recorrido guiado en curso (./recorridos.ts) y el rótulo de por dónde va («3 / 10»).
   const recorrido = useRef<{ r: Recorrido; i: number } | null>(null)
   const [avance, setAvance] = useState("")
@@ -790,6 +775,7 @@ export default function EvaCompanera() {
       const peligro = e.critico || hayPeligro()
       const frase = propio ?? fraseDe(e, peligro, idiomaRef.current) ?? ""
       if (!frase) return
+      if (narrarRef.current(tipo, frase)) return // el recorrido en curso lo narra (ver `narra` en ./recorridos.ts)
       if (!e.repetible && dichas().has(tipo)) return
       if (!e.critico && !e.interrumpe && (ocupada.current || (!e.guia && Date.now() - ultimo.current < COMENTARIO_MS))) return
       if ((e.critico || e.interrumpe) && ocupada.current) habla.current?.abort() // lo crítico (o una narración guiada) pasa adelante
@@ -833,8 +819,8 @@ export default function EvaCompanera() {
   /** Hace una pregunta y deja el globo abierto con su respuesta (un campo o unos botones). */
   const preguntar = useCallback(
     async (frase: string, tipo: "idioma" | "nombre" | "oferta") => {
-      // Mientras pregunta quién llega, trae ya la voz del primer paso de cada recorrido: al elegir, empieza sin espera.
-      if (tipo === "oferta") for (const frase of [INICIO.pasos[0].texto, ...PERFILES.map((x) => x.saludo)]) precargarVoz(idiomaRef.current, frase[idiomaRef.current])
+      // Mientras ofrece el flujo, trae ya la voz del primer paso de cada respuesta: al elegir, empieza sin espera.
+      if (tipo === "oferta") for (const frase of [CONTROL.pasos[0].texto, LANDING.pasos[0].texto]) precargarVoz(idiomaRef.current, frase[idiomaRef.current])
       // Manos libres: con su primera pregunta pide el micrófono (el navegador muestra el permiso). Si el audio aún no
       // está habilitado (nadie tocó la página), queda anotado y se abre con el primer toque (ver `habilitar`).
       if (tipo !== "idioma" && !manosRef.current) void encenderManos()
@@ -862,7 +848,7 @@ export default function EvaCompanera() {
     [hablar],
   )
 
-  /** El saludo: su nombre y la pregunta por el de la persona (o, si ya la conoce, quién llega hoy). */
+  /** El saludo: su nombre y la pregunta por el de la persona (o, si ya la conoce, la oferta del flujo). */
   const saludar = useCallback(async () => {
     anotarSaludo()
     const t = TEXTOS[idiomaRef.current]
@@ -930,32 +916,63 @@ export default function EvaCompanera() {
     ocupada.current = false
     soltarGlobo()
   }, [pathname])
-  // Mientras pide elegir misión, tocarla en el dashboard (la lista de Missions, dentro del marco) también la elige.
+  // Mientras pregunta qué hacer, tocar la parte de una opción en el dashboard (dentro del marco) también la elige: una
+  // misión de la lista es «ver una misión» y «Nueva misión» es «crear» (EVA cuenta los pasos antes de abrir el
+  // Planificador: el enlace se intercepta).
   useEffect(() => {
-    if (pregunta !== "mision") return
+    if (pregunta !== "camino") return
     const d = marco()
     if (!d) return
     const alClic = (ev: Event) => {
-      const fila = (ev.target as Element | null)?.closest?.(".mrow[data-id]")
-      const id = fila?.getAttribute("data-id")
-      if (id) void alMisionRef.current(id)
+      const el = ev.target as Element | null
+      for (const o of opcionesDelPasoRef.current()) {
+        const parte = o.toque ? el?.closest?.(o.toque) : null
+        if (!parte) continue
+        if (parte.closest("a")) ev.preventDefault()
+        void alCaminoRef.current(o.id)
+        return
+      }
     }
-    d.addEventListener("click", alClic)
-    return () => d.removeEventListener("click", alClic)
+    d.addEventListener("click", alClic, true)
+    return () => d.removeEventListener("click", alClic, true)
   }, [pregunta])
   /** Espera a que una parte de la pantalla esté a la vista (en la página o en el planificador incrustado). */
   const buscarParte = async (selector: string) => {
+    let desplazada = false
     for (let k = 0; k < 25; k++) {
-      const el = [...(marco()?.querySelectorAll(selector) ?? []), ...document.querySelectorAll(selector)].find(aLaVista)
+      const todas = [...(marco()?.querySelectorAll(selector) ?? []), ...document.querySelectorAll(selector)]
+      const el = todas.find(aLaVista)
       if (el) return el
+      // Existe pero está fuera de la vista (una sección más abajo en la landing): la trae a la vista una vez.
+      const lejos = !desplazada && todas.find((x) => rectDe(x).width > 0)
+      if (lejos) {
+        desplazada = true
+        lejos.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" })
+        await esperar(700)
+        continue
+      }
       await esperar(200)
     }
     return undefined
   }
+  /** Lo que dice un paso, en el idioma actual. Con `cuenta`, lee los días que faltan en la pantalla (la cuenta regresiva). */
+  const fraseDelPaso = (p: Paso) => {
+    let dias: number | null = null
+    if (p.cuenta) {
+      const n = parseInt((marco()?.querySelector(p.cuenta) ?? document.querySelector(p.cuenta))?.textContent ?? "", 10)
+      dias = Number.isFinite(n) ? n : null
+    }
+    return textoDePaso(p, idiomaRef.current, dias)
+  }
+  /** Las opciones del paso en que espera el recorrido, si es un paso que pregunta. */
+  const opcionesDelPaso = (): Opcion[] => {
+    const t = recorrido.current
+    return (t && t.r.pasos[t.i]?.elige) || []
+  }
   /** El recorrido termina (o no empieza): la IA vuelve a poder manejar la app. */
   const terminarRecorrido = () => {
     recorrido.current = null
-    misionActual.current = null
+    caminoActual.current = null
     setRiel(null)
     usarAcciones(cumplir.current)
   }
@@ -991,8 +1008,8 @@ export default function EvaCompanera() {
     usarAcciones(null) // en el recorrido manda el guion: si preguntan, la IA contesta pero no cambia el escenario
     // Mientras tanto, la voz de este paso y la del que sigue.
     const proximo = t.r.pasos[t.i + 1]
-    precargarVoz(idioma, p.texto[idioma])
-    precargarVoz(idioma, proximo ? proximo.texto[idioma] : t.r.fin[idioma])
+    if (!p.cuenta) precargarVoz(idioma, p.texto[idioma]) // con cuenta regresiva, la frase sale de la pantalla al decirla
+    precargarVoz(idioma, proximo ? textoDePaso(proximo, idioma) : t.r.fin[idioma])
     if (p.accion) {
       await ejecutarAccion(p.accion, (destino) => navegar(destino))
       await esperar(p.espera ?? 250)
@@ -1002,12 +1019,10 @@ export default function EvaCompanera() {
     if (!sigo()) return
     if (el) await irA(el)
     if (!sigo()) return
-    // Lo primero del flujo lleva delante una frase según quién llegó.
-    const saludo = t.r === INICIO && t.i === 0 ? perfil.current?.saludo[idiomaRef.current] : ""
-    const frase = `${saludo ? `${saludo} ` : ""}${p.texto[idiomaRef.current]}`
+    const frase = fraseDelPaso(p)
     // «Next» (o las misiones, o las respuestas) y el campo salen mientras lo dice: quien ya entendió sigue sin esperar.
     setAvance(`${t.i + 1} / ${t.r.pasos.length}`)
-    setRiel({ etapa: p.etapa, mision: misionActual.current })
+    setRiel(p.etapa ? { etapa: p.etapa, camino: caminoActual.current } : null)
     setOido("")
     const dicho = hablar(frase, null)
     setPregunta(tipoDe(p))
@@ -1026,50 +1041,66 @@ export default function EvaCompanera() {
       void darPaso()
       return
     }
-    const m = misionActual.current
-    if (seguir && m && t.r === m.recorrido) {
-      // Misión preparada: lo dice, la anota y pasa a la etapa 6 (elegir la siguiente) o, si era la última, al cierre.
-      setRiel({ etapa: 5, mision: m })
-      if (!(await hablar(t.r.fin[idiomaRef.current], "alegre")) || recorrido.current !== t) {
-        if (recorrido.current === t) esperarEnPaso(t.r.pasos[t.i].texto[idiomaRef.current]) // le quitaron la palabra: vuelve al paso
-        return
-      }
-      const ahora = [...new Set([...listasRef.current, m.id])]
-      listasRef.current = ahora
-      setListas(ahora)
-      guardarListas(ahora)
-      misionActual.current = null
-      if (MISIONES.every((x) => ahora.includes(x.id))) {
-        terminarRecorrido()
-        ocupada.current = false
-        await hablar(FINAL[idiomaRef.current], "alegre")
-        return
-      }
-      recorrido.current = { r: VUELTA, i: 0 }
-      void darPaso()
-      return
-    }
     terminarRecorrido()
     ocupada.current = false
-    await hablar(seguir ? t.r.fin[idiomaRef.current] : TEXTOS[idiomaRef.current].luego, seguir ? "alegre" : null)
-  }
-  /** Eligieron una misión (en el globo o tocándola en el dashboard): empieza su recorrido, de la etapa 2 a la 5. */
-  const alMision = async (id: string) => {
-    const t = recorrido.current
-    if (!t || !t.r.pasos[t.i].elige) return
-    const m = MISIONES.find((x) => x.id === id)
-    if (!m || listasRef.current.includes(m.id)) {
-      const frase = (m ? YA_LISTA : NO_ESA)[idiomaRef.current]
-      if (!(await hablar(frase, null)) || recorrido.current !== t) return
-      esperarEnPaso(frase)
+    if (!seguir) {
+      await hablar(TEXTOS[idiomaRef.current].luego, null)
       return
     }
-    misionActual.current = m
-    recorrido.current = { r: m.recorrido, i: 0 }
+    // Terminó: lo dice y sigue con lo que toca (abrir el Planificador, volver a ofrecer o volver a elegir camino).
+    const fin = t.r.fin[idiomaRef.current]
+    if (fin && !(await hablar(fin, "alegre"))) return
+    if (t.r.alFin) await ejecutarAccion(t.r.alFin, (destino) => navegar(destino))
+    else if (t.r.luego === "oferta") await preguntar(TEXTOS[idiomaRef.current].quien, "oferta")
+    else if (t.r.luego === "elegir") {
+      recorrido.current = { r: ELEGIR, i: 0 }
+      void darPaso()
+    }
+  }
+  /** Marca un instante la opción elegida (botón o voz) y sigue. */
+  const marcar = async (id: string) => {
+    setElegida(id)
+    await esperar(MARCA_MS)
+    setElegida("")
+  }
+  /**
+   * Eligieron una opción de un paso que pregunta (en el globo, diciéndola o tocando su parte en el dashboard): empieza
+   * su recorrido o, si no tiene, EVA dice lo suyo y el flujo termina (modo libre).
+   */
+  const alCamino = async (id: string) => {
+    const t = recorrido.current
+    const c = opcionesDelPaso().find((x) => x.id === id)
+    if (!t || !c) return
+    tomarTurno() // si todavía lo estaba preguntando, se calla: ya eligieron
+    await marcar(id)
+    if (recorrido.current !== t) return
+    if (!c.recorrido) {
+      cerrarPregunta()
+      terminarRecorrido()
+      ocupada.current = false
+      if (c.dicho) await hablar(c.dicho[idiomaRef.current], "alegre")
+      return
+    }
+    caminoActual.current = c
+    recorrido.current = { r: c.recorrido, i: 0 }
     void darPaso()
   }
-  const alMisionRef = useRef(alMision)
-  alMisionRef.current = alMision
+  const alCaminoRef = useRef(alCamino)
+  alCaminoRef.current = alCamino
+  opcionesDelPasoRef.current = opcionesDelPaso
+  // Un aviso del simulador que el paso en curso narra (la alarma 1202, el control manual, el contacto): lo dice cuando
+  // termine lo que está diciendo y vuelve a esperar en el paso.
+  narrarRef.current = (tipo, frase) => {
+    const t = recorrido.current
+    if (!t?.r.pasos[t.i]?.narra?.includes(tipo)) return false
+    void (async () => {
+      for (let k = 0; k < 60 && fraseActual.current.hasta === Infinity; k++) await esperar(250) // no la corta a media frase
+      if (recorrido.current !== t || !t.r.pasos[t.i]?.narra?.includes(tipo)) return
+      if (!(await hablar(frase, "alegre")) || recorrido.current !== t) return
+      esperarEnPaso(fraseDelPaso(t.r.pasos[t.i]))
+    })()
+    return true
+  }
   /** Contestaron la pregunta de repaso: si aciertan, sigue; si no, lo explica y deja probar otra vez. */
   const alRepaso = async (k: number) => {
     const t = recorrido.current
@@ -1090,7 +1121,7 @@ export default function EvaCompanera() {
   const repetirPaso = async () => {
     const t = recorrido.current
     if (!t) return
-    const frase = t.r.pasos[t.i].texto[idiomaRef.current]
+    const frase = fraseDelPaso(t.r.pasos[t.i])
     intensidadDelRayo(true)
     if (!(await hablar(frase, null)) || recorrido.current !== t) return
     esperarEnPaso(frase)
@@ -1110,24 +1141,20 @@ export default function EvaCompanera() {
     if (que === "repetir") return repetirPaso()
     await responder(q)
   }
-  /** Eligieron quién llega (o «ahora no»): empieza su recorrido. */
-  const alQuien = async (id: string | null) => {
+  /** Contestaron la oferta: «sí» (el control de misión), «solo la landing» (su recorrido) o «ahora no». */
+  const alOferta = async (id: (typeof OFERTA)[number]["id"] | null) => {
+    if (id) {
+      tomarTurno()
+      await marcar(id)
+    }
     cerrarPregunta()
-    const quien = PERFILES.find((x) => x.id === id)
-    if (!quien) {
+    if (!id) {
       terminarRecorrido()
       await hablar(TEXTOS[idiomaRef.current].luego, null)
       return
     }
-    perfil.current = quien
-    misionActual.current = null
-    // Si ya había preparado las tres en esta visita, el flujo empieza de nuevo.
-    if (MISIONES.every((x) => listasRef.current.includes(x.id))) {
-      listasRef.current = []
-      setListas([])
-      guardarListas([])
-    }
-    recorrido.current = { r: listasRef.current.length ? VUELTA : INICIO, i: 0 }
+    caminoActual.current = null
+    recorrido.current = { r: id === "si" ? CONTROL : LANDING, i: 0 }
     void darPaso()
   }
   /**
@@ -1167,14 +1194,14 @@ export default function EvaCompanera() {
     manosRef.current = ok
     setManos(ok)
   }
-  // EVA escucha solo cuando espera algo (el nombre, quién llega, una misión, el repaso o un paso del flujo).
+  // EVA escucha solo cuando espera algo (el nombre, la oferta, un camino, el repaso o un paso del flujo).
   useEffect(() => {
     oidoEva.escuchar(manos && !!pregunta && pregunta !== "idioma")
   }, [manos, pregunta, oidoEva])
 
   /** Las opciones de lo que está esperando, con sus palabras en los dos idiomas (para reconocerlas por voz). */
   const opcionesDe = (espera: string | null): string[][] => {
-    if (espera === "mision") return MISIONES.map((m) => [m.id, m.nombre.en, m.nombre.es, m.tema.en, m.tema.es])
+    if (espera === "camino") return opcionesDelPaso().map((c) => [c.boton.en, c.boton.es, ...c.palabras])
     const t = recorrido.current
     const r = espera === "repaso" && t ? t.r.pasos[t.i].repaso : undefined
     return r ? r.opciones.map((o) => [o.en, o.es]) : []
@@ -1184,7 +1211,7 @@ export default function EvaCompanera() {
     const t = recorrido.current
     tomarTurno()
     quitarFoco()
-    if (t) esperarEnPaso(t.r.pasos[t.i].texto[idiomaRef.current])
+    if (t) esperarEnPaso(fraseDelPaso(t.r.pasos[t.i]))
     else {
       setEstado("reposo")
       ocupada.current = false
@@ -1207,7 +1234,7 @@ export default function EvaCompanera() {
     tiempos.marcar("fin")
     tiempos.cerrar(dicha ? "ok" : "interrumpida")
     if (!dicha) return
-    if (enPausa && recorrido.current === enPausa) esperarEnPaso(enPausa.r.pasos[enPausa.i].texto[idiomaRef.current])
+    if (enPausa && recorrido.current === enPausa) esperarEnPaso(fraseDelPaso(enPausa.r.pasos[enPausa.i]))
     else if (espera === "oferta") void preguntar(TEXTOS[idiomaRef.current].quien, "oferta")
   }
   /**
@@ -1252,12 +1279,15 @@ export default function EvaCompanera() {
           tiempos.cerrar()
           if (r.tipo === "nombre") void alNombre(undefined, r.nombre)
           else if (r.tipo === "opcion") {
-            if (espera === "oferta") void alQuien(PERFILES[r.k]?.id ?? null)
-            else if (espera === "mision") void alMision(MISIONES[r.k]!.id)
+            if (espera === "oferta") void alOferta(OFERTA[r.k]?.id ?? null)
+            else if (espera === "camino") {
+              const c = opcionesDelPaso()[r.k]
+              if (c) void alCamino(c.id)
+            }
             else if (espera === "repaso") void alRepaso(r.k)
           } else if (r.orden === "siguiente") void alPaso(true)
           else if (r.orden === "repetir") void repetirPaso()
-          else if (espera === "oferta") void alQuien(null)
+          else if (espera === "oferta") void alOferta(null)
           else callarEnPaso()
         } else if (e.t === "parecida" && texto && !resuelto) {
           resuelto = true
@@ -1562,8 +1592,8 @@ export default function EvaCompanera() {
         {/* Una pregunta suya: el globo se queda abierto con el campo o los botones para contestar. */}
         {pregunta && !abierta && (
           <div className="eva-globo eva-globo--pregunta">
-            {/* El riel del flujo: las seis etapas en orden, la actual con su nombre, y la misión en curso. */}
-            {riel && (pregunta === "paso" || pregunta === "mision" || pregunta === "repaso") && (
+            {/* El riel del flujo: las etapas en orden, la actual con su nombre. */}
+            {riel && (pregunta === "paso" || pregunta === "camino" || pregunta === "repaso") && (
               <div className="eva-riel">
                 <ol aria-label={T.etapas}>
                   {ETAPAS.map((e, k) => (
@@ -1573,7 +1603,6 @@ export default function EvaCompanera() {
                     </li>
                   ))}
                 </ol>
-                <span className="eva-riel__mision">{riel.mision ? `${riel.mision.id} · ${riel.mision.nombre[idioma]}` : `${listas.length} / ${MISIONES.length} ${T.listas}`}</span>
               </div>
             )}
             <p aria-live="polite">{globo}</p>
@@ -1603,16 +1632,13 @@ export default function EvaCompanera() {
                   {T.saltar}
                 </button>
               </form>
-            ) : pregunta === "mision" ? (
+            ) : pregunta === "camino" ? (
               <div className="eva-pregunta eva-pregunta--lista">
-                {MISIONES.map((m) => {
-                  const lista = listas.includes(m.id)
-                  return (
-                    <button key={m.id} type="button" disabled={lista} onClick={() => void alMision(m.id)}>
-                      <b>{lista ? "✓" : m.id}</b> {m.nombre[idioma]} <small>· {lista ? T.lista : m.tema[idioma]}</small>
-                    </button>
-                  )
-                })}
+                {opcionesDelPaso().map((c) => (
+                  <button key={c.id} type="button" data-elegida={elegida === c.id || undefined} disabled={!!elegida} onClick={() => void alCamino(c.id)}>
+                    {c.boton[idioma]}
+                  </button>
+                ))}
               </div>
             ) : pregunta === "repaso" ? (
               <div className="eva-pregunta eva-pregunta--lista">
@@ -1640,12 +1666,12 @@ export default function EvaCompanera() {
               </>
             ) : (
               <div className="eva-pregunta eva-pregunta--quien">
-                {PERFILES.map((r) => (
-                  <button key={r.id} type="button" onClick={() => void alQuien(r.id)}>
-                    {r.boton[idioma]}
+                {OFERTA.map((o) => (
+                  <button key={o.id} type="button" data-elegida={elegida === o.id || undefined} disabled={!!elegida} onClick={() => void alOferta(o.id)}>
+                    {o.boton[idioma]}
                   </button>
                 ))}
-                <button type="button" className="eva-pregunta__suave" onClick={() => void alQuien(null)}>
+                <button type="button" className="eva-pregunta__suave" disabled={!!elegida} onClick={() => void alOferta(null)}>
                   {T.no}
                 </button>
               </div>

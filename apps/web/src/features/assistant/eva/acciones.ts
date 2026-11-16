@@ -5,7 +5,8 @@
 // otra, solo le habla por esa puerta. El modelo no calcula: cada orden deja que el motor del planificador recalcule.
 import { plannerPath, routes } from "@/app/routes"
 import type { AccionIA } from "@/prueba-ia/cliente"
-import { setLang } from "@/shared/i18n"
+import { lang, setLang } from "@/shared/i18n"
+import { marco } from "./guion"
 
 type Planificador = { text(): string; run(a: AccionIA): boolean }
 
@@ -22,8 +23,22 @@ const planificador = (): Planificador | null => {
 /** Lo que la pantalla muestra ahora, en texto, con las cifras del motor: va a la IA como contexto de cada pregunta. */
 export const estadoDePantalla = (): string => {
   try {
-    // En /simulador, lo que muestra el simulador (casco, rover, informe): features/simulator/alunizaje/paraEva.ts
-    return planificador()?.text() ?? (window as Window & { HorizonSimulador?: { text(): string } }).HorizonSimulador?.text() ?? ""
+    // En el simulador: qué se vuela y lo que muestra (fase del descenso, o el casco y las tareas de la caminata), para
+    // que la IA conteste «¿por qué la antena primero?» o «¿para qué la roca?» sobre lo que la persona está viendo.
+    if (location.pathname.startsWith(routes.simulator)) {
+      const ver = (sel: string) => (document.querySelector<HTMLElement>(sel)?.innerText ?? "").replace(/\s+/g, " ").trim()
+      const partes = [
+        "Simulator: the real Apollo 11 descent profile and radio log (July 1969), flown over Connecting Ridge at the lunar south pole; the Apollo lunar module is an example ship, not a CLPS lander.",
+        ver('[data-f="phase"]') && `Descent phase: ${ver('[data-f="phase"]')}.`,
+        ver(".sim-vh-feed") && `Moonwalk tasks on screen: ${ver(".sim-vh-feed")}.`,
+        ver(".sim-vh-rows") && `Suit readings: ${ver(".sim-vh-rows")}.`,
+        // Lo que el simulador dice de sí mismo (misión guiada, rover, informe): features/simulator/alunizaje/paraEva.ts
+        (window as Window & { HorizonSimulador?: { text(): string } }).HorizonSimulador?.text(),
+        ver(".sim-bitacora") && `Guided mission card on screen: ${ver(".sim-bitacora")}.`,
+      ]
+      return partes.filter(Boolean).join(" ").slice(0, 1800)
+    }
+    return planificador()?.text() ?? ""
   } catch {
     return ""
   }
@@ -47,7 +62,10 @@ const PANTALLAS: Record<string, string> = {
   missions: routes.lunarMap,
   map: routes.map3d,
   simulator: routes.simulator, // solo la usa el flujo guiado (la IA no tiene esta orden)
+  apollo: `${routes.simulator}?nominal`, // el flujo guiado: el Apollo 11 se posa sin error de navegación ni fallos
   walk: `${routes.lunarMap}#walk`,
+  // Solo la usa el flujo guiado: el Planificador de misiones (una página aparte, fuera de React) en su formulario.
+  "new-mission": `/planificar-mision.html?nueva&lang=${lang}`,
 }
 
 /** Ejecuta una orden. Devuelve si se pudo (p. ej. «fix» no se puede si la zona ya cumple). */
@@ -55,17 +73,20 @@ export async function ejecutarAccion(a: AccionIA, navegar: (a: string) => void |
   if (a.tipo === "open") {
     const destino = PANTALLAS[String(a.screen)]
     if (!destino) return false
-    await navegar(destino)
+    if (destino.includes(".html")) location.assign(destino) // fuera de la app: se carga la página entera
+    else await navegar(destino)
     return true
   }
   // Solo la usa el flujo guiado (recorridos.ts), la IA no tiene esta orden: espera hasta ~50 s a que aparezca un botón
-  // de la pantalla (p. ej. «Salir a caminar» al terminar el alunizaje) y lo pulsa.
-  if (a.tipo === "clic") {
+  // de la pantalla (p. ej. «Salir a caminar» al terminar el alunizaje), en la página o en la pantalla incrustada
+  // (el dashboard de /planner), y lo pulsa.
+  // «esperar» hace lo mismo sin pulsar: el flujo no dice «ya estamos abajo» hasta que de verdad lo estamos.
+  if (a.tipo === "clic" || a.tipo === "esperar") {
     const selector = String(a.selector)
     for (let k = 0; k < 200; k++) {
-      const el = document.querySelector<HTMLElement>(selector)
+      const el = document.querySelector<HTMLElement>(selector) ?? marco()?.querySelector<HTMLElement>(selector)
       if (el) {
-        el.click()
+        if (a.tipo === "clic") el.click()
         return true
       }
       await new Promise((r) => setTimeout(r, 250))
