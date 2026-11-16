@@ -1177,6 +1177,15 @@
   background: var(--paper);
 }
 
+/* Las cifras largas ("3 herramientas") se ajustan al ancho de su casilla para no salirse en ningún idioma. */
+.ln-stat {
+  container-type: inline-size;
+}
+
+.ln-stat__value[data-long] {
+  font-size: min(clamp(2.5rem, 5vw, 4.5rem), 11cqi);
+}
+
 .ln-stat:first-child {
   background: var(--ink);
   color: var(--paper);

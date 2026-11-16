@@ -28,7 +28,9 @@ export function Problem() {
         <div className="ln-stats">
           {problem.stats.map((stat, i) => (
             <Reveal as="article" key={stat.value} className="ln-stat" delay={i * 80}>
-              <strong className="ln-stat__value">{stat.value}</strong>
+              <strong className="ln-stat__value" data-long={stat.value.length > 8 || undefined}>
+                {stat.value}
+              </strong>
               <p className="ln-stat__label">{stat.label}</p>
             </Reveal>
           ))}

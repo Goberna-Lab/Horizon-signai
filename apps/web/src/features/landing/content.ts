@@ -765,7 +765,7 @@ export const problem = {
     moment: tr("The drawing", "El dibujo"),
     slip: slipLine(),
     start: tr("1 Dec 2026", "1 dic 2026"),
-    end: tr(`${facts.lunarDayDays.toFixed(1)} days`, `${facts.lunarDayDays.toFixed(1).replace(".", ",")} días`),
+    end: tr(`${facts.lunarDayDays.toFixed(1)} days`, `${facts.lunarDayDays.toFixed(1)} días`),
   },
   close: tr("Mission planners have to answer this again every time a schedule moves.", "Quien planifica la misión tiene que responder esto otra vez cada vez que el calendario se mueve."),
   closeStrong: tr("We made it one screen.", "Lo hicimos una sola pantalla."),
