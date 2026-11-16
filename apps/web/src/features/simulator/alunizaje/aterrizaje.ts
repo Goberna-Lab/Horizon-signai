@@ -77,8 +77,21 @@ const gauss = () => {
  * Planifica el contacto. `lit`: si el Sol ilumina la zona. La nave llega con el error de navegación y se posa ahí:
  * sin desvío, el punto final es el de llegada.
  */
-export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit }: { lit: boolean }): PlanContacto {
+export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit, nominal = false }: { lit: boolean; nominal?: boolean }): PlanContacto {
   const planned = { x: 0, z: 0 }
+  // `nominal` (el flujo guiado de EVA, «la misión real»): sin error de navegación ni fallo de altura, y se posa en el
+  // punto más llano a menos de 40 m del planeado, como hizo Armstrong al evitar las rocas. Sin él, todo es como siempre.
+  if (nominal) {
+    let arrive = planned
+    let hz = hazardAt(v, planned.x, planned.z, rocks)
+    for (let x = -40; x <= 40; x += 4)
+      for (let z = -40; z <= 40; z += 4) {
+        if (x * x + z * z > 1600) continue
+        const h = hazardAt(v, planned.x + x, planned.z + z, rocks)
+        if (h.tilt + h.rock * 50 < hz.tilt + hz.rock * 50) [arrive, hz] = [{ x: planned.x + x, z: planned.z + z }, h]
+      }
+    return { planned, arrive, final: { ...arrive, hz }, lit, cutoffExtra: 0, fault: null }
+  }
   const arrive = { x: planned.x + gauss() * NAV_SIGMA_M, z: planned.z + gauss() * NAV_SIGMA_M }
   // Con luz, el corte del motor es nominal; a oscuras llega tarde o temprano
   let cutoffExtra = lit ? Math.random() * 0.4 : Math.random() * 1.6

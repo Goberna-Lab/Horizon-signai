@@ -371,6 +371,18 @@ export function guionDe(ruta: string, pagina = ""): Guion {
  * hayan pasado 90 s, y siempre en serio. `festejo`: algo salió bien; al terminar pone ojos contentos en vez de guiñar.
  */
 export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean; /** Indicación útil (qué tecla, qué mirar): no espera los 90 s, pero no interrumpe. */ guia?: boolean }> = {
+  // La bitácora real del Apollo 11 (julio de 1969), que el simulador vuela sobre nuestro sitio: los avisa
+  // features/simulator/alunizaje/landing.ts y el flujo guiado los narra (`narra` en ./recorridos.ts).
+  "apolo-1202": {
+    texto: "That is the real alarm from nineteen sixty-nine. The guidance computer was overloaded. Mission Control checked it in seconds and said go, so they kept descending.",
+    es: { texto: "Esa es la alarma real de mil novecientos sesenta y nueve. La computadora de guiado estaba sobrecargada. Control de misión lo revisó en segundos y dijo adelante, así que siguieron bajando." },
+    guia: true,
+  },
+  "apolo-p66": {
+    texto: "Final descent. In the real mission, Armstrong took over by hand at this point, because the computer was taking them into a field of boulders.",
+    es: { texto: "Descenso final. En la misión real, Armstrong tomó el control a mano en este punto, porque la computadora los llevaba a un campo de rocas." },
+    guia: true,
+  },
   "aterrizaje-nominal": { texto: "Welcome to the lunar south pole. Population: you.", es: { texto: "Bienvenido al polo sur lunar. Población: tú." }, festejo: true },
   "primeros-pasos": {
     texto: "Your first steps. Footprints here last millions of years, so no pressure on the style.",
@@ -539,10 +551,11 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
 export const TEXTOS = {
   en: {
     hola: "Hi, my name is EVA. I will guide you through the whole process. What is your name?",
-    deNuevo: (nombre: string) => `Welcome back, ${nombre}. Would you like to learn how to plan a lunar mission?`,
-    oferta: (nombre: string) => (nombre ? `Nice to meet you, ${nombre}. Would you like to learn how to plan a lunar mission?` : "Would you like to learn how to plan a lunar mission?"),
+    deNuevo: (nombre: string) => `Welcome back, ${nombre}. Would you like to experience planning a lunar mission?`,
+    // La introducción del guion del equipo: qué es, de quién y para qué reto (features/landing/content.ts, `brand`).
+    oferta: (nombre: string) => `${nombre ? `Nice to meet you, ${nombre}. ` : ""}This is Horizon Signal, by Goberna: a platform to plan and simulate lunar missions, made for the Lunar Landing Site Navigator challenge of the NASA Space Apps Challenge. It compares landing sites and dates by sunlight and by Earth in view. Would you like to experience planning a lunar mission?`,
     /** El flujo guiado: la oferta sin nombre (desde el panel, tras la landing) y los botones de cada paso. */
-    quien: "Would you like to learn how to plan a lunar mission?",
+    quien: "Would you like to experience planning a lunar mission?",
     etapas: "Steps of the guided flow",
     escuchando: "Listening",
     teOigo: "I hear you…",
@@ -592,9 +605,9 @@ export const TEXTOS = {
   },
   es: {
     hola: "Hola, mi nombre es EVA. Voy a guiarte en todo el proceso. ¿Cuál es tu nombre?",
-    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. ¿Quieres aprender a hacer una misión lunar?`,
-    oferta: (nombre: string) => (nombre ? `Mucho gusto, ${nombre}. ¿Quieres aprender a hacer una misión lunar?` : "¿Quieres aprender a hacer una misión lunar?"),
-    quien: "¿Quieres aprender a hacer una misión lunar?",
+    deNuevo: (nombre: string) => `Hola de nuevo, ${nombre}. ¿Quieres vivir la experiencia de planificar una misión lunar?`,
+    oferta: (nombre: string) => `${nombre ? `Mucho gusto, ${nombre}. ` : ""}Esto es Horizon Signal, de Goberna: una plataforma para planificar y simular misiones lunares, hecha para el reto Lunar Landing Site Navigator del NASA Space Apps Challenge. Compara lugares y fechas según la luz del Sol y la visibilidad de la Tierra. ¿Quieres vivir la experiencia de planificar una misión lunar?`,
+    quien: "¿Quieres vivir la experiencia de planificar una misión lunar?",
     etapas: "Pasos del flujo guiado",
     escuchando: "Escuchando",
     teOigo: "Te escucho…",
@@ -644,14 +657,14 @@ export const PISTAS: Record<"en" | "es", Record<string, string>> = {
   en: {
       nombre: "Say your name",
       oferta: "Say “yes” or “just the landing”",
-      camino: "Say “see a mission”, “new mission” or “simulation”",
+      camino: "Say your choice, or tap it",
       repaso: "Say your answer",
       paso: "Say “next”, “again” or ask me anything",
     },
   es: {
       nombre: "Di tu nombre",
       oferta: "Di «sí» o «solo la landing»",
-      camino: "Di «ver una misión», «misión nueva» o «simulación»",
+      camino: "Di tu elección, o tócala",
       repaso: "Di tu respuesta",
       paso: "Di «siguiente», «otra vez» o pregúntame",
     },

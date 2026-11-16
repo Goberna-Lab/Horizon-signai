@@ -83,6 +83,9 @@ export const PALABRAS_OFERTA: string[][] = [
   ["landing", "pagina", "page", "portada", "home", "inicio", "solo", "just", "only", "nomas"],
 ]
 
+/** Un «sí» dentro de una frase («claro que sí», «yes please», «of course»). */
+const SI = /\b(si|yes|yeah|yep|sure|claro|dale|okay|ok|vamos|of course|por supuesto)\b/
+
 /** Qué hacer con lo que dijo, según lo que EVA espera. Devuelve «nada» si hay que preguntárselo a otro (FAQ o IA). */
 export function entender(texto: string, espera: QueEspera, opciones: string[][] = []): Entendido {
   const t = limpiar(texto)
@@ -105,6 +108,8 @@ export function entender(texto: string, espera: QueEspera, opciones: string[][] 
   if (espera === "camino" || espera === "repaso") {
     const k = opcionDe(texto, palabrasDeOpciones(opciones))
     if (k >= 0) return { tipo: "opcion", k }
+    // Una pregunta de sí o no («¿Quieres ver…?», dos opciones, la primera es el sí): «sí», «dale», «ok» la eligen.
+    if (espera === "camino" && opciones.length === 2 && (orden === "siguiente" || (SI.test(t) && !/\bno\b/.test(t)))) return { tipo: "opcion", k: 0 }
     // Aquí no se sigue con «siguiente»: hay que elegir o contestar. Sí se puede pedir que lo repita o que se calle.
     if (orden === "repetir" || orden === "parar") return { tipo: "orden", orden }
     return { tipo: "nada" }

@@ -36,6 +36,17 @@ test("elegir camino por número o con sus palabras; «siguiente» no elige", () 
   assert.deepEqual(entender("next", "camino", CAMINOS), { tipo: "nada" })
 })
 
+test("una pregunta de sí o no: «sí» elige la primera opción; con tres opciones, no", () => {
+  const SI_NO = [
+    ["Yes, show me", "Sí, muéstrame", "show", "decide", "steps", "muestrame", "decidir", "pasos"],
+    ["Skip to the real mission", "Saltar a la misión real", "skip", "real", "apollo", "nasa", "saltar", "salta"],
+  ]
+  for (const t of ["sí", "yes", "dale", "ok", "claro que sí"]) assert.deepEqual(entender(t, "camino", SI_NO), { tipo: "opcion", k: 0 }, t)
+  assert.deepEqual(entender("muéstrame los pasos", "camino", SI_NO), { tipo: "opcion", k: 0 })
+  assert.deepEqual(entender("mejor la misión real", "camino", SI_NO), { tipo: "opcion", k: 1 })
+  assert.deepEqual(entender("yes", "camino", CAMINOS), { tipo: "nada" })
+})
+
 test("contestar el repaso por número o con palabras de la respuesta", () => {
   assert.deepEqual(entender("the sun was behind the terrain", "repaso", REPASO), { tipo: "opcion", k: 0 })
   assert.deepEqual(entender("el relieve", "repaso", REPASO), { tipo: "opcion", k: 0 })

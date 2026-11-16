@@ -1,48 +1,71 @@
-// El flujo guiado de EVA (pedido de Manuel, 2026-11-15): se presenta, pregunta el nombre y ofrece enseñar a hacer una
-// misión lunar.
+// El flujo guiado de EVA (ideas del equipo y su «guion resumido», 2026-11-15): se presenta, pregunta el nombre y ofrece
+// vivir la experiencia de planificar una misión lunar. Es una sola historia: tienes una misión que firmar, aprendes qué
+// se decide (los pasos 2 a 7 del guion, en el orden del Planificador), ves una misión real de la NASA (pasos 8 a 10) y
+// quedas libre para probar. Regla del equipo: fiel a los datos, nada inventado, con un 10-15 % de personalidad, y
+// siempre se le puede preguntar algo más específico.
 //
 // Cómo es:
-// - La oferta (OFERTA): «¿Quieres aprender a hacer una misión lunar?». «Sí» lleva al control de misión (CONTROL);
-//   «Solo quiero ver la landing» recorre la landing (LANDING) y al final vuelve a ofrecer.
-// - CONTROL: EVA abre el dashboard (Missions) y señala cada parte: el próximo hito con su cuenta regresiva, cómo va esa
-//   misión, la misión que espera tu aprobación, el radar de sitios y la lista de misiones. Al final pregunta qué quieres
-//   hacer, con tres caminos (CAMINOS), que se eligen con un botón, diciéndolo o tocando la parte en el dashboard:
-//   ver una misión (VER), crear una nueva (CREAR: el tutorial del Planificador de misiones, que luego se abre) o ir
-//   directo a la simulación (SIMULAR). Al terminar VER o SIMULAR, vuelve a preguntar (ELEGIR).
+// - La oferta (OFERTA). «Solo quiero ver la landing» recorre la landing (LANDING) y al final vuelve a ofrecer.
+// - CONTROL: EVA abre el control de misión (el dashboard) y cuenta la situación: tu próxima misión es en N días (la
+//   cuenta regresiva de la pantalla, dicha con voz grabada: ver `cuandoEs`), cómo va, y que antes hay una caminata
+//   pendiente de tu firma. Pregunta si quieres ver qué se decide para aprobarla.
+// - DECIDIR: lo que se decide en un plan de misión (los pasos del Planificador de misiones), y por qué la caminata espera
+//   tu firma. La firma la pone la persona, no EVA. Luego ofrece ver una misión real.
+// - REAL: el descenso del Apollo 11 (1969) con su bitácora de radio real, volado sobre nuestro sitio del polo sur (el
+//   simulador de features/simulator). Mientras baja, EVA narra lo que pasa (la alarma 1202, el control manual, el
+//   contacto) cuando el simulador le avisa (`narra`). Luego la caminata y sus tareas. Al final, modo libre y el menú.
+// - ELEGIR: el menú de siempre (CAMINOS): ver una misión, crear una nueva (el tutorial y el Planificador) o la misión
+//   real otra vez. Se elige con un botón, diciéndolo o tocando la parte en el dashboard.
+// - En cualquier paso se le puede preguntar (escrito o con la voz): la IA contesta, más técnica, y el guion sigue en el
+//   mismo paso. Varios pasos lo invitan en voz alta.
 // - Está escrito, no lo genera la IA: funciona aunque los servidores de IA no contesten, y su voz está grabada
-//   (./vozGrabada.ts). Cada paso puede hacer algo en la app (las órdenes de ./acciones.ts), apuntar a una parte de la
-//   pantalla y decir una frase. Una pregunta de la persona la contesta la IA y el flujo sigue en el mismo paso.
+//   (./vozGrabada.ts).
 //
 // De dónde sale cada afirmación (si cambia la pantalla, se vuelve a comprobar):
-// - Dashboard: prototipos/lunar-map/inicio.html y campaign.js (CR-01 próximo hito; pasos «Zone confirmed», «Descent
-//   simulated», «Walk approved», «Final Flight Director Go»; CR-02 por firmar con O₂ al volver 26 % contra 30 %; estados
-//   GO, por firmar, en revisión y borrador; la fila de CR-01 trae Sol y Tierra al alunizar, días de margen y contacto).
+// - Dashboard: prototipos/lunar-map/inicio.html y campaign.js (CR-01 próximo hito, contacto el 18 dic 2026; pasos «Zone
+//   confirmed», «Descent simulated», «Walk approved», «Final Flight Director Go»; CR-02 por firmar con O₂ al volver
+//   26 % contra 30 %; la fila de CR-01 trae Sol y Tierra al alunizar, días de margen y contacto).
 // - Planificador de misiones: apps/web/public/planificar-mision.html, en los pasos de la instrucción de Francisco
 //   (features/assistant/CLAUDE.md, «EVA y el Planificador»).
+// - Simulador: la tarjeta al posarse (velocidad de contacto, inclinación de las patas, combustible, enlace con la
+//   Tierra); el casco (O₂, CO₂, H₂O, BAT: el O₂ y el CO₂ van con el esfuerzo, el agua se gasta más al Sol y la batería más
+//   con las luces: caminata.ts); la caminata sin plan sigue la ruta científica de CR-02 (tareas.ts: muestra al Sol en el
+//   borde, muestra en sombra permanente, posible hielo, con luces, y regreso obligatorio); teclas en visorHud.ts. El
+//   simulador no tiene desplegar la antena ni el panel solar (pasos 8 y 9 del guion): EVA no lo dice.
+// - Apollo 11: el simulador vuela su perfil de descenso (guiado R-695, NASA TN D-6846) y frases de su transcripción
+//   (features/simulator/alunizaje/landing.ts). La alarma 1202 (sobrecarga de la computadora de guiado, Houston dio
+//   «go») y el control manual de Armstrong para evitar un campo de rocas son hechos de la misión de julio de 1969.
 // - Landing: features/landing/content.ts (el Sol no pasa de 1,59° sobre el polo entre 2026 y 2030).
-// - El simulador 3D (features/simulator) aluniza en Connecting Ridge, la zona de CR-01, con la caminata de después
-//   (tareas reales de una EVA de Artemis: tareas.ts; el traje: visorHud.ts).
 //
 // Voz: cada oración se graba por separado y por su texto exacto. Las oraciones que se repiten están escritas igual a
 // propósito; los números van en letras. Tras cambiar un texto: `node apps/web/scripts/grabar-voz-eva.ts`.
 import type { AccionIA } from "@/prueba-ia/cliente"
 
 type Bi = { en: string; es: string }
+type Idioma = "en" | "es"
 
-/** Las tres etapas del flujo, en orden (el riel del globo). El número de etapa de cada paso es su posición aquí (desde 1). */
+/** Las cuatro etapas del flujo, en orden (el riel del globo). El número de etapa de cada paso es su posición aquí. */
 export const ETAPAS: Bi[] = [
   { en: "Mission control", es: "Control de misión" },
-  { en: "Your choice", es: "Tu elección" },
-  { en: "Hands on", es: "Manos a la obra" },
+  { en: "What you decide", es: "Qué se decide" },
+  { en: "Real mission", es: "Misión real" },
+  { en: "Your turn", es: "Tu turno" },
 ]
 
 /** La pregunta de repaso de un paso: hay que acertarla para seguir. */
 export type Repaso = { opciones: Bi[]; correcta: number; acierto: Bi; fallo: Bi }
 
+/**
+ * Una opción de un paso que pregunta (`elige`). Lleva a un recorrido o, sin recorrido, EVA dice `dicho` y el flujo
+ * termina. `palabras`: además de las del botón, para reconocerla por voz. `toque`: tocar esa parte del dashboard
+ * también la elige (si es un enlace, EVA lo intercepta).
+ */
+export type Opcion = { id: string; boton: Bi; palabras: string[]; recorrido?: Recorrido; dicho?: Bi; toque?: string }
+
 export type Paso = {
-  /** A qué etapa pertenece (1 a 3). Sin etapa (el recorrido de la landing) no hay riel. */
+  /** A qué etapa pertenece (1 a 4). Sin etapa (el recorrido de la landing) no hay riel. */
   etapa?: number
-  /** Lo que EVA dice. Corto: se pronuncia. */
+  /** Lo que EVA dice. Corto: se pronuncia. Con `cuenta`, «{cuando}» se cambia por `cuandoEs`. */
   texto: Bi
   /** Orden que se ejecuta antes de hablar (abrir una pantalla, pulsar un botón…). */
   accion?: AccionIA
@@ -50,10 +73,14 @@ export type Paso = {
   selector?: string
   /** Pausa tras la orden, para que la pantalla termine de dibujarse (ms). */
   espera?: number
-  /** En este paso no hay «Next»: se sigue eligiendo uno de los CAMINOS. */
-  elige?: true
+  /** Dónde leer los días que faltan (el número de la cuenta regresiva) para decir «{cuando}». */
+  cuenta?: string
+  /** En este paso no hay «Next»: se sigue eligiendo una de estas opciones. */
+  elige?: Opcion[]
   /** En este paso no hay «Next»: se sigue acertando la pregunta. */
   repaso?: Repaso
+  /** Avisos del simulador (EVENTOS de ./guion.ts) que EVA narra mientras espera en este paso. */
+  narra?: string[]
 }
 
 export type Recorrido = {
@@ -61,22 +88,95 @@ export type Recorrido = {
   /** Lo que dice al terminar (vacío: nada). */
   fin: Bi
   pasos: Paso[]
-  /** Qué sigue al terminar: volver a ofrecer el flujo o volver a elegir camino. */
+  /** Qué sigue al terminar: volver a ofrecer el flujo o el menú de caminos. */
   luego?: "oferta" | "elegir"
   /** Orden que se ejecuta al terminar, después de `fin` (p. ej. abrir el Planificador). */
   alFin?: AccionIA
 }
 
+// ----- La cuenta regresiva, dicha en letras («en treinta y dos días») -----
+const UNIDADES = {
+  en: "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split(" "),
+  es: "cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiuno veintidós veintitrés veinticuatro veinticinco veintiséis veintisiete veintiocho veintinueve".split(" "),
+}
+const DECENAS = {
+  en: ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"],
+  es: ["", "", "veinte", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"],
+}
+/** Un número de 0 a 99 en letras. En español, delante de «días» va «un» («veintiún días», «treinta y un días»). */
+export function enLetras(n: number, idioma: Idioma): string {
+  const u = UNIDADES[idioma]
+  if (n < u.length) return idioma === "es" ? u[n]!.replace(/uno$/, "ún").replace(/^ún$/, "un") : u[n]!
+  const d = DECENAS[idioma][Math.floor(n / 10)]!
+  const r = n % 10
+  if (!r) return d
+  return idioma === "en" ? `${d}-${u[r]}` : `${d} y ${u[r] === "uno" ? "un" : u[r]}`
+}
+/** Hasta cuántos días se graba la frase de la cuenta regresiva (más allá, la pide en vivo). */
+export const DIAS_GRABADOS = 40
+/** Cuándo es: «today», «tomorrow», «in thirty-two days»; sin número legible, «coming up soon». */
+export function cuandoEs(dias: number | null, idioma: Idioma): string {
+  if (dias === null || !Number.isFinite(dias) || dias < 0) return idioma === "en" ? "coming up soon" : "muy pronto"
+  if (dias === 0) return idioma === "en" ? "today" : "hoy"
+  if (dias === 1) return idioma === "en" ? "tomorrow" : "mañana"
+  return idioma === "en" ? `in ${enLetras(dias, "en")} days` : `en ${enLetras(dias, "es")} días`
+}
+/** El texto de un paso en un idioma, con los días ya puestos si el paso los lleva. */
+export const textoDePaso = (p: Paso, idioma: Idioma, dias: number | null = null) =>
+  p.cuenta ? p.texto[idioma].replace("{cuando}", cuandoEs(dias, idioma)) : p.texto[idioma]
+
 /** La oferta, tras el nombre. Las palabras para reconocerla por voz están en ./escucha.ts (PALABRAS_OFERTA). */
 export const OFERTA: { id: "si" | "landing"; boton: Bi }[] = [
-  { id: "si", boton: { en: "Yes, teach me", es: "Sí, enséñame" } },
+  { id: "si", boton: { en: "Yes, let us go", es: "Sí, vamos" } },
   { id: "landing", boton: { en: "Just show me the landing", es: "Solo quiero ver la landing" } },
 ]
 
 // ----- Frases que se repiten (misma oración, misma grabación) -----
 const QUE_HACER: Bi = {
-  en: "You can see a mission that already exists, create a new one, or do something more exciting: go straight to the simulation.",
-  es: "Puedes ver una misión que ya existe, crear una nueva, o algo más emocionante: ir directo a la simulación.",
+  en: "You can see a mission that already exists, create a new one, or fly the real mission again.",
+  es: "Puedes ver una misión que ya existe, crear una nueva, o volar otra vez la misión real.",
+}
+const PREGUNTAME: Bi = {
+  en: "If you want the technical detail of any step, just ask me.",
+  es: "Si quieres el detalle técnico de algún paso, solo pregúntame.",
+}
+const LIBRE: Bi = {
+  en: "From here on, I am with you to try anything: a lander that comes down badly, a zone without enough sunlight, a zone with no link to Earth. Ask me whatever you want.",
+  es: "Desde aquí, estoy contigo para probar lo que quieras: una nave que baja mal, una zona sin suficiente Sol, una zona sin enlace con la Tierra. Pregúntame lo que quieras.",
+}
+// Los pasos del Planificador de misiones (apps/web/public/planificar-mision.html: TIPOS, ZONAS, el estudio de luz, ENERGIAS,
+// PLANIF.alturas, RUTAS y el resultado), en su orden.
+const CIERRE: Bi = {
+  en: "If the dates or the needs change, we evaluate the alternatives again. Horizon Signal, by Goberna: plan, compare and simulate, to understand every decision better.",
+  es: "Si cambian las fechas o las necesidades, volvemos a evaluar las alternativas. Horizon Signal, de Goberna: planificar, comparar y simular, para comprender mejor cada decisión.",
+}
+const TIPO: Bi = {
+  en: "First, the name and the type of mission: crewed, robotic rover or static lander.",
+  es: "Primero, el nombre y el tipo de misión: tripulada, rover robótico o módulo fijo.",
+}
+const ZONA: Bi = {
+  en: "Then, the landing zone: A, Connecting Ridge; B, the peak near Shackleton; or C, the rim of Shackleton, the closest to the pole. Each one shows its real slope, measured by LOLA.",
+  es: "Luego, la zona de alunizaje: A, Connecting Ridge; B, el pico junto a Shackleton; o C, el borde de Shackleton, el más cercano al polo. Cada una muestra su pendiente real, medida por LOLA.",
+}
+const FECHA: Bi = {
+  en: "Next, the date and the stay, from one to fourteen days. Drag the timeline and you see light and shadow on the real terrain; let go, and you land at that moment.",
+  es: "Después, la fecha y la estadía, de uno a catorce días. Arrastras la línea de tiempo y ves la luz y la sombra sobre el relieve real; al soltar, alunizas en ese momento.",
+}
+const SOL_Y_TIERRA: Bi = {
+  en: "Right there you see how much of the stay has Sun, how much has Earth in view, and the longest night. If the work needs solar power and a direct link at the same time, look for the hours when both line up.",
+  es: "Ahí mismo ves cuánto de la estadía tiene Sol, cuánto tiene la Tierra a la vista, y la noche más larga. Si el trabajo necesita energía solar y enlace directo a la vez, busca las horas en que coinciden.",
+}
+const EQUIPO: Bi = {
+  en: "Then, the equipment. Power: solar with batteries, nuclear with an RTG, or batteries only, like the Apollo seventeen lander. The Planner recommends one for your plan. And you set how long your batteries last without Sun, the minimum link with Earth, and the height of the panel and the antenna: two or ten metres.",
+  es: "Luego, el equipo. La energía: solar con baterías, nuclear con un RTG, o solo baterías, como el módulo del Apollo diecisiete. El Planificador te recomienda una para tu plan. Y ajustas cuántas horas aguantan tus baterías sin Sol, el enlace mínimo con la Tierra, y la altura del panel y la antena: dos o diez metros.",
+}
+const RUTA: Bi = {
+  en: "Last, the route over the real terrain, from the landing spot to the science stops: safe, short or science, each with its distance and its stops.",
+  es: "Por último, la ruta sobre el relieve real, del punto de alunizaje a las paradas de trabajo científico: segura, corta o científica, cada una con su distancia y sus paradas.",
+}
+const RESULTADO: Bi = {
+  en: "And the result: go or no go, with each check, the indicators and the same plan compared in the three zones. Whatever fails, you adjust.",
+  es: "Y el resultado: go o no go, con cada comprobación, los indicadores y el mismo plan comparado en las tres zonas. Lo que no cumple, se ajusta.",
 }
 
 /** El recorrido de la landing: sección por sección. Al final vuelve a ofrecer el flujo. */
@@ -139,7 +239,115 @@ export const LANDING: Recorrido = {
   ],
 }
 
-/** «Sí»: el control de misión (el dashboard), parte por parte, y la pregunta de qué hacer. */
+/** La misión real: el descenso del Apollo 11 con su bitácora de radio, y la caminata. Al final, modo libre y el menú. */
+const REAL: Recorrido = {
+  id: "real",
+  fin: { en: `Mission complete. ${CIERRE.en} ${LIBRE.en}`, es: `Misión cumplida. ${CIERRE.es} ${LIBRE.es}` },
+  luego: "elegir",
+  pasos: [
+    {
+      etapa: 3,
+      accion: { tipo: "open", screen: "apollo" },
+      espera: 900,
+      narra: ["apolo-1202", "apolo-p66", "aterrizaje-nominal"],
+      texto: {
+        en: "This is Apollo eleven, July nineteen sixty-nine: the first crewed landing on the Moon. We fly its real descent and its real radio log, over our site at the south pole. Listen to the radio: something interesting is about to happen. Say next when we are down.",
+        es: "Este es el Apollo once, julio de mil novecientos sesenta y nueve: el primer alunizaje con tripulación. Volamos su descenso real y su bitácora de radio real, sobre nuestro sitio del polo sur. Escucha la radio: algo interesante está por pasar. Di siguiente cuando estemos abajo.",
+      },
+    },
+    {
+      etapa: 3,
+      accion: { tipo: "esperar", selector: '.sim-lfp-end [data-act="out"]' }, // habla cuando la nave ya se posó
+      espera: 300,
+      selector: ".sim-lfp-end",
+      texto: {
+        en: "We are down. Before going out, we check the lander: the contact speed, the tilt of the legs, the fuel left, and the link with Earth.",
+        es: "Ya estamos abajo. Antes de salir, revisamos el módulo: la velocidad de contacto, la inclinación de las patas, el combustible que queda y el enlace con la Tierra.",
+      },
+    },
+    {
+      // La caminata del simulador (features/simulator/alunizaje: caminata.ts, tareas.ts, visorHud.ts): al posarse,
+      // la tarjeta final ofrece «Salir a caminar»; EVA la pulsa y el astronauta baja por la escalera.
+      etapa: 3,
+      accion: { tipo: "clic", selector: '.sim-lfp-end [data-act="out"]' },
+      espera: 2500,
+      texto: {
+        en: "Now the best part: we step outside. The astronaut climbs down the ladder, and you look through the helmet.",
+        es: "Ahora lo mejor: salimos. El astronauta baja por la escalera, y tú miras a través del casco.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sim-vh-rows",
+      texto: {
+        en: "This is the screen inside your helmet: oxygen, the carbon dioxide filter, cooling water and battery. Oxygen and the filter go with your effort, the water goes faster in the Sun, and the battery goes faster with the lamps on. So no sprinting, please.",
+        es: "Esta es la pantalla dentro de tu casco: oxígeno, filtro de dióxido de carbono, agua de refrigeración y batería. El oxígeno y el filtro se gastan con el esfuerzo, el agua más rápido al Sol, y la batería más con las luces encendidas. Así que nada de correr, por favor.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sim-vh-feed",
+      texto: {
+        en: "Your walk follows the science route of mission CR-02. At the first stop, a sample on the sunlit rim. At the second, a sample in permanent shadow, which could hold water ice: turn on the lamps there. Then, a mandatory return to the lander. If you wonder why any of it matters, ask me.",
+        es: "Tu caminata sigue la ruta científica de la misión CR-02. En la primera parada, una muestra en el borde iluminado. En la segunda, una muestra en sombra permanente, que podría tener hielo: ahí enciende las luces. Después, regreso obligatorio al módulo. Si te preguntas por qué importa algo de esto, pregúntame.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sim-vh-keys",
+      texto: {
+        en: "Walk with the arrow keys and look around with the mouse. E collects, L turns on the lamps, and G lowers the sun visor. Say next when you are done.",
+        es: "Camina con las flechas y mira alrededor con el ratón. Con E recoges, con L enciendes las luces y con G bajas el visor solar. Di siguiente cuando termines.",
+      },
+    },
+  ],
+}
+
+/** Qué se decide para aprobar una misión: los pasos del Planificador de misiones, contados desde el dashboard. */
+const DECIDIR: Recorrido = {
+  id: "decidir",
+  fin: { en: "", es: "" },
+  pasos: [
+    {
+      etapa: 2,
+      texto: {
+        en: `To approve a mission, you decide the same things as when you create one in the Planner. ${TIPO.en} ${PREGUNTAME.en}`,
+        es: `Para aprobar una misión, decides lo mismo que al crearla en el Planificador. ${TIPO.es} ${PREGUNTAME.es}`,
+      },
+    },
+    { etapa: 2, texto: ZONA },
+    { etapa: 2, texto: FECHA },
+    { etapa: 2, texto: SOL_Y_TIERRA },
+    { etapa: 2, texto: EQUIPO },
+    { etapa: 2, texto: { en: `${RUTA.en} ${RESULTADO.en}`, es: `${RUTA.es} ${RESULTADO.es}` } },
+    {
+      etapa: 2,
+      selector: "#pending",
+      texto: {
+        en: "Now the walk makes sense. Its oxygen on the way back is under the margin, so that check fails: that is why it is waiting for you. Approving it is your call.",
+        es: "Ahora la caminata se entiende. Su oxígeno al volver está bajo el margen, así que esa comprobación falla: por eso espera tu firma. Aprobarla es tu decisión.",
+      },
+    },
+    {
+      etapa: 3,
+      texto: {
+        en: "Would you like to see how a real NASA mission went? We will fly the descent of Apollo eleven, with its real radio log.",
+        es: "¿Quieres ver cómo fue una misión real de la NASA? Vamos a volar el descenso del Apollo once, con su bitácora de radio real.",
+      },
+      elige: [
+        { id: "real", boton: { en: "Yes, the real mission", es: "Sí, la misión real" }, palabras: ["real", "apollo", "nasa", "fly", "volar", "simulation", "simulacion"], recorrido: REAL },
+        {
+          id: "libre",
+          boton: { en: "I will explore on my own", es: "Exploraré por mi cuenta" },
+          palabras: ["explore", "own", "myself", "alone", "explorar", "explorare", "cuenta", "sola", "solo"],
+          dicho: { en: `Sure. ${LIBRE.en}`, es: `Claro. ${LIBRE.es}` },
+        },
+      ],
+    },
+  ],
+}
+
+/** «Sí»: el control de misión (el dashboard) como una situación: la próxima misión y la firma que te espera. */
 export const CONTROL: Recorrido = {
   id: "control",
   fin: { en: "", es: "" },
@@ -147,11 +355,12 @@ export const CONTROL: Recorrido = {
     {
       etapa: 1,
       accion: { tipo: "open", screen: "missions" },
-      espera: 600,
+      espera: 800,
       selector: ".next",
+      cuenta: "#cdD",
       texto: {
-        en: "Great, let us begin. This is mission control. Up top, the next milestone: the landing of CR-01 at Connecting Ridge, with the countdown to contact.",
-        es: "Genial, comencemos. Este es el control de misión. Arriba, el próximo hito: el alunizaje de CR-01 en Connecting Ridge, con la cuenta regresiva hasta el contacto.",
+        en: "Great, let us begin. You are in mission control, the main window of the platform. Your next mission, the landing of CR-01 at Connecting Ridge, is {cuando}.",
+        es: "Genial, comencemos. Estás en el control de misión, la ventana principal de la plataforma. Tu próxima misión, el alunizaje de CR-01 en Connecting Ridge, es {cuando}.",
       },
     },
     {
@@ -164,47 +373,27 @@ export const CONTROL: Recorrido = {
     },
     {
       etapa: 1,
-      selector: "#pending",
-      texto: {
-        en: "Here, a mission is waiting for your approval: the science walk of CR-02 to the rim of Shackleton. Watch the oxygen on the way back: twenty-six percent, under the thirty percent margin. You can open it to review it, or approve it.",
-        es: "Aquí hay una misión esperando tu aprobación: la caminata científica de CR-02 al borde de Shackleton. Ojo con el oxígeno al volver: veintiséis por ciento, bajo el margen de treinta. Puedes abrirla para revisarla, o aprobarla.",
-      },
-    },
-    {
-      etapa: 1,
       selector: ".sites",
       texto: {
-        en: "These are the mission sites, on a radar of the south pole, at their real distance. The colour of each point is the status of its mission.",
-        es: "Estos son los sitios de las misiones, en un radar del polo sur, a su distancia real. El color de cada punto es el estado de su misión.",
+        en: "Here is where each mission lands, on a radar of the south pole at real distance, and next to it every mission with its status: go, under review, waiting for sign-off, or draft. The calendar is in the tracking tab.",
+        es: "Aquí ves dónde aluniza cada misión, en un radar del polo sur a distancia real, y al lado cada misión con su estado: go, en revisión, pendiente de firma o borrador. El calendario está en la pestaña de seguimiento.",
       },
     },
     {
       etapa: 1,
-      selector: "#mlist",
+      selector: "#pending",
       texto: {
-        en: "And here are all the missions of the campaign, each in its own status: ready, to sign, under review or draft.",
-        es: "Y aquí están todas las misiones de la campaña, cada una en su estado: lista, por firmar, en revisión o borrador.",
+        en: "But first, something is waiting for your signature: the science walk of CR-02, to the rim of Shackleton. You have to approve it. Watch the oxygen on the way back: twenty-six percent, under the thirty percent margin.",
+        es: "Pero antes, algo espera tu firma: la caminata científica de CR-02, al borde de Shackleton. Tienes que aprobarla. Ojo con el oxígeno al volver: veintiséis por ciento, bajo el margen de treinta.",
       },
     },
     {
-      etapa: 2,
-      elige: true,
-      texto: { en: `What would you like to do? ${QUE_HACER.en}`, es: `¿Qué quieres hacer? ${QUE_HACER.es}` },
-    },
-  ],
-}
-
-/** De vuelta en el control de misión, tras VER o SIMULAR: a elegir otra vez. */
-export const ELEGIR: Recorrido = {
-  id: "elegir",
-  fin: { en: "", es: "" },
-  pasos: [
-    {
-      etapa: 2,
-      accion: { tipo: "open", screen: "missions" },
-      espera: 500,
-      elige: true,
-      texto: { en: `What else would you like to do? ${QUE_HACER.en}`, es: `¿Qué más quieres hacer? ${QUE_HACER.es}` },
+      etapa: 1,
+      texto: { en: "Would you like to see what you have to decide before you approve it?", es: "¿Quieres ver qué tienes que decidir antes de aprobarla?" },
+      elige: [
+        { id: "decidir", boton: { en: "Yes, show me", es: "Sí, muéstrame" }, palabras: ["show", "decide", "steps", "muestrame", "decidir", "pasos"], recorrido: DECIDIR },
+        { id: "real", boton: { en: "Skip to the real mission", es: "Saltar a la misión real" }, palabras: ["skip", "real", "apollo", "nasa", "saltar", "salta"], recorrido: REAL },
+      ],
     },
   ],
 }
@@ -216,7 +405,7 @@ const VER: Recorrido = {
   luego: "elegir",
   pasos: [
     {
-      etapa: 3,
+      etapa: 4,
       accion: { tipo: "clic", selector: '.mrow[data-id="CR-01"]' },
       espera: 300,
       selector: '.mrow[data-id="CR-01"]',
@@ -226,7 +415,7 @@ const VER: Recorrido = {
       },
     },
     {
-      etapa: 3,
+      etapa: 4,
       selector: ".sites",
       texto: {
         en: "When you pick it, the radar marks its site, and the tracking tab filters its calendar and its log.",
@@ -234,7 +423,7 @@ const VER: Recorrido = {
       },
     },
     {
-      etapa: 3,
+      etapa: 4,
       accion: { tipo: "clic", selector: "#tab-win" },
       espera: 400,
       selector: "#win-p",
@@ -244,7 +433,7 @@ const VER: Recorrido = {
       },
     },
     {
-      etapa: 3,
+      etapa: 4,
       accion: { tipo: "clic", selector: "#tab-det" },
       espera: 300,
       selector: "#mlist",
@@ -263,122 +452,71 @@ const CREAR: Recorrido = {
   alFin: { tipo: "open", screen: "new-mission" },
   pasos: [
     {
-      etapa: 3,
+      etapa: 4,
       selector: ".addm",
       texto: {
         en: "To create a mission you use this button, New mission. It opens the Planner with a form, step by step. Let me tell you the steps before we go in.",
         es: "Para crear una misión se usa este botón, Nueva misión. Abre el Planificador con un formulario, paso a paso. Te cuento los pasos antes de entrar.",
       },
     },
-    {
-      etapa: 3,
-      texto: {
-        en: "First, the name and the type of mission: crewed, robotic rover or fixed lander. Then, the zone where you land: A, B or C.",
-        es: "Primero, el nombre y el tipo de misión: tripulada, rover robótico o módulo fijo. Luego, la zona donde alunizar: A, B o C.",
-      },
-    },
-    {
-      etapa: 3,
-      texto: {
-        en: "Next, the date and the stay. The light study shows when there is Sun and when there is Earth: drag the timeline until you have both.",
-        es: "Después, la fecha y la estadía. El estudio de luz muestra cuándo hay Sol y cuándo hay Tierra: arrastra la línea de tiempo hasta tener los dos.",
-      },
-    },
-    {
-      etapa: 3,
-      texto: {
-        en: "Then, the equipment: the power, the battery hours, the minimum link with Earth and the height of the panel and the antenna. And the route of the walk, over the real terrain.",
-        es: "Luego, el equipo: la energía, las horas de batería, el enlace mínimo con la Tierra y la altura del panel y la antena. Y la ruta de la caminata, sobre el relieve real.",
-      },
-    },
-    {
-      etapa: 3,
-      texto: {
-        en: "At the end, the result: go or no go, with each check and the comparison in the three zones. Save the mission and, if you like, simulate it.",
-        es: "Al final, el resultado: go o no go, con cada comprobación y la comparación en las tres zonas. Guarda la misión y, si quieres, simúlala.",
-      },
-    },
+    { etapa: 4, texto: { en: `${TIPO.en} ${ZONA.en}`, es: `${TIPO.es} ${ZONA.es}` } },
+    { etapa: 4, texto: { en: `${FECHA.en} ${SOL_Y_TIERRA.en}`, es: `${FECHA.es} ${SOL_Y_TIERRA.es}` } },
+    { etapa: 4, texto: EQUIPO },
+    { etapa: 4, texto: { en: `${RUTA.en} ${RESULTADO.en} Save the mission and, if you like, simulate it.`, es: `${RUTA.es} ${RESULTADO.es} Guarda la misión y, si quieres, simúlala.` } },
   ],
 }
 
-/** Directo a la simulación: el alunizaje 3D en Connecting Ridge y la caminata. */
-const SIMULAR: Recorrido = {
-  id: "simular",
-  fin: { en: "That is how you rehearse a mission. Back to mission control.", es: "Así se ensaya una misión. Volvamos al control de misión." },
-  luego: "elegir",
-  pasos: [
-    {
-      etapa: 3,
-      accion: { tipo: "open", screen: "simulator" },
-      espera: 900,
-      texto: {
-        en: "Something more exciting, then. This is the landing at Connecting Ridge, in three dimensions. The descent flies itself. Drag to look around. Say next when we are down.",
-        es: "Algo más emocionante, entonces. Este es el alunizaje en Connecting Ridge, en tres dimensiones. El descenso vuela solo. Arrastra para mirar alrededor. Di siguiente cuando estemos abajo.",
-      },
-    },
-    {
-      // La caminata del simulador (features/simulator/alunizaje: caminata.ts, tareas.ts, visorHud.ts): al posarse,
-      // la tarjeta final ofrece «Salir a caminar»; EVA la pulsa y el astronauta baja por la escalera.
-      etapa: 3,
-      accion: { tipo: "clic", selector: '.sim-lfp-end [data-act="out"]' },
-      espera: 2500,
-      texto: {
-        en: "We are down. Now the best part: we step outside. The astronaut climbs down the ladder, and you look through the helmet.",
-        es: "Ya estamos abajo. Ahora lo mejor: salimos. El astronauta baja por la escalera, y tú miras a través del casco.",
-      },
-    },
-    {
-      etapa: 3,
-      selector: ".sim-vh-rows",
-      texto: {
-        en: "This is the screen inside your helmet. Oxygen, the carbon dioxide filter, cooling water and battery all drain as you work, faster in the shade.",
-        es: "Esta es la pantalla dentro de tu casco. El oxígeno, el filtro de dióxido de carbono, el agua de refrigeración y la batería se gastan mientras trabajas, más rápido en la sombra.",
-      },
-    },
-    {
-      etapa: 3,
-      selector: ".sim-vh-feed",
-      texto: {
-        en: "Your tasks are real moonwalk jobs: check a landing leg, plant a seismometer far from the lander, put a solar panel where the Sun really shines, and collect samples in light and in shadow.",
-        es: "Tus tareas son trabajos reales de una caminata lunar: revisar una pata, instalar un sismómetro lejos de la nave, poner un panel solar donde de verdad dé el Sol y tomar muestras en la luz y en la sombra.",
-      },
-    },
-    {
-      etapa: 3,
-      selector: ".sim-vh-keys",
-      texto: {
-        en: "Walk with the arrow keys and look around with the mouse. Take a stroll if you like. Say next when you are done.",
-        es: "Camina con las flechas y mira alrededor con el ratón. Da un paseo si quieres. Di siguiente cuando termines.",
-      },
-    },
-  ],
-}
-
-/** Los tres caminos tras el control de misión. `palabras`: además de las del botón, para reconocerlos por voz. */
-export const CAMINOS: { id: "ver" | "crear" | "simular"; boton: Bi; palabras: string[]; recorrido: Recorrido }[] = [
+/** El menú, tras la misión real o tras ver una misión. */
+export const CAMINOS: Opcion[] = [
   {
     id: "ver",
     boton: { en: "See a mission", es: "Ver una misión" },
     palabras: ["see", "view", "look", "existing", "exists", "review", "edit", "open", "ver", "mirar", "existe", "existente", "revisar", "editar", "abrir", "realizada", "hecha"],
     recorrido: VER,
+    toque: ".mrow[data-id]",
   },
   {
     id: "crear",
     boton: { en: "Create a new mission", es: "Crear una misión nueva" },
     palabras: ["create", "new", "make", "plan", "build", "crear", "nueva", "nuevo", "generar", "planear", "armar", "hacer"],
     recorrido: CREAR,
+    toque: ".addm",
   },
   {
-    id: "simular",
-    boton: { en: "Straight to the simulation", es: "Directo a la simulación" },
-    palabras: ["simulation", "simulate", "simulator", "exciting", "straight", "descent", "land", "simulacion", "simular", "simulador", "emocionante", "directo", "descenso", "alunizar", "alunizaje"],
-    recorrido: SIMULAR,
+    id: "real",
+    boton: { en: "Fly the real mission", es: "Volar la misión real" },
+    palabras: ["simulation", "simulate", "simulator", "real", "apollo", "fly", "again", "simulacion", "simular", "simulador", "volar", "otra"],
+    recorrido: REAL,
   },
 ]
 
-/** Todos los recorridos del flujo (para grabar su voz y para las pruebas). */
-export const RECORRIDOS: Recorrido[] = [LANDING, CONTROL, ELEGIR, ...CAMINOS.map((c) => c.recorrido)]
+/** El menú: tras la misión real o tras ver una misión, de vuelta en el control de misión. */
+export const ELEGIR: Recorrido = {
+  id: "elegir",
+  fin: { en: "", es: "" },
+  pasos: [
+    {
+      etapa: 4,
+      accion: { tipo: "open", screen: "missions" },
+      espera: 500,
+      elige: CAMINOS,
+      texto: { en: `What else would you like to do? ${QUE_HACER.en}`, es: `¿Qué más quieres hacer? ${QUE_HACER.es}` },
+    },
+  ],
+}
 
-/** Las frases sueltas del flujo que no están en los pasos ni en `fin` (las respuestas del repaso): también se graban. */
-export const frasesSueltas = (idioma: "en" | "es"): string[] =>
-  RECORRIDOS.flatMap((r) => r.pasos.flatMap((p) => (p.repaso ? [p.repaso.acierto[idioma], p.repaso.fallo[idioma]] : [])))
+/** Todos los recorridos del flujo (para grabar su voz y para las pruebas). */
+export const RECORRIDOS: Recorrido[] = [LANDING, CONTROL, DECIDIR, REAL, ELEGIR, VER, CREAR]
+
+/** Las frases sueltas del flujo que no están en los pasos ni en `fin`: lo que se dice al elegir y el repaso. */
+export const frasesSueltas = (idioma: Idioma): string[] =>
+  RECORRIDOS.flatMap((r) =>
+    r.pasos.flatMap((p) => [
+      ...(p.elige ?? []).flatMap((o) => (o.dicho ? [o.dicho[idioma]] : [])),
+      ...(p.repaso ? [p.repaso.acierto[idioma], p.repaso.fallo[idioma]] : []),
+    ]),
+  )
+
+/** Las variantes de un paso con cuenta regresiva que se graban (0 a DIAS_GRABADOS días y la de sin número). */
+export const variantesDePaso = (p: Paso, idioma: Idioma): string[] =>
+  p.cuenta ? [null, ...Array.from({ length: DIAS_GRABADOS + 1 }, (_, k) => k)].map((d) => textoDePaso(p, idioma, d)) : [p.texto[idioma]]
