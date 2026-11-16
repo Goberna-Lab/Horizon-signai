@@ -164,7 +164,7 @@ canvas { display: block; width: 100%; max-width: 100%; border: 1px solid var(--i
 .kv div { display: grid; gap: 2px }
 .kv b { font: 700 22px/1.1 var(--f-display); letter-spacing: var(--track); font-variant-numeric: tabular-nums; white-space: nowrap }
 .gauges { display: grid; gap: 7px }
-.gauge { display: grid; grid-template-columns: 76px minmax(0, 1fr) 46px; gap: 10px; align-items: center; font: 400 12px var(--f-mono) }
+.gauge { display: grid; grid-template-columns: 100px minmax(0, 1fr) 72px; gap: 10px; align-items: center; font: 400 12px var(--f-mono) }
 .gauge .bar { height: 12px; border: 1px solid var(--ink); position: relative; overflow: hidden }
 .gauge .bar i { position: absolute; inset: 0 auto 0 0; background: var(--s) }
 .gauge .bar u { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--signal); left: 50% }
@@ -251,6 +251,12 @@ details.foot summary { cursor: pointer; color: var(--ink); text-transform: upper
 @keyframes pulso { 0% { transform: scale(1); opacity: .7 } 100% { transform: scale(3); opacity: 0 } }
 
 .nota { margin: 0; font: 400 11.5px/1.45 var(--f-mono); color: var(--ink-soft) }
+
+/* ---------- detalle de la misión más entendible (2026-11-16): qué falla, el porqué primero, los KPI al final ---------- */
+.verdict p.falla { margin: 6px 0 0; font: 600 14px/1.4 var(--f-display); color: var(--signal) }
+.mas-lugares summary { cursor: pointer; font: 500 11.5px var(--f-mono); color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px }
+.mas-lugares[open] summary { margin-bottom: 6px }
+.kpi .kpi-s { font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
 details.foot dl { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 8px 18px; margin: 12px 0 0 }
 details.foot dt { color: var(--ink); font-weight: 500 }
 details.foot dd { margin: 0 }
@@ -278,6 +284,9 @@ table.comp thead th { font-size: 10.5px; letter-spacing: .08em; text-transform: 
 table.comp tbody th { font-family: var(--f-display); font-weight: 500 }
 table.comp td.mal { color: var(--signal); font-weight: 500 }
 table.comp tr[data-actual="true"] { background: var(--tint) }
+table.comp thead th small { font-size: 9px; letter-spacing: .04em; opacity: .7 }
+.comp-usar { padding: 4px 9px; font-size: 12px; white-space: nowrap }
+.comp-act { font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft) }
 
 .seg button { color: var(--ink) }
 .seg button[aria-pressed="true"] { color: var(--paper) }
@@ -328,7 +337,7 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
         <div class="chips" id="energias" role="group"></div>
         <div class="range" id="bat-box"><label class="lbl" for="bateria" data-en="Batteries without Sun">Baterías sin Sol</label><output id="bateria-o" class="num"></output>
           <input id="bateria" type="range" min="0" max="168" step="1"></div>
-        <div class="range"><label class="lbl" for="mintierra" data-en="Minimum Earth link">Enlace mínimo con la Tierra</label><output id="mintierra-o" class="num"></output>
+        <div class="range"><label class="lbl" for="mintierra" data-en="Minimum Earth contact (% of the time)">Contacto mínimo con la Tierra (% del tiempo)</label><output id="mintierra-o" class="num"></output>
           <input id="mintierra" type="range" min="0" max="100" step="5"></div>
         <div class="field"><span class="lbl" data-en="Panel and antenna height">Altura del panel y la antena</span><div class="chips" id="alturas" role="group"></div></div>
       </section>
@@ -349,21 +358,13 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
 
 
       <section class="card">
-        <h3><span data-en="KPIs · lunar mission planning">KPIs · planificación de misiones lunares</span><span class="lbl" id="kpis-n"></span></h3>
-        <div id="kpis" class="kpis"></div>
-        <h3 style="font-size:16px"><span data-en="Comparison · same plan in each zone">Comparativo · el mismo plan en cada zona</span></h3>
-        <div class="svgbox"><table class="comp" id="comparativo"></table></div>
-        <p class="nota" id="nlp-lista"></p>
-      </section>
-
-      <section class="card">
-        <h3><span data-en="Checks">Comprobaciones</span><span class="lbl" id="checks-n"></span></h3>
+        <h3><span data-en="Why · the checks">Por qué · las comprobaciones</span><span class="lbl" id="checks-n"></span></h3>
         <ul class="checks" id="checks"></ul>
       </section>
 
       <div class="two" id="dos">
         <section class="card">
-          <h3><span data-en="Landing terrain">Terreno de alunizaje</span><span class="lbl" data-en="LOLA slope · 80 m">pendiente LOLA · 80 m</span></h3>
+          <h3><span data-en="Landing terrain">Terreno de alunizaje</span><span class="lbl" data-en="ground slope · every 80 m">pendiente del terreno · cada 80 m</span></h3>
           <canvas id="terreno" aria-label="Pendientes alrededor del punto de alunizaje"></canvas>
           <div class="legend" id="terreno-ley"></div>
           <div class="kv" id="terreno-kv"></div>
@@ -375,6 +376,7 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
           <div class="svgbox"><svg id="mapa" viewBox="390 250 660 440" width="100%" role="img" aria-label="Mapa de la ruta"></svg></div>
           <div class="tl" id="tl"></div>
           <div class="kv" id="walk-kv"></div>
+          <p class="nota" id="gauges-nota"></p>
           <div class="gauges" id="gauges"></div>
         </section>
       </div>
@@ -382,7 +384,20 @@ table.comp tr[data-actual="true"] { background: var(--tint) }
       <section class="card">
         <h3><span data-en="Sun and Earth">Sol y Tierra</span><span class="lbl" data-en="above the real horizon · stay days">sobre el horizonte real · días de estadía</span></h3>
         <div class="svgbox"><svg id="luz" viewBox="0 0 860 220" width="100%" role="img" aria-label="Sol y Tierra durante la estadía"></svg></div>
+        <div class="legend" id="luz-ley"></div>
         <div class="kv" id="luz-kv"></div>
+      </section>
+
+      <section class="card">
+        <h3><span data-en="The same plan in each zone">El mismo plan en cada zona</span></h3>
+        <div class="svgbox"><table class="comp" id="comparativo"></table></div>
+        <details class="mas-lugares" id="nlp-det"><summary id="nlp-sum"></summary><p class="nota" id="nlp-lista"></p></details>
+      </section>
+
+      <section class="card">
+        <h3><span data-en="Technical indicators (KPI)">Indicadores técnicos (KPI)</span><span class="lbl" id="kpis-n"></span></h3>
+        <div id="kpis" class="kpis"></div>
+        <p class="nota" id="kpis-sin"></p>
       </section>
     </main>
   </div>
@@ -609,6 +624,10 @@ function recomendarEnergia(p, luz) {
 }
 
 /* Comprobaciones: las del Planificador (Sol y Tierra al alunizar, batería, enlace) y las del simulador y del prototipo. */
+/* La estadía en palabras para el resumen: «3 días», «3,5 días»; por debajo de un día, en horas. */
+const diasTxt = (h) => { if (h < 24) return horas(h); const n = h / 24; return (Number.isInteger(n) ? n : fmt(n, 1)) + ' ' + L(n === 1 ? 'día' : 'días', n === 1 ? 'day' : 'days'); };
+/* Grados sobre o bajo el horizonte, sin números negativos. */
+const sobreBajo = (g) => fmt(Math.abs(g), 1) + '° ' + (g > 0 ? L('sobre el horizonte', 'above the horizon') : L('bajo el horizonte', 'below the horizon'));
 function evaluar(p) {
   ALT.v = p.altura;
   const z = ZONAS[p.zona], tipo = p.tipo;
@@ -618,22 +637,22 @@ function evaluar(p) {
   const fuera = tipo !== 'fija' && p.eva + w.total > p.estadia;
   const C = (ok, es, en, v, d, info) => ({ s: info ? 'info' : ok ? 'go' : 'nogo', es, en, v, d });
   const checks = [
-    C(solL > 0, 'Sol al alunizar', 'Sun at landing', fmt(solL, 1) + '°', solL > 0 ? L('Se ve el Sol sobre el horizonte real.', 'The Sun clears the real horizon.') : L('El Sol está tapado por el horizonte.', 'The Sun is behind the horizon.')),
-    C(tierraL > 0, 'Tierra al alunizar', 'Earth at landing', fmt(tierraL, 1) + '°', tierraL > 0 ? L('Enlace directo durante el descenso.', 'Direct link during the descent.') : L('La Tierra está tapada: descenso sin enlace directo.', 'Earth is hidden: descent without a direct link.'))
+    C(solL > 0, 'Sol al alunizar', 'Sun at landing', sobreBajo(solL), solL > 0 ? L('Se ve el Sol al tocar suelo: hay energía solar desde el primer momento.', 'The Sun is in view at touchdown: solar power from the start.') : L('El Sol no se ve al tocar suelo: está detrás del horizonte.', 'The Sun is not in view at touchdown: it is behind the horizon.')),
+    C(tierraL > 0, 'Tierra al alunizar', 'Earth at landing', sobreBajo(tierraL), tierraL > 0 ? L('Se ve la Tierra: hay contacto directo durante el descenso.', 'Earth is in view: direct contact during the descent.') : L('La Tierra no se ve: el descenso sería sin contacto directo.', 'Earth is not in view: the descent would have no direct contact.'))
   ];
-  if (p.energia === 'solar') checks.push(C(luz.nocheMax <= p.bateriaH, 'Batería', 'Battery', horas(luz.nocheMax) + ' / ' + horas(p.bateriaH), luz.nocheMax <= p.bateriaH ? L('Las baterías cubren la noche más larga.', 'Batteries cover the longest night.') : L('La noche más larga pasa de lo que aguantan las baterías.', 'The longest night outlasts the batteries.')));
-  else if (p.energia === 'baterias') checks.push(C(p.estadia <= BAT_LM, 'Batería', 'Battery', horas(p.estadia) + ' / 75 h', p.estadia <= BAT_LM ? L('La estadía cabe en 75 h.', 'The stay fits in 75 h.') : L('La estadía pasa de 75 h.', 'The stay exceeds 75 h.')));
+  if (p.energia === 'solar') checks.push(C(luz.nocheMax <= p.bateriaH, 'Batería', 'Battery', L('noche de ', 'night of ') + horas(luz.nocheMax) + ' · ' + L('baterías para ', 'batteries for ') + horas(p.bateriaH), luz.nocheMax <= p.bateriaH ? L('Las baterías cubren la noche más larga.', 'Batteries cover the longest night.') : L('La noche más larga pasa de lo que aguantan las baterías.', 'The longest night outlasts the batteries.')));
+  else if (p.energia === 'baterias') checks.push(C(p.estadia <= BAT_LM, 'Batería', 'Battery', L('estadía de ', 'stay of ') + horas(p.estadia) + ' · ' + L('baterías para 75 h', 'batteries for 75 h'), p.estadia <= BAT_LM ? L('La estadía cabe en 75 h.', 'The stay fits in 75 h.') : L('La estadía pasa de 75 h.', 'The stay exceeds 75 h.')));
   else checks.push(C(true, 'Energía', 'Power', 'RTG', L('No depende del Sol.', 'Does not depend on the Sun.')));
-  checks.push(C(luz.tierraFrac * 100 >= p.minTierra, 'Enlace con la Tierra', 'Link with Earth', fmt(luz.tierraFrac * 100) + '% / ' + p.minTierra + '%', L('Corte más largo: ', 'Longest gap: ') + horas(luz.sinTierraMax) + '.'));
+  checks.push(C(luz.tierraFrac * 100 >= p.minTierra, 'Enlace con la Tierra', 'Link with Earth', fmt(luz.tierraFrac * 100) + '% ' + L('del tiempo · mínimo ', 'of the time · minimum ') + p.minTierra + '%', L('Lo máximo sin contacto con la Tierra: ', 'Longest time without contact with Earth: ') + horas(luz.sinTierraMax) + '.'));
   checks.push(C(ter.punto < ALUNIZAJE.vuelco, 'Pendiente en el punto', 'Slope at the spot', fmt(ter.punto, 1) + '°', ter.punto < ALUNIZAJE.inclinado ? L('Por debajo de 6°: la nave queda nivelada.', 'Below 6°: the lander sits level.') : ter.punto < ALUNIZAJE.vuelco ? L('Entre 6° y 12°: queda inclinada.', 'Between 6° and 12°: it sits tilted.') : L('12° o más: vuelca.', '12° or more: it tips over.')));
   if (tipo === 'tripulada') checks.push(
-    C(w.pend <= CAMINAR.pendMax, 'Pendiente de la ruta', 'Route slope', fmt(w.pend, 1) + '°', L('Máxima sobre el relieve LOLA; límite del traje 15°.', 'Maximum on the LOLA relief; suit limit 15°.')),
-    C(w.vuelta <= w.regreso, 'Regreso al módulo', 'Back to the lander', horas(w.vuelta) + ' / ' + horas(w.regreso), w.vuelta <= w.regreso ? L('Das la vuelta antes de gastar la mitad del consumible más escaso.', 'You turn back before using half of the scarcest consumable.') : L('Das la vuelta después del límite de regreso.', 'You turn back after the return limit.')),
-    C(!fuera, 'Caminata en la estadía', 'Walk within the stay', '+' + horas(p.eva + w.total), fuera ? L('Termina después del fin de la estadía.', 'It ends after the stay.') : L('Termina dentro de la estadía.', 'It ends within the stay.')),
+    C(w.pend <= CAMINAR.pendMax, 'Pendiente de la ruta', 'Route slope', fmt(w.pend, 1) + '°', L('La parte más empinada del camino; con el traje se camina hasta 15°.', 'The steepest part of the way; in the suit you can walk up to 15°.')),
+    C(w.vuelta <= w.regreso, 'Regreso al módulo', 'Back to the lander', L('vuelta a las ', 'turn back at ') + horas(w.vuelta) + ' · ' + L('límite ', 'limit ') + horas(w.regreso), w.vuelta <= w.regreso ? L('Das la vuelta con margen: antes de gastar la mitad del consumible que primero se acaba.', 'You turn back with margin: before using half of the consumable that runs out first.') : L('Das la vuelta tarde: después del límite seguro.', 'You turn back late: after the safe limit.')),
+    C(!fuera, 'Caminata en la estadía', 'Walk within the stay', L('termina ', 'ends ') + horas(p.eva + w.total) + L(' tras alunizar', ' after landing'), fuera ? L('Termina después del fin de la estadía (', 'It ends after the stay is over (') + diasTxt(p.estadia) + ').' : L('Termina antes del fin de la estadía (', 'It ends before the stay is over (') + diasTxt(p.estadia) + ').'),
     C(true, 'Sol en la caminata', 'Sun on the walk', fmt(w.solFrac * 100) + '%', L('Sin Sol hacen falta las luces del casco.', 'Without Sun you need the helmet lights.'), true));
   if (tipo === 'rover') checks.push(
-    C(!fuera, 'Recorrido en la estadía', 'Traverse within the stay', '+' + horas(p.eva + w.total), fuera ? L('El rover no termina antes del fin de la estadía.', 'The rover does not finish before the stay ends.') : L('Llega a la última parada dentro de la estadía.', 'It reaches the last stop within the stay.')),
-    C(true, 'Pendiente del recorrido', 'Traverse slope', fmt(w.pend, 1) + '°', L('Máxima sobre el relieve LOLA. Compárala con la de tu rover.', 'Maximum on the LOLA relief. Compare it with your rover.'), true),
+    C(!fuera, 'Recorrido en la estadía', 'Traverse within the stay', L('termina ', 'ends ') + horas(p.eva + w.total) + L(' tras alunizar', ' after landing'), fuera ? L('El rover no termina antes del fin de la estadía.', 'The rover does not finish before the stay ends.') : L('Llega a la última parada dentro de la estadía.', 'It reaches the last stop within the stay.')),
+    C(true, 'Pendiente del recorrido', 'Traverse slope', fmt(w.pend, 1) + '°', L('La parte más empinada del recorrido. Compárala con la que aguanta tu rover.', 'The steepest part of the traverse. Compare it with what your rover can climb.'), true),
     C(true, 'Tierra en el recorrido', 'Earth on the traverse', fmt(w.tierraFrac * 100) + '%', L('Sin enlace no se puede conducir desde la Tierra.', 'Without a link it cannot be driven from Earth.'), true),
     C(true, 'Sol en el recorrido', 'Sun on the traverse', fmt(w.solFrac * 100) + '%', L('Con paneles, el rover carga con Sol.', 'With panels, the rover charges in sunlight.'), true));
   const ok = checks.every((c) => c.s !== 'nogo');
@@ -659,6 +678,7 @@ function primeraFecha(p, desde) {
    Pantalla de resultado
    ==================================================================================================================== */
 let R = null, antes = { ok: null, checks: {}, ruta: '', luz: '', terreno: '' };
+const ORDEN_ST = { nogo: 0, warn: 1, go: 2, info: 3 };
 function pintar() {
   R = evaluar(plan);
   const { z, checks, ok, w, luz, ter } = R, tipo = plan.tipo;
@@ -679,22 +699,24 @@ function pintar() {
   $('verdict').innerHTML =
     '<div class="badge">' + (ok ? 'GO' : 'NO-GO') + '<small>' + (ok ? L('cumple todo', 'meets all') : fallan + ' ' + L(fallan === 1 ? 'no cumple' : 'no cumplen', fallan === 1 ? 'fails' : 'fail')) + '</small></div>' +
     '<div style="min-width:0">' + (plan.nombre ? '<div class="mision-nombre">' + esc(plan.nombre) + '</div>' : '') + '<h2>' + (ok ? L('Listo para volar', 'Ready to fly') : L('Replanifica', 'Replan')) + '</h2>' +
-    '<p>' + z.nombre + ' · ' + fechaTxt(plan.t) + ' · ' + horas(plan.estadia) + ' · ' + L(TIPOS[tipo].es, TIPOS[tipo].en) + ' · ' + L(ENERGIAS[plan.energia].es, ENERGIAS[plan.energia].en) + (tipo === 'fija' ? '' : ' · ' + L(w.ru.es, w.ru.en)) + '</p>' +
-    '<div class="acts"><a class="btn primary" href="' + sim + '">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a><button type="button" class="btn" id="guardar"></button><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
+    '<p>' + z.nombre.replace(/ · RoI \d+/, '') + ' · ' + fechaTxt(plan.t) + ' · ' + diasTxt(plan.estadia) + ' · ' + L(TIPOS[tipo].es, TIPOS[tipo].en) + ' · ' + L(ENERGIAS[plan.energia].es, ENERGIAS[plan.energia].en) + (tipo === 'fija' ? '' : ' · ' + L(w.ru.es, w.ru.en).replace(/ \(CR-02\)/, '')) + '</p>' +
+    (ok ? '' : '<p class="falla">' + L('Qué falla: ', 'What fails: ') + checks.filter((c) => c.s === 'nogo').map((c) => L(c.es, c.en)).join(' · ') + L('. Cambia la fecha, la zona o el equipo a la izquierda.', '. Change the date, the zone or the equipment on the left.') + '</p>') +
+    '<div class="acts"><a class="btn primary" href="' + sim + '">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a>' + (ok ? '' : '<button type="button" class="btn" id="v-mejor">' + L('Primera fecha que cumple ↻', 'First date that passes ↻') + '</button>') + '<button type="button" class="btn" id="guardar"></button><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
   $('copiar').onclick = copiar; $('guardar').onclick = guardar; pintarGuardar();
+  if ($('v-mejor')) $('v-mejor').onclick = () => $('mejor').click();
 
   // comprobaciones
   const cuenta = checks.filter((c) => c.s !== 'info');
   $('checks-n').textContent = cuenta.filter((c) => c.s === 'go').length + '/' + cuenta.length + ' ' + L('cumplen', 'pass');
   const prev = antes.checks; antes.checks = {}; checks.forEach((c) => (antes.checks[c.es] = c.s));
-  $('checks').innerHTML = checks.map((c) => '<li class="check st-' + c.s + (prev[c.es] && prev[c.es] !== c.s ? ' cambio' : '') + '"><i></i><b>' + L(c.es, c.en) + '</b><span class="v">' + c.v + '</span><span>' + c.d + '</span></li>').join('');
+  $('checks').innerHTML = [...checks].sort((a, b) => ORDEN_ST[a.s] - ORDEN_ST[b.s]).map((c) => '<li class="check st-' + c.s + (prev[c.es] && prev[c.es] !== c.s ? ' cambio' : '') + '"><i></i><b>' + L(c.es, c.en) + '</b><span class="v">' + c.v + '</span><span>' + c.d + '</span></li>').join('');
 
   // terreno
   const kT = z.id;
   if (antes.terreno !== kT) { antes.terreno = kT; tween('ter', 900, (k) => dibujarTerreno(easeOut(k))); } else dibujarTerreno(1);
-  $('terreno-ley').innerHTML = [['--paper', '< 6°'], ['--shade', '6–12°'], ['--signal', '≥ 12°']].map(([c, t]) => '<div><i style="background:var(' + c + ');outline:1px solid var(--ink)"></i>' + t + '</div>').join('') + '<div><i style="border:1px dashed var(--ink);background:none"></i>' + L('error de navegación 1σ y 2σ', 'navigation error 1σ and 2σ') + '</div>';
-  $('terreno-kv').innerHTML = [[L('En el punto', 'At the spot'), fmt(ter.punto, 1) + '°'], [L('Máx. a 100 m', 'Max within 100 m'), fmt(ter.max100, 1) + '°'], [L('> 12° a 500 m', '> 12° within 500 m'), fmt(ter.vuelco * 100) + '%']].map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
-  $('terreno-nota').textContent = L('LOLA mide el relieve cada 80 m: no ve rocas ni cráteres pequeños. Para eso hace falta un mosaico LROC NAC (0,5 m). La velocidad de contacto la da el vuelo en el simulador 3D.', 'LOLA measures the relief every 80 m: it does not see rocks or small craters. That needs an LROC NAC mosaic (0.5 m). Touchdown speed comes from flying it in the 3D simulator.');
+  $('terreno-ley').innerHTML = [['--paper', '< 6°'], ['--shade', '6–12°'], ['--signal', '≥ 12°']].map(([c, t]) => '<div><i style="background:var(' + c + ');outline:1px solid var(--ink)"></i>' + t + '</div>').join('') + '<div><i style="border:1px dashed var(--ink);background:none"></i>' + L('dónde puedes caer (68% y 95% de las veces)', 'where you may touch down (68% and 95% of the time)') + '</div>';
+  $('terreno-kv').innerHTML = [[L('En el punto', 'At the spot'), fmt(ter.punto, 1) + '°'], [L('Pendiente máx. a 100 m', 'Max slope within 100 m'), fmt(ter.max100, 1) + '°'], [L('Peligroso (≥ 12°) a 500 m', 'Hazardous (≥ 12°) within 500 m'), fmt(ter.vuelco * 100) + '%']].map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
+  $('terreno-nota').textContent = L('Este mapa mide el relieve cada 80 m: no ve rocas ni cráteres pequeños.', 'This map measures the relief every 80 m: it does not see rocks or small craters.');
 
   // caminata o recorrido
   $('card-caminata').hidden = tipo === 'fija'; $('dos').classList.toggle('solo', tipo === 'fija');
@@ -707,14 +729,15 @@ function pintar() {
     const nom = { ida: rover ? L('marcha', 'driving') : L('ida', 'out'), paradas: L('paradas', 'stops'), vuelta: L('vuelta', 'back') };
     $('tl').innerHTML = w.tramos.filter((s) => s[0] > 0).map((s) => '<div style="flex:' + s[0] + ';background:var(' + cols[s[1]] + ');color:#f4efe6" title="' + nom[s[1]] + ' ' + horas(s[0]) + '">' + (s[0] / w.total > 0.14 ? nom[s[1]] + ' ' + horas(s[0]) : '') + '</div>').join('');
     $('walk-kv').innerHTML = (rover ? [[L('Duración', 'Length'), horas(w.total)], [L('Velocidad', 'Speed'), fmt(plan.roverKmh, 1) + ' km/h'], [L('Paradas', 'Stops'), w.paradas + ' × ' + horas(plan.roverParadaH)]]
-      : [[L('Duración', 'Length'), horas(w.total)], [L('Límite de regreso', 'Return limit'), horas(w.regreso)], [L('Paradas', 'Stops'), w.paradas + ' × 20 min']]).map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
-    $('gauges').hidden = rover;
+      : [[L('Duración', 'Length'), horas(w.total)], [L('Máximo seguro', 'Safe maximum'), horas(w.regreso)], [L('Paradas', 'Stops'), w.paradas + ' × 20 min']]).map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
+    $('gauges').hidden = rover; $('gauges-nota').hidden = rover;
     if (!rover) {
-      const g = [['O₂', w.cons.o2, TRAJE.o2, 'kg', 2], [L('Agua', 'Water'), w.cons.agua, TRAJE.agua, 'kg', 2], ['LiOH (CO₂)', w.cons.lioh, TRAJE.lioh, 'kJ', 0], [L('Batería', 'Battery'), w.cons.bat, TRAJE.bat, 'Wh', 0]];
+      const g = [['O₂', w.cons.o2, TRAJE.o2, 'kg', 2], [L('Agua', 'Water'), w.cons.agua, TRAJE.agua, 'kg', 2], [L('Filtro de CO₂', 'CO₂ filter'), w.cons.lioh, TRAJE.lioh, 'kJ', 0], [L('Batería', 'Battery'), w.cons.bat, TRAJE.bat, 'Wh', 0]];
       if ($('gauges').children.length !== g.length) $('gauges').innerHTML = g.map(() => '<div class="gauge"><span></span><div class="bar"><i style="width:0"></i><u></u></div><span class="num"></span></div>').join('');
       requestAnimationFrame(() => g.forEach(([n, u, c, un, d], i) => { const f = u / c, row = $('gauges').children[i];
         row.className = 'gauge st-' + (f <= 0.5 ? 'go' : 'nogo'); row.children[0].textContent = n; row.children[1].title = fmt(u, d) + ' / ' + fmt(c, d) + ' ' + un;
-        row.children[1].firstChild.style.width = Math.min(100, f * 100) + '%'; row.children[2].textContent = fmt(f * 100) + '%'; }));
+        row.children[1].firstChild.style.width = Math.min(100, f * 100) + '%'; row.children[2].textContent = fmt(f * 100) + '% ' + L('usado', 'used'); }));
+      $('gauges-nota').textContent = L('Cuánto gastas de cada consumible del traje. La raya roja es la mitad: el límite para dar la vuelta.', 'How much of each suit consumable you use. The red line is half: the limit for turning back.');
     }
   }
 
@@ -722,7 +745,7 @@ function pintar() {
 
   // Sol y Tierra
   dibujarLuz();
-  $('luz-kv').innerHTML = [[L('Con Sol', 'Sunlit'), fmt(luz.solFrac * 100) + '%'], [L('Con Tierra', 'Earth in view'), fmt(luz.tierraFrac * 100) + '%'], [L('Noche más larga', 'Longest night'), horas(luz.nocheMax)], [L('Corte de enlace más largo', 'Longest link gap'), horas(luz.sinTierraMax)]].map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
+  $('luz-kv').innerHTML = [[L('Con Sol', 'Sunlit'), fmt(luz.solFrac * 100) + '%'], [L('Con Tierra', 'Earth in view'), fmt(luz.tierraFrac * 100) + '%'], [L('Noche más larga', 'Longest night'), horas(luz.nocheMax)], [L('Tiempo máx. sin Tierra', 'Longest without Earth'), horas(luz.sinTierraMax)]].map((p) => '<div><span class="lbl">' + p[0] + '</span><b>' + p[1] + '</b></div>').join('');
 }
 
 /* Pendientes LOLA alrededor del punto (1,2 × 1,2 km) con el error de navegación del simulador. */
@@ -782,10 +805,10 @@ function dibujarMapa() {
   const ru = RUTAS[plan.ruta];
   ru.paradas.forEach((p, i) => { s.appendChild(el('circle', { cx: p[0], cy: p[1], r: 11, fill: 'var(--paper)', stroke: 'var(--ink)', 'stroke-width': 3 })); s.appendChild(el('text', { x: p[0], y: p[1] + 4, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: 'var(--ink)' }, String(i + 1))); });
   s.appendChild(el('rect', { x: 420, y: 630, width: 20, height: 20, fill: 'var(--ink)' }));
-  s.appendChild(el('text', { x: 448, y: 668, 'font-size': 12, fill: 'var(--ink)' }, plan.tipo === 'rover' ? L('módulo', 'lander') : 'LM'));
+  s.appendChild(el('text', { x: 448, y: 668, 'font-size': 12, fill: 'var(--ink)' }, L('módulo', 'lander')));
   s.appendChild(el('rect', { x: 410, y: 676, width: 500 / M_POR_PX, height: 3, fill: 'var(--ink)' }));
   s.appendChild(el('text', { x: 410, y: 670, 'font-size': 11, fill: 'var(--ink)' }, '500 m'));
-  s.appendChild(el('text', { x: 1040, y: 682, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink)' }, L('rojo: pendiente ≥ 15° (LOLA)', 'red: slope ≥ 15° (LOLA)')));
+  s.appendChild(el('text', { x: 1040, y: 682, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink)' }, L('rojo: muy empinado (≥ 15°)', 'red: too steep (≥ 15°)')));
   const a = el('g', { id: 'astro', transform: 'translate(430 640)' });
   a.appendChild(el('circle', { r: 7, fill: 'var(--signal)', class: 'astro-pulso' }));
   a.appendChild(el('circle', { r: 7, fill: 'var(--ink)', stroke: 'var(--paper)', 'stroke-width': 2.5 }));
@@ -817,7 +840,14 @@ function dibujarMapa() {
   requestAnimationFrame(bucle);
 })();
 
+function leyendaLuz() {
+  const it = (estilo, t) => '<div><i style="' + estilo + '"></i>' + t + '</div>';
+  $('luz-ley').innerHTML = it('height:3px;background:var(--signal)', L('Sol: grados sobre el horizonte', 'Sun: degrees above the horizon')) + it('height:3px;background:var(--earth)', L('Tierra', 'Earth')) +
+    it('background:var(--hatch);opacity:.6', L('noche: el Sol no se ve', 'night: the Sun is not in view')) +
+    (plan.tipo === 'fija' ? '' : it('background:var(--ink);opacity:.25', plan.tipo === 'rover' ? L('recorrido del rover', 'rover traverse') : L('tu caminata (EVA)', 'your walk (EVA)')));
+}
 function dibujarLuz() {
+  leyendaLuz();
   const s = $('luz'); s.textContent = '';
   const { sol, tierra } = R.luz, n = sol.length - 1, x0 = 40, x1 = 850, y0 = 16, y1 = 190;
   const vals = sol.concat(tierra), lo = Math.min(-2, Math.floor(Math.min(...vals))), hi = Math.max(2, Math.ceil(Math.max(...vals)));
@@ -830,7 +860,7 @@ function dibujarLuz() {
     s.appendChild(el('text', { x: x0 - 6, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink-soft)' }, v + '°'));
   }
   const dP = n > 200 ? 2 : 1;
-  for (let d = 0; d * 24 <= n; d += dP) s.appendChild(el('text', { x: X(d * 24), y: 208, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink-soft)' }, 'D' + d));
+  for (let d = 0; d * 24 <= n; d += dP) s.appendChild(el('text', { x: X(d * 24), y: 208, 'text-anchor': X(d * 24) > x1 - 24 ? 'end' : d === 0 ? 'start' : 'middle', 'font-size': 11, fill: 'var(--ink-soft)' }, L('día ', 'day ') + d));
   const linea = (arr) => arr.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
   const nueva = antes.luz !== plan.zona + plan.t + plan.altura; antes.luz = plan.zona + plan.t + plan.altura;
   s.appendChild(el('path', { d: linea(tierra), fill: 'none', stroke: 'var(--earth)', 'stroke-width': 2, pathLength: 1, class: nueva ? 'draw lento' : '' }));
@@ -908,12 +938,12 @@ function pintarKpis() {
     [L('Horizonte disponible', 'Available horizon'), [
       T('NH', L('Mástil necesario', 'Mast needed'), k.nh == null ? '> 30 m' : k.nh + ' m', '≤ ' + META.NH + ' m', k.nh != null && k.nh <= META.NH, L('Altura mínima de panel y antena (2, 5, 10, 15, 20 o 30 m, las del Planificador) con la que tu plan cumple en ' + z.nombre + '.', 'Lowest panel and antenna height (2, 5, 10, 15, 20 or 30 m, the Planner ones) that makes your plan pass at ' + z.nombre + '.'))]],
     [L('Mapeo de ruta', 'Route mapping'), [
-      T('NRC', L('Rutas candidatas', 'Candidate routes'), Object.keys(RUTAS).length + ' (' + rutasOk + ' ≤ 15°)', META.NRC + L(' por misión', ' per mission'), Object.keys(RUTAS).length >= META.NRC, L('Trazados del Planificador; entre paréntesis, los que no pasan de 15° en el relieve LOLA.', 'Planner routes; in brackets, those that stay within 15° on the LOLA relief.')),
+      T('NRC', L('Rutas candidatas', 'Candidate routes'), Object.keys(RUTAS).length + ' · ' + rutasOk + L(' aptas', ' suitable'), META.NRC + L(' por misión', ' per mission'), Object.keys(RUTAS).length >= META.NRC, L('Rutas trazadas y cuántas no pasan de 15° de pendiente (aptas para el traje).', 'Planner routes; in brackets, those that stay within 15° on the LOLA relief.')),
       T('AMR', L('Ruta más larga', 'Longest route'), fmt(largo, 1) + ' km', '≤ ' + fmt(META.AMR) + ' km', largo <= META.AMR, L('Largo de ida de la ruta más larga.', 'One-way length of the longest route.'))]],
     [L('Panel solar + antena', 'Solar panel + antenna'), [
       T('EC', L('Enlace con la Tierra', 'Earth link'), fmt(k.c.tierraPct) + '%', '≥ ' + META.EC + '%', k.c.tierraPct >= META.EC, L('Parte de la estadía con la Tierra sobre el horizonte, vista desde ' + p.altura + ' m.', 'Share of the stay with Earth above the horizon, seen from ' + p.altura + ' m.')),
       T('EW', L('Energía: tiempo con Sol', 'Power: time in Sun'), fmt(k.c.solPct) + '%', '≥ ' + META.EW + '%', k.c.solPct >= META.EW, L('Parte de la estadía con el Sol sobre el horizonte del panel.', 'Share of the stay with the Sun above the panel horizon.')),
-      T('WS', L('Irradiancia en el panel', 'Panel irradiance'), fmt(k.ws) + ' W/m²', '≥ ' + fmt(META.WS) + ' W/m²', k.ws >= META.WS, L('Media con Sol, con la fórmula del motor: 1361 W/m² × disco visible × cos(elevación).', 'Mean while sunlit, engine formula: 1361 W/m² × visible disc × cos(elevation).'))]],
+      T('WS', L('Energía solar en el panel', 'Solar power on the panel'), fmt(k.ws) + ' W/m²', '≥ ' + fmt(META.WS) + ' W/m²', k.ws >= META.WS, L('Media con Sol, con la fórmula del motor: 1361 W/m² × disco visible × cos(elevación).', 'Mean while sunlit, engine formula: 1361 W/m² × visible disc × cos(elevation).'))]],
     [L('Sostenibilidad', 'Sustainability'), [
       T('AS', L('Autonomía sin Sol', 'Autonomy without Sun'), p.energia === 'rtg' ? 'RTG' : p.energia === 'baterias' ? '75 h' : horas(p.bateriaH), null, p.energia === 'rtg' ? true : p.energia === 'baterias' ? p.estadia <= BAT_LM : k.c.nocheMax <= p.bateriaH, L('Lo que aguanta la energía frente a la noche más larga de tu estadía: ', 'How long the power lasts against the longest night of your stay: ') + horas(k.c.nocheMax) + '.'),
       T('CD', 'CD', '—', META.CD, null, L('Sin medición: el plan no tiene este dato todavía.', 'Not measured: the plan does not have this figure yet.')),
@@ -921,17 +951,23 @@ function pintarKpis() {
   ];
   const medidos = grupos.flatMap((g) => g[1]).filter((t) => t.ok != null);
   $('kpis-n').textContent = medidos.filter((t) => t.ok).length + '/' + medidos.length + ' ' + L('en meta', 'on target');
-  $('kpis').innerHTML = grupos.map(([g, ts]) => '<div class="kpi-g"><span class="lbl">' + g + '</span><div class="kpi-fila">' + ts.map((t) =>
-    '<div class="kpi" data-st="' + (t.ok == null ? 'sin' : t.ok ? 'si' : 'no') + '" title="' + esc(t.nota) + '"><div class="kpi-top"><b>' + t.sigla + '</b><i>' + (t.ok == null ? L('sin medición', 'not measured') : t.ok ? L('en meta', 'on target') : L('fuera de meta', 'off target')) + '</i></div><span class="kpi-n">' + t.nombre + '</span><strong>' + t.valor + '</strong><span class="kpi-m">' + (t.meta == null ? L('sin meta en la pizarra', 'no target on the board') : L('meta ', 'target ') + t.meta) + '</span><small>' + t.nota + '</small></div>').join('') + '</div></div>').join('');
+  const tarjetas = grupos.flatMap(([g, ts]) => ts.map((t) => Object.assign({ grupo: g }, t)));
+  $('kpis').innerHTML = '<div class="kpi-fila">' + tarjetas.filter((t) => t.ok != null).map((t) =>
+    '<div class="kpi" data-st="' + (t.ok ? 'si' : 'no') + '" title="' + esc(t.nota) + '"><div class="kpi-top"><span class="kpi-n">' + t.nombre + '</span><i>' + (t.ok ? L('en meta', 'on target') : L('fuera de meta', 'off target')) + '</i></div>' +
+    '<strong>' + t.valor + '</strong><span class="kpi-m">' + (t.meta == null ? L('sin meta definida', 'no target set') : L('meta ', 'target ') + t.meta) + '</span><span class="kpi-s">' + t.sigla + ' · ' + t.grupo + '</span></div>').join('') + '</div>';
+  const sinMedir = tarjetas.filter((t) => t.ok == null).map((t) => t.sigla);
+  $('kpis-sin').textContent = sinMedir.length ? L('Sin medición todavía: ', 'Not measured yet: ') + sinMedir.join(' · ') + L(' (el plan aún no tiene esos datos). Pasa el ratón por una tarjeta para ver qué mide.', ' (the plan has no such data yet). Hover a card to see what it measures.') : '';
   // comparativo de las tres zonas con el mismo plan
   const filas = Object.entries(ZONAS).map(([kz, zz]) => { const q = kpisDe(zz, p); return { kz, zz, q, ok: q.c.ok && q.pend < ALUNIZAJE.vuelco }; });
   ALT.v = p.altura;
   const celda = (txt, ok) => '<td' + (ok === false ? ' class="mal"' : '') + '>' + txt + '</td>';
-  $('comparativo').innerHTML = '<thead><tr><th>' + L('Zona', 'Zone') + '</th><th>' + L('Veredicto', 'Verdict') + '</th><th>EC</th><th>EW</th><th>WS</th><th>NH</th><th>' + L('Noche máx.', 'Max night') + '</th><th>' + L('Pendiente', 'Slope') + '</th></tr></thead><tbody>' +
+  $('comparativo').innerHTML = '<thead><tr><th>' + L('Zona', 'Zone') + '</th><th>' + L('Veredicto', 'Verdict') + '</th><th>' + L('Tierra', 'Earth') + ' <small>EC</small></th><th>' + L('Sol', 'Sun') + ' <small>EW</small></th><th>' + L('Energía solar', 'Solar power') + ' <small>WS</small></th><th>' + L('Mástil', 'Mast') + ' <small>NH</small></th><th>' + L('Noche máx.', 'Max night') + '</th><th>' + L('Pendiente', 'Slope') + '</th><th></th></tr></thead><tbody>' +
     filas.map(({ kz, zz, q, ok }) => '<tr' + (kz === p.zona ? ' data-actual="true"' : '') + '><th><b>' + kz + '</b> ' + zz.nombre + '</th>' + celda(ok ? 'GO' : 'NO-GO', ok) +
-      celda(fmt(q.c.tierraPct) + '%', q.c.tierraPct >= META.EC) + celda(fmt(q.c.solPct) + '%', q.c.solPct >= META.EW) + celda(fmt(q.ws), q.ws >= META.WS) + celda(q.nh == null ? '> 30 m' : q.nh + ' m', q.nh != null && q.nh <= META.NH) +
-      celda(horas(q.c.nocheMax)) + celda(fmt(q.pend, 1) + '°', q.pend < ALUNIZAJE.vuelco) + '</tr>').join('') + '</tbody>';
-  $('nlp-lista').textContent = pasan.length ? L('Cumplen: ', 'Passing: ') + pasan.join(' · ') : L('Ningún lugar del Planificador cumple con estos requisitos en esta fecha.', 'No Planner site passes with these requirements on this date.');
+      celda(fmt(q.c.tierraPct) + '%', q.c.tierraPct >= META.EC) + celda(fmt(q.c.solPct) + '%', q.c.solPct >= META.EW) + celda(fmt(q.ws) + ' W/m²', q.ws >= META.WS) + celda(q.nh == null ? '> 30 m' : q.nh + ' m', q.nh != null && q.nh <= META.NH) +
+      celda(horas(q.c.nocheMax)) + celda(fmt(q.pend, 1) + '°', q.pend < ALUNIZAJE.vuelco) + '<td>' + (kz === p.zona ? '<span class="comp-act">' + L('tu zona', 'your zone') + '</span>' : '<button type="button" class="btn comp-usar" data-usar="' + kz + '">' + L('Usar esta zona', 'Use this zone') + '</button>') + '</td></tr>').join('') + '</tbody>';
+  $('nlp-det').hidden = false;
+  $('nlp-sum').textContent = pasan.length ? L('Ver los ' + pasan.length + ' lugares del Planificador que cumplen con este plan', 'See the ' + pasan.length + ' Planner sites that pass with this plan') : L('Ningún lugar del Planificador cumple con estos requisitos en esta fecha.', 'No Planner site passes with these requirements on this date.');
+  $('nlp-lista').textContent = pasan.join(' · ');
 }
 
 /* ---------- controles de la pantalla de resultado ---------- */
@@ -1179,6 +1215,7 @@ function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('l
 
 /* ---------- idioma y arranque ---------- */
 const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); pintarMisiones(); };
+$('comparativo').addEventListener('click', (e) => { const b = e.target.closest('[data-usar]'); if (!b) return; const z = $('zones').querySelector('[data-k="' + b.dataset.usar + '"]'); if (z) { z.click(); $('verdict').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
 $('mis-btn').addEventListener('click', () => abrirLista($('mis-lista').hidden));
 $('mis-btn').addEventListener('keydown', (e) => {
   const l = $('mis-lista'), ops = [...l.querySelectorAll('.mis-op')], i = ops.findIndex((o) => o.classList.contains('foco'));
