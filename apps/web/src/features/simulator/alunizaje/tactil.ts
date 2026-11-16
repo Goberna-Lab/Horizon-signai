@@ -60,7 +60,7 @@ export class Tactil {
     this.palanca.hidden = !(camina || rueda); this.saltar.hidden = !baja;
     const B = (k, txt) => `<button type="button" data-k="${k}">${txt}</button>`;
     this.botones.innerHTML = camina ? B('KeyE', tr('Collect', 'Recoger')) + B('Space', tr('Jump', 'Saltar')) + B('KeyL', tr('Lights', 'Luces')) + B('KeyG', tr('Visor', 'Visor')) + B('KeyR', tr('Recharge', 'Recargar')) + B('KeyT', tr('Time', 'Tiempo')) + B('KeyP', tr('Panel', 'Panel')) + B('KeyQ', tr('Fly again', 'Volar')) + B('KeyH', 'EVA')
-      : rueda ? B('KeyE', tr('Measure', 'Medir')) + B('KeyL', tr('Lights', 'Luces')) + B('KeyT', tr('Time', 'Tiempo')) + B('KeyI', tr('Report', 'Informe')) + B('KeyQ', tr('Fly again', 'Volar')) + B('KeyH', 'EVA') : '';
+      : rueda ? B('KeyE', tr('Measure', 'Medir')) + B('KeyL', tr('Lights', 'Luces')) + B('KeyC', tr('Camera', 'Cámara')) + B('KeyT', tr('Time', 'Tiempo')) + B('KeyI', tr('Report', 'Informe')) + B('KeyQ', tr('Fly again', 'Volar')) + B('KeyH', 'EVA') : '';
   }
 
   dispose() {

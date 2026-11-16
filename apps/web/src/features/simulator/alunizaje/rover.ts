@@ -4,7 +4,13 @@
 // (`?vel=` y `?parada=`, las pone quien planifica; referencia: VIPER de NASA, hasta 0,8 km/h). Lo que es del lugar y la
 // fecha: la luz, las sombras y si la Tierra está sobre el horizonte (motor del Planificador). Un rover lunar se conduce
 // desde la Tierra: sin enlace directo, se detiene. El tiempo se puede acelerar (T), porque a 0,8 km/h un kilómetro son 75 min.
-// El modelo es un rover genérico (cuerpo, cuatro ruedas, mástil con cámaras, antena y panel), no la réplica de uno real.
+//
+// Modelo: rover de ejemplo inspirado en VIPER (NASA), con sus medidas públicas: 1,5 × 1,5 × 2,5 m, paneles solares en
+// tres lados (los dos costados y atrás: el Sol del polo va rasante), mástil con las cámaras de navegación en un cardán a
+// 2,0 m y la antena de alta ganancia a 2,3 m, luces en el mástil y en el cuerpo, cuatro ruedas. No es la réplica de VIPER.
+// Se maneja desde la cámara de navegación del mástil (NAVCAM), como lo haría el equipo en la Tierra; C cambia a la de
+// seguimiento. Para que la misión se entienda sola: un briefing al empezar, el objetivo marcado en la imagen (o una flecha
+// en el borde si está fuera de cuadro), un minimapa con la ruta y un aviso grande cuando se puede medir.
 import * as THREE from 'three';
 import { avisarEva } from '@/shared/eva';
 import { tr } from '@/shared/i18n';
@@ -13,46 +19,83 @@ import { datosRover, mostrarInforme } from './informe';
 
 const ESCALAS = [1, 10, 60, 240];
 const PENDIENTE_AVISO = 15, PENDIENTE_TOPE = 25; // 15°: límite del Planificador; más de 25°, las ruedas patinan y no sube
+const NAVCAM_M = 2.0; // altura del cardán de las cámaras de navegación de VIPER (NASA)
 const fmt = (n, d = 0) => Number(n).toLocaleString(tr('en-US', 'es-ES'), { minimumFractionDigits: d, maximumFractionDigits: d });
 const hm = (s) => { s = Math.max(0, s); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return h ? `${h} h ${String(m).padStart(2, '0')} min` : `${m} min`; };
 const enCampo = (e) => !!e.target?.closest?.('input,select,textarea,button,[contenteditable="true"]');
+const PUNTOS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
 
+/** Rover de ejemplo inspirado en VIPER: +z es el frente, el origen está en el suelo bajo el centro. */
 function modeloRover() {
   const g = new THREE.Group();
-  const blanco = new THREE.MeshStandardMaterial({ color: 0xd9d6cf, metalness: 0.3, roughness: 0.6 });
-  const oro = new THREE.MeshStandardMaterial({ color: 0xc9a23a, metalness: 0.9, roughness: 0.35 });
-  const negro = new THREE.MeshStandardMaterial({ color: 0x1b1b1d, metalness: 0.4, roughness: 0.6 });
-  const panel = new THREE.MeshStandardMaterial({ color: 0x14244a, metalness: 0.6, roughness: 0.3 });
-  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.55, 2.0), blanco); cuerpo.position.y = 0.85; g.add(cuerpo);
-  const manta = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.12, 2.02), oro); manta.position.y = 0.6; g.add(manta);
-  const pan = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.04, 1.6), panel); pan.position.set(0, 1.16, -0.1); g.add(pan);
-  const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 8), blanco); mastil.position.set(0, 1.7, 0.75); g.add(mastil);
-  const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.2, 0.2), negro); cabeza.position.set(0, 2.28, 0.78); g.add(cabeza);
-  const antena = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.05, 0.12, 16), blanco); antena.position.set(-0.5, 1.4, 0.6); antena.rotation.x = -0.5; g.add(antena);
+  const M = (o) => new THREE.MeshStandardMaterial(o);
+  const gris = M({ color: 0xb9bcc1, metalness: 0.55, roughness: 0.45 }), blanco = M({ color: 0xe6e4df, metalness: 0.2, roughness: 0.55 });
+  const azul = M({ color: 0x2c55a8, metalness: 0.3, roughness: 0.5 }), negro = M({ color: 0x1a1b1e, metalness: 0.4, roughness: 0.7 });
+  const celdas = M({ color: 0x0f1d40, metalness: 0.75, roughness: 0.22 }), oro = M({ color: 0xc9a23a, metalness: 0.9, roughness: 0.35 });
+  const caja = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
+  // Chasis: caja central gris con faldones azules, plataforma superior blanca (radiador)
+  caja(1.2, 0.55, 1.3, gris, 0, 0.78, 0);
+  caja(1.24, 0.18, 1.34, azul, 0, 0.56, 0);
+  caja(1.1, 0.06, 1.2, blanco, 0, 1.08, 0);
+  caja(0.5, 0.12, 0.4, oro, 0, 1.16, -0.35); // manta térmica de la electrónica
+  // Paneles solares verticales en los dos costados y atrás
+  for (const s of [-1, 1]) { caja(0.04, 0.85, 1.25, celdas, s * 0.66, 0.95, 0); caja(0.05, 0.9, 1.3, gris, s * 0.645, 0.95, 0).scale.set(0.4, 1, 1); }
+  caja(1.25, 0.85, 0.04, celdas, 0, 0.95, -0.7);
+  // Mástil con el cardán de las cámaras de navegación (2,0 m) y luces; antena de alta ganancia (2,3 m)
+  const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.0, 10), blanco); mastil.position.set(0, 1.55, 0.45); g.add(mastil);
+  const cabeza = caja(0.42, 0.16, 0.16, negro, 0, NAVCAM_M, 0.47);
+  for (const s of [-1, 1]) { const ojo = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.05, 12), M({ color: 0x0a0a0c, metalness: 0.9, roughness: 0.1 })); ojo.rotation.x = Math.PI / 2; ojo.position.set(s * 0.12, NAVCAM_M, 0.56); g.add(ojo); }
+  caja(0.36, 0.06, 0.08, M({ color: 0xfff6e0, emissive: 0xfff1cf, emissiveIntensity: 0.6 }), 0, NAVCAM_M - 0.12, 0.52); // barra de luces del mástil
+  const brazo = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.2, 8), blanco); brazo.position.set(-0.35, 1.7, -0.45); g.add(brazo);
+  const plato = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 8, 0, Math.PI * 2, 0, 0.9), blanco); plato.position.set(-0.35, 2.3, -0.45); plato.rotation.x = -Math.PI / 3; g.add(plato);
+  // Taladro (1 m) en el costado delantero
+  const taladro = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), gris); taladro.position.set(0.45, 0.85, 0.7); g.add(taladro);
+  // Ruedas con suspensión
   const ruedas = [];
-  for (const [x, z] of [[-0.8, 0.75], [0.8, 0.75], [-0.8, -0.75], [0.8, -0.75]]) {
-    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 18), negro); r.rotation.z = Math.PI / 2; r.position.set(x, 0.32, z); g.add(r); ruedas.push(r);
+  for (const [x, z] of [[-0.68, 0.55], [0.68, 0.55], [-0.68, -0.55], [0.68, -0.55]]) {
+    const r = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.2, 20), negro); r.rotation.z = Math.PI / 2; r.position.set(x, 0.25, z); g.add(r); ruedas.push(r);
+    const pata = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.06), gris); pata.position.set(x * 0.9, 0.45, z); g.add(pata);
   }
-  const luz = new THREE.SpotLight(0xfff1d6, 0, 40, 0.5, 0.5, 1.2); luz.position.set(0, 1.0, 1.05); luz.target.position.set(0, 0, 8); g.add(luz, luz.target);
+  // Luces: las del mástil siguen la mirada de la cámara; las del cuerpo iluminan delante de las ruedas
+  const luz = new THREE.SpotLight(0xfff1d6, 0, 60, 0.45, 0.5, 1.2); luz.position.set(0, NAVCAM_M - 0.12, 0.55); luz.target.position.set(0, 0, 12); g.add(luz, luz.target);
+  const luzCuerpo = new THREE.SpotLight(0xfff1d6, 0, 20, 0.8, 0.6, 1.4); luzCuerpo.position.set(0, 0.7, 0.7); luzCuerpo.target.position.set(0, 0, 5); g.add(luzCuerpo, luzCuerpo.target);
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { g, ruedas, luz };
+  return { g, ruedas, luz, luzCuerpo };
 }
 
 export class Rover {
   constructor(view, { onSalir, sonido } = {}) {
     this.view = view; this.onSalir = onSalir; this.sonido = sonido;
     this.active = false; this.pos = new THREE.Vector3(); this.heading = 0; this.vel = 0; this.lamps = true; this.walked = 0;
-    this.keys = new Set(); this.escala = 0;
-    const m = modeloRover(); this.obj = m.g; this.ruedas = m.ruedas; this.luz = m.luz; this.obj.visible = false; view.scene.add(this.obj);
+    this.keys = new Set(); this.escala = 0; this.vista = 'navcam'; this.briefing = false;
+    const m = modeloRover(); Object.assign(this, { obj: m.g, ruedas: m.ruedas, luz: m.luz, luzCuerpo: m.luzCuerpo }); this.obj.visible = false; view.scene.add(this.obj);
     this.sinRegreso = true; this.alcance = 4; this.tasks = new Tareas(this);
-    this.hud = document.createElement('div'); this.hud.className = 'sim-rover-hud'; this.hud.hidden = true; view.host.append(this.hud);
+    // Pantalla del operador: telemetría, imagen de la NAVCAM (marcos, brújula, objetivo), minimapa, avisos y briefing
+    const r = (this.ui = document.createElement('div')); r.className = 'sim-rv'; r.hidden = true;
+    r.innerHTML = `
+      <div class="sim-rv-cam"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><span class="cruz"></span></div>
+      <div class="sim-rv-top"><span class="rec">●</span> <b data-r="cam"></b><span data-r="hora"></span></div>
+      <div class="sim-rv-brujula"><div data-r="cinta"></div><i></i></div>
+      <div class="sim-rv-obj" data-r="obj"><i></i><b></b><span></span></div>
+      <div class="sim-rv-flecha" data-r="flecha"><i>➤</i><span></span></div>
+      <div class="sim-rv-tele" data-r="tele"></div>
+      <canvas class="sim-rv-mapa" width="220" height="220" data-r="mapa"></canvas>
+      <div class="sim-rv-tarea" data-r="tarea"></div>
+      <div class="sim-rv-medir" data-r="medir" hidden></div>
+      <div class="sim-rv-aviso" data-r="aviso" hidden></div>
+      <div class="sim-rv-brief" data-r="brief" hidden></div>`;
+    view.host.append(r);
+    this.$ = (k) => r.querySelector(`[data-r="${k}"]`);
+    r.addEventListener('click', (e) => { if (e.target.closest?.('[data-act=empezar]')) this._cerrarBriefing(); });
     this._kd = (e) => {
       if (!this.active || enCampo(e)) return;
-      this.keys.add(e.code); if (/^(Arrow|Key[WASD]$)/.test(e.code)) e.preventDefault();
+      if (this.briefing) { if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyW') { e.preventDefault(); this._cerrarBriefing(); } return; }
+      this.keys.add(e.code); if (/^(Arrow|Key[WASD]$|Space)/.test(e.code)) e.preventDefault();
       if (e.repeat) return;
-      if (e.code === 'KeyT') { this.escala = (this.escala + 1) % ESCALAS.length; }
-      if (e.code === 'KeyE') this.tasks.interact();
+      if (e.code === 'KeyT') this.escala = (this.escala + 1) % ESCALAS.length;
+      if (e.code === 'KeyE') this._medir();
       if (e.code === 'KeyL') this.lamps = !this.lamps;
+      if (e.code === 'KeyC') this.vista = this.vista === 'navcam' ? 'seguimiento' : 'navcam';
       if (e.code === 'KeyQ') this.onSalir?.();
       if (e.code === 'KeyI' && this.tasks.started) this._informe();
     };
@@ -64,25 +107,55 @@ export class Rover {
   start(lmPos, heading, { lm = null } = {}) {
     const v = this.view, p = v.plan ?? {};
     this.vmax = Math.max(0.05, (p.roverKmh ?? 0.8) / 3.6); this.paradaH = p.paradaH ?? 2;
-    this.lmPos = lmPos.clone(); this.heading = heading;
-    this.pos.set(lmPos.x + Math.sin(heading) * 18, 0, lmPos.z + Math.cos(heading) * 18); // bajó por la rampa y se apartó del módulo this.pos.y = v.groundY(this.pos.x, this.pos.z);
-    this.active = true; this.vel = 0; this.walked = 0; this.escala = 1; this.notice = null; this._informeVisto = false; this._lejos = false;
-    this.s = { t: 0 }; this.stats = { salidasRuta: 0, sinEnlaceS: 0, pendienteMax: 0 };
-    this.obj.visible = true; this.hud.hidden = false;
+    this.lmPos = lmPos.clone();
+    this.pos.set(lmPos.x + Math.sin(heading) * 12, 0, lmPos.z + Math.cos(heading) * 12); // bajó por la rampa y se apartó del módulo
+    this.pos.y = v.groundY(this.pos.x, this.pos.z);
+    this.active = true; this.vel = 0; this.walked = 0; this.escala = 2; this.notice = null; this._informeVisto = false; this._lejos = false;
+    this.s = { t: 0 }; this.stats = { salidasRuta: 0, sinEnlaceS: 0, pendienteMax: 0 }; this.vista = 'navcam'; this._camPos = null;
+    this.obj.visible = true; this.ui.hidden = false;
     this.tasks.reset(); this.tasks.start(lm);
-    this.notice = tr(`Rover deployed. Plan: up to ${fmt(p.roverKmh ?? 0.8, 1)} km/h and ${fmt(this.paradaH, 1)} h per stop. W/S drive, A/D steer, T speeds up time.`, `Rover desplegado. Plan: hasta ${fmt(p.roverKmh ?? 0.8, 1)} km/h y ${fmt(this.paradaH, 1)} h por parada. W/S avanza, A/D gira, T acelera el tiempo.`);
-    avisarEva('tarea-hecha');
-    this._camPos = null;
+    // Arranca mirando hacia la primera parada
+    const t0 = this.tasks.target; this.heading = t0 ? Math.atan2(t0.x - this.pos.x, t0.z - this.pos.z) : heading;
+    this._briefing();
   }
 
-  stop() { this.active = false; this.obj.visible = false; this.hud.hidden = true; this.keys.clear(); this.luz.intensity = 0; }
+  stop() { this.active = false; this.obj.visible = false; this.ui.hidden = true; this.keys.clear(); this.luz.intensity = 0; this.luzCuerpo.intensity = 0; this.briefing = false; }
+
+  _briefing() {
+    const p = this.view.plan ?? {}, t = this.tasks, n = t.samples.length;
+    this.briefing = true;
+    const b = this.$('brief'); b.hidden = false;
+    b.innerHTML = `<small>${tr('ROVER MISSION · BRIEFING', 'MISIÓN DEL ROVER · BRIEFING')}</small>
+      <b>${tr('Drive to each stop and measure', 'Lleva el rover a cada parada y mide')}</b>
+      <ol>
+        ${t.samples.map((m, i) => `<li>${tr(`Stop ${i + 1}`, `Parada ${i + 1}`)}: ${m.name === 'sombra' ? tr('in shadow, turn on the lights (L)', 'en sombra, enciende las luces (L)') : tr('in sunlight', 'al Sol')} · ${tr('press E when the screen says so', 'pulsa E cuando la pantalla lo diga')}</li>`).join('')}
+        ${n ? '' : `<li>${tr('Reach the end of the route', 'Llega al final de la ruta')}</li>`}
+        <li>${tr('The report appears at the end', 'Al terminar aparece el informe')}</li>
+      </ol>
+      <div class="teclas"><span><b>W</b> ${tr('forward', 'avanzar')}</span><span><b>S</b> ${tr('back', 'atrás')}</span><span><b>A D</b> ${tr('steer', 'girar')}</span><span><b>E</b> ${tr('measure', 'medir')}</span><span><b>L</b> ${tr('lights', 'luces')}</span><span><b>C</b> ${tr('camera', 'cámara')}</span><span><b>T</b> ${tr('time', 'tiempo')}</span><span><b>H</b> EVA</span></div>
+      <p>${tr(`You drive from the mast navigation camera, as the team on Earth would. Plan: up to ${fmt(p.roverKmh ?? 0.8, 1)} km/h and ${fmt(this.paradaH, 1)} h per stop. Time runs ×60 (T changes it). Without an Earth link the rover stops.`, `Conduces desde la cámara de navegación del mástil, como lo haría el equipo en la Tierra. Plan: hasta ${fmt(p.roverKmh ?? 0.8, 1)} km/h y ${fmt(this.paradaH, 1)} h por parada. El tiempo corre ×60 (T lo cambia). Sin enlace con la Tierra el rover se para.`)}</p>
+      <button type="button" data-act="empezar">${tr('Start driving (Enter)', 'Empezar a conducir (Enter)')}</button>`;
+  }
+
+  _cerrarBriefing() { this.briefing = false; this.$('brief').hidden = true; avisarEva('tarea-hecha', tr('Rover ready. Follow the marker to the first stop.', 'Rover listo. Sigue la marca hasta la primera parada.'), '.sim-rv-obj'); }
+
+  /** E: medir si hay una parada al alcance; si no, decir dónde está. */
+  _medir() {
+    const antes = this.tasks.samples.filter((m) => m.taken).length;
+    this.tasks.interact();
+    const despues = this.tasks.samples.filter((m) => m.taken).length;
+    if (despues > antes) this._avisar(tr(`Measurement ${despues} done · ${fmt(this.paradaH, 1)} h at the stop`, `Medición ${despues} hecha · ${fmt(this.paradaH, 1)} h en la parada`), 'ok'), this.s.t += this.paradaH * 3600;
+    else this._avisar(this.notice ?? tr('Nothing to measure here: follow the marker', 'Aquí no hay nada que medir: sigue la marca'));
+  }
+
+  _avisar(txt, cls = '') { const a = this.$('aviso'); a.textContent = txt; a.className = 'sim-rv-aviso ' + cls; a.hidden = false; clearTimeout(this._avT); this._avT = setTimeout(() => (a.hidden = true), 3500); }
 
   /** Pendiente (°) del terreno en (x, z), con diferencias a ±1,5 m. */
   _pend(x, z) { const g = this.view.groundY, e = 1.5; return (Math.atan(Math.hypot(g(x + e, z) - g(x - e, z), g(x, z + e) - g(x, z - e)) / (2 * e)) * 180) / Math.PI; }
 
   update(dtReal) {
     if (!this.active) return;
-    const v = this.view, k = this.keys, esc = ESCALAS[this.escala], dt = Math.min(0.05, dtReal) * esc;
+    const v = this.view, k = this.keys, esc = this.briefing ? 0 : ESCALAS[this.escala], dt = Math.min(0.05, dtReal) * esc;
     this.s.t += dt;
     const enlace = !!v.now?.earth.visible;
     // Mando: acelerar hacia la velocidad del plan; sin enlace con la Tierra no hay órdenes y el rover se para
@@ -90,7 +163,7 @@ export class Rover {
     this.vel += Math.max(-0.3 * dt, Math.min(0.3 * dt, quiere - this.vel));
     if (!enlace) { this.stats.sinEnlaceS += dt; this.vel = 0; }
     const giro = (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0) - (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0);
-    if (enlace) this.heading += giro * 0.35 * Math.min(0.05, dtReal) * Math.min(esc, 10);
+    if (enlace && !this.briefing) this.heading += giro * 0.6 * Math.min(0.05, dtReal);
     const fx = Math.sin(this.heading), fz = Math.cos(this.heading);
     const nx = this.pos.x + fx * this.vel * dt, nz = this.pos.z + fz * this.vel * dt;
     const pend = this._pend(nx, nz), sube = v.groundY(nx, nz) > this.pos.y;
@@ -101,49 +174,100 @@ export class Rover {
       this.stats.pendienteMax = Math.max(this.stats.pendienteMax, pend);
     }
     // Apoyo sobre el terreno: el chasis sigue la normal del suelo
-    const g = v.groundY, e = 1.0, n = new THREE.Vector3(g(this.pos.x - e, this.pos.z) - g(this.pos.x + e, this.pos.z), 2 * e, g(this.pos.x, this.pos.z - e) - g(this.pos.x, this.pos.z + e)).normalize();
+    const g = v.groundY, e = 0.8, n = new THREE.Vector3(g(this.pos.x - e, this.pos.z) - g(this.pos.x + e, this.pos.z), 2 * e, g(this.pos.x, this.pos.z - e) - g(this.pos.x, this.pos.z + e)).normalize();
     const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.heading);
     this.obj.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n).multiply(q));
     this.obj.position.copy(this.pos);
-    for (const r of this.ruedas) r.rotation.x += (this.vel * dt) / 0.32;
-    this.luz.intensity = this.lamps ? 6 : 0;
+    for (const r of this.ruedas) r.rotation.x += (this.vel * dt) / 0.25;
+    this.luz.intensity = this.lamps ? 7 : 0; this.luzCuerpo.intensity = this.lamps ? 4 : 0;
     // Ruta y paradas (tareas.ts, sin el regreso)
     const lejos = this.tasks.lejosDeRuta; if (lejos && !this._lejos) this.stats.salidasRuta++; this._lejos = lejos;
     if (v.tSalida != null) v.cieloAl?.(v.tSalida + this.s.t * 1000); // el Sol y la Tierra avanzan con el reloj del recorrido
     this.tasks.update();
     if (this.tasks.done && !this._informeVisto) { this._informeVisto = true; setTimeout(() => this.active && this._informe(), 2000); }
     this._camara(Math.min(0.05, dtReal));
-    this._hud(enlace, pend);
+    this._pantalla(enlace, pend);
   }
 
   _informe() { mostrarInforme(this.view, datosRover(this.view, this), { volar: () => this.onSalir?.(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } }); }
 
-  /** Cámara de persecución: detrás y por encima del rover, suave. */
+  /** NAVCAM: la cámara del mástil, a 2,0 m, mirando adelante y un poco abajo (sigue al chasis). Seguimiento: detrás y arriba. */
   _camara(dt) {
-    const v = this.view, c = v.camera, fx = Math.sin(this.heading), fz = Math.cos(this.heading);
-    const want = new THREE.Vector3(this.pos.x - fx * 7 + fz * 3, 0, this.pos.z - fz * 7 - fx * 3);
-    want.y = Math.max(this.pos.y + 3.5, v.groundY(want.x, want.z) + 2);
-    if (!this._camPos) this._camPos = want.clone(); else this._camPos.lerp(want, Math.min(1, dt * 3));
-    c.position.copy(this._camPos); c.lookAt(this.pos.x + fx * 3, this.pos.y + 0.8, this.pos.z + fz * 3);
-    if (c.fov !== 55) { c.fov = 55; c.updateProjectionMatrix(); }
+    const v = this.view, c = v.camera;
+    if (this.vista === 'navcam') {
+      this.obj.updateMatrixWorld();
+      c.position.copy(this.obj.localToWorld(new THREE.Vector3(0, NAVCAM_M, 0.62)));
+      c.lookAt(this.obj.localToWorld(new THREE.Vector3(0, NAVCAM_M - 1.4, 10)));
+      if (c.fov !== 62) { c.fov = 62; c.near = 0.05; c.updateProjectionMatrix(); }
+      this._camPos = null;
+    } else {
+      const fx = Math.sin(this.heading), fz = Math.cos(this.heading);
+      const want = new THREE.Vector3(this.pos.x - fx * 7 + fz * 3, 0, this.pos.z - fz * 7 - fx * 3);
+      want.y = Math.max(this.pos.y + 3.5, v.groundY(want.x, want.z) + 2);
+      if (!this._camPos) this._camPos = want.clone(); else this._camPos.lerp(want, Math.min(1, dt * 3));
+      c.position.copy(this._camPos); c.lookAt(this.pos.x + fx * 3, this.pos.y + 0.8, this.pos.z + fz * 3);
+      if (c.fov !== 55) { c.fov = 55; c.updateProjectionMatrix(); }
+    }
   }
 
-  _hud(enlace, pend) {
-    const v = this.view, now = v.now, tarea = this.tasks.text() ?? '';
-    const sol = now ? (now.sun.frac > 0.5 && this.tasks.lit(this.pos.x, this.pos.z)) : false;
-    this.hud.innerHTML = `
-      <div class="fila"><span>${tr('SPEED', 'VELOCIDAD')}</span><b>${fmt(Math.abs(this.vel) * 3.6, 2)} km/h</b><span>/ ${fmt(this.vmax * 3.6, 1)}</span></div>
-      <div class="fila"><span>${tr('TIME', 'TIEMPO')}</span><b>${hm(this.s.t)}</b><span>×${ESCALAS[this.escala]}</span></div>
-      <div class="fila"><span>${tr('DRIVEN', 'RECORRIDO')}</span><b>${fmt(this.walked)} m</b></div>
-      <div class="fila ${enlace ? '' : 'mal'}"><span>${tr('EARTH', 'TIERRA')}</span><b>${enlace ? tr('LINK', 'ENLACE') : tr('NO LINK · STOPPED', 'SIN ENLACE · PARADO')}</b></div>
-      <div class="fila ${sol ? '' : 'mal'}"><span>${tr('SUN', 'SOL')}</span><b>${sol ? tr('ON PANEL', 'EN EL PANEL') : tr('SHADOW', 'SOMBRA')}</b></div>
-      <div class="fila ${pend > PENDIENTE_AVISO ? 'mal' : ''}"><span>${tr('SLOPE', 'PENDIENTE')}</span><b>${fmt(pend, 1)}°</b></div>
-      <p class="tarea">${tarea}</p>${this.notice ? `<p class="aviso">${this.notice}</p>` : ''}
-      <p class="teclas">W/S · A/D · E ${tr('measure', 'medir')} · L ${tr('lights', 'luces')} · T ${tr('time', 'tiempo')} · I ${tr('report', 'informe')} · Q ${tr('fly again', 'volver a volar')} · H EVA</p>`;
+  _pantalla(enlace, pend) {
+    const v = this.view, now = v.now, t = this.tasks, ui = this.ui;
+    ui.classList.toggle('navcam', this.vista === 'navcam');
+    const sol = now ? (now.sun.frac > 0.5 && t.lit(this.pos.x, this.pos.z)) : false;
+    this.$('cam').textContent = this.vista === 'navcam' ? tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m') : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
+    this.$('hora').textContent = v.time ? ' ' + new Date(v.time).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
+    // Brújula: rumbo del rover (0° = norte, sentido horario; x este, z sur)
+    const rumbo = ((Math.atan2(Math.sin(this.heading), -Math.cos(this.heading)) * 180) / Math.PI + 360) % 360;
+    this.$('cinta').innerHTML = Array.from({ length: 25 }, (_, i) => { const a = Math.round(rumbo / 15) * 15 + (i - 12) * 15, n = ((a % 360) + 360) % 360, dx = (a - rumbo) * 6; return `<span style="left:calc(50% + ${dx}px)">${n % 45 === 0 ? PUNTOS[n / 45] : n % 30 === 0 ? n : '·'}</span>`; }).join('');
+    // Objetivo en la imagen (o flecha al borde)
+    const obj = this.$('obj'), fl = this.$('flecha'), tg = t.target;
+    if (tg && !t.done) {
+      const p = new THREE.Vector3(tg.x, (tg.y ?? v.groundY(tg.x, tg.z)) + 1, tg.z), d = Math.hypot(tg.x - this.pos.x, tg.z - this.pos.z);
+      const s = p.clone().project(v.camera), W = ui.clientWidth, H = ui.clientHeight, dentro = s.z < 1 && Math.abs(s.x) < 0.92 && Math.abs(s.y) < 0.9;
+      const nombre = t.step?.kind === 'sampleSombra' ? tr('SHADOW STOP', 'PARADA EN SOMBRA') : t.step?.kind === 'sampleSol' ? tr('LIT STOP', 'PARADA AL SOL') : tr('END OF ROUTE', 'FIN DE RUTA');
+      if (dentro) { obj.hidden = false; fl.hidden = true; obj.style.left = ((s.x + 1) / 2) * W + 'px'; obj.style.top = ((1 - s.y) / 2) * H + 'px'; obj.querySelector('b').textContent = nombre; obj.querySelector('span').textContent = fmt(d) + ' m'; }
+      else {
+        obj.hidden = true; fl.hidden = false;
+        const rel = Math.atan2(tg.x - this.pos.x, tg.z - this.pos.z) - this.heading, a = Math.atan2(Math.sin(rel), Math.cos(rel)); // + izquierda
+        const izq = a > 0, atras = Math.abs(a) > 2.2;
+        fl.className = 'sim-rv-flecha ' + (atras ? 'atras' : izq ? 'izq' : 'der');
+        fl.querySelector('span').textContent = `${nombre} · ${fmt(d)} m · ${atras ? tr('behind you', 'detrás') : izq ? tr('turn left (A)', 'gira a la izquierda (A)') : tr('turn right (D)', 'gira a la derecha (D)')}`;
+      }
+      // Aviso de medir
+      const cerca = t.samples.find((m, i) => !m.taken && t._near(i));
+      const me = this.$('medir'); me.hidden = !cerca;
+      if (cerca) me.innerHTML = cerca.name === 'sombra' && t.darkReal && !this.lamps ? tr('Too dark: turn on the lights <b>L</b>', 'Está oscuro: enciende las luces <b>L</b>') : tr('Press <b>E</b> to measure', 'Pulsa <b>E</b> para medir');
+    } else { obj.hidden = true; fl.hidden = true; this.$('medir').hidden = true; }
+    // Telemetría
+    this.$('tele').innerHTML = `
+      <div><span>${tr('SPEED', 'VELOCIDAD')}</span><b>${fmt(Math.abs(this.vel) * 3.6, 2)}</b><i>/ ${fmt(this.vmax * 3.6, 1)} km/h</i></div>
+      <div><span>${tr('TIME', 'TIEMPO')}</span><b>${hm(this.s.t)}</b><i>×${ESCALAS[this.escala]}</i></div>
+      <div><span>${tr('DRIVEN', 'RECORRIDO')}</span><b>${fmt(this.walked)} m</b></div>
+      <div class="${enlace ? 'ok' : 'mal'}"><span>${tr('EARTH', 'TIERRA')}</span><b>${enlace ? tr('LINK', 'ENLACE') : tr('NO LINK · STOPPED', 'SIN ENLACE · PARADO')}</b></div>
+      <div class="${sol ? 'ok' : 'mal'}"><span>${tr('SUN', 'SOL')}</span><b>${sol ? tr('ON PANELS', 'EN LOS PANELES') : tr('SHADOW', 'SOMBRA')}</b></div>
+      <div class="${pend > PENDIENTE_AVISO ? 'mal' : ''}"><span>${tr('SLOPE', 'PENDIENTE')}</span><b>${fmt(pend, 1)}°</b></div>
+      <div><span>${tr('LIGHTS', 'LUCES')}</span><b>${this.lamps ? tr('ON', 'ENCENDIDAS') : tr('OFF', 'APAGADAS')}</b></div>`;
+    this.$('tarea').textContent = t.text() ?? '';
+    if (this.notice) { this._avisar(this.notice); this.notice = null; }
+    this._mapa();
+  }
+
+  /** Minimapa: la ruta, las paradas, el módulo y el rover, con el norte arriba (hasta 400 m alrededor). */
+  _mapa() {
+    const c = this.$('mapa'), x = c.getContext('2d'), W = c.width, t = this.tasks;
+    const pts = t.ruta ?? []; let R = 120;
+    for (const q of pts) R = Math.max(R, Math.min(400, Math.hypot(q.x - this.pos.x, q.z - this.pos.z) * 0.8));
+    const k = (W / 2 - 12) / R, P = (q) => [W / 2 + (q.x - this.pos.x) * k, W / 2 + (q.z - this.pos.z) * k];
+    x.clearRect(0, 0, W, W); x.fillStyle = 'rgba(6,10,14,.72)'; x.fillRect(0, 0, W, W);
+    x.strokeStyle = 'rgba(159,228,242,.85)'; x.lineWidth = 2; x.setLineDash([5, 4]); x.beginPath(); pts.forEach((q, i) => { const [a, b] = P(q); i ? x.lineTo(a, b) : x.moveTo(a, b); }); x.stroke(); x.setLineDash([]);
+    if (this.lmPos) { const [a, b] = P(this.lmPos); x.fillStyle = '#e6e4df'; x.fillRect(a - 4, b - 4, 8, 8); }
+    t.samples.forEach((m, i) => { const [a, b] = P(m.mesh.position); x.fillStyle = m.taken ? '#4cc38a' : m.name === 'sombra' ? '#8f7cff' : '#ffd25a'; x.beginPath(); x.arc(a, b, 6, 0, 7); x.fill(); x.fillStyle = '#06090c'; x.font = 'bold 9px monospace'; x.textAlign = 'center'; x.fillText(String(i + 1), a, b + 3); });
+    x.save(); x.translate(W / 2, W / 2); x.rotate(-this.heading + Math.PI); x.fillStyle = '#ff6b5e'; x.beginPath(); x.moveTo(0, -9); x.lineTo(6, 7); x.lineTo(0, 3); x.lineTo(-6, 7); x.closePath(); x.fill(); x.restore();
+    x.fillStyle = 'rgba(230,244,250,.75)'; x.font = '10px monospace'; x.textAlign = 'left'; x.fillText('N ↑', 6, 14); x.textAlign = 'right'; x.fillText(`${fmt(R)} m`, W - 6, W - 6);
   }
 
   dispose() {
     window.removeEventListener('keydown', this._kd); window.removeEventListener('keyup', this._ku);
-    this.tasks.dispose(); this.obj.removeFromParent(); this.hud.remove();
+    this.tasks.dispose(); this.obj.removeFromParent(); this.ui.remove();
   }
 }
