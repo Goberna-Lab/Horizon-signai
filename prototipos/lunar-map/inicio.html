@@ -135,7 +135,8 @@
 .real .idb { background: var(--tinta); color: var(--crema); }
 .st.REAL { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
 .mitem { display: grid; gap: 6px; }
-.macts .none { font-size: 10.5px; color: var(--gris); padding: 2px 4px; }
+.macts .btn[disabled] { opacity: .4; cursor: not-allowed; pointer-events: none; }
+.nosim { font-size: 11px; line-height: 1.45; color: var(--gris); margin: 6px 2px 0; }
 .real .acts, .macts { display: flex; gap: 8px; }
 .real .acts .btn, .macts .btn { flex: 1 1 0; min-width: 0; height: 36px; font-size: 13px; padding: 0 10px; }
 .lunaesq { position: absolute; left: 0; right: 0; bottom: 0; top: 100%; overflow: hidden; pointer-events: none; }
@@ -724,7 +725,10 @@
    * fecha) para descargar, y su simulación con ese lugar, esa fecha y esa ruta. Sin fecha todavía no hay qué calcular. */
   function planActs(m) {
     var P = (window.LunarData && LunarData.bitacorasPlan) || {}, b = P[m.id];
-    if (!b) return '<div class="macts"><span class="mono none">No date yet: its log and simulation come once it has one</span></div>';
+    /* sin fecha no hay Sol ni Tierra que calcular: los botones se ven, apagados, y se dice por qué no se puede */
+    if (!b) return '<div class="macts"><button type="button" class="btn" disabled><i class="lni lni-download-1" aria-hidden="true"></i>Download log</button>' +
+      '<button type="button" class="btn red" disabled><i class="lni lni-play" aria-hidden="true"></i>Play simulation</button></div>' +
+      '<p class="nosim">Not possible yet: this mission has no exact landing date. Without one there is no Sun or Earth to compute, so there is no log or simulation. Set its date in the Planner.</p>';
     return '<div class="macts"><button type="button" class="btn" data-plan="' + m.id + '"><i class="lni lni-download-1" aria-hidden="true"></i>Download log</button>' +
       '<a class="btn red" href="' + esc(b.sim) + '" target="_top"><i class="lni lni-play" aria-hidden="true"></i>Play simulation</a></div>';
   }

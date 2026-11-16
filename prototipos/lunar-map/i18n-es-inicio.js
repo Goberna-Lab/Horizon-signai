@@ -218,7 +218,7 @@
     /* misiones reales (bitácoras) */
     'Real missions': 'Misiones reales',
     'Download log': 'Descargar bitácora',
-    'No date yet: its log and simulation come once it has one': 'Aún sin fecha: su bitácora y su simulación llegan cuando la tenga',
+    'Not possible yet: this mission has no exact landing date. Without one there is no Sun or Earth to compute, so there is no log or simulation. Set its date in the Planner.': 'Todavía no se puede: esta misión no tiene fecha exacta de alunizaje. Sin fecha no hay Sol ni Tierra que calcular, así que no hay bitácora ni simulación. Ponle fecha en el Planificador.',
     'Play simulation': 'Reproducir simulación',
     'On its side': 'De lado',
     'Upright': 'Derecha',
