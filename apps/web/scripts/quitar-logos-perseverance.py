@@ -1,5 +1,7 @@
 # Quita del modelo del Perseverance los logos de la NASA, del JPL y el logotipo de Mars 2020 (no son de dominio público):
 # los tapa en las texturas con el color de alrededor y reescribe el .glb. El nombre «PERSEVERANCE» se queda.
+# También las placas del JPL y de la NASA del helicóptero Ingenuity (textura «blade»); su bandera se queda.
+# Uso: python3 quitar-logos-perseverance.py <glb original de NASA 3D Resources> <glb de salida>
 import json, struct, sys, io
 from PIL import Image
 src, dst = sys.argv[1], sys.argv[2]
@@ -17,12 +19,28 @@ def filas(im, x0, y0, x1, y1):
             t = (x-x0)/max(1, x1-x0-1)
             px[x, y] = tuple(round(a[c]*(1-t)+z[c]*t) for c in range(3))
 
+def placa(im, x0, y0, x1, y1, logo, gris=(189, 189, 189)):
+    """Pinta de gris todo lo que hay dentro del recuadro del logo y cualquier píxel con color de la placa, sin tocar sus
+    tornillos: un píxel oscuro y sin color solo se respeta si forma un grupo (un tornillo), no si está suelto."""
+    px = im.load(); w, h = im.size
+    oscuro = lambda x, y: 0 <= x < w and 0 <= y < h and sum(px[x, y])/3 < 150 and max(px[x, y]) - min(px[x, y]) < 28
+    tornillo = {(x, y) for y in range(y0, y1) for x in range(x0, x1)
+                if oscuro(x, y) and sum(oscuro(x+i, y+k) for i in range(-3, 4) for k in range(-3, 4)) >= 25}
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            c = px[x, y]
+            if (x, y) not in tornillo and (max(c) - min(c) > 12 or (logo[0] <= x < logo[2] and logo[1] <= y < logo[3])):
+                px[x, y] = gris
+
 def arreglar(nombre, im):
     k = im.size[0]/ (512 if nombre == 'arm_graphics' else 1024)
     r = lambda *v: [round(x*k) for x in v]
     if nombre == 'arm_graphics':
         filas(im, *r(6, 22, 500, 92))       # «MARS 2020», su icono y la línea de crédito
         filas(im, *r(106, 272, 292, 340))   # emblema de la NASA y logo del JPL sobre la placa
+    elif nombre == 'blade':                  # Ingenuity: placa del JPL (arriba a la izquierda) y de la NASA (abajo a la derecha)
+        placa(im, 12, 155, 176, 225, (16, 168, 159, 208))
+        placa(im, 890, 392, 1024, 512, (900, 402, 1001, 503))
     else:                                    # mars_2020_03: las placas en relieve del chasis
         filas(im, *r(183, 891, 283, 937))   # «NASA»
         filas(im, *r(392, 838, 471, 889))   # «JPL»
@@ -30,7 +48,7 @@ def arreglar(nombre, im):
 
 nuevos = {}
 for i, im in enumerate(j['images']):
-    if im.get('name') not in ('arm_graphics', 'mars_2020_03'): continue
+    if im.get('name') not in ('arm_graphics', 'mars_2020_03', 'blade'): continue
     bv = j['bufferViews'][im['bufferView']]; off = bv.get('byteOffset', 0)
     pic = arreglar(im['name'], Image.open(io.BytesIO(b[off:off+bv['byteLength']])).convert('RGB'))
     out = io.BytesIO()
