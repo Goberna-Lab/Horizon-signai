@@ -212,21 +212,41 @@ svg text { font-family: var(--f-mono) }
 .wz-falta { font: 400 12px var(--f-mono); color: var(--ink-soft); align-self: center }
 .mision-nombre { font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--signal) }
 @media (prefers-reduced-motion: no-preference) { .vista { animation: sube .45s cubic-bezier(.16, 1, .3, 1) } }
-.luzq { display: grid; grid-template-columns: minmax(0, 378px) minmax(0, 1fr); gap: 20px; align-items: start }
+/* paso 3: mapa | calendario (misma altura), debajo una banda con el momento, Sol, Tierra y estadía, y la línea de tiempo */
+.luzq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch }
 @media (max-width: 720px) { .luzq { grid-template-columns: minmax(0, 1fr) } }
-.luzq-mapa canvas { width: 100%; aspect-ratio: 1; background: var(--umbra) }
-.luzq-ley { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.luzq-mapa { display: flex; flex-direction: column; border: 1px solid var(--ink); min-width: 0 }
+.luzq-mapa canvas { width: 100%; aspect-ratio: 1; background: var(--umbra); border: 0 }
+.luzq-ley { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: auto; padding: 0 12px; min-height: 36px; border-top: 1px solid var(--ink); font: 400 11px var(--f-mono); color: var(--ink-soft) }
 .luzq-ley span { display: flex; gap: 6px; align-items: center }
-.luzq-ley i { width: 12px; height: 12px; display: inline-block }
-.luzq-lado { display: grid; gap: 14px; align-content: start }
-.luzq-hora b { display: block; font: 700 22px var(--f-display); letter-spacing: var(--track) }
-.luzq-cifras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 0; border-block: 1px solid var(--shade) }
-.luzq-cifras b { display: block; font: 800 20px var(--f-display); letter-spacing: var(--track) }
-.luzq-cifras small { font: 400 11px var(--f-mono); color: var(--ink-soft) }
+.luzq-ley i { width: 10px; height: 10px; display: inline-block }
+.luzq-datos { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); border-block: 1px solid var(--ink) }
+.luzq-datos > div { display: grid; gap: 3px; align-content: start; padding: 10px 12px; min-width: 0 }
+.luzq-datos > div + div { border-left: 1px solid var(--shade) }
+.luzq-datos b { display: block; font: 800 18px/1.25 var(--f-display); letter-spacing: var(--track); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.luzq-datos small { font: 400 11px var(--f-mono); color: var(--ink-soft); white-space: nowrap }
+.luzq-datos .range output { font: 800 18px/1.25 var(--f-display); letter-spacing: var(--track) }
+@media (max-width: 720px) { .luzq-datos { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) } .luzq-datos > div:nth-child(3) { border-left: 0 } .luzq-datos > div:nth-child(n+3) { border-top: 1px solid var(--shade) } }
 .luzq-tl { display: grid; gap: 8px }
 .luzq-tl canvas { border: 0; width: 100%; cursor: ew-resize; touch-action: none }
 .luzq-ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
 .luzq-ctl .btn { padding: 5px 10px; font-family: var(--f-mono) }
+/* calendario de alunizaje, siempre abierto: el mes ocupa el alto que deja la hora, sin filas vacías */
+.cal { display: flex; flex-direction: column; border: 1px solid var(--ink); min-width: 0 }
+.cal-mes { flex: 1; display: flex; flex-direction: column; min-height: 0 }
+.cal-cab { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 36px; padding: 0 4px 0 12px; border-bottom: 1px solid var(--shade) }
+.cal-hrs .cal-cab { border-top: 1px solid var(--ink); padding-right: 12px }
+.cal-cab b { font: 700 14px var(--f-display); letter-spacing: var(--track) }
+.cal-cab .num { font: 700 14px var(--f-mono) }
+.cal-cab .btn { border: 0; padding: 4px 10px; font-family: var(--f-mono) }
+.cal-dias { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 22px; grid-auto-rows: minmax(22px, 1fr); gap: 2px; padding: 6px }
+.cal-horas { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 28px; gap: 2px; padding: 6px }
+.cal-dias > span { display: grid; place-items: center; font: 500 10px var(--f-mono); letter-spacing: .06em; color: var(--ink-soft) }
+.cal-dias button, .cal-horas button { border: 0; background: none; color: inherit; cursor: pointer; font: 400 13px var(--f-mono); font-variant-numeric: tabular-nums }
+.cal-horas button { font-size: 12px }
+.cal-dias button:hover:not(:disabled), .cal-horas button:hover:not(:disabled) { background: var(--tint) }
+.cal-dias button[aria-pressed="true"], .cal-horas button[aria-pressed="true"] { background: var(--ink); color: var(--paper); font-weight: 700 }
+.cal button:disabled { opacity: .25; cursor: default }
 details.foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--ink); font: 400 12px/1.5 var(--f-mono); color: var(--ink-soft); max-width: 100ch }
 details.foot summary { cursor: pointer; color: var(--ink); text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 8px 14px; font: 400 13px var(--f-mono) }
@@ -1047,9 +1067,9 @@ function pintarWz() {
       '<p class="wz-q">' + L('Mueve la línea de tiempo para ver la luz sobre el relieve. Suelta para alunizar en ese momento.', 'Scrub the timeline to see light on the terrain. Release to land at that moment.') + '</p>' +
       '<div class="luzq"><div class="luzq-mapa"><canvas id="lq-mapa" width="378" height="378" aria-label="' + L('Luz y sombra sobre el relieve', 'Light and shadow on the terrain') + '"></canvas>' +
       '<div class="luzq-ley"><span><i style="background:var(--lit)"></i>' + L('al Sol', 'sunlit') + '</span><span><i style="background:var(--umbra)"></i>' + L('en sombra', 'in shadow') + '</span><span>20 × 20 km · LOLA</span></div></div>' +
-      '<div class="luzq-lado"><div class="luzq-hora"><span class="lbl">' + L('Momento', 'Moment') + '</span><b id="lq-hora"></b></div><div class="luzq-cifras"><div id="lq-sol"></div><div id="lq-tierra"></div></div>' +
-      rango('wz-estadia', L('Estadía', 'Stay'), wz.estadia, horas(wz.estadia), 24, 336, 12) +
-      '<label class="field"><span class="lbl">' + L('Alunizaje (UTC)', 'Landing (UTC)') + '</span><input type="datetime-local" id="wz-fecha" min="2026-01-01T00:00" max="2030-12-31T23:00" step="3600" value="' + (wz.t ? isoLocal(wz.t) : '') + '"></label></div></div>' +
+      '<div class="cal" role="group" aria-label="' + L('Alunizaje (UTC)', 'Landing (UTC)') + '"><div class="cal-mes" id="lq-cal-dias">' + calDias() + '</div><div class="cal-hrs" id="lq-cal-horas" role="group" aria-label="' + L('Hora (UTC)', 'Hour (UTC)') + '">' + calHoras() + '</div></div></div>' +
+      '<div class="luzq-datos"><div><span class="lbl">' + L('Momento', 'Moment') + '</span><b id="lq-hora"></b></div><div id="lq-sol"></div><div id="lq-tierra"></div>' +
+      rango('wz-estadia', L('Estadía', 'Stay'), wz.estadia, horas(wz.estadia), 24, 336, 12) + '</div>' +
       '<div class="luzq-tl"><div class="luzq-ctl"><button type="button" class="btn" id="lq-atras" title="' + L('15 días antes', '15 days earlier') + '">◀ 15 d</button><button type="button" class="btn" id="lq-play" title="' + L('Ver pasar las horas', 'Watch the hours go by') + '">▶</button><button type="button" class="btn" id="lq-adel" title="' + L('15 días después', '15 days later') + '">15 d ▶</button><span class="lbl" id="lq-rango"></span></div>' +
       '<canvas id="lq-tl" height="104" aria-label="' + L('Línea de tiempo del Sol y la Tierra', 'Sun and Earth timeline') + '"></canvas></div>';
     if (wz.t != null) { const luz = luzEstadia(ZONAS[wz.zona], wz.t, wz.estadia);
@@ -1092,7 +1112,10 @@ function siguiente() {
 $('wz').addEventListener('submit', (e) => { e.preventDefault(); siguiente(); });
 $('wz').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.campo) { const c = b.dataset.campo, v = b.dataset.valor; wz[c] = c === 'altura' ? +v : v; pintarWz(); }
+  if (b.dataset.mes) { const id = b.id; lq.mes = +b.dataset.mes; $('lq-cal-dias').innerHTML = calDias(); const nb = $(id); if (nb && !nb.disabled) nb.focus(); }
+  else if (b.dataset.dia) { const hr = wz.t != null ? new Date(wz.t).getUTCHours() : 12; elegirFecha(+b.dataset.dia + hr * H, 'dia'); }
+  else if (b.dataset.hora) { elegirFecha(calDiaBase() + +b.dataset.hora * H, 'hora'); }
+  else if (b.dataset.campo) { const c = b.dataset.campo, v = b.dataset.valor; wz[c] = c === 'altura' ? +v : v; pintarWz(); }
   else if (b.dataset.ir != null && !b.disabled) { parar(); wz.paso = +b.dataset.ir; pintarWz(); }
   else if (b.id === 'wz-atras') { parar(); if (wz.paso === 0) { const m = previa(); if (m) abrirMision(m); } else { wz.paso--; pintarWz(); } }
   else if (b.id === 'wz-usar-rec') { wz.energia = recomendarEnergia(wz, luzEstadia(ZONAS[wz.zona], wz.t, wz.estadia)).k; pintarWz(); }
@@ -1107,7 +1130,41 @@ $('wz').addEventListener('input', (e) => {
   else if (t.id === 'wz-rvel') re('roverKmh', 'wz-rvel');
   else if (t.id === 'wz-rpar') re('roverParadaH', 'wz-rpar');
 });
-$('wz').addEventListener('change', (e) => { if (e.target.id === 'wz-fecha') { const t = Date.parse(e.target.value + ':00Z'); if (Number.isFinite(t)) { wz.t = Math.min(T_MAX - wz.estadia * H, Math.max(T_MIN, t)); lq.cursor = wz.t; pintarWz(); } } });
+/* Calendario de alunizaje (paso 3), siempre abierto: un clic en un día conserva la hora; un clic en una hora conserva el día. */
+const mesDe = (t) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
+const refLuz = () => wz.t ?? lq.cursor ?? Math.max(T_MIN, Math.min(T_MAX - VENTANA, Math.floor(Date.now() / H) * H));
+const calDiaBase = () => Math.floor(refLuz() / D) * D;
+function calDias() {
+  const tope = T_MAX - wz.estadia * H, loc = lang === 'en' ? 'en-GB' : 'es-ES';
+  if (lq.mes == null) lq.mes = mesDe(refLuz());
+  const d0 = new Date(lq.mes), y = d0.getUTCFullYear(), mo = d0.getUTCMonth();
+  const ant = Date.UTC(y, mo - 1, 1), sig = Date.UTC(y, mo + 1, 1), nDias = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate(), hueco = (d0.getUTCDay() + 6) % 7;
+  const diaSel = wz.t != null ? Math.floor(wz.t / D) * D : null, nombre = d0.toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  let h = '<div class="cal-cab"><b>' + nombre.charAt(0).toUpperCase() + nombre.slice(1) + '</b><span>' +
+    '<button type="button" class="btn" id="cal-ant" data-mes="' + ant + '" aria-label="' + L('Mes anterior', 'Previous month') + '"' + (lq.mes <= mesDe(T_MIN) ? ' disabled' : '') + '>◀</button>' +
+    '<button type="button" class="btn" id="cal-sig" data-mes="' + sig + '" aria-label="' + L('Mes siguiente', 'Next month') + '"' + (sig > tope ? ' disabled' : '') + '>▶</button></span></div>';
+  h += '<div class="cal-dias">' + (lang === 'en' ? ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] : ['LU', 'MA', 'MI', 'JU', 'VI', 'SÁ', 'DO']).map((s) => '<span aria-hidden="true">' + s + '</span>').join('') + '<i></i>'.repeat(hueco);
+  for (let k = 1; k <= nDias; k++) {
+    const t = Date.UTC(y, mo, k), fuera = t + D - H < T_MIN || t > tope;
+    h += '<button type="button" data-dia="' + t + '" aria-pressed="' + (t === diaSel) + '"' + (fuera ? ' disabled' : '') + ' aria-label="' + new Date(t).toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) + '">' + k + '</button>';
+  }
+  return h + '</div>';
+}
+function calHoras() {
+  const tope = T_MAX - wz.estadia * H, base = calDiaBase(), hh = (k) => String(k).padStart(2, '0') + ':00';
+  let h = '<div class="cal-cab"><span class="lbl">' + L('Hora (UTC)', 'Hour (UTC)') + '</span><b class="num">' + (wz.t != null ? hh(new Date(wz.t).getUTCHours()) : '—') + '</b></div><div class="cal-horas">';
+  for (let k = 0; k < 24; k++) {
+    const t = base + k * H, fuera = t < T_MIN || t > tope;
+    h += '<button type="button" data-hora="' + k + '" aria-pressed="' + (wz.t === t) + '"' + (fuera ? ' disabled' : '') + '>' + hh(k) + '</button>';
+  }
+  return h + '</div>';
+}
+function elegirFecha(t, tipo) {
+  parar();
+  wz.t = Math.min(T_MAX - wz.estadia * H, Math.max(T_MIN, t)); lq.cursor = wz.t; lq.mes = mesDe(wz.t);
+  pintarWz();
+  const sel = document.querySelector(tipo === 'dia' ? '#lq-cal-dias [data-dia="' + Math.floor(wz.t / D) * D + '"]' : '#lq-cal-horas [data-hora="' + new Date(wz.t).getUTCHours() + '"]'); if (sel) sel.focus();
+}
 const empezar = () => { wz = nuevoWz(); ver('wz'); pintarWz(); };
 $('nueva').addEventListener('click', empezar);
 
@@ -1189,8 +1246,8 @@ function dibujarLuzTl() {
 function leerLuz() {
   const z = ZONAS[wz.zona], t = lq.cursor, s = solEl(z, t), e = tierraEl(z, t);
   $('lq-hora').textContent = fechaTxt(t);
-  $('lq-sol').innerHTML = '<span class="lbl">' + L('Sol', 'Sun') + '</span><b style="color:' + (s > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (s > 0 ? L('visible', 'visible') : L('oculto', 'hidden')) + '</b><small>' + fmt(s, 1) + '° ' + L('sobre el horizonte', 'above horizon') + ' · az ' + fmt(solAz(z, t)) + '°</small>';
-  $('lq-tierra').innerHTML = '<span class="lbl">' + L('Tierra', 'Earth') + '</span><b style="color:' + (e > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (e > 0 ? L('en contacto', 'in contact') : L('sin enlace', 'no link')) + '</b><small>' + fmt(e, 1) + '° ' + L('sobre el horizonte', 'above horizon') + '</small>';
+  $('lq-sol').innerHTML = '<span class="lbl">' + L('Sol', 'Sun') + '</span><b style="color:' + (s > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (s > 0 ? L('visible', 'visible') : L('oculto', 'hidden')) + '</b><small>alt. ' + fmt(s, 1) + '° · az ' + fmt(solAz(z, t)) + '°</small>';
+  $('lq-tierra').innerHTML = '<span class="lbl">' + L('Tierra', 'Earth') + '</span><b style="color:' + (e > 0 ? 'var(--ink)' : 'var(--signal)') + '">' + (e > 0 ? L('en contacto', 'in contact') : L('sin enlace', 'no link')) + '</b><small>alt. ' + fmt(e, 1) + '°</small>';
 }
 function refrescarLuz(mapa = true) { if (mapa) dibujarLuzMapa(lq.cursor); dibujarLuzTl(); leerLuz(); }
 function iniciarLuz() {
@@ -1203,7 +1260,7 @@ function iniciarLuz() {
   let ultimo = 0;
   tl.addEventListener('pointerdown', (ev) => { lq.arrastre = true; tl.setPointerCapture(ev.pointerId); parar(); lq.cursor = tAt(ev); refrescarLuz(); });
   tl.addEventListener('pointermove', (ev) => { if (!lq.arrastre) return; lq.cursor = tAt(ev); const now = performance.now(), m = now - ultimo > 40; refrescarLuz(m); if (m) ultimo = now; });
-  tl.addEventListener('pointerup', () => { if (!lq.arrastre) return; lq.arrastre = false; wz.t = Math.min(T_MAX - wz.estadia * H, lq.cursor); pintarWz(); });
+  tl.addEventListener('pointerup', () => { if (!lq.arrastre) return; lq.arrastre = false; wz.t = Math.min(T_MAX - wz.estadia * H, lq.cursor); lq.mes = mesDe(wz.t); pintarWz(); });
   const mover = (d) => { parar(); lq.ini = Math.max(T_MIN, Math.min(T_MAX - VENTANA, lq.ini + d)); lq.cursor = Math.max(lq.ini, Math.min(lq.ini + VENTANA, lq.cursor)); refrescarLuz(); };
   $('lq-atras').onclick = () => mover(-15 * D); $('lq-adel').onclick = () => mover(15 * D);
   $('lq-play').onclick = () => { if (lq.play) { parar(); return; } lq.play = true; $('lq-play').textContent = '❚❚';
