@@ -33,6 +33,15 @@ jobs:
       # (app-a :7083 principal, app-b :7084 backup) y se actualizan de a una, cada una esperando
       # a estar sana. Mientras app-a se reemplaza, nginx atiende con app-b, que ya tiene la versión nueva.
       - name: Desplegar con verificación y rollback
+        # IA en la nube: claves (secretos) y ajustes (variables) del repo, que pone scripts/configurar-ia-nube.sh.
+        # Solo en este paso; GitHub las tapa en el log.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOZ_EDUCATIONAL: ${{ vars.ELEVENLABS_VOZ_EDUCATIONAL }}
+          ELEVENLABS_VOZ_ASSISTANT: ${{ vars.ELEVENLABS_VOZ_ASSISTANT }}
+          IA_MOTOR: ${{ vars.IA_MOTOR }}
+          VOZ_MOTOR: ${{ vars.VOZ_MOTOR }}
         run: |
           set -euo pipefail
           cd "$DEPLOY_DIR"
@@ -50,6 +59,19 @@ jobs:
           git fetch --quiet "https://x-access-token:${GIT_TOKEN}@github.com/${{ github.repository }}.git" main
           git reset --hard --quiet FETCH_HEAD
           echo "· commit: $(git rev-parse --short HEAD)"
+
+          # IA en la nube: lo que está en GitHub se escribe en ia-nube.env (600), que el compose suma al .env de la
+          # app. Se reescribe en cada deploy, solo con lo que tiene valor: lo que se borra en GitHub deja de estar.
+          # Está en .dockerignore: nunca entra en la imagen.
+          (
+            umask 077
+            : >ia-nube.env.nuevo
+            for v in ANTHROPIC_API_KEY ELEVENLABS_API_KEY ELEVENLABS_VOZ_EDUCATIONAL ELEVENLABS_VOZ_ASSISTANT IA_MOTOR VOZ_MOTOR; do
+              if [ -n "${!v:-}" ]; then printf '%s=%s\n' "$v" "${!v}" >>ia-nube.env.nuevo; fi
+            done
+            mv ia-nube.env.nuevo ia-nube.env
+          )
+          echo "· IA en la nube: $(cut -d= -f1 ia-nube.env | tr '\n' ' ')"
 
           # La imagen que está en producción queda como :anterior para volver sin reconstruir.
           HAY_ANTERIOR=0
