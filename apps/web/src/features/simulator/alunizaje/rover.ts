@@ -50,6 +50,7 @@ function modeloRover() {
   const plato = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 8, 0, Math.PI * 2, 0, 0.9), blanco); plato.position.set(-0.35, 2.3, -0.45); plato.rotation.x = -Math.PI / 3; g.add(plato);
   // Taladro (1 m) en el costado delantero
   const taladro = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), gris); taladro.position.set(0.45, 0.85, 0.7); g.add(taladro);
+  const broca = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 10), oro); broca.rotation.x = Math.PI; broca.position.y = -0.55; taladro.add(broca);
   // Ruedas con suspensión
   const ruedas = [];
   for (const [x, z] of [[-0.68, 0.55], [0.68, 0.55], [-0.68, -0.55], [0.68, -0.55]]) {
@@ -60,7 +61,7 @@ function modeloRover() {
   const luz = new THREE.SpotLight(0xfff1d6, 0, 60, 0.45, 0.5, 1.2); luz.position.set(0, NAVCAM_M - 0.12, 0.55); luz.target.position.set(0, 0, 12); g.add(luz, luz.target);
   const luzCuerpo = new THREE.SpotLight(0xfff1d6, 0, 20, 0.8, 0.6, 1.4); luzCuerpo.position.set(0, 0.7, 0.7); luzCuerpo.target.position.set(0, 0, 5); g.add(luzCuerpo, luzCuerpo.target);
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { g, ruedas, luz, luzCuerpo };
+  return { g, ruedas, luz, luzCuerpo, taladro };
 }
 
 export class Rover {
@@ -68,7 +69,18 @@ export class Rover {
     this.view = view; this.onSalir = onSalir; this.sonido = sonido;
     this.active = false; this.pos = new THREE.Vector3(); this.heading = 0; this.vel = 0; this.lamps = true; this.walked = 0;
     this.keys = new Set(); this.escala = 0; this.vista = 'navcam'; this.briefing = false;
-    const m = modeloRover(); Object.assign(this, { obj: m.g, ruedas: m.ruedas, luz: m.luz, luzCuerpo: m.luzCuerpo }); this.obj.visible = false; view.scene.add(this.obj);
+    const m = modeloRover(); Object.assign(this, { obj: m.g, ruedas: m.ruedas, luz: m.luz, luzCuerpo: m.luzCuerpo, taladro: m.taladro });
+    this.pan = 0; this.tilt = 0; this.perfora = null;
+    // Polvo de las ruedas: sin aire, cada grano sigue una parábola con la gravedad lunar (1,62 m/s²) y cae
+    const NP = 160, pp = new Float32Array(NP * 3).fill(-1e5); this.polvo = { n: NP, i: 0, pos: pp, vel: new Float32Array(NP * 3), vida: new Float32Array(NP) };
+    const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
+    this.polvoObj = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xb8b2a6, size: 0.06, transparent: true, opacity: 0.8, depthWrite: false })); this.polvoObj.frustumCulled = false; view.scene.add(this.polvoObj);
+    // Mirar con la cámara del mástil: arrastrar con el ratón (o el dedo) la gira; R la centra
+    let arr = null; const el = view.renderer.domElement;
+    this._pd = (e) => { if (this.active && !this.briefing && this.vista === 'navcam') arr = { x: e.clientX, y: e.clientY }; };
+    this._pm = (e) => { if (!arr) return; this.pan = Math.max(-2.2, Math.min(2.2, this.pan - (e.clientX - arr.x) * 0.005)); this.tilt = Math.max(-0.6, Math.min(0.5, this.tilt - (e.clientY - arr.y) * 0.004)); arr = { x: e.clientX, y: e.clientY }; };
+    this._pu = () => { arr = null; };
+    el.addEventListener('pointerdown', this._pd); window.addEventListener('pointermove', this._pm); window.addEventListener('pointerup', this._pu); this.obj.visible = false; view.scene.add(this.obj);
     this.sinRegreso = true; this.alcance = 4; this.tasks = new Tareas(this);
     // Pantalla del operador: telemetría, imagen de la NAVCAM (marcos, brújula, objetivo), minimapa, avisos y briefing
     const r = (this.ui = document.createElement('div')); r.className = 'sim-rv'; r.hidden = true;
@@ -94,6 +106,7 @@ export class Rover {
       if (e.repeat) return;
       if (e.code === 'KeyT') this.escala = (this.escala + 1) % ESCALAS.length;
       if (e.code === 'KeyE') this._medir();
+      if (e.code === 'KeyR') { this.pan = 0; this.tilt = 0; }
       if (e.code === 'KeyL') this.lamps = !this.lamps;
       if (e.code === 'KeyC') this.vista = this.vista === 'navcam' ? 'seguimiento' : 'navcam';
       if (e.code === 'KeyQ') this.onSalir?.();
@@ -110,7 +123,7 @@ export class Rover {
     this.lmPos = lmPos.clone();
     this.pos.set(lmPos.x + Math.sin(heading) * 12, 0, lmPos.z + Math.cos(heading) * 12); // bajó por la rampa y se apartó del módulo
     this.pos.y = v.groundY(this.pos.x, this.pos.z);
-    this.active = true; this.vel = 0; this.walked = 0; this.escala = 2; this.notice = null; this._informeVisto = false; this._lejos = false;
+    this.active = true; this.vel = 0; this.walked = 0; this.escala = 1; this.pan = 0; this.tilt = 0; this.perfora = null; this.taladro.position.y = 0.85; this.notice = null; this._informeVisto = false; this._lejos = false;
     this.s = { t: 0 }; this.stats = { salidasRuta: 0, sinEnlaceS: 0, pendienteMax: 0 }; this.vista = 'navcam'; this._camPos = null;
     this.obj.visible = true; this.ui.hidden = false;
     this.tasks.reset(); this.tasks.start(lm);
@@ -126,26 +139,66 @@ export class Rover {
     this.briefing = true;
     const b = this.$('brief'); b.hidden = false;
     b.innerHTML = `<small>${tr('ROVER MISSION · BRIEFING', 'MISIÓN DEL ROVER · BRIEFING')}</small>
-      <b>${tr('Drive to each stop and measure', 'Lleva el rover a cada parada y mide')}</b>
+      <b>${tr('Drive to each stop and collect the sample', 'Lleva el rover a cada parada y recoge la muestra')}</b>
       <ol>
-        ${t.samples.map((m, i) => `<li>${tr(`Stop ${i + 1}`, `Parada ${i + 1}`)}: ${m.name === 'sombra' ? tr('in shadow, turn on the lights (L)', 'en sombra, enciende las luces (L)') : tr('in sunlight', 'al Sol')} · ${tr('press E when the screen says so', 'pulsa E cuando la pantalla lo diga')}</li>`).join('')}
+        ${t.samples.map((m, i) => `<li>${tr(`Stop ${i + 1}`, `Parada ${i + 1}`)}: ${m.name === 'sombra' ? tr('in shadow, turn on the lights (L)', 'en sombra, enciende las luces (L)') : tr('in sunlight', 'al Sol')} · ${tr('press E: the drill takes the sample', 'pulsa E: el taladro saca la muestra')}</li>`).join('')}
         ${n ? '' : `<li>${tr('Reach the end of the route', 'Llega al final de la ruta')}</li>`}
         <li>${tr('The report appears at the end', 'Al terminar aparece el informe')}</li>
       </ol>
-      <div class="teclas"><span><b>W</b> ${tr('forward', 'avanzar')}</span><span><b>S</b> ${tr('back', 'atrás')}</span><span><b>A D</b> ${tr('steer', 'girar')}</span><span><b>E</b> ${tr('measure', 'medir')}</span><span><b>L</b> ${tr('lights', 'luces')}</span><span><b>C</b> ${tr('camera', 'cámara')}</span><span><b>T</b> ${tr('time', 'tiempo')}</span><span><b>H</b> EVA</span></div>
-      <p>${tr(`You drive from the mast navigation camera, as the team on Earth would. Plan: up to ${fmt(p.roverKmh ?? 0.8, 1)} km/h and ${fmt(this.paradaH, 1)} h per stop. Time runs ×60 (T changes it). Without an Earth link the rover stops.`, `Conduces desde la cámara de navegación del mástil, como lo haría el equipo en la Tierra. Plan: hasta ${fmt(p.roverKmh ?? 0.8, 1)} km/h y ${fmt(this.paradaH, 1)} h por parada. El tiempo corre ×60 (T lo cambia). Sin enlace con la Tierra el rover se para.`)}</p>
+      <div class="teclas"><span><b>W</b> ${tr('forward', 'avanzar')}</span><span><b>S</b> ${tr('back', 'atrás')}</span><span><b>A D</b> ${tr('steer', 'girar')}</span><span><b>E</b> ${tr('collect', 'recoger')}</span><span><b>L</b> ${tr('lights', 'luces')}</span><span><b>C</b> ${tr('camera', 'cámara')}</span><span><b>🖱</b> ${tr('drag to look', 'arrastra para mirar')}</span><span><b>R</b> ${tr('center camera', 'centrar cámara')}</span><span><b>T</b> ${tr('time', 'tiempo')}</span><span><b>H</b> EVA</span></div>
+      <p>${tr(`You drive from the mast navigation camera, as the team on Earth would. Plan: up to ${fmt(p.roverKmh ?? 0.8, 1)} km/h and ${fmt(this.paradaH, 1)} h per stop. Time runs ×10 (T changes it). Without an Earth link the rover stops.`, `Conduces desde la cámara de navegación del mástil, como lo haría el equipo en la Tierra. Plan: hasta ${fmt(p.roverKmh ?? 0.8, 1)} km/h y ${fmt(this.paradaH, 1)} h por parada. El tiempo corre ×10 (T lo cambia). Sin enlace con la Tierra el rover se para.`)}</p>
       <button type="button" data-act="empezar">${tr('Start driving (Enter)', 'Empezar a conducir (Enter)')}</button>`;
   }
 
   _cerrarBriefing() { this.briefing = false; this.$('brief').hidden = true; avisarEva('tarea-hecha', tr('Rover ready. Follow the marker to the first stop.', 'Rover listo. Sigue la marca hasta la primera parada.'), '.sim-rv-obj'); }
 
-  /** E: medir si hay una parada al alcance; si no, decir dónde está. */
+  /** E: si hay una parada al alcance, el rover se detiene y perfora con el taladro (TRIDENT de VIPER, 1 m) para sacar la
+   *  muestra; si no, dice dónde está. La muestra en sombra pide las luces encendidas. */
   _medir() {
-    const antes = this.tasks.samples.filter((m) => m.taken).length;
-    this.tasks.interact();
-    const despues = this.tasks.samples.filter((m) => m.taken).length;
-    if (despues > antes) this._avisar(tr(`Measurement ${despues} done · ${fmt(this.paradaH, 1)} h at the stop`, `Medición ${despues} hecha · ${fmt(this.paradaH, 1)} h en la parada`), 'ok'), this.s.t += this.paradaH * 3600;
-    else this._avisar(this.notice ?? tr('Nothing to measure here: follow the marker', 'Aquí no hay nada que medir: sigue la marca'));
+    if (this.perfora) return;
+    const t = this.tasks, k = t.samples.findIndex((m, i) => !m.taken && t._near(i));
+    if (k < 0) { this._avisar(tr('Nothing to collect here: follow the marker', 'Aquí no hay nada que recoger: sigue la marca')); return; }
+    if (t.samples[k].name === 'sombra' && t.darkReal && !this.lamps) { this._avisar(tr('Too dark to drill: turn on the lights (L)', 'Muy oscuro para perforar: enciende las luces (L)')); return; }
+    this.vel = 0; this.perfora = { k, t: 0 };
+    this._avisar(tr('Drilling… the drill goes down to take the sample', 'Perforando… el taladro baja a sacar la muestra'), 'ok');
+  }
+
+  /** La perforación: baja 1 m (1,5 s), gira (1,2 s) y sube (1,3 s); al subir, la muestra queda guardada. */
+  _perforar(dt) {
+    const p = this.perfora, m = this.tasks.samples[p.k]; p.t += dt;
+    const baja = Math.min(1, p.t / 1.5), sube = Math.max(0, Math.min(1, (p.t - 2.7) / 1.3));
+    this.taladro.position.y = 0.85 - 0.95 * (baja - sube);
+    this.taladro.rotation.y += dt * 18 * (p.t > 1.2 && p.t < 3 ? 1 : 0);
+    if (p.t > 1.4 && p.t < 2.8) this._levantar(this.obj.localToWorld(new THREE.Vector3(0.45, 0.05, 0.7)), 3, 0.6); // polvo de la broca
+    if (m && p.t > 2.0) m.mesh.scale.setScalar(Math.max(0.01, 1 - (p.t - 2.0) / 0.8));
+    if (p.t >= 4.0) {
+      this.taladro.position.y = 0.85; this.perfora = null;
+      const antes = this.tasks.samples.filter((q) => q.taken).length;
+      this.tasks.interact(); // la marca como recogida (tareas.ts)
+      const n = this.tasks.samples.filter((q) => q.taken).length;
+      if (n > antes) { this.s.t += this.paradaH * 3600; this._avisar(tr(`Sample ${n} collected · ${fmt(this.paradaH, 1)} h at the stop (plan)`, `Muestra ${n} recogida · ${fmt(this.paradaH, 1)} h en la parada (plan)`), 'ok'); }
+    }
+  }
+
+  /** Granos de polvo desde `p`: sin aire, vuelan en parábola con la gravedad lunar y desaparecen al caer. */
+  _levantar(p, n, fuerza) {
+    const P = this.polvo;
+    for (let j = 0; j < n; j++) {
+      const i = P.i; P.i = (P.i + 1) % P.n;
+      P.pos.set([p.x + (Math.random() - 0.5) * 0.2, p.y, p.z + (Math.random() - 0.5) * 0.2], i * 3);
+      P.vel.set([(Math.random() - 0.5) * fuerza, Math.random() * fuerza * 1.2, (Math.random() - 0.5) * fuerza], i * 3); P.vida[i] = 1;
+    }
+  }
+
+  _polvo(dt) {
+    const P = this.polvo, g = this.view.groundY;
+    for (let i = 0; i < P.n; i++) {
+      if (P.vida[i] <= 0) continue;
+      P.vel[i * 3 + 1] -= 1.62 * dt;
+      for (let a = 0; a < 3; a++) P.pos[i * 3 + a] += P.vel[i * 3 + a] * dt;
+      if (P.pos[i * 3 + 1] < g(P.pos[i * 3], P.pos[i * 3 + 2])) { P.vida[i] = 0; P.pos[i * 3 + 1] = -1e5; }
+    }
+    this.polvoObj.geometry.attributes.position.needsUpdate = true;
   }
 
   _avisar(txt, cls = '') { const a = this.$('aviso'); a.textContent = txt; a.className = 'sim-rv-aviso ' + cls; a.hidden = false; clearTimeout(this._avT); this._avT = setTimeout(() => (a.hidden = true), 3500); }
@@ -159,11 +212,14 @@ export class Rover {
     this.s.t += dt;
     const enlace = !!v.now?.earth.visible;
     // Mando: acelerar hacia la velocidad del plan; sin enlace con la Tierra no hay órdenes y el rover se para
-    const quiere = enlace ? ((k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 0.5 : 0)) * this.vmax : 0;
+    if (this.perfora) this._perforar(Math.min(0.25, dtReal)); // por tiempo real: no depende de los cuadros por segundo
+    const quiere = enlace && !this.perfora ? ((k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 0.5 : 0)) * this.vmax : 0;
     this.vel += Math.max(-0.3 * dt, Math.min(0.3 * dt, quiere - this.vel));
     if (!enlace) { this.stats.sinEnlaceS += dt; this.vel = 0; }
     const giro = (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0) - (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0);
-    if (enlace && !this.briefing) this.heading += giro * 0.6 * Math.min(0.05, dtReal);
+    // Giro suave (dirección derrapante: gira también parado); se suaviza con la inercia de la orden
+    this._giro = (this._giro ?? 0) + ((enlace && !this.briefing && !this.perfora ? giro : 0) - (this._giro ?? 0)) * Math.min(1, dtReal * 6);
+    this.heading += this._giro * 0.7 * Math.min(0.05, dtReal);
     const fx = Math.sin(this.heading), fz = Math.cos(this.heading);
     const nx = this.pos.x + fx * this.vel * dt, nz = this.pos.z + fz * this.vel * dt;
     const pend = this._pend(nx, nz), sube = v.groundY(nx, nz) > this.pos.y;
@@ -173,11 +229,17 @@ export class Rover {
       this.pos.set(nx, v.groundY(nx, nz), nz);
       this.stats.pendienteMax = Math.max(this.stats.pendienteMax, pend);
     }
-    // Apoyo sobre el terreno: el chasis sigue la normal del suelo
-    const g = v.groundY, e = 0.8, n = new THREE.Vector3(g(this.pos.x - e, this.pos.z) - g(this.pos.x + e, this.pos.z), 2 * e, g(this.pos.x, this.pos.z - e) - g(this.pos.x, this.pos.z + e)).normalize();
-    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.heading);
-    this.obj.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n).multiply(q));
-    this.obj.position.copy(this.pos);
+    // Apoyo en las cuatro ruedas: alto, cabeceo y balanceo salen del suelo bajo cada rueda (suave, como la suspensión)
+    const g = v.groundY, fxh = Math.sin(this.heading), fzh = Math.cos(this.heading), lx = Math.cos(this.heading), lz = -Math.sin(this.heading); // lx,lz: lado +x del rover
+    const en = (dxL, dzF) => g(this.pos.x + lx * dxL + fxh * dzF, this.pos.z + lz * dxL + fzh * dzF);
+    const hFI = en(0.68, 0.55), hFD = en(-0.68, 0.55), hTI = en(0.68, -0.55), hTD = en(-0.68, -0.55);
+    const alto = (hFI + hFD + hTI + hTD) / 4, cab = Math.atan2((hFI + hFD) - (hTI + hTD), 2 * 1.1), bal = Math.atan2((hFI + hTI) - (hFD + hTD), 2 * 1.36);
+    const qq = new THREE.Quaternion().setFromEuler(new THREE.Euler(-cab, this.heading, bal, 'YXZ'));
+    if (this._qInit) this.obj.quaternion.slerp(qq, Math.min(1, dtReal * 8)); else { this.obj.quaternion.copy(qq); this._qInit = true; }
+    this.obj.position.set(this.pos.x, alto, this.pos.z);
+    // Polvo detrás de las ruedas al avanzar
+    if (Math.abs(this.vel) > 0.05 && !this.briefing) { this._polvoT = (this._polvoT ?? 0) + dtReal; if (this._polvoT > 0.05) { this._polvoT = 0; for (const [x, z] of [[0.68, -0.55], [-0.68, -0.55]]) this._levantar(this.obj.localToWorld(new THREE.Vector3(x, 0.05, z)), 2, 0.5); } }
+    this._polvo(Math.min(0.05, dtReal));
     for (const r of this.ruedas) r.rotation.x += (this.vel * dt) / 0.25;
     this.luz.intensity = this.lamps ? 7 : 0; this.luzCuerpo.intensity = this.lamps ? 4 : 0;
     // Ruta y paradas (tareas.ts, sin el regreso)
@@ -194,10 +256,20 @@ export class Rover {
   /** NAVCAM: la cámara del mástil, a 2,0 m, mirando adelante y un poco abajo (sigue al chasis). Seguimiento: detrás y arriba. */
   _camara(dt) {
     const v = this.view, c = v.camera;
+    if (this.perfora) { // mientras perfora: plano corto desde fuera, delante a la derecha, para ver bajar el taladro
+      this.obj.updateMatrixWorld();
+      c.position.copy(this.obj.localToWorld(new THREE.Vector3(1.9, 1.3, 2.4)));
+      c.lookAt(this.obj.localToWorld(new THREE.Vector3(0.45, 0.25, 0.7)));
+      if (c.fov !== 50) { c.fov = 50; c.near = 0.05; c.updateProjectionMatrix(); }
+      return;
+    }
     if (this.vista === 'navcam') {
       this.obj.updateMatrixWorld();
       c.position.copy(this.obj.localToWorld(new THREE.Vector3(0, NAVCAM_M, 0.62)));
-      c.lookAt(this.obj.localToWorld(new THREE.Vector3(0, NAVCAM_M - 1.4, 10)));
+      // El cardán del mástil gira la cámara
+      const mira = new THREE.Vector3(Math.sin(this.pan) * 10, NAVCAM_M - 1.4 + this.tilt * 10, Math.cos(this.pan) * 10);
+      c.lookAt(this.obj.localToWorld(mira));
+      this.luz.target.position.copy(mira).setY(0); // las luces del mástil van con la cámara
       if (c.fov !== 62) { c.fov = 62; c.near = 0.05; c.updateProjectionMatrix(); }
       this._camPos = null;
     } else {
@@ -236,7 +308,8 @@ export class Rover {
       // Aviso de medir
       const cerca = t.samples.find((m, i) => !m.taken && t._near(i));
       const me = this.$('medir'); me.hidden = !cerca;
-      if (cerca) me.innerHTML = cerca.name === 'sombra' && t.darkReal && !this.lamps ? tr('Too dark: turn on the lights <b>L</b>', 'Está oscuro: enciende las luces <b>L</b>') : tr('Press <b>E</b> to measure', 'Pulsa <b>E</b> para medir');
+      if (this.perfora) { me.hidden = false; me.innerHTML = tr('Drilling…', 'Perforando…'); }
+    else if (cerca) me.innerHTML = cerca.name === 'sombra' && t.darkReal && !this.lamps ? tr('Too dark: turn on the lights <b>L</b>', 'Está oscuro: enciende las luces <b>L</b>') : tr('Press <b>E</b> to drill and collect the sample', 'Pulsa <b>E</b> para perforar y recoger la muestra');
     } else { obj.hidden = true; fl.hidden = true; this.$('medir').hidden = true; }
     // Telemetría
     this.$('tele').innerHTML = `
@@ -268,6 +341,7 @@ export class Rover {
 
   dispose() {
     window.removeEventListener('keydown', this._kd); window.removeEventListener('keyup', this._ku);
-    this.tasks.dispose(); this.obj.removeFromParent(); this.ui.remove();
+    this.tasks.dispose(); this.obj.removeFromParent(); this.polvoObj.removeFromParent(); this.ui.remove();
+    const el = this.view.renderer.domElement; el.removeEventListener('pointerdown', this._pd); window.removeEventListener('pointermove', this._pm); window.removeEventListener('pointerup', this._pu);
   }
 }
