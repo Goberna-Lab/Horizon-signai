@@ -23,3 +23,13 @@ export function sinInterno(texto: string): string {
       .replace(/ ([,.;:])/g, "$1")
   )
 }
+
+// Secciones de la documentación que son del proyecto por dentro (estructura del repositorio, cómo correrlo, con qué
+// modelos y servidores, pruebas por archivo, arquitectura y diferencias con el código): el RAG no las entrega nunca,
+// aunque se parezcan a la pregunta. Así la IA no puede contarlas aunque la convenzan.
+const DOCS_INTERNOS = new Set(["docs/10-diferencias-spec-codigo.md", "docs/11-flujo-y-arquitectura.md"])
+const SECCIONES_INTERNAS = /repository map|run it locally|use of ai|definiciones que usa el c[oó]digo|pruebas por archivo|qui[eé]n lee cada archivo|generan archivos|c[oó]mo leer estos documentos/i
+
+/** ¿Este trozo del índice es del proyecto por dentro? */
+export const esInterno = (t: { ruta: string; titulo: string }): boolean =>
+  DOCS_INTERNOS.has(t.ruta) || /(^|\/)(CLAUDE|ARCHITECTURE|AGENTS)\.md$/i.test(t.ruta) || SECCIONES_INTERNAS.test(t.titulo)

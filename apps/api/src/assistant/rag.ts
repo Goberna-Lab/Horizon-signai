@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
-import { sinInterno } from "./interno.js"
+import { esInterno, sinInterno } from "./interno.js"
 
 // Recuperación (RAG) sobre la documentación del proyecto. El índice va junto a este archivo y la ruta
 // sale de aquí, no del cwd: en producción la imagen corre el API desde el código (`tsx apps/api/src/index.ts`),
@@ -223,6 +223,9 @@ const vectorDe = (pregunta: string): Promise<Float32Array> => {
  * Los `k` trozos de la documentación más parecidos a la pregunta, de mayor a menor (`puntaje` es el coseno).
  * Devuelve [] si el mejor no pasa el piso (ver PISO) y nunca lanza: si falla el índice o el embedding, [].
  */
+let internosDe: Trozo[] | null = null
+let internos: boolean[] = []
+
 export async function buscar(pregunta: string, k: number = K, piso: number = PISO, margen: number = MARGEN): Promise<Hallazgo[]> {
   try {
     const texto = pregunta.normalize("NFKC").replace(/\s+/g, " ").trim().slice(0, MAX_PREGUNTA)
@@ -232,14 +235,17 @@ export async function buscar(pregunta: string, k: number = K, piso: number = PIS
     const q = await vectorDe(texto)
     if (q.length !== idx.dims) return []
     const { dims, vectores, normas, puntajes, trozos } = idx
+    // Lo del proyecto por dentro no se entrega nunca (./interno.ts): queda fuera de la búsqueda.
+    if (internosDe !== trozos) [internosDe, internos] = [trozos, trozos.map(esInterno)]
     // Coseno de la pregunta (longitud 1) contra cada fila int8. Sin await ni objetos dentro del bucle.
     let suma = 0
     let mejor = -1
     for (let i = 0, base = 0; i < puntajes.length; i++, base += dims) {
       let punto = 0
       for (let j = 0; j < dims; j++) punto += q[j]! * vectores[base + j]!
-      const p = punto / normas[i]!
+      const p = internos[i] ? -1 : punto / normas[i]!
       puntajes[i] = p
+      if (internos[i]) continue
       suma += p
       if (p > mejor) mejor = p
     }
