@@ -352,8 +352,11 @@ export default function EvaCompanera() {
   const caminoActual = useRef<Opcion | null>(null)
   const opcionesDelPasoRef = useRef<() => Opcion[]>(() => [])
   const darPasoRef = useRef<() => Promise<void>>(async () => {})
-  const sinSonar = useRef("") // lo último que dijo sin audio (antes del primer toque)
-  const hablarRef = useRef<(frase: string, remate: "bromeando" | "alegre" | null) => Promise<boolean>>(async () => false)
+  // La pregunta que hizo sin audio (antes del primer toque: los navegadores no dejan sonar antes): el primer toque la
+  // vuelve a hacer en voz alta, con la pregunta abierta (ver `habilitar`).
+  const sinSonar = useRef<{ frase: string; tipo: "nombre" | "oferta" } | null>(null)
+  const preguntarRef = useRef<(frase: string, tipo: "idioma" | "nombre" | "oferta") => Promise<void>>(async () => {})
+  const preguntaId = useRef(0) // cada pregunta nueva deja sin efecto el cierre de la anterior
   // El paso que EVA está diciendo y cuánto lleva dicho (lo que la cola de voz ya hizo sonar): si la interrumpen con una
   // pregunta, al volver al guion termina desde la oración que cortaron (ver `volverAlGuion`).
   const pasoHablado = useRef<{ t: { r: Recorrido; i: number }; i: number; frase: string; hablado: string; completo: boolean } | null>(null)
@@ -457,12 +460,12 @@ export default function EvaCompanera() {
       if (!audioCtx.current || audioCtx.current.state === "closed") audioCtx.current = new AudioContext()
       void audioCtx.current.resume()
       const pendiente = sinSonar.current
-      sinSonar.current = ""
-      if (pendiente && preguntaRef.current && preguntaRef.current !== "idioma") {
-        const espera = preguntaRef.current
+      sinSonar.current = null
+      // La vuelve a hacer si sigue en pie: abierta, o cerrada solo por el tiempo de espera (nadie contestó ni empezó otra cosa).
+      if (pendiente && !recorrido.current && (preguntaRef.current === pendiente.tipo || !preguntaRef.current)) {
         void (async () => {
           await esperar(250) // que el audio termine de arrancar
-          if (preguntaRef.current === espera) await hablarRef.current(pendiente, null)
+          if (!recorrido.current && (preguntaRef.current === pendiente.tipo || !preguntaRef.current)) await preguntarRef.current(pendiente.frase, pendiente.tipo)
         })()
       }
       // Ya eligió manos libres en esta visita (la página se recargó al cambiar de idioma): el primer toque lo reabre.
@@ -666,9 +669,6 @@ export default function EvaCompanera() {
     const ctx = await audioListo()
     if (turno.current !== mio) return false
     if (silencioRef.current || !ctx || ctx.state !== "running") {
-      // Sin audio todavía (nadie tocó la página: los navegadores no dejan sonar antes): queda anotada para decirla en voz
-      // alta con el primer toque, si su pregunta sigue abierta (ver `habilitar`).
-      if (!silencioRef.current) sinSonar.current = frase
       mostrar(frase)
       await esperar(lectura, corte.signal)
     } else {
@@ -717,7 +717,6 @@ export default function EvaCompanera() {
     soltarGlobo()
     return true
   }, [])
-  hablarRef.current = hablar
 
   /**
    * Va hasta una parte de la pantalla y le dispara el rayo. Dónde se pone y hacia qué lado abre el globo lo decide
@@ -887,6 +886,10 @@ export default function EvaCompanera() {
       // Manos libres: con su primera pregunta pide el micrófono (el navegador muestra el permiso). Si el audio aún no
       // está habilitado (nadie tocó la página), queda anotado y se abre con el primer toque (ver `habilitar`).
       if (tipo !== "idioma" && !manosRef.current) void encenderManos()
+      const id = ++preguntaId.current
+      // Sin audio todavía: la dice en silencio y queda anotada para el primer toque.
+      const ctx = audioCtx.current
+      sinSonar.current = tipo !== "idioma" && !silencioRef.current && (!ctx || ctx.state !== "running") ? { frase, tipo } : null
       // El campo o los botones salen mientras lo dice, no al terminar: se le puede contestar desde ya.
       const dicho = hablar(frase, null)
       setPregunta(tipo)
@@ -901,7 +904,8 @@ export default function EvaCompanera() {
       )
       if (!(await dicho)) {
         // Le quitaron la palabra. Si fue la respuesta, la pregunta ya se cerró; si fue un aviso de otra pantalla, se retira.
-        if (preguntaRef.current === tipo) cerrarPregunta()
+        // Si la quitó otra pregunta (o esta misma, repetida en voz alta con el primer toque), esa manda: no se cierra.
+        if (preguntaId.current === id && preguntaRef.current === tipo) cerrarPregunta()
         return
       }
       ocupada.current = true // la pregunta sigue abierta: ni pasea ni comenta
@@ -910,6 +914,7 @@ export default function EvaCompanera() {
     },
     [hablar],
   )
+  preguntarRef.current = preguntar
 
   /** El saludo: su nombre y la pregunta por el de la persona. Una vez por carga de la página (ver `saludoHecho`). */
   const saludar = useCallback(async () => {
