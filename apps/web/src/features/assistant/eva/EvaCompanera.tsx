@@ -38,7 +38,6 @@ const NOMBRE_MS: Record<Idioma, number> = { en: 2500, es: 0 }
 const DICHAS = "horizon-signai.eva.dichas.v1"
 const SILENCIO = "horizon-signai.eva.silencio.v1"
 const IDIOMA = "horizon-signai.eva.idioma.v1"
-const SALUDO = "horizon-signai.eva.saludo.v1" // en sessionStorage: saluda una vez por visita
 const MANOS = "horizon-signai.eva.manos-libres.v1" // en sessionStorage: ya se encendió el micrófono en esta visita
 /** Cómo se sigue en un paso del flujo: con «Next», eligiendo uno de los tres caminos o acertando la pregunta de repaso. */
 const tipoDe = (p: Paso) => (p.elige ? "camino" : p.repaso ? "repaso" : "paso")
@@ -78,8 +77,23 @@ const anotarEnVisita = (k: string) => {
     /* sin almacenamiento: lo hará de nuevo */
   }
 }
-const yaSaludo = () => enVisita(SALUDO)
-const anotarSaludo = () => anotarEnVisita(SALUDO)
+// Saluda una vez por carga de la página (pedido de Manuel, 2026-11-15): al recargar empieza de cero (saludo, nombre y
+// oferta); al moverse entre pantallas de la app no lo repite.
+let saludoHecho = false
+const yaSaludo = () => saludoHecho
+const anotarSaludo = () => {
+  saludoHecho = true
+}
+/** La página se acaba de recargar porque eligió el otro idioma: vale una sola vez (luego se borra). */
+const recienCambioIdioma = () => {
+  if (!enVisita(IDIOMA_ELEGIDO)) return false
+  try {
+    sessionStorage.removeItem(IDIOMA_ELEGIDO)
+  } catch {
+    /* sin almacenamiento */
+  }
+  return true
+}
 /** Espera `ms`. Con `corte`, termina antes si lo cortan. */
 // Los tiempos de cada conversación van también al log del API, sin el texto de la persona (./tiempos.ts).
 tiempos.alCerrar(enviarTiempos)
@@ -848,12 +862,12 @@ export default function EvaCompanera() {
     [hablar],
   )
 
-  /** El saludo: su nombre y la pregunta por el de la persona (o, si ya la conoce, la oferta del flujo). */
+  /** El saludo: su nombre y la pregunta por el de la persona. Una vez por carga de la página (ver `saludoHecho`). */
   const saludar = useCallback(async () => {
     anotarSaludo()
     const t = TEXTOS[idiomaRef.current]
-    const conocido = recuerdos().nombre
-    await preguntar(conocido ? t.deNuevo(conocido) : t.hola, conocido ? "oferta" : "nombre")
+    await preguntar(t.hola, "nombre") // de cero: siempre pregunta el nombre
+
   }, [preguntar])
 
   /**
@@ -893,7 +907,7 @@ export default function EvaCompanera() {
           : ms > 1500
       } else salio = ms > (ruta.current === routes.landing ? 5000 : 900)
       // La página se acaba de recargar porque eligió el otro idioma: no espera otra vez al Sol para saludar.
-      if (enVisita(IDIOMA_ELEGIDO) && !yaSaludo() && ms > 500) salio = true
+      if (!yaSaludo() && ms > 500 && recienCambioIdioma()) salio = true
       if (salio || ms > 9000) { // como mucho 9 s (antes 14): si la animación del Sol tarda, no se la espera
         clearInterval(id)
         void despertar()
