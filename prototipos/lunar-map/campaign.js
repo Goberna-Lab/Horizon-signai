@@ -5,19 +5,24 @@
 (function (root) {
   'use strict';
   var L = root.Lunar, M = L.Mission;
-  var KEY = 'lunarmap.cr02.approvedAt';
+  /* la firma de la ruta científica de CR-02: aprobada (KEY) o devuelta con cambios (CHG_KEY), y la nota de quien firma */
+  var KEY = 'lunarmap.cr02.approvedAt', CHG_KEY = 'lunarmap.cr02.changesAt', NOTE_KEY = 'lunarmap.cr02.note';
   function U(y, mo, d, h, mi, s) { return Date.UTC(y, mo - 1, d, h || 0, mi || 0, s || 0); }
 
   var CONTACT = U(2026, 12, 18, 9, 0, 0);
   var EVA = U(2026, 12, 19, 10, 0, 0);
+  var GONOGO = U(2026, 12, 15, 16, 0, 0); /* Go/No-Go final de la campaña (dirección de vuelo) */
   var DESCENT_S = 710; /* 11 min 50 s; P63 hasta 0,62, P64 hasta 0,93 */
 
+  /* checks: [nombre, ok | flag | none] (flag: el chequeo que explica el estado de la misión; none: aún sin evaluar).
+   * why: por qué la misión está en su estado, en una línea, con las cifras de la bitácora y de mission.js.
+   * t: para ordenar por fecha (PS-03 aún sin día: el mes; DG-04 sin fecha). */
   var MISSIONS = [
-    { id: 'CR-01', name: 'Landing at Connecting Ridge', meta: '18 Dec 2026 · 09:00 UTC · Zone A', status: 'GO', site: 'A', bars: ['ok', 'ok', 'ok', 'warn', 'ok'], legend: 'fuel · light · Sun · Earth · night', href: 'index.html' },
-    { id: 'CR-02', name: 'Science walk to the Shackleton rim', meta: '19 Dec 2026 · 10:00 UTC · 2 stops', status: 'PEND', site: 'A', bars: ['ok', 'warn', 'ok', 'ok', 'ok'], legend: 'slope · O₂ · power · Earth · light', href: 'planificar.html' },
-    { id: 'PS-03', name: 'Survey of the peak next to Shackleton', meta: 'Jan 2027 · date to be chosen · Zone B', status: 'REV', site: 'B', bars: ['ok', 'ok', 'warn', 'warn', 'warn'], legend: 'fuel · light · Sun · Earth · night', href: 'index.html' },
-    { id: 'SR-05', name: 'Landing at the Shackleton rim', meta: '5 May 2027 · 09:00 UTC · Zone C', status: 'REV', site: 'C', bars: ['ok', 'warn', 'warn', 'ok', 'warn'], legend: 'fuel · light · Sun · Earth · night', href: 'index.html' },
-    { id: 'DG-04', name: 'Sampling at the de Gerlache rim', meta: 'no date · science team draft', status: 'DRAFT', site: 'D', bars: ['ok', 'none', 'none', 'none', 'none'], legend: 'fuel · light · Sun · Earth · night', href: 'planificar.html' }
+    { id: 'CR-01', name: 'Landing at Connecting Ridge', meta: '18 Dec 2026 · 09:00 UTC · Zone A', status: 'GO', site: 'A', t: CONTACT, checks: [['Fuel', 'ok'], ['Light', 'ok'], ['Sun', 'ok'], ['Earth', 'ok'], ['Night', 'ok']], why: 'Sun +2.7° and Earth +6.5° at contact: direct link', href: 'index.html' },
+    { id: 'CR-02', name: 'Science walk to the Shackleton rim', meta: '19 Dec 2026 · 10:00 UTC · 2 stops', status: 'PEND', site: 'A', t: EVA, checks: [['Slope', 'ok'], ['O₂', 'flag'], ['Power', 'ok'], ['Earth', 'ok'], ['Light', 'ok']], why: 'O₂ on return 26%, under the 30% margin', href: 'planificar.html' },
+    { id: 'PS-03', name: 'Survey of the peak next to Shackleton', meta: 'Jan 2027 · date to be chosen · Zone B', status: 'REV', site: 'B', t: U(2027, 1, 1), checks: [['Fuel', 'ok'], ['Light', 'ok'], ['Sun', 'flag'], ['Earth', 'flag'], ['Night', 'flag']], why: 'No date yet: there is no local illumination series to set it', href: 'index.html' },
+    { id: 'SR-05', name: 'Landing at the Shackleton rim', meta: '5 May 2027 · 09:00 UTC · Zone C', status: 'REV', site: 'C', t: U(2027, 5, 5, 9), checks: [['Fuel', 'ok'], ['Light', 'flag'], ['Sun', 'flag'], ['Earth', 'ok'], ['Night', 'flag']], why: 'Light, Sun and night still under review', href: 'index.html' },
+    { id: 'DG-04', name: 'Sampling at the de Gerlache rim', meta: 'no date · science team draft', status: 'DRAFT', site: 'D', t: null, checks: [['Fuel', 'ok'], ['Light', 'none'], ['Sun', 'none'], ['Earth', 'none'], ['Night', 'none']], why: 'Draft: the checks run once it has a date', href: 'planificar.html' }
   ];
   var STATUS_LABEL = { GO: 'GO', PEND: 'PENDING SIGN-OFF', REV: 'REVIEW', DRAFT: 'DRAFT', OK: 'APPROVED' };
   var SITES = {
@@ -42,14 +47,24 @@
     op: { label: 'Operation', short: 'OPS' }
   };
 
-  /* ---------- aprobación de CR-02 ---------- */
-  function approvedAt() { try { var v = root.localStorage.getItem(KEY); return v ? +v : null; } catch (e) { return null; } }
-  function approve(ts) { ts = ts || Date.now(); try { root.localStorage.setItem(KEY, String(ts)); } catch (e) {} return ts; }
-  function resetApproval() { try { root.localStorage.removeItem(KEY); } catch (e) {} }
+  /* ---------- firma de CR-02: aprobar o pedir cambios ---------- */
+  function get(k) { try { return root.localStorage.getItem(k); } catch (e) { return null; } }
+  function put(k, v) { try { if (v === null || v === '') root.localStorage.removeItem(k); else root.localStorage.setItem(k, v); } catch (e) {} }
+  function approvedAt() { var v = get(KEY); return v ? +v : null; }
+  function note() { return get(NOTE_KEY) || ''; }
+  function changesRequested() { var v = get(CHG_KEY); return v ? { t: +v, note: note() } : null; }
+  function approve(ts, n) { ts = ts || Date.now(); put(KEY, String(ts)); put(NOTE_KEY, n || null); put(CHG_KEY, null); return ts; }
+  function requestChanges(n, ts) { ts = ts || Date.now(); put(CHG_KEY, String(ts)); put(NOTE_KEY, n || null); put(KEY, null); return ts; }
+  function resetApproval() { put(KEY, null); put(CHG_KEY, null); put(NOTE_KEY, null); }
 
   function missions() {
-    var ok = approvedAt() !== null;
-    return MISSIONS.map(function (m) { var c = {}; for (var k in m) c[k] = m[k]; if (ok && m.id === 'CR-02') c.status = 'OK'; return c; });
+    var ok = approvedAt() !== null, chg = !ok && changesRequested() !== null;
+    return MISSIONS.map(function (m) {
+      var c = {}; for (var k in m) c[k] = m[k];
+      if (m.id === 'CR-02' && ok) { c.status = 'OK'; c.why = 'Approved with mandatory return at stop 2'; }
+      if (m.id === 'CR-02' && chg) { c.status = 'REV'; c.why = 'Changes requested: back with Planning'; }
+      return c;
+    });
   }
   function decisions() {
     var out = [
@@ -87,7 +102,7 @@
       [U(2026, 11, 13, 17, 5), 'CR-02', 'plan', 'Planning', 'Sends the scientific route for sign-off: ' + M.num(sci.distKm, 1) + ' km, max slope ' + M.num(sci.pmax, 1) + '°, O₂ on return 26%', 'planificar.html'],
       [U(2026, 11, 14, 8, 10), 'DG-04', 'plan', 'Science team', 'Adds three sampling points to the draft', 'planificar.html'],
       /* programados */
-      [U(2026, 12, 15, 16, 0), 'CR-01', 'op', 'Flight Director', 'Final campaign Go/No-Go', 'index.html'],
+      [GONOGO, 'CR-01', 'op', 'Flight Director', 'Final campaign Go/No-Go', 'index.html'],
       [CONTACT - DESCENT_S * 1000, 'CR-01', 'op', 'Flight Director', 'P63 · braking begins from 15 km altitude', 'index.html'],
       [CONTACT - Math.round(DESCENT_S * 0.38) * 1000, 'CR-01', 'op', 'Flight Director', 'P64 · approach with the site in view', 'index.html'],
       [CONTACT - Math.round(DESCENT_S * 0.07) * 1000, 'CR-01', 'op', 'Flight Director', 'P66 · vertical descent', 'index.html'],
@@ -109,9 +124,10 @@
       [STAY_END, 'CR-01', 'op', 'Flight Director', 'Liftoff at the end of the 3-day stay on the surface', 'index.html'],
       [U(2027, 1, 7, 20), 'PS-03', 'rev', 'Planning', 'Deadline to choose the date: at the peak (RoI 2) the Sun is cut off on 28 Jan', 'index.html']
     );
-    var a = approvedAt();
-    if (a !== null) log.push([a, 'CR-02', 'dec', 'Coordination', 'Approves the scientific route with mandatory return at stop 2', 'planificar.html', true]);
-    return log.map(function (r) { return { t: r[0], id: r[1], type: r[2], who: r[3], text: r[4], href: r[5], fresh: !!r[6] && Date.now() - r[0] < 10000 }; })
+    var a = approvedAt(), chg = changesRequested();
+    if (a !== null) log.push([a, 'CR-02', 'dec', 'Coordination', 'Approves the scientific route with mandatory return at stop 2', 'planificar.html', true, note()]);
+    else if (chg) log.push([chg.t, 'CR-02', 'dec', 'Coordination', 'Requests changes to the scientific route', 'planificar.html', true, chg.note]);
+    return log.map(function (r) { return { t: r[0], id: r[1], type: r[2], who: r[3], text: r[4], href: r[5], fresh: !!r[6] && Date.now() - r[0] < 10000, note: r[7] || '' }; })
       .sort(function (x, y) { return x.t - y.t; });
   }
 
@@ -123,9 +139,9 @@
   function fmtDayLong(ts) { var d = new Date(ts); return DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
 
   root.Lunar.Campaign = {
-    CONTACT: CONTACT, EVA: EVA, SUN: SUN, SUN_B: SUN_B, STAY_END: STAY_END, SITES: SITES, TYPES: TYPES, STATUS_LABEL: STATUS_LABEL, DAYS: DAYS, MONTHS: MONTHS, U: U,
+    CONTACT: CONTACT, EVA: EVA, GONOGO: GONOGO, SUN: SUN, SUN_B: SUN_B, STAY_END: STAY_END, SITES: SITES, TYPES: TYPES, STATUS_LABEL: STATUS_LABEL, DAYS: DAYS, MONTHS: MONTHS, U: U,
     missions: missions, decisions: decisions, movements: movements,
-    approvedAt: approvedAt, approve: approve, resetApproval: resetApproval,
+    approvedAt: approvedAt, approve: approve, resetApproval: resetApproval, changesRequested: changesRequested, requestChanges: requestChanges, note: note,
     two: two, hhmm: hhmm, fmtDay: fmtDay, fmtDayLong: fmtDayLong, KEY: KEY
   };
 })(typeof window !== 'undefined' ? window : globalThis);

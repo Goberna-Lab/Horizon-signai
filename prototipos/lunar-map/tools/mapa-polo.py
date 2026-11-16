@@ -105,12 +105,15 @@ def main() -> None:
     print("->", png, f"{png.stat().st_size / 1024:.0f} KB, {100 * (pend > 15).mean():.1f} % del mapa sobre 15°")
 
     radar(cerca, lejos)
+    radar(cerca, lejos, 50.0, "radar-polo-sur-50km.jpg")
 
 
-def radar(cerca: dict, lejos: dict) -> None:
+def radar(cerca: dict, lejos: dict, RADIO_KM: float = 200.0, nombre: str = "radar-polo-sur.jpg") -> None:
     """data/radar-polo-sur.jpg: el fondo del radar de Missions. Disco de 200 km de radio alrededor del polo, a distancia
-    real (azimutal equidistante: r = distancia de arco), 0° E arriba, en tono fósforo sobre vidrio oscuro."""
-    N, RADIO_KM = 512, 200.0
+    real (azimutal equidistante: r = distancia de arco), 0° E arriba, en tono fósforo sobre vidrio oscuro.
+    data/radar-polo-sur-50km.jpg: el mismo disco a 50 km, para el zoom que encuadra la campaña (≈ 200 m por píxel, la
+    resolución de la rejilla de 240 m)."""
+    N = 512
     c = (np.arange(N) + 0.5) / N * 2 - 1
     u, w = np.meshgrid(c, c)
     d_m = np.hypot(u, w) * RADIO_KM * 1000
@@ -131,7 +134,7 @@ def radar(cerca: dict, lejos: dict) -> None:
     base, tinte = np.array([4, 17, 13], float), np.array([96, 168, 148], float)
     rgb = base + luz[..., None] * tinte
     rgb[np.hypot(u, w) > 1] = base
-    jpg = AQUI / "data" / "radar-polo-sur.jpg"
+    jpg = AQUI / "data" / nombre
     Image.fromarray(rgb.clip(0, 255).astype(np.uint8)).save(jpg, quality=70, optimize=True, progressive=True)
     print("->", jpg, f"{jpg.stat().st_size / 1024:.0f} KB")
 

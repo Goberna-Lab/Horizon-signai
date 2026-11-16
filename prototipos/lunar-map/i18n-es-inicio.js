@@ -285,3 +285,64 @@ LunarI18n.add({
     'Shackleton rim · RoI 4': 'Borde de Shackleton · RoI 4'
   }
 });
+
+/* Missions con el próximo hito y la firma arriba, sitios grandes, misiones con sus cifras y ventanas de aterrizaje
+ * (2026-11-15). Los textos con cifras van en «patterns»: se aplican después de los de arriba, con los meses ya en español. */
+LunarI18n.add({
+  exact: {
+    /* cabecera y firma */
+    'New mission': 'Nueva misión',
+    'Plan a new mission in the Planner': 'Planifica una misión nueva en el planificador',
+    'Distance': 'Distancia',
+    'Max slope': 'Pendiente máxima',
+    'O₂ on return': 'O₂ al volver',
+    /* radar */
+    'Radar range': 'Alcance del radar',
+    'Radar of the lunar south pole: the campaign mission sites at their real distance': 'Radar del polo sur lunar: los sitios de las misiones de la campaña a su distancia real',
+    /* cifras de cada misión (títulos al pasar el ratón) */
+    'No date': 'Sin fecha',
+    'Sun at landing': 'Sol al alunizar',
+    'Earth at landing': 'Tierra al alunizar',
+    'Days the landing can slip and stay in its window': 'Días que el alunizaje puede atrasarse sin salir de su ventana',
+    'Contact': 'Contacto',
+    'Walk': 'Caminata',
+    'Deadline to choose the date': 'Plazo para elegir la fecha',
+    'Next landing window at this site': 'Próxima ventana de aterrizaje en este sitio',
+    'Nearest landing window at this site': 'Ventana de aterrizaje más cercana en este sitio',
+    'Longest night of the stay': 'Noche más larga de la estadía',
+    /* motivo de cada misión (campaign.js), al pasar el ratón por su tarjeta */
+    'Sun +2.7° and Earth +6.5° at contact: direct link': 'Sol a +2.7° y Tierra a +6.5° en el contacto: enlace directo',
+    'O₂ on return 26%, under the 30% margin': 'O₂ al volver 26%, bajo el margen del 30%',
+    'No date yet: there is no local illumination series to set it': 'Sin fecha: falta la serie local de iluminación para fijarla',
+    'Light, Sun and night still under review': 'Luz, Sol y noche aún en revisión',
+    'Draft: the checks run once it has a date': 'Borrador: los chequeos corren cuando tenga fecha',
+    'Approved with mandatory return at stop 2': 'Aprobada con retorno obligatorio en la parada 2',
+    'Changes requested: back with Planning': 'Cambios pedidos: vuelve a Planificación',
+    /* ventanas de aterrizaje */
+    'Landing windows': 'Ventanas de aterrizaje',
+    'next 6 months · by site and day': 'próximos 6 meses · por sitio y día',
+    'Can land': 'Se puede alunizar',
+    'Sun, but Earth hidden': 'Sol, pero Tierra oculta',
+    'No Sun, or a night longer than the battery': 'Sin Sol, o una noche más larga que la batería',
+    'Milestone': 'Hito',
+    'Today': 'Hoy',
+    'days open': 'días abiertos',
+    'Feb': 'feb', 'Mar': 'mar', 'Apr': 'abr', 'May': 'may',
+    'Rule of CR-01: land at 09:00 UTC · 3-day stay · panel and antenna at 2 m · battery 24 h · Earth ≥ 40% · planner engine: JPL Horizons DE441 and LOLA horizons': 'Regla de CR-01: alunizaje a las 09:00 UTC · estadía de 3 días · panel y antena a 2 m · batería de 24 h · Tierra ≥ 40 % · motor del planificador: JPL Horizons DE441 y horizontes LOLA'
+  },
+  patterns: [
+    [/^in (\d+) d$/, 'en $1 d'],
+    [/^Slip \+(\d+) d$/, 'Holgura +$1 d'],
+    [/^Choose by (.+)$/, 'Elegir antes del $1'],
+    [/^Window (.+)$/, 'Ventana $1'],
+    [/^Night (\d+) h$/, 'Noche $1 h'],
+    [/^max (\d+) h$/, 'máx. $1 h'],
+    [/^max (\d+)°$/, 'máx. $1°'],
+    [/^min (\d+)%$/, 'mín. $1%'],
+    [/^(\d+) sampling points$/, '$1 puntos de muestreo'],
+    [/^([A-Z]{2}-\d{2}) · choose by (.+)$/, '$1 · elegir antes del $2'],
+    [/^(\d+)% of the time$/, '$1% del tiempo'],
+    [/^Next window (.+)$/, 'Próxima ventana $1'],
+    [/\bde Gerlache rim\b/, 'Borde de de Gerlache']
+  ]
+});

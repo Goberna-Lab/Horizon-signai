@@ -19,6 +19,11 @@ Maqueta estática (HTML, CSS y JavaScript sin dependencias) del **Dashboard** (`
 - **LROC Quickmap.** Enlace al mismo lugar en Quickmap (estereográfica polar sur).
 - **Etiquetas honestas.** El relieve de los mapas y todo el paso «Walk» se rotulan como generados para ilustrar («Walk · concept»); sus capas ya no citan instrumentos.
 - **Inglés y español.** `i18n.js` traduce lo que se ve con los diccionarios `i18n-es.js` (planificador), `i18n-es-inicio.js` e `i18n-es-planificar.js`, hechos con el español original de estas páginas (commit `5b6bdc4`). La preferencia es la de toda la app (`localStorage` «horizon-signai.lang»). Un texto nuevo necesita su entrada en el diccionario.
+- **Missions, ordenado por la decisión.** Arriba, como cabecera, el próximo hito (cuenta regresiva y sus cuatro pasos) y la firma pendiente de CR-02, con sus cifras contra el límite (pendiente 14° de 15°, O₂ 26 % bajo el mínimo de 30 %). Salen los cuatro indicadores (dos repetían la firma y dos no llevaban a ninguna decisión) y el selector Missions | Planner: «New mission», en la cabecera, abre el Planificador de misiones. Debajo, la carpeta con tres pestañas: **Details** (sitios de misión, más grande y a la izquierda, con radar de 50, 100 o 200 km; y misiones), **Landing windows** y **Tracking** (calendario y bitácora, como antes).
+  - Las misiones son tarjetas con sus cifras clave (ícono, cifra y límite), primero las que piden atención: CR-01 dice cuántos días puede atrasarse sin salir de su ventana (+7 d), SR-05 por qué está en revisión (Sol −0,9° al contacto, noche de 26 h con batería de 24 h) y su ventana más cercana, PS-03 su plazo y su próxima ventana. Al pasar el ratón, el motivo de su estado (`why` en `campaign.js`).
+  - **Landing windows**: por sitio y por día de los próximos 6 meses, si se puede alunizar con la regla de CR-01, con las misiones y el Go/No-Go encima. Lo calcula `tools/ventanas-aterrizaje.js` con el motor (`data/ventanas.js`). Se ve que la Tierra se oculta unas dos semanas de cada mes.
+  - La ficha de un sitio en el radar suma su Sol y su Tierra (Mazarico) y su próxima ventana.
+  - Íconos: Lineicons Free 5.2, autoalojado en `/ui/lineicons.css` (`apps/web/public/ui/`). Un ícono, un significado: `sun-1` Sol, `globe-1` Tierra, `moon-half-right-5` noche, `calendar-days` fecha, `alarm-1` plazo, `hourglass` holgura, `flag-1` ventana o hito, `mountains-2` pendiente, `route-1` ruta, `map-pin-5` puntos, `plus` nueva misión.
 - **Para la asistente.** `window.LunarPlanner.text()` describe lo que se ve con las cifras del motor y `LunarPlanner.run(orden)` ejecuta una orden validada (ver `apps/api/src/acciones.ts`).
 
 ## Cómo abrirlo
@@ -35,8 +40,8 @@ y abrir `http://localhost:8765/inicio.html`. Los datos se cargan como scripts, a
 
 | Archivo | Pantalla | Área en el repo |
 |---|---|---|
-| `inicio.html` | Centro de misiones: próximo hito con cuenta regresiva y sus cuatro pasos en fila, firma pendiente, KPIs, calendario de campaña, movimientos de las misiones, sitios de misión y lista de misiones | Dashboard (`features/dashboard/`) |
-| `campaign.js` | Datos de la campaña de ejemplo: misiones CR-01, CR-02, PS-03 y DG-04, movimientos registrados y programados, aprobación de CR-02 (en `localStorage`) | Dashboard |
+| `inicio.html` | Centro de misiones: arriba, próximo hito con cuenta regresiva y sus cuatro pasos, y la firma pendiente; debajo, sitios de misión (radar de 50/100/200 km) y misiones con sus cifras, ventanas de aterrizaje, calendario de campaña y movimientos | Dashboard (`features/dashboard/`) |
+| `campaign.js` | Datos de la campaña de ejemplo: misiones CR-01, CR-02, PS-03, SR-05 y DG-04 con sus chequeos y su motivo, movimientos registrados y programados, Go/No-Go final, firma de CR-02 (en `localStorage`) | Dashboard |
 | `index.html` | Planificador · paso 1, Alunizaje: zonas candidatas, escenario editable, Go/No-Go, «Cómo cumplir», comparación, punto propio, horizonte real, línea de tiempo y simulación del descenso | Planificador (`features/mission-planner/`) |
 | `planificar.html` | Planificador · paso 2, Caminata: capas, plan de caminata con tres rutas, supervivencia y perfil de elevación | Planificador |
 | `engine.js` | Motor de planificación portado | Núcleo (`shared/planning`), solo como referencia |
@@ -49,7 +54,7 @@ y abrir `http://localhost:8765/inicio.html`. Los datos se cargan como scripts, a
 
 `inicio.html` se apoya en `campaign.js` (misiones y movimientos), `mission.js` (cifras de la ruta científica de CR-02) y `terrain.js` (mapa de sitios). Los movimientos enlazan a los dos pasos del Planificador.
 
-**Add mission** abre el planificador de misiones de Jefrry (`apps/web/public/planificar-mision.html`, servido en `/planificar-mision.html`) directamente en su formulario (`?nueva`) y en el idioma de la página (`?lang=en|es`). Su cabecera tiene «← Missions» para volver a `/planner`.
+**New mission** (cabecera) abre el planificador de misiones de Jefrry (`apps/web/public/planificar-mision.html`, servido en `/planificar-mision.html`) directamente en su formulario (`?nueva`) y en el idioma de la página (`?lang=en|es`). Su cabecera tiene «← Missions» para volver a `/planner`.
 
 Las cifras de la zona A que muestra son las del Planificador con el plan de CR-01 (18 dic 2026, 09:00 UTC, 3 días, panel y antena a 2 m):
 - Sol a +2,7° sobre el horizonte en el contacto.
@@ -120,6 +125,6 @@ Copias en base64 de `luna-recursos/datos`, sin cambios, para que la página func
 ### Supuestos y límites
 
 - Son los mismos que declara el equipo: el Sol se mide desde el panel y la Tierra desde la antena, en el mismo punto del terreno, y el panel es vertical y sigue al Sol.
-- El mapa de Alunizaje es el **relieve real** de LOLA a 240 m (sombreado con luz de cartografía, no la del Sol en una fecha) y marca las 13 candidatas; la capa de pendiente sale de ese relieve. El panel «Mission sites» de Missions es un radar de 200 km a distancia real sobre ese mismo relieve de LOLA (`data/radar-polo-sur.jpg`, posiciones de `data/candidatas.js`). Solo muestra los sitios donde la campaña tiene alguna misión (una candidata aparece cuando se crea una misión en ella), con el color del estado de su misión (el de su chip: GO, REVIEW, pendiente de firma, borrador); el barrido es solo visual y cada punto da su detalle al pasar el ratón. El relieve local de Caminata es **relieve generado** para ilustrar.
+- El mapa de Alunizaje es el **relieve real** de LOLA a 240 m (sombreado con luz de cartografía, no la del Sol en una fecha) y marca las 13 candidatas; la capa de pendiente sale de ese relieve. El panel «Mission sites» de Missions es un radar de 50, 100 o 200 km a distancia real sobre ese mismo relieve de LOLA (`data/radar-polo-sur.jpg` y `data/radar-polo-sur-50km.jpg`, de `tools/mapa-polo.py`; posiciones de `data/candidatas.js`). Solo muestra los sitios donde la campaña tiene alguna misión (una candidata aparece cuando se crea una misión en ella), con el color del estado de su misión (el de su chip: GO, REVIEW, pendiente de firma, borrador); el barrido es solo visual y cada punto da su detalle al pasar el ratón. El relieve local de Caminata es **relieve generado** para ilustrar.
 - Las rutas de la caminata y sus cifras salen de ese relieve generado, no del DTM real.
 - El perfil de descenso y el combustible son los del Apollo 11 (R-695 y TN D-6846), no los de una misión real.

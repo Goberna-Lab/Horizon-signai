@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
 <!-- Títulos de los paneles: display caps, la tipografía compartida del proyecto (apps/web/public/ui/display-caps.css) -->
 <link rel="stylesheet" href="/ui/display-caps.css">
+<!-- Íconos: Lineicons Free 5.2, autoalojado (apps/web/public/ui/lineicons.css); un ícono, un significado (README) -->
+<link rel="stylesheet" href="/ui/lineicons.css">
 <link rel="stylesheet" href="shared.css">
 <!-- El flujo guiado pasa de aquí al planificador: sus archivos se piden ya, con la página en reposo, para que abra sin espera. -->
 <link rel="prefetch" href="index.html"><link rel="prefetch" href="data/efemerides-luna.js"><link rel="prefetch" href="data/zonas.js"><link rel="prefetch" href="engine.js"><link rel="prefetch" href="terrain.js"><link rel="prefetch" href="i18n-es.js">
@@ -33,18 +35,45 @@
 @media (prefers-reduced-motion: reduce) { .techgrid::before, .techgrid::after { animation: none; } }
 
 /* ---------- barra superior ---------- */
-.top { display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr); align-items: center; column-gap: 16px; }
+/* sin el selector Missions | Planner: el planificador se abre desde «New mission» (y desde cada misión, en el planificador) */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.top .addm { flex: none; width: auto; margin: 0; height: 52px; padding: 0 20px; gap: 8px; font-size: 15px; }
 /* el reloj muestra solo la hora cuando la cabecera no tiene sitio para la fecha larga */
 @media (max-width: 1599px) { .utc #today { display: none; } }
 .topr { display: flex; align-items: center; gap: 10px; }
 .utc { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px; border-radius: 999px; font-size: 13px; color: var(--gris); }
 .utc b { color: var(--tinta); font-weight: 600; }
 
-/* ---------- rejilla principal ---------- */
-.main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
-/* bajo los indicadores: sitios de misión y misiones, mitad y mitad */
-.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* ---------- rejilla principal: arriba, como cabecera, el próximo hito y la firma pendiente; debajo, la carpeta ---------- */
+.main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+/* en la carpeta: sitios de misión (más grande, a la izquierda) y misiones; en «Tracking», calendario y movimientos a la par */
+.duo { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.duo.track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* ---------- íconos (Lineicons, /ui/lineicons.css) y símbolos de estado: color, forma y palabra ---------- */
+.lni { font-size: 1.05em; line-height: 1; vertical-align: -0.12em; }
+.sym { display: inline-block; flex: none; width: 10px; height: 10px; vertical-align: middle; }
+.sym.dot { border-radius: 50%; }
+.sym.GO, .sym.OK { background: var(--tinta); }
+.sym.PEND { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid var(--rojo); }
+.sym.REV { border: 1.5px solid #C99A1C; background: linear-gradient(90deg, #E2A923 50%, transparent 50%); }
+.sym.DRAFT { border: 1.5px dashed var(--gris-3); }
+/* KPI: ícono, cifra y, si tiene límite, una barra con la marca; rojo si no cumple, ámbar si está en revisión */
+.kps { display: flex; flex-wrap: wrap; gap: 6px; }
+.kp { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 1px solid var(--borde); background: rgba(255,255,255,0.55); font: 500 12px var(--f-mono); color: var(--tinta-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.kp .lni { color: var(--gris); font-size: 14px; }
+.kp small { font-size: 10.5px; color: var(--gris-2); }
+.kp b { font-weight: 600; }
+.kp.bad { border-color: rgba(200,16,46,0.45); background: rgba(200,16,46,0.07); color: var(--rojo); }
+.kp.bad .lni, .kp.bad small { color: var(--rojo); }
+.kp.warn { border-color: rgba(201,154,28,0.55); background: rgba(226,169,35,0.12); color: #8A5A00; }
+.kp.warn .lni, .kp.warn small { color: #8A5A00; }
+.kp.good .lni { color: var(--tinta); }
+.kp .o2 { font-weight: 700; font-size: 11px; }
+.mb { position: relative; flex: none; width: 40px; height: 5px; background: rgba(17,17,17,0.12); }
+.mb i { position: absolute; left: 0; top: 0; bottom: 0; background: currentColor; }
+.mb b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tinta); }
 .panel { padding: 16px; border-radius: 20px; }
 .ph { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 8px; margin-bottom: 12px; }
 .ph h2 { font-size: 16px; line-height: 1.2; }
@@ -57,15 +86,12 @@
 .st.REV { background: var(--borde); color: var(--tinta); }
 .st.DRAFT { color: var(--gris); box-shadow: inset 0 0 0 1px var(--borde-2); background: repeating-linear-gradient(135deg, rgba(17,17,17,0.04) 0 4px, rgba(0,0,0,0) 4px 8px); }
 
-/* ---------- indicadores ---------- */
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.kpi { padding: 12px 14px 13px; border-radius: 16px; }
-.kpi p { font-size: 11.5px; color: var(--gris); }
-.kpi b { display: block; margin: 2px 0 1px; font-family: var(--f-serif); font-size: 36px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
-.kpi b.warn { color: var(--rojo); }
-.kpi small { display: block; font-size: 10.5px; color: var(--gris-2); line-height: 1.35; }
-
-/* ---------- próximo hito: cuenta regresiva de tableta ---------- */
+/* ---------- próximo hito: cuenta regresiva de tableta, a lo ancho (texto y tableta arriba, los cuatro pasos debajo) ---------- */
+.next { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "a f" "s s"; column-gap: 18px; align-items: start; }
+.next .nx-a { grid-area: a; min-width: 0; }
+.next .flaps { grid-area: f; width: 260px; margin: 2px 0 0; }
+.next .steps { grid-area: s; }
+.next .flap b { height: 46px; font-size: 25px; }
 .next .who-m { font-size: 14px; line-height: 1.2; margin-bottom: 4px; }
 .next .sub { font-size: 11px; color: var(--gris); }
 .flaps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0 4px; }
@@ -88,7 +114,13 @@
    planificador de misiones (/planificar-mision.html) en su formulario */
 .addm { flex: none; width: 100%; margin-top: 8px; font-size: 14px; }
 
-.mrow { display: flex; flex-direction: column; gap: 7px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
+.upcoming .ph .aux { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
+.upcoming .ph .aux span { display: inline-flex; align-items: center; gap: 5px; }
+.mrow { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
+.mrow .r1 .sym { margin-right: 2px; }
+.mrow .r1 .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow.quiet .nm, .mrow.quiet .kp { color: var(--gris); }
+.mrow.quiet .kp { background: transparent; }
 .mrow:hover { background: rgba(255,255,255,0.4); }
 .mrow:active { transform: translateY(1px); }
 .mrow[aria-pressed="true"] { border-color: var(--tinta); background: rgba(255,255,255,0.62); }
@@ -186,6 +218,14 @@
 .pending .acts { display: flex; gap: 8px; }
 .pending .acts .btn { flex: 1; height: 40px; font-size: 13px; padding: 0 12px; }
 .pending .done { display: flex; align-items: center; gap: 12px; padding: 4px 0 2px; font-size: 13px; }
+/* a lo ancho: la ruta y sus cifras (contra su límite) a la izquierda, las dos acciones a la derecha */
+.pb { display: grid; grid-template-columns: minmax(0, 1fr) 190px; grid-template-areas: "t a" "k a"; column-gap: 16px; row-gap: 10px; align-items: center; }
+.pb .pb-t { grid-area: t; min-width: 0; }
+.pb .pb-t .t { margin-top: 2px; }
+.pb .kps { grid-area: k; }
+.pb .acts { grid-area: a; flex-direction: column; align-self: stretch; justify-content: center; }
+.pb .acts .btn { flex: none; width: 100%; }
+.pb .done { grid-column: 1 / -1; }
 
 /* ---------- sitios de misión ---------- */
 .sites .screen { padding: 8px; border-radius: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 6px 0 var(--borde), 0 16px 30px rgba(17,17,17,0.18); }
@@ -203,6 +243,39 @@
 .rtip span { display: block; font-family: var(--f-mono); font-size: 10px; color: rgba(244,239,230,0.75); }
 .rtip .v { display: inline-block; margin: 3px 0 0 4px; padding: 1px 7px; border-radius: 999px; font: 700 9px var(--f-mono); font-style: normal; color: #05060A; }
 .sites .caption .rl { display: inline-block; width: 7px; height: 7px; margin: 0 3px 0 6px; border-radius: 50%; vertical-align: 0; }
+.sites .glass-inner { aspect-ratio: 740 / 520; }
+.zoom .chip { height: 26px; padding: 0 9px; }
+
+/* ---------- ventanas de aterrizaje: por sitio y por día, si se puede alunizar (data/ventanas.js, del motor) ---------- */
+.lwp .legend { margin: 0 0 12px; }
+.lwp .legend .sw { display: inline-block; width: 18px; height: 10px; vertical-align: -1px; }
+.lw { display: grid; grid-template-columns: 230px minmax(0, 1fr) 70px; align-items: center; }
+#win-p > .lwp { flex: 1 1 auto; }
+.lw .ax { position: relative; height: 46px; font: 500 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--gris); }
+.lw .ax span { position: absolute; top: 28px; padding-left: 5px; border-left: 1px solid var(--borde-2); height: 18px; white-space: nowrap; }
+.lw .ax .now { color: var(--rojo); border-left: 2px solid var(--rojo); font-weight: 600; }
+.lw .ax .gate { top: 2px; height: auto; transform: translateX(-50%); padding: 2px 7px; border: 1px solid var(--tinta); background: var(--crema); color: var(--tinta); display: inline-flex; gap: 4px; align-items: center; z-index: 2; }
+.lw .lab { display: flex; align-items: center; gap: 8px; height: 52px; padding: 12px 10px 0 4px; font-size: 13.5px; min-width: 0; cursor: pointer; }
+.lw .lab b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.lw .lab small { display: block; font: 10.5px var(--f-mono); color: var(--gris-2); white-space: nowrap; }
+.lw .lab > span { min-width: 0; }
+.lw .bar { position: relative; height: 52px; cursor: pointer; }
+.lw .bar .bg, .lw .bar .g, .lw .bar .s { position: absolute; top: 28px; height: 14px; }
+.lw .bar .bg { left: 0; right: 0; background: var(--crema-4); }
+.lw .bar .g { background: var(--tinta-2); }
+.lw .bar .s { background: repeating-linear-gradient(135deg, var(--borde-2) 0 2px, rgba(0,0,0,0) 2px 5px); }
+.lw .bar .vline { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--rojo); z-index: 1; }
+.lw .bar .gline { position: absolute; top: 0; bottom: 0; border-left: 1.5px dashed var(--tinta); z-index: 1; }
+.lw .bar .pin { position: absolute; top: 3px; transform: translateX(-50%); z-index: 2; display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border: 1.5px solid var(--tinta); background: var(--crema); font: 600 10.5px var(--f-mono); white-space: nowrap; }
+.lw .bar .pin::after { content: ""; position: absolute; left: 50%; top: 100%; height: 6px; border-left: 1.5px solid currentColor; }
+.lw .bar .pin.PEND { border-color: var(--rojo); color: var(--rojo); }
+.lw .bar .pin.REV { border-color: #C99A1C; color: #8A5A00; }
+.lw .pct { padding-top: 16px; text-align: right; font: 600 13px var(--f-mono); }
+.lw .pct small { display: block; font: 400 10px var(--f-mono); color: var(--gris-2); letter-spacing: .04em; }
+.lw .on { background: rgba(17,17,17,0.04); }
+.lwp .rule { display: flex; align-items: center; gap: 6px; margin-top: 10px; font: 10.5px var(--f-mono); color: var(--gris-2); }
+.lww { overflow-x: auto; }
+.lww .lw { min-width: 720px; }
 
 
 
@@ -213,30 +286,36 @@
 
 /* ---------- columnas a la par: el último panel de cada columna baja hasta el fondo; la bitácora llena el hueco ---------- */
 @media (min-width: 1001px) {
-  .main { align-items: stretch; }
-  .col > :last-child { flex-grow: 1; }
-  .col > .pending:last-child { flex-grow: 0; } /* la firma pendiente no se estira: quedaría un hueco vacío dentro */
   .movs { display: flex; flex-direction: column; }
   .log { flex: 1 1 0; height: 0; min-height: 240px; max-height: none; }
   /* la lista de misiones mide lo mismo que el mapa de al lado y se desplaza por dentro */
   .upcoming { display: flex; flex-direction: column; min-height: 0; }
-  .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; scroll-snap-type: y mandatory; margin-bottom: 8px; }
+  .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; scroll-snap-type: y mandatory; }
   .upcoming .mrow { scroll-snap-align: start; }
-  .upcoming .addm { margin-top: auto; }
 }
 
-/* ---------- sin sitio para dos mitades: calendario y movimientos, uno encima del otro ---------- */
+/* ---------- sin sitio para dos mitades: calendario y movimientos, uno encima del otro; el hito y la firma, apilados ---------- */
 @media (max-width: 1300px) { .fpane .duo.track { grid-template-columns: minmax(0, 1fr); } }
-/* ---------- pantallas estrechas: una sola columna ---------- */
+@media (max-width: 1180px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+/* ---------- pantallas estrechas: una sola columna; primero lo que espera tu firma ---------- */
 @media (max-width: 1000px) {
   .app { padding: 14px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
-  .main { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
-  .col { display: contents; }
-  .main > .col > * { min-width: 0; max-width: 100%; }
-  .kpis { order: 1; } .pending { order: 2; } .next { order: 3; } .folder { order: 4; }
+  .hero .pending { order: -1; }
   .fpane > .duo { display: flex; flex-direction: column; gap: 16px; }
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .utc small { display: none; }
+}
+@media (max-width: 640px) {
+  .next { grid-template-columns: minmax(0, 1fr); grid-template-areas: "a" "f" "s"; }
+  .next .flaps { width: 100%; margin-top: 10px; }
+  .pb { grid-template-columns: minmax(0, 1fr); grid-template-areas: "t" "k" "a"; }
+  .pb .acts { flex-direction: row; }
+  .top { flex-wrap: wrap; }
+  .top .utc { display: none; }
+  .top .addm { height: 44px; padding: 0 12px; font-size: 13px; }
+  .top .logbtn span { display: none; }
+  .pb .acts .btn { flex: 1 1 0; width: auto; min-width: 0; }
+  .ftabs { padding-left: 0; overflow-x: auto; scrollbar-width: none; }
+  .ftab { flex: none; padding: 0 12px; font-size: 12px; }
 }
 @media (max-width: 560px) {
   .ftabs { padding-left: 12px; }
@@ -262,23 +341,22 @@
   <div class="techgrid" aria-hidden="true"></div>
   <header class="top">
     <a class="paper flat brand" href="/" target="_top" title="Horizon Signai: back to the start" style="color: inherit; text-decoration: none"><h1 class="logo"><img src="logo.png" alt="Horizon Signai" width="223" height="24"></h1></a>
-    <nav class="pillnav" aria-label="Sections">
-      <span aria-current="page">Missions</span>
-      <a href="/planificar-mision.html" target="_top" data-planner>Planner</a>
-    </nav>
     <div class="topr">
       <span class="utc mono"><small id="today">—</small><b id="utc">--:--:-- UTC</b></span>
+      <a class="btn red addm" href="/planificar-mision.html?nueva" target="_top" title="Plan a new mission in the Planner"><i class="lni lni-plus" aria-hidden="true"></i>New mission</a>
       <a class="paper flat logbtn" href="/3d-map" target="_top" title="Opens the 3D Moon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg><span>Mission log</span></a>
     </div>
   </header>
 
   <div class="main">
-    <!-- izquierda: próximo hito y firma pendiente -->
-    <div class="col">
+    <!-- arriba, como cabecera: el próximo hito y la firma que te espera -->
+    <div class="hero">
       <section class="paper panel next" aria-labelledby="next-t">
-        <div class="ph"><h2 id="next-t" class="display-caps">Next milestone</h2><span class="mono aux">CR-01</span></div>
-        <p class="who-m display-caps">Landing at Connecting Ridge</p>
-        <p class="mono sub">Contact · 18 Dec 2026 · 09:00 UTC</p>
+        <div class="nx-a">
+          <div class="ph"><h2 id="next-t" class="display-caps">Next milestone</h2><span class="mono aux">CR-01</span></div>
+          <p class="who-m display-caps">Landing at Connecting Ridge</p>
+          <p class="mono sub">Contact · 18 Dec 2026 · 09:00 UTC</p>
+        </div>
         <div class="flaps" role="timer" aria-live="off" aria-label="Countdown to contact">
           <div class="flap"><b id="cdD">--</b><span>DAYS</span></div>
           <div class="flap"><b id="cdH">--</b><span>HOURS</span></div>
@@ -291,40 +369,45 @@
       <section class="paper panel pending" id="pending" aria-labelledby="pend-t">
         <span class="stripe" aria-hidden="true"></span>
         <div class="ph" style="margin-bottom: 4px"><h2 id="pend-t" class="display-caps">Awaiting your sign-off</h2><span class="st PEND" id="pendChip">1 PENDING SIGN-OFF</span></div>
-        <div id="pendBody">
-          <p class="t">CR-02 · Scientific route to the Shackleton rim</p>
-          <p class="d">Walk on 19 Dec · two stops · sent by Planning on 13 Nov</p>
-          <div class="nums mono">
-            <span>Distance<b id="pDist">—</b></span>
-            <span>Max slope<b id="pPmax">—</b></span>
-            <span>O₂ on return<b class="warn">26%</b></span>
+        <div id="pendBody" class="pb">
+          <div class="pb-t">
+            <p class="t">CR-02 · Scientific route to the Shackleton rim</p>
+            <p class="d">Walk on 19 Dec · two stops · sent by Planning on 13 Nov</p>
+          </div>
+          <div class="kps">
+            <span class="kp" title="Distance"><i class="lni lni-route-1" aria-hidden="true"></i><span id="pDist">—</span></span>
+            <span class="kp" title="Max slope"><i class="lni lni-mountains-2" aria-hidden="true"></i><span id="pPmax">—</span><span class="mb" aria-hidden="true"><i id="pPmaxBar" style="width: 0"></i><b style="left: 75%"></b></span><small>max 15°</small></span>
+            <span class="kp bad" title="O₂ on return"><span class="o2">O₂</span>26%<span class="mb" aria-hidden="true"><i style="width: 26%"></i><b style="left: 30%"></b></span><small>min 30%</small></span>
           </div>
           <div class="acts">
-            <a class="btn" href="planificar.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Open walk</a>
+            <a class="btn" href="planificar.html"><i class="lni lni-arrow-right" aria-hidden="true"></i>Open walk</a>
             <button type="button" class="btn dark approve" data-approve>Approve</button>
           </div>
         </div>
       </section>
-
     </div>
 
-    <!-- derecha: indicadores y la carpeta: «Details» (sitios de misión y misiones) y «Tracking» (calendario y bitácora) -->
-    <div class="col">
-      <div class="kpis" id="kpis" aria-label="Campaign indicators"></div>
-
-      <section class="folder">
+    <!-- debajo, la carpeta: «Details» (sitios de misión, grande, y misiones), «Landing windows» y «Tracking» (calendario y bitácora) -->
+    <section class="folder">
         <div class="ftabs" role="tablist" aria-label="Campaign views">
           <button type="button" class="ftab display-caps" role="tab" id="tab-det" aria-controls="det-p" aria-selected="true">Details</button>
+          <button type="button" class="ftab display-caps" role="tab" id="tab-win" aria-controls="win-p" aria-selected="false" tabindex="-1">Landing windows</button>
           <button type="button" class="ftab display-caps" role="tab" id="tab-seg" aria-controls="seg-p" aria-selected="false" tabindex="-1">Tracking</button>
         </div>
         <div class="fbody">
           <div class="fpane" id="det-p" role="tabpanel" aria-labelledby="tab-det">
             <div class="duo">
               <section class="paper panel sites" aria-labelledby="sites-t">
-                <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2><span class="mono aux">radar · 200 km</span></div>
+                <div class="ph"><h2 id="sites-t" class="display-caps">Mission sites</h2>
+                  <div class="chips zoom" id="rZoom" role="group" aria-label="Radar range">
+                    <button type="button" class="chip mono" data-km="50" aria-pressed="true">50 km</button>
+                    <button type="button" class="chip mono" data-km="100" aria-pressed="false">100 km</button>
+                    <button type="button" class="chip mono" data-km="200" aria-pressed="false">200 km</button>
+                  </div>
+                </div>
                 <div class="screen">
                   <div class="glass-inner">
-                    <canvas id="radar" role="img" aria-label="Radar of the lunar south pole, 200 km: the campaign mission sites at their real distance"></canvas>
+                    <canvas id="radar" role="img" aria-label="Radar of the lunar south pole: the campaign mission sites at their real distance"></canvas>
                     <div class="rtip" id="rtip" hidden></div>
                     <div class="fx" aria-hidden="true"><div class="scan"></div><div class="vig"></div><div class="refl"></div></div>
                     <span class="tag"><span class="sw" style="background: var(--menta-2)"></span><span id="siteTag">CR-02 · Connecting Ridge</span></span>
@@ -335,11 +418,23 @@
               </section>
 
               <section class="paper panel upcoming" aria-labelledby="up-t">
-                <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="aux"><span id="upCount">4</span> in the campaign</span></div>
+                <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="mono aux" id="mix"></span></div>
                 <div class="mlist" id="mlist"></div>
-                <a class="btn red addm" href="/planificar-mision.html?nueva" target="_top" title="Plan a new mission in the Planner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add mission</a>
               </section>
             </div>
+          </div>
+          <div class="fpane" id="win-p" role="tabpanel" aria-labelledby="tab-win" hidden>
+            <section class="paper panel lwp" aria-labelledby="win-t">
+              <div class="ph"><h2 id="win-t" class="display-caps">Landing windows</h2><span class="mono aux">next 6 months · by site and day</span></div>
+              <div class="legend" aria-hidden="true">
+                <span><i class="sw" style="background: var(--tinta-2)"></i>Can land</span>
+                <span><i class="sw" style="background: repeating-linear-gradient(135deg, var(--borde-2) 0 2px, rgba(0,0,0,0) 2px 5px); box-shadow: inset 0 0 0 1px var(--borde)"></i><i class="lni lni-globe-1"></i>Sun, but Earth hidden</span>
+                <span><i class="sw" style="background: var(--crema-4)"></i><i class="lni lni-moon-half-right-5"></i>No Sun, or a night longer than the battery</span>
+                <span><i class="lni lni-flag-1"></i>Milestone</span>
+              </div>
+              <div class="lww"><div class="lw" id="lw"></div></div>
+              <p class="rule"><i class="lni lni-sliders-horizontal-square-2" aria-hidden="true"></i><span>Rule of CR-01: land at 09:00 UTC · 3-day stay · panel and antenna at 2 m · battery 24 h · Earth ≥ 40% · planner engine: JPL Horizons DE441 and LOLA horizons</span></p>
+            </section>
           </div>
           <div class="fpane" id="seg-p" role="tabpanel" aria-labelledby="tab-seg" hidden>
             <div class="duo track">
@@ -374,8 +469,7 @@
             </div>
           </div>
         </div>
-      </section>
-    </div>
+    </section>
   </div>
   <p class="foot"><span>Example campaign: the missions, sign-offs and log are sample data · real sites, Sun and Earth (JPL Horizons DE441, LOLA/PGDA horizons) · radar: real distances over LOLA 240 m relief</span><button type="button" id="resetDemo">Reset demo</button></p>
 </div>
@@ -386,6 +480,7 @@
 <script src="mission.js"></script>
 <script src="campaign.js"></script>
 <script src="data/candidatas.js"></script>
+<script src="data/ventanas.js"></script>
 <script>
 (function () {
   'use strict';
@@ -395,7 +490,7 @@
   var two = C.two, hhmm = C.hhmm;
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-  var state = { sel: 'CR-02', approved: C.approvedAt() !== null };
+  var state = { sel: 'CR-02', approved: C.approvedAt() !== null, route: null };
   var missions = C.missions(), movs = null;
   var logF = { mission: 'all', type: 'all', when: 'all' };
   function current() { return missions.filter(function (m) { return m.id === state.sel; })[0]; }
@@ -417,32 +512,77 @@
     var st = [['Zone confirmed', true], ['Descent simulated', true], ['Walk approved', state.approved], ['Final Flight Director Go', false]];
     $('steps').innerHTML = st.map(function (s) { return '<li class="' + (s[1] ? 'done' : '') + '"><i class="lamp' + (s[1] ? ' on' : '') + (s[1] && s[0] === 'Walk approved' ? ' red' : '') + '"></i>' + s[0] + '</li>'; }).join('');
   }
+  /* ---------- ventanas de aterrizaje (data/ventanas.js, del motor del planificador) ---------- */
+  var V = window.LunarData && window.LunarData.ventanas, DAY = 86400000, V0 = V ? Date.parse(V.desde + 'T00:00:00Z') : 0;
+  var PS03_DEADLINE = C.U(2027, 1, 7, 20); /* plazo para elegir la fecha de PS-03 (la bitácora de campaign.js) */
+  function windowsOf(z) { return V && V.zonas[z] ? V.zonas[z].ventanas.map(function (w) { return [Date.parse(w[0] + 'T00:00:00Z'), Date.parse(w[1] + 'T00:00:00Z')]; }) : []; }
+  function dayOf(ms) { var d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); }
+  function dm(ms) { return C.fmtDay(ms).replace(/ \d{4}$/, ''); }
+  function spanTxt(w) { return new Date(w[0]).getUTCMonth() === new Date(w[1]).getUTCMonth() ? new Date(w[0]).getUTCDate() + '–' + dm(w[1]) : dm(w[0]) + ' – ' + dm(w[1]); }
+  function nextWindow(z, from) { return windowsOf(z).filter(function (w) { return w[1] >= dayOf(from); })[0] || null; }
+  function nearestWindow(z, ms) { return windowsOf(z).reduce(function (a, w) { var d = Math.min(Math.abs(w[0] - ms), Math.abs(w[1] - ms)); return !a || d < a.d ? { w: w, d: d } : a; }, null); }
+  function inDays(ms) { return 'in ' + Math.max(0, Math.ceil((ms - Date.now()) / DAY)) + ' d'; }
+  function deg(v) { return (v < 0 ? '−' : '+') + Math.abs(v).toFixed(1) + '°'; }
+
+  /* ---------- misiones: tarjetas con sus cifras clave (ícono, cifra y, si aplica, su límite) ---------- */
+  var ATT = { PEND: 0, REV: 1, GO: 2, OK: 2, DRAFT: 3 };
+  function symCls(st) { return st === 'PEND' ? 'PEND' : 'dot ' + st; }
+  function byAttention(a, b) { return (ATT[a.status] - ATT[b.status]) || ((a.t || 9e15) - (b.t || 9e15)); }
+  function kp(icon, text, small, cls, title) {
+    return '<span class="kp' + (cls ? ' ' + cls : '') + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + (icon ? '<i class="lni lni-' + icon + '" aria-hidden="true"></i>' : '') + text + (small ? '<small>' + small + '</small>' : '') + '</span>';
+  }
+  function kpisOf(m) {
+    var ct = V && V.contactos[m.id], w;
+    if (m.id === 'CR-01') {
+      w = windowsOf(m.site).filter(function (x) { return dayOf(C.CONTACT) >= x[0] && dayOf(C.CONTACT) <= x[1]; })[0];
+      return [ct ? kp('sun-1', deg(ct.sol), '', 'good', 'Sun at landing') : '', ct ? kp('globe-1', deg(ct.tierra), '', 'good', 'Earth at landing') : '',
+        w ? kp('hourglass', 'Slip +' + Math.round((w[1] - dayOf(C.CONTACT)) / DAY) + ' d', '', 'good', 'Days the landing can slip and stay in its window') : '',
+        kp('calendar-days', dm(C.CONTACT), inDays(C.CONTACT), '', 'Contact')];
+    }
+    if (m.id === 'CR-02') {
+      var r = state.route;
+      return [kp('', '<span class="o2">O₂</span>26%' + (m.status === 'PEND' ? '<span class="mb" aria-hidden="true"><i style="width: 26%"></i><b style="left: 30%"></b></span>' : ''), 'min 30%', m.status === 'PEND' ? 'bad' : '', 'O₂ on return'),
+        r ? kp('mountains-2', M.num(r.pmax) + '°', '', '', 'Max slope') : '', r ? kp('route-1', M.num(r.distKm, 1) + ' km', '', '', 'Distance') : '',
+        kp('calendar-days', dm(C.EVA), inDays(C.EVA), '', 'Walk')];
+    }
+    if (m.id === 'PS-03') {
+      w = nextWindow(m.site, PS03_DEADLINE);
+      return [kp('calendar-days', 'No date', '', 'warn'), kp('alarm-1', 'Choose by ' + dm(PS03_DEADLINE), inDays(PS03_DEADLINE), '', 'Deadline to choose the date'),
+        w ? kp('flag-1', 'Window ' + spanTxt(w), '', 'good', 'Next landing window at this site') : ''];
+    }
+    if (m.id === 'SR-05' && ct) {
+      w = nearestWindow(m.site, m.t);
+      return [kp('sun-1', deg(ct.sol), '', ct.sol > 0 ? 'good' : 'warn', 'Sun at landing'), kp('moon-half-right-5', 'Night ' + Math.round(ct.nocheH) + ' h', 'max 24 h', ct.nocheH > 24 ? 'warn' : '', 'Longest night of the stay'),
+        w ? kp('flag-1', 'Window ' + spanTxt(w.w), '', 'good', 'Nearest landing window at this site') : '', kp('calendar-days', dm(m.t), inDays(m.t), '', 'Contact')];
+    }
+    if (m.id === 'DG-04') return [kp('calendar-days', 'No date'), kp('map-pin-5', '3 sampling points')];
+    return [kp('calendar-days', m.meta)];
+  }
+  function renderMix() {
+    var by = {}, LBL = { GO: 'GO', OK: 'approved', PEND: 'to sign', REV: 'under review', DRAFT: 'draft' };
+    missions.forEach(function (m) { by[m.status] = (by[m.status] || 0) + 1; });
+    $('mix').innerHTML = ['PEND', 'REV', 'GO', 'OK', 'DRAFT'].filter(function (k) { return by[k]; }).map(function (k) { return '<span><i class="sym ' + symCls(k) + '" aria-hidden="true"></i>' + by[k] + ' ' + LBL[k] + '</span>'; }).join('');
+  }
   function renderMissions() {
-    var now = Date.now();
-    $('mlist').innerHTML = missions.map(function (m) {
-      var n = movs ? movs.filter(function (v) { return v.id === m.id; }) : [];
-      var past = n.filter(function (v) { return v.t <= now; }).length;
-      return '<button type="button" class="mrow" data-id="' + m.id + '" aria-pressed="' + (m.id === state.sel) + '">' +
-        '<span class="r1"><span class="idb">' + m.id + '</span><span class="st ' + m.status + '">' + C.STATUS_LABEL[m.status] + '</span></span>' +
-        '<span class="nm display-caps">' + m.name + '</span>' +
-        '<span class="mono meta">' + m.meta + '</span>' +
-        '<span class="bars">' + m.bars.map(function (b) { return '<span style="background:' + col[b] + '"></span>'; }).join('') + '</span>' +
-        '<span class="mono leg">' + m.legend + '</span>' +
-        (movs ? '<span class="mono cnt">' + past + ' logged · ' + (n.length - past) + ' scheduled</span>' : '') + '</button>';
+    $('mlist').innerHTML = missions.slice().sort(byAttention).map(function (m) {
+      var quiet = m.status === 'GO' || m.status === 'OK' || m.status === 'DRAFT';
+      return '<button type="button" class="mrow' + (quiet ? ' quiet' : '') + '" data-id="' + m.id + '" aria-pressed="' + (m.id === state.sel) + '"' + (m.why ? ' title="' + esc(m.why) + '"' : '') + '>' +
+        '<span class="r1"><i class="sym ' + symCls(m.status) + '" aria-hidden="true"></i><span class="idb">' + m.id + '</span><span class="nm">' + m.name + '</span><span class="st ' + m.status + '">' + C.STATUS_LABEL[m.status] + '</span></span>' +
+        '<span class="kps">' + kpisOf(m).join('') + '</span></button>';
     }).join('');
-    $('upCount').textContent = missions.length;
+    renderMix();
     fitMissions();
   }
-  /* la lista enseña solo tarjetas enteras, y abajo el botón «Add mission». El hueco sale del alto natural del radar de al
-   * lado (no del panel estirado, que cambiaría con la propia lista): caben las tarjetas enteras que entran, más la
-   * siguiente si le falta menos de la mitad (el panel crece esos píxeles). Las demás, desplazando. En pantallas estrechas,
-   * la lista completa. Se repite cuando el radar cambia de tamaño. */
+  /* la lista enseña solo tarjetas enteras. El hueco sale del alto natural del radar de al lado (no del panel estirado,
+   * que cambiaría con la propia lista): caben las tarjetas enteras que entran, más la siguiente si le falta menos de la
+   * mitad (el panel crece esos píxeles). Las demás, desplazando. En pantallas estrechas, la lista completa. Se repite
+   * cuando el radar cambia de tamaño. */
   function fitMissions() {
-    var ml = $('mlist'), scr = document.querySelector('.sites .screen'), btn = document.querySelector('.addm');
+    var ml = $('mlist'), scr = document.querySelector('.sites .screen');
     ml.style.flex = ''; ml.style.height = '';
     if (window.innerWidth <= 1000 || !ml.offsetParent || !scr.offsetHeight) return;
     var natural = scr.offsetTop + scr.offsetHeight + 17;            /* alto del panel del radar sin estirar */
-    var room = natural - ml.offsetTop - (btn.offsetHeight + 8 + 17); /* lo que deja la cabecera y el botón */
+    var room = natural - ml.offsetTop - 17;                         /* lo que deja la cabecera */
     var kids = ml.children, used = 0, i;
     for (i = 0; i < kids.length; i++) {
       var h = kids[i].offsetHeight + (i ? 8 : 0);
@@ -452,35 +592,29 @@
     if (used) { ml.style.flex = 'none'; ml.style.height = used + 'px'; }
   }
   if (window.ResizeObserver) new ResizeObserver(function () { fitMissions(); }).observe(document.querySelector('.sites .screen'));
-  function renderKpis() {
-    var now = Date.now(), by = {};
-    missions.forEach(function (m) { by[m.status] = (by[m.status] || 0) + 1; });
-    var mix = [['GO', 'GO'], ['OK', 'approved'], ['PEND', 'to sign'], ['REV', 'under review'], ['DRAFT', 'draft']].filter(function (k) { return by[k[0]]; }).map(function (k) { return by[k[0]] + ' ' + k[1]; }).join(' · ');
-    var past = movs ? movs.filter(function (v) { return v.t <= now; }) : [], next = movs ? movs.filter(function (v) { return v.t > now; }) : [];
-    var week = past.filter(function (v) { return now - v.t < 7 * 86400000; }).length;
-    var pend = state.approved ? 0 : 1;
-    var k = [
-      ['Missions in the campaign', missions.length, mix, ''],
-      ['To sign', pend, pend ? 'CR-02 scientific route' : 'up to date · no open decisions', pend ? 'warn' : ''],
-      ['Movements logged', movs ? past.length : '—', movs ? week + ' in the last 7 days' : 'calculating…', ''],
-      ['Operations scheduled', movs ? next.length : '—', next.length ? 'next: ' + next[0].text.split(':')[0].split(' · ')[0] + ' · ' + C.fmtDay(next[0].t).replace(/ \d{4}$/, '') : 'calculating…', '']
-    ];
-    $('kpis').innerHTML = k.map(function (x) { return '<div class="paper flat kpi"><p>' + x[0] + '</p><b class="' + x[3] + '">' + x[1] + '</b><small>' + x[2] + '</small></div>'; }).join('');
-  }
-  /* ---------- Mission sites: radar de 200 km a distancia real ----------
+  /* ---------- Mission sites: radar a distancia real, de 50, 100 o 200 km ----------
    * Centro: el polo sur. Distancia = arco sobre la Luna (R = 1737,4 km); rumbo = longitud este (0° arriba, 90° E a la
-   * derecha, como el mapa del planificador). Fondo: relieve real de LOLA 240 m (data/radar-polo-sur.jpg, tools/mapa-polo.py).
+   * derecha, como el mapa del planificador). Fondo: relieve real de LOLA 240 m (tools/mapa-polo.py): el disco de 200 km
+   * (data/radar-polo-sur.jpg) y el de 50 km (data/radar-polo-sur-50km.jpg); a 100 km, el de 200 al doble. Abre a 50 km,
+   * donde caben todos los sitios de la campaña (el más lejano, de Gerlache, a 40 km).
    * Solo pasa el barrido (visual): los puntos no llevan rótulos y dan su detalle al pasar el ratón (o al tocarlos).
    * Solo aparecen los sitios donde la campaña tiene alguna misión: una candidata de data/candidatas.js sale en el radar
    * cuando se crea una misión en ella. Color = estado de la misión, el mismo de su chip en la lista: blanco GO o aprobada,
    * ámbar REVIEW, rojo pendiente de firma, gris borrador. Si un sitio tiene varias misiones, manda la elegida si es de ese
    * sitio y, si no, la que más atención pide. El sitio de la misión elegida lleva un aro. Tocar un punto elige su misión. */
-  var RKM = 200, KMDEG = Math.PI / 180 * 1737.4, PHOS = '155,255,228';
+  var RKM = 50, KMDEG = Math.PI / 180 * 1737.4, PHOS = '155,255,228', RINGS = { 50: [10, 25, 50], 100: [25, 50, 100], 200: [50, 100, 150, 200] };
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var CAND = (window.LunarData && window.LunarData.candidatas || []).map(function (c) { return { z: c.z, nombre: c.nombre, lat: c.lat, lon: c.lon, km: (90 + c.lat) * KMDEG, a: c.lon * Math.PI / 180 }; });
   var radar = $('radar'), rctx = radar.getContext('2d'), rtip = $('rtip'), rbg = new Image(), rW = 0, rH = 0, rPts = [], rHover = [];
-  rbg.src = 'data/radar-polo-sur.jpg';
-  rbg.onload = function () { if (reduceMotion) drawRadar(0); };
+  var rbg50 = new Image();
+  rbg.src = 'data/radar-polo-sur.jpg'; rbg50.src = 'data/radar-polo-sur-50km.jpg';
+  rbg.onload = rbg50.onload = function () { if (reduceMotion) drawRadar(0); };
+  $('rZoom').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-km]'); if (!b) return;
+    RKM = +b.dataset.km;
+    this.querySelectorAll('[data-km]').forEach(function (c) { c.setAttribute('aria-pressed', c === b); });
+    if (reduceMotion) drawRadar(0);
+  });
   function fitRadar() {
     var b = radar.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
     rW = b.width; rH = b.height; radar.width = Math.round(rW * dpr); radar.height = Math.round(rH * dpr);
@@ -501,7 +635,8 @@
     ctx.clearRect(0, 0, rW, rH);
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
     ctx.fillStyle = '#04110D'; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
-    if (rbg.complete && rbg.naturalWidth) { ctx.globalAlpha = 0.85; ctx.drawImage(rbg, cx - R, cy - R, 2 * R, 2 * R); ctx.globalAlpha = 1; }
+    var img = RKM <= 50 && rbg50.complete && rbg50.naturalWidth ? rbg50 : rbg, sc = (img === rbg50 ? 50 : 200) / RKM;
+    if (img.complete && img.naturalWidth) { ctx.globalAlpha = 0.85; ctx.drawImage(img, cx - R * sc, cy - R * sc, 2 * R * sc, 2 * R * sc); ctx.globalAlpha = 1; }
     if (!reduceMotion) for (var k = 0; k < 24; k++) {
       var a1 = theta - k * 0.05, a0 = a1 - 0.05;
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0 - Math.PI / 2, a1 - Math.PI / 2); ctx.closePath();
@@ -511,13 +646,13 @@
     /* anillos cada 50 km con su distancia y su latitud; rumbos cada 30° con su grado (longitud este) alrededor */
     var fs = Math.max(8, Math.min(10.5, R / 18));
     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(' + PHOS + ',0.3)';
-    [50, 100, 150, 200].forEach(function (km) { ctx.beginPath(); ctx.arc(cx, cy, km / RKM * R, 0, Math.PI * 2); ctx.stroke(); });
+    RINGS[RKM].forEach(function (km) { ctx.beginPath(); ctx.arc(cx, cy, km / RKM * R, 0, Math.PI * 2); ctx.stroke(); });
     ctx.strokeStyle = 'rgba(' + PHOS + ',0.16)';
     for (var d = 0; d < 360; d += 30) { var ar = d * Math.PI / 180; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * Math.sin(ar), cy - R * Math.cos(ar)); ctx.stroke(); }
     ctx.strokeStyle = 'rgba(' + PHOS + ',0.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
     ctx.font = '500 ' + fs.toFixed(1) + 'px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(' + PHOS + ',0.85)';
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    [50, 100, 150, 200].forEach(function (km) { ctx.fillText(km + ' km · ' + (90 - km / KMDEG).toFixed(1) + '° S', cx + 4, cy - km / RKM * R - 4); });
+    RINGS[RKM].forEach(function (km) { ctx.fillText(km + ' km · ' + (90 - km / KMDEG).toFixed(1) + '° S', cx + 4, cy - km / RKM * R - 4); });
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (var g = 0; g < 360; g += 30) { var ag = g * Math.PI / 180; ctx.fillText(g + '°', cx + (R + fs + 2) * Math.sin(ag), cy - (R + fs + 2) * Math.cos(ag)); }
     ctx.textBaseline = 'alphabetic';
@@ -563,7 +698,10 @@
     if (!u.pts.length) { rtip.hidden = true; if (reduceMotion) drawRadar(0); return; }
     rtip.innerHTML = u.pts.map(function (p) {
       var c = p.c;
+      var zv = V && V.zonas[c.z], nw = nextWindow(c.z, Date.now());
       return '<div class="rt"><b>' + c.z + ' · ' + c.nombre + '</b><span>' + Math.round(c.km) + ' km from the pole · ' + Math.abs(c.lat).toFixed(2) + '° S ' + c.lon.toFixed(1) + '° E</span>' +
+        (zv && zv.sol != null ? '<span><i class="lni lni-sun-1" aria-hidden="true"></i> ' + zv.sol + '% · <i class="lni lni-globe-1" aria-hidden="true"></i> ' + zv.tierra + '% of the time</span>' : '') +
+        (nw ? '<span><i class="lni lni-flag-1" aria-hidden="true"></i> Next window ' + spanTxt(nw) + '</span>' : '') +
         missions.filter(function (m) { return m.site === c.z; }).map(function (m) {
           return '<span>' + m.id + ' <i class="v" style="background:' + SCOL[m.status] + '">' + C.STATUS_LABEL[m.status] + '</i></span>';
         }).join('') + '</div>';
@@ -586,7 +724,59 @@
     var sel = current();
     if (sel) { $('siteTag').textContent = sel.id + ' · ' + C.SITES[sel.site].name; }
     if (reduceMotion) drawRadar(0);
+    renderWindows();
   }
+
+  /* ---------- «Landing windows»: una fila por sitio de la campaña; cada día, si se puede alunizar ----------
+   * Los datos los calcula tools/ventanas-aterrizaje.js con el motor del planificador (regla de CR-01). Sobre cada fila,
+   * las misiones de ese sitio en su fecha (PS-03, en su plazo para elegirla); arriba, hoy y el Go/No-Go final. */
+  function renderWindows() {
+    var box = $('lw'); if (!box || !V) return;
+    var N = V.dias, sel = current();
+    function pc(ms) { return Math.max(0, Math.min(100, (ms - V0) / (N * DAY) * 100)).toFixed(3) + '%'; }
+    var now = Date.now(), inRange = now >= V0 && now < V0 + N * DAY, h = '<span></span><div class="ax">';
+    for (var y = 2026, mo = 11; y < 2028; mo++) {
+      if (mo > 11) { mo = 0; y++; }
+      var t = Date.UTC(y, mo, 1); if (t >= V0 + N * DAY) break;
+      if (t > V0) h += '<span style="left:' + pc(t) + '">' + C.MONTHS[mo] + (mo === 0 ? ' ' + y : '') + '</span>';
+    }
+    if (inRange) h += '<span class="now" style="left:' + pc(now) + '">Today</span>';
+    h += '<span class="gate" style="left:' + pc(C.GONOGO) + '"><i class="lni lni-flag-1" aria-hidden="true"></i>Go/No-Go ' + dm(C.GONOGO) + '</span></div><span></span>';
+    var zones = [];
+    missions.slice().sort(byAttention).forEach(function (m) { if (zones.indexOf(m.site) < 0 && V.zonas[m.site]) zones.push(m.site); });
+    zones.forEach(function (z) {
+      var ms = missions.filter(function (m) { return m.site === z; }).sort(byAttention), zv = V.zonas[z], on = sel && sel.site === z ? ' on' : '';
+      h += '<div class="lab' + on + '" data-z="' + z + '"><i class="sym ' + symCls(ms[0].status) + '" aria-hidden="true"></i><span><b>' + z + ' · ' + C.SITES[z].name + '</b><small>' + ms.map(function (m) { return m.id; }).join(' · ') + '</small></span></div>';
+      h += '<div class="bar' + on + '" data-z="' + z + '"><span class="bg"></span>';
+      for (var i = 0; i < N;) {
+        var c = zv.dias[i], j = i; while (j < N && zv.dias[j] === c) j++;
+        if (c !== 'N') h += '<span class="' + (c === 'G' ? 'g' : 's') + '" style="left:' + (i / N * 100).toFixed(3) + '%;width:' + ((j - i) / N * 100).toFixed(3) + '%"></span>';
+        i = j;
+      }
+      if (inRange) h += '<span class="vline" style="left:' + pc(now) + '"></span>';
+      h += '<span class="gline" style="left:' + pc(C.GONOGO) + '"></span>';
+      /* marcas: misiones con fecha (las que caen a menos de 3 días, juntas) y el plazo de PS-03 */
+      var pins = [];
+      ms.map(function (m) { return { m: m, t: m.id === 'CR-01' ? C.CONTACT : m.id === 'CR-02' ? C.EVA : m.id === 'PS-03' ? PS03_DEADLINE : m.t }; })
+        .filter(function (x) { return x.t && x.m.status !== 'DRAFT'; }).sort(function (a, b) { return a.t - b.t; })
+        .forEach(function (x) {
+          var last = pins[pins.length - 1];
+          if (last && !last.deadline && x.m.id !== 'PS-03' && x.t - last.t < 3 * DAY) { last.ids.push(x.m.id); if (ATT[x.m.status] < ATT[last.st]) last.st = x.m.status; return; }
+          pins.push({ t: x.t, ids: [x.m.id], st: x.m.status, deadline: x.m.id === 'PS-03' });
+        });
+      pins.forEach(function (p) {
+        var label = p.deadline ? '<i class="lni lni-alarm-1" aria-hidden="true"></i>' + p.ids[0] + ' · choose by ' + dm(p.t) : p.ids.join(' · ') + ' · ' + dm(p.t);
+        h += '<span class="pin ' + p.st + '" style="left:' + pc(p.t) + '">' + label + '</span>';
+      });
+      h += '</div><div class="pct">' + zv.abiertas + '%<small>days open</small></div>';
+    });
+    box.innerHTML = h;
+  }
+  $('lw').addEventListener('click', function (e) {
+    var r = e.target.closest('[data-z]'); if (!r) return;
+    var m = missions.filter(function (x) { return x.site === r.dataset.z; }).sort(byAttention)[0];
+    if (m) select(m.id, true);
+  });
   fitRadar();
   if (window.ResizeObserver) new ResizeObserver(function () { fitRadar(); if (reduceMotion) drawRadar(0); }).observe(radar);
   if (reduceMotion) drawRadar(0);
@@ -720,7 +910,7 @@
     state.sel = id; if (filter) logF.mission = id;
     renderMissions(); renderSites(); renderCal(); renderFilters(); renderLog(true);
   }
-  function renderAll() { missions = C.missions(); renderSteps(); renderKpis(); renderMissions(); renderSites(); renderPending(); renderFilters(); if (movs) { renderCal(); renderLog(); } }
+  function renderAll() { missions = C.missions(); renderSteps(); renderMissions(); renderSites(); renderPending(); renderFilters(); if (movs) { renderCal(); renderLog(); } }
 
   /* ---------- aprobación en dos pasos ---------- */
   function wireApprove(btn) {
@@ -763,12 +953,11 @@
     });
   });
 
-  /* El planificador es el de misiones (/planificar-mision.html, de Jefrry): «Planner» abre su portada y «Add mission»,
-   * directamente su formulario (?nueva); los dos en el idioma de esta página (?lang). Fuera de la app (sin servidor)
-   * estos enlaces no tienen destino. */
+  /* El planificador es el de misiones (/planificar-mision.html, de Jefrry): «New mission», en la cabecera, abre
+   * directamente su formulario (?nueva) en el idioma de esta página (?lang). Fuera de la app (sin servidor) el enlace
+   * no tiene destino. */
   (function () {
     var l = 'en'; try { if (localStorage.getItem('horizon-signai.lang') === 'es') l = 'es'; } catch (e) { /* sin almacenamiento: inglés */ }
-    document.querySelector('[data-planner]').href = '/planificar-mision.html?lang=' + l;
     document.querySelector('.addm').href = '/planificar-mision.html?nueva&lang=' + l;
   })();
 
@@ -781,10 +970,14 @@
 
   setTimeout(function () {
     var st = M.routeStats(local(), 'science');
+    state.route = st;
     /* con la ruta ya aprobada, la tarjeta de firma no tiene estas cifras */
-    if ($('pDist')) { $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°'; }
+    if ($('pDist')) {
+      $('pDist').textContent = M.num(st.distKm, 1) + ' km'; $('pPmax').textContent = M.num(st.pmax) + '°';
+      $('pPmaxBar').style.width = Math.min(100, st.pmax / 20 * 100).toFixed(1) + '%';   /* escala de 0 a 20°, límite en 15° */
+    }
     movs = C.movements(localT);
-    renderKpis(); renderMissions(); renderCal(); renderLog(true);
+    renderMissions(); renderCal(); renderLog(true);
   }, 60);
 })();
 </script>
