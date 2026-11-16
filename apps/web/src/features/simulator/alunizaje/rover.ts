@@ -147,6 +147,17 @@ export class Rover {
       if (cabeza) { const bb = new THREE.Box3().setFromObject(cabeza), q = bb.getCenter(new THREE.Vector3()); this.navcam.set(q.x, Math.max(NAVCAM_M, bb.max.y + 0.4), bb.max.z + 0.05); }
       m.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
       this.respaldo.visible = false; this.obj.add(raiz); this.modelo = raiz;
+      // Animaciones del modelo de NASA: el mástil se despliega (en ~2 s pasa de 1,4 a 2,2 m), las tapas de las cámaras de
+      // peligro se abren y el brazo se despliega hacia adelante (0–6 s). Se manejan fijando el tiempo de cada una.
+      this.mixer = new THREE.AnimationMixer(m); this.cabeza = m.getObjectByName('head');
+      const MASTIL = new Set(['Cylinder', 'bottom', 'Empty001', 'probe001', 'top', 'Cylinder002']), TAPAS = new Set(['hazcams_front_cover', 'Empty', 'hazcams_rear_cover_l', 'hazcams_rear_cover_r']);
+      this.grupos = { mastil: [], tapas: [], brazo: [] };
+      for (const c of gltf.animations) {
+        const nodos = c.tracks.map((t) => t.name.split('.')[0]), a = this.mixer.clipAction(c); a.play(); a.paused = true; a.time = 0;
+        (nodos.every((n) => MASTIL.has(n)) ? this.grupos.mastil : nodos.every((n) => TAPAS.has(n)) ? this.grupos.tapas : this.grupos.brazo).push(a);
+      }
+      this.mixer.update(0);
+      this.anim = { mastil: 0, tapas: 0, brazo: 0 };
       // El taladro de la animación va al frente, donde el Perseverance lleva la torreta de su brazo
       this.taladro.position.set(0, 0.85, Math.min(1.7, caja.max.z - c2.z + 0.1));
     }).catch(() => { /* sin el modelo: se queda el de respaldo */ }).finally(() => draco.dispose());
@@ -156,6 +167,7 @@ export class Rover {
   start(lmPos, heading, { lm = null } = {}) {
     const v = this.view, p = v.plan ?? {};
     if (!this._modeloPedido) { this._modeloPedido = true; this._cargarModelo(); } // 5 MB: solo en misiones con rover
+    if (this.anim) this.anim = { mastil: 0, tapas: 0, brazo: 0 }; // el mástil vuelve a desplegarse en cada despliegue
     this.vmax = Math.max(0.05, (p.roverKmh ?? 0.8) / 3.6); this.paradaH = p.paradaH ?? 2;
     this.lmPos = lmPos.clone();
     // Bajó del módulo y se apartó: el punto más llano a 10–20 m (no se despliega en la ladera de un cráter)
@@ -207,11 +219,11 @@ export class Rover {
   _perforar(dt) {
     const p = this.perfora, m = this.tasks.samples[p.k]; p.t += dt;
     const baja = Math.min(1, p.t / 1.5), sube = Math.max(0, Math.min(1, (p.t - 2.7) / 1.3));
-    this.taladro.position.y = 0.85 - 0.95 * (baja - sube); // baja 1 m desde su base
+    this.taladro.position.y = 0.85 - 0.95 * (baja - sube); // baja 1 m desde su base (el brazo, si hay modelo, se despliega a la vez)
     this.taladro.rotation.y += dt * 18 * (p.t > 1.2 && p.t < 3 ? 1 : 0);
     if (p.t > 1.4 && p.t < 2.8) this._levantar(this.obj.localToWorld(new THREE.Vector3(this.taladro.position.x, 0.05, this.taladro.position.z)), 3, 0.6); // polvo de la broca
     if (m && p.t > 2.0) m.mesh.scale.setScalar(Math.max(0.01, 1 - (p.t - 2.0) / 0.8));
-    if (p.t >= 4.0) {
+    if (p.t >= (this.mixer ? 6.8 : 4.0)) { // con el modelo, espera a que el brazo se pliegue
       this.taladro.position.y = 0.85; this.perfora = null;
       const antes = this.tasks.samples.filter((q) => q.taken).length;
       this.tasks.interact(); // la marca como recogida (tareas.ts)
@@ -287,8 +299,26 @@ export class Rover {
     if (v.tSalida != null) v.cieloAl?.(v.tSalida + this.s.t * 1000); // el Sol y la Tierra avanzan con el reloj del recorrido
     this.tasks.update();
     if (this.tasks.done && !this._informeVisto) { this._informeVisto = true; setTimeout(() => this.active && this._informe(), 2000); }
+    this._animarModelo(dtReal);
     this._camara(Math.min(0.05, dtReal));
     this._pantalla(enlace, pend);
+  }
+
+  /** El mástil se despliega al empezar (hasta 3 s de su animación: arriba) y el brazo se despliega mientras perfora. La
+   *  NAVCAM va donde está la cabeza del mástil en cada momento. */
+  _animarModelo(dt) {
+    if (!this.mixer) return;
+    const A = this.anim, hacia = (k, meta, vel) => { A[k] += Math.max(-vel * dt, Math.min(vel * dt, meta - A[k])); };
+    hacia('mastil', 3.0, 1.0); hacia('tapas', 1.25, 1.0);
+    hacia('brazo', this.perfora && this.perfora.t < 4.6 ? 6.0 : 0, 2.6);
+    for (const [k, lista] of Object.entries(this.grupos)) for (const a of lista) a.time = Math.min(A[k], a.getClip().duration);
+    this.mixer.update(0);
+    if (this.cabeza) {
+      const bb = new THREE.Box3().setFromObject(this.cabeza), q = this.obj.worldToLocal(bb.getCenter(new THREE.Vector3()));
+      const top = this.obj.worldToLocal(new THREE.Vector3(0, bb.max.y, 0).add(new THREE.Vector3(bb.getCenter(new THREE.Vector3()).x, 0, bb.getCenter(new THREE.Vector3()).z)));
+      this.navcam.set(q.x, Math.max(q.y, top.y - 0.05), q.z + 0.15);
+    }
+    this.mastilArriba = A.mastil >= 2.5;
   }
 
   _informe() { mostrarInforme(this.view, datosRover(this.view, this), { volar: () => this.onSalir?.(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } }); }
@@ -304,7 +334,7 @@ export class Rover {
       if (c.fov !== 50) { c.fov = 50; c.near = 0.05; c.updateProjectionMatrix(); }
       return;
     }
-    if (this.vista === 'navcam') {
+    if (this.vista === 'navcam' && (!this.mixer || this.mastilArriba)) {
       this.obj.updateMatrixWorld();
       c.position.copy(this.obj.localToWorld(this.navcam.clone()));
       // El cardán del mástil gira la cámara
@@ -327,7 +357,7 @@ export class Rover {
     const v = this.view, now = v.now, t = this.tasks, ui = this.ui;
     ui.classList.toggle('navcam', this.vista === 'navcam' && !this.perfora);
     const sol = now ? (now.sun.frac > 0.5 && t.lit(this.pos.x, this.pos.z)) : false;
-    this.$('cam').textContent = this.perfora ? tr('OUTSIDE VIEW · DRILL', 'VISTA EXTERIOR · TALADRO') : this.vista === 'navcam' ? (this.modelo ? tr(`NAVCAM · PERSEVERANCE MAST ${fmt(this.navcam.y, 1)} m`, `NAVCAM · MÁSTIL DEL PERSEVERANCE ${fmt(this.navcam.y, 1)} m`) : tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m')) : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
+    this.$('cam').textContent = this.mixer && !this.mastilArriba ? tr('DEPLOYING THE MAST…', 'DESPLEGANDO EL MÁSTIL…') : this.perfora ? tr('OUTSIDE VIEW · DRILL', 'VISTA EXTERIOR · TALADRO') : this.vista === 'navcam' ? (this.modelo ? tr(`NAVCAM · PERSEVERANCE MAST ${fmt(this.navcam.y, 1)} m`, `NAVCAM · MÁSTIL DEL PERSEVERANCE ${fmt(this.navcam.y, 1)} m`) : tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m')) : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
     this.$('hora').textContent = v.time ? ' ' + new Date(v.time).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
     // Brújula: rumbo del rover (0° = norte, sentido horario; x este, z sur)
     const rumbo = ((Math.atan2(Math.sin(this.heading), -Math.cos(this.heading)) * 180) / Math.PI + 360) % 360;
