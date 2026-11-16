@@ -100,6 +100,16 @@ export type Fact = { value: string; label: string }
 /** Una pregunta para adivinar antes de ver el dato de la escena: tres respuestas y cuál es la buena. */
 export type Quiz = { ask: string; options: string[]; right: number }
 
+/** Rótulos del bloque "por qué" de las escenas del Sol, la Tierra y la comparación. */
+const whyLabel = {
+  matters: tr("Why it matters", "Por qué importa"),
+  use: tr("What it is for", "Para qué sirve"),
+  gain: tr("What you gain", "Qué ganas"),
+  impact: tr("How it changes the mission", "Cómo cambia la misión"),
+}
+/** El punto vecino de la misma cresta (RoI 6): la referencia de "los dos a la vez" de la escena de comparación. */
+const roi6 = compare.find((site) => site.id === "connecting-ridge-roi-6")!
+
 /** Rótulos de las preguntas del vuelo. */
 export const guess = {
   label: tr("Guess first", "Adivina primero"),
@@ -117,6 +127,8 @@ export type Scene = {
   facts?: Fact[]
   note?: string
   quiz?: Quiz
+  /** Por qué importa lo que muestra la escena, para qué sirve y qué se gana: sale junto con la respuesta. */
+  why?: Array<{ label: string; text: string }>
 }
 
 /**
@@ -243,6 +255,29 @@ export const scenes: Scene[] = [
       { value: pct(featured.mast10m.sunPct), label: tr("Sun in view, 10 m mast", "Sol a la vista, mástil de 10 m") },
       { value: hours(featured.ground.longestNightH), label: tr("Longest night, ground level", "Noche más larga, a ras del suelo") },
     ],
+    why: [
+      {
+        label: whyLabel.matters,
+        text: tr(
+          `At the pole the Sun never climbs above ${pole.sunMaxElevationDeg.toFixed(2)}°. It skims the real horizon, so one ridge is enough to leave the lander in shadow.`,
+          `En el polo el Sol nunca sube más de ${pole.sunMaxElevationDeg.toFixed(2)}°. Va a ras del horizonte real, así que una sola cresta basta para dejar el módulo a la sombra.`,
+        ),
+      },
+      {
+        label: whyLabel.use,
+        text: tr(
+          "Sunlight is the lander's power: the panels run the mission and charge the batteries that must carry it through every night.",
+          "La luz solar es la energía del módulo: los paneles mueven la misión y cargan las baterías que tienen que aguantar cada noche.",
+        ),
+      },
+      {
+        label: whyLabel.gain,
+        text: tr(
+          `Measured against the real terrain, you know how long the night lasts here (${hours(featured.ground.longestNightH)}) before you size the battery, the mast or the stay.`,
+          `Medido contra el relieve real, sabes cuánto dura la noche aquí (${hours(featured.ground.longestNightH)}) antes de decidir la batería, el mástil o la estadía.`,
+        ),
+      },
+    ],
     quiz: {
       ask: tr("Raise the solar panel on a 10 m mast. How much more sunlight?", "Sube el panel solar a un mástil de 10 m. ¿Cuánta más luz?"),
       options: tr(["Almost twice as much", "A few percent more", "None: the Sun is the same"], ["Casi el doble", "Un pequeño porcentaje más", "Ninguna: el Sol es el mismo"]),
@@ -263,6 +298,29 @@ export const scenes: Scene[] = [
       { value: hours(featured.ground.longestSilenceH), label: tr("Longest silence, ground level", "Silencio más largo, a ras del suelo") },
     ],
     note: tr("Red hatching: direct line of sight to Earth at this hour.", "Rayado rojo: línea de vista directa con la Tierra a esta hora."),
+    why: [
+      {
+        label: whyLabel.matters,
+        text: tr(
+          "A direct radio link only works with Earth in line of sight. When the terrain covers it, the lander cannot talk to mission control.",
+          "El enlace de radio directo solo funciona con la Tierra a la vista. Cuando el relieve la tapa, el módulo no puede hablar con el control de misión.",
+        ),
+      },
+      {
+        label: whyLabel.use,
+        text: tr(
+          "Commands go up and telemetry and science data come down only inside those windows. Outside them the lander works alone.",
+          "Las órdenes suben y la telemetría y los datos científicos bajan solo dentro de esas ventanas. Fuera de ellas el módulo trabaja solo.",
+        ),
+      },
+      {
+        label: whyLabel.gain,
+        text: tr(
+          `You schedule the landing and the critical operations while Earth can watch, and you know the longest silence to plan for (${hours(featured.ground.longestSilenceH)} here).`,
+          `Programas el alunizaje y las operaciones críticas cuando la Tierra puede verlas, y sabes el silencio más largo que hay que prever (${hours(featured.ground.longestSilenceH)} aquí).`,
+        ),
+      },
+    ],
     quiz: {
       ask: tr("Can a lander at the pole always see Earth?", "¿Un módulo en el polo ve siempre la Tierra?"),
       options: tr(["Always", "Only part of the time", "Never"], ["Siempre", "Solo parte del tiempo", "Nunca"]),
@@ -277,6 +335,29 @@ export const scenes: Scene[] = [
       `Two points on the same ridge, the same lunar day. One gets sunlight ${pct(featured.ground.sunPct)} of the time, the other never loses it. That is why a lunar plan has to be compared again every time the site or the date moves.`,
       `Dos puntos en la misma cresta, el mismo día lunar. Uno recibe luz solar el ${pct(featured.ground.sunPct)} del tiempo; el otro nunca la pierde. Por eso un plan lunar hay que compararlo de nuevo cada vez que se mueve el sitio o la fecha.`,
     ),
+    why: [
+      {
+        label: whyLabel.matters,
+        text: tr(
+          `A lander needs power and radio at the same moment. At ${featured.name} that happens only ${pct(featured.ground.bothPct)} of the lunar day; ${pairDistanceM} m away, at RoI 6, ${pct(roi6.ground.bothPct)}.`,
+          `Un módulo necesita energía y radio en el mismo momento. En ${featured.name} eso pasa solo el ${pct(featured.ground.bothPct)} del día lunar; a ${pairDistanceM} m, en RoI 6, el ${pct(roi6.ground.bothPct)}.`,
+        ),
+      },
+      {
+        label: whyLabel.impact,
+        text: tr(
+          "The hours with both are the working hours: more of them means more science per day, smaller batteries and fewer operations done blind.",
+          "Las horas con los dos son las horas de trabajo: cuantas más haya, más ciencia por día, baterías más pequeñas y menos operaciones a ciegas.",
+        ),
+      },
+      {
+        label: whyLabel.gain,
+        text: tr(
+          "Comparing sites and dates side by side finds the one with the longest shared window, before the hardware is built around the wrong place.",
+          "Comparar sitios y fechas lado a lado encuentra el que tiene la ventana conjunta más larga, antes de construir el equipo para el lugar equivocado.",
+        ),
+      },
+    ],
     quiz: {
       ask: tr(`Two sites ${pairDistanceM} m apart on the same ridge. Same sunlight?`, `Dos sitios a ${pairDistanceM} m en la misma cresta. ¿La misma luz solar?`),
       options: tr(["Nearly the same", "A few percent apart", "One never loses the Sun"], ["Casi la misma", "Unos puntos de diferencia", "Uno nunca pierde el Sol"]),
@@ -702,6 +783,96 @@ export const sources = {
     },
   ],
 }
+
+/**
+ * "Tu primera misión, paso a paso": el recorrido que EVA guía dentro de la aplicación, contado con capturas y vídeos
+ * grabados de la propia app (`public/landing-tour/`, un archivo por idioma: `<media>-en|es`). El orden es el del
+ * flujo guiado de EVA (features/assistant/eva/recorridos.ts): te recibe, ves la firma pendiente, decides la misión,
+ * la ves alunizar, sales a caminar y después planificas las tuyas. La campaña que se ve es la de ejemplo.
+ */
+export const firstMission = {
+  label: tr("Guided by EVA", "Con EVA de guía"),
+  title: tr("Your first mission,", "Tu primera misión,"),
+  titleAccent: tr("step by step.", "paso a paso."),
+  body: tr(
+    "Open the planner and EVA, the built-in AI guide, walks you through a whole mission. This is the route, recorded from the app itself.",
+    "Abre el planificador y EVA, la guía de IA de la aplicación, te lleva por una misión entera. Este es el recorrido, grabado de la propia app.",
+  ),
+  evaSays: tr("EVA says", "EVA dice"),
+  steps: [
+    {
+      media: "hello",
+      kind: "image",
+      title: tr("EVA greets you", "EVA te recibe"),
+      text: tr(
+        "She asks for your language and your name, and offers to take you through planning a mission to the Moon. From then on she leads, and you can skip her whenever you want.",
+        "Te pide el idioma y tu nombre, y te propone acompañarte a planificar una misión a la Luna. Desde ahí ella guía, y puedes saltarla cuando quieras.",
+      ),
+      quote: tr("Hi, I am EVA. What is your name?", "Hola, soy EVA. ¿Cómo te llamas?"),
+      alt: tr("EVA, a round white robot, asking for your name on the landing page.", "EVA, un robot blanco y redondo, pidiendo tu nombre en la landing."),
+    },
+    {
+      media: "signoff",
+      kind: "image",
+      title: tr("A mission waits for your sign-off", "Una misión espera tu firma"),
+      text: tr(
+        "You arrive at mission control: the countdown to the next landing, every mission with its status, and one decision that is yours. The science walk CR-02 comes back with 26% oxygen against a 30% minimum. Approve it, or find out why first.",
+        "Llegas al control de misión: la cuenta atrás al próximo alunizaje, cada misión con su estado y una decisión que es tuya. La caminata científica CR-02 vuelve con 26 % de oxígeno frente a un mínimo de 30 %. Apruébala, o averigua antes por qué.",
+      ),
+      quote: tr("This is where decisions wait for your sign-off. I would sign them myself, but I have no hands.", "Aquí esperan las decisiones que debes firmar. Las firmaría yo, pero no tengo manos."),
+      alt: tr("Mission control with the next milestone countdown, the pending sign-off panel and EVA pointing at it.", "El control de misión con la cuenta atrás del próximo hito, el panel de firma pendiente y EVA señalándolo."),
+    },
+    {
+      media: "plan",
+      kind: "video",
+      title: tr("Decide what the mission needs", "Decide qué necesita la misión"),
+      text: tr(
+        "Five questions: crewed, rover or fixed lander; where it lands; when, and for how long; how long the batteries last, how much Earth link you need and which power source; and the route of the walk. Every answer is checked against the real Sun and Earth of that place and date.",
+        "Cinco preguntas: tripulada, rover o módulo fijo; dónde aluniza; cuándo y cuánto se queda; cuánto aguantan las baterías, cuánto enlace con la Tierra necesitas y qué fuente de energía; y la ruta de la caminata. Cada respuesta se comprueba contra el Sol y la Tierra reales de ese lugar y esa fecha.",
+      ),
+      quote: tr("At the Moon's south pole the Sun skims the horizon, so a small hill decides between power and darkness.", "En el polo sur de la Luna el Sol roza el horizonte, así que un cerro pequeño decide entre energía y oscuridad."),
+      alt: tr("The mission form: type, zone, date with sunlight over the terrain, equipment and walk, ending in the verdict.", "El formulario de misión: tipo, zona, fecha con la luz sobre el relieve, equipo y caminata, hasta el veredicto."),
+    },
+    {
+      media: "descent",
+      kind: "video",
+      title: tr("Watch it land", "Mírala alunizar"),
+      text: tr(
+        "The simulator flies an Apollo-style descent to Connecting Ridge, at the south pole, checked against the Apollo 11 flight plan, with the crew's radio calls on screen. Altitude, speed, thrust and fuel are live, and EVA calls out the terrain on the way down.",
+        "El simulador vuela un descenso al estilo Apollo hasta Connecting Ridge, en el polo sur, comprobado contra el plan de vuelo del Apollo 11, con las llamadas de radio de la tripulación en pantalla. Altitud, velocidad, empuje y combustible van en vivo, y EVA va cantando el terreno durante la bajada.",
+      ),
+      quote: tr("The simulator: an Apollo-style descent to the south pole. The guidance flies it, not you.", "El simulador: un descenso al estilo Apollo en el polo sur. Lo vuela el guiado, no tú."),
+      alt: tr("The lunar module descending over the south pole with altitude, speed and fuel readouts.", "El módulo lunar descendiendo sobre el polo sur con altitud, velocidad y combustible."),
+    },
+    {
+      media: "walk",
+      kind: "video",
+      title: tr("Step outside", "Sal a la superficie"),
+      text: tr(
+        "After touchdown you see through the helmet: oxygen, carbon dioxide, water and battery on the left, Sun and Earth on the right. You follow the science route stop by stop, EVA warns you when something turns red, and you can ask her why each task matters.",
+        "Tras el contacto ves por el casco: oxígeno, dióxido de carbono, agua y batería a la izquierda, Sol y Tierra a la derecha. Sigues la ruta científica parada a parada, EVA te avisa si algo se pone en rojo y puedes preguntarle por qué importa cada tarea.",
+      ),
+      quote: tr("Your suit is on the left: oxygen, the carbon dioxide filter, cooling water and battery. If anything turns red, I will tell you.", "Tu traje va a la izquierda: oxígeno, filtro de dióxido de carbono, agua de refrigeración y batería. Si algo se pone rojo, te aviso."),
+      alt: tr("The view from inside the helmet while walking on the Moon, with EVA as a hologram.", "La vista desde dentro del casco caminando por la Luna, con EVA como holograma."),
+    },
+    {
+      media: "result",
+      kind: "image",
+      title: tr("Then plan your own", "Después, planifica las tuyas"),
+      text: tr(
+        "Change the site, the date or the equipment and see what happens when there is not enough Sun or no link with Earth: the verdict names what fails and the planner proposes another date, another zone or a taller mast. Ask EVA anything along the way. She explains; the figures come from the engine and NASA data.",
+        "Cambia el sitio, la fecha o el equipo y mira qué pasa cuando no hay suficiente Sol o no hay enlace con la Tierra: el veredicto dice qué falla y el planificador propone otra fecha, otra zona o un mástil más alto. Pregúntale a EVA lo que quieras por el camino. Ella explica; las cifras salen del motor y de los datos de la NASA.",
+      ),
+      quote: tr("Tap me anytime to ask anything.", "Tócame cuando quieras preguntar algo."),
+      alt: tr("The planner's verdict for a mission, NO-GO, with the option to simulate it.", "El veredicto del planificador para una misión, NO-GO, con la opción de simularla."),
+    },
+  ],
+  cta: tr("Start with EVA", "Empieza con EVA"),
+  note: tr(
+    "Recorded from the application on 15 Nov 2026. The campaign shown is sample data; sites, Sun and Earth are real (JPL Horizons DE441, LOLA terrain). The descent uses the Apollo 11 profile as an example vehicle.",
+    "Grabado de la aplicación el 15 nov 2026. La campaña que se ve es de ejemplo; los sitios, el Sol y la Tierra son reales (JPL Horizons DE441, relieve LOLA). El descenso usa el perfil del Apollo 11 como nave de ejemplo.",
+  ),
+} as const
 
 /**
  * El problema, en tres cifras (diapositiva 2 de la presentación, `apps/web/public/demo.html`): el Sol más alto sobre

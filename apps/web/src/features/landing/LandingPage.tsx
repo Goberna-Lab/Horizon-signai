@@ -1,6 +1,7 @@
 import { FlightStage } from "./flight/FlightStage"
 import { Audience } from "./sections/Audience"
 import { Closing } from "./sections/Closing"
+import { FirstMission } from "./sections/FirstMission"
 import { Footer } from "./sections/Footer"
 import { Header } from "./sections/Header"
 import { PlannerDemo } from "./sections/PlannerDemo"
@@ -21,6 +22,7 @@ export function LandingPage() {
     <div className="ln">
       <Header />
       <FlightStage />
+      <FirstMission />
       <Problem />
       <ProductWindow />
       <PlannerDemo />

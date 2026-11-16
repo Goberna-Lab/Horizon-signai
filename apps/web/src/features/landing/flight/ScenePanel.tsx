@@ -42,6 +42,16 @@ export function ScenePanel({ scene, open }: { scene: Scene; open: boolean }) {
         <p className="fl-scene__body">{scene.body}</p>
         {scene.note && <p className="fl-scene__note">{scene.note}</p>}
       </div>
+      {scene.why && (
+        <dl className="fl-why">
+          {scene.why.map((item) => (
+            <div key={item.label} className="fl-why__item">
+              <dt>{item.label}</dt>
+              <dd>{item.text}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {scene.facts && (
         <dl className="fl-facts">
           {scene.facts.map((fact) => (

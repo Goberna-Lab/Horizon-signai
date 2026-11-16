@@ -212,6 +212,31 @@
   justify-self: start;
 }
 
+/* El logo oficial: la marca mide 231/151 del alto de las mayúsculas y baja un poco bajo la línea base (como en el
+   archivo del equipo); el nombre va en Archivo 900 ancho. */
+.ln-bar__brand {
+  gap: 0.42em;
+}
+
+.ln-bar__mark {
+  flex: none;
+  height: 1.09em;
+  width: auto;
+  transform: translateY(0.1em);
+  fill: currentColor;
+}
+
+.ln-bar__name {
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+}
+
+.ln-bar__sun,
+.ln-bar__ai {
+  fill: var(--signal);
+  color: var(--signal);
+}
+
 /* El final de la barra: la acción, pegada al borde. */
 .ln-bar__end {
   justify-self: end;
@@ -844,6 +869,135 @@
   font-size: 11px;
   line-height: 1.5;
   color: var(--ink-soft);
+}
+
+/* "Tu primera misión, paso a paso": seis pasos, cada uno con su captura o vídeo de la app y lo que dice EVA.
+   En pantallas anchas la imagen y el texto se alternan de lado; en estrechas, la imagen va arriba. */
+.ln-tour__steps {
+  display: grid;
+  gap: clamp(48px, 7vw, 104px);
+  margin: clamp(36px, 5vw, 72px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ln-tour__step {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: clamp(20px, 3.5vw, 56px);
+  align-items: center;
+}
+
+.ln-tour__step:nth-child(even) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+}
+
+.ln-tour__step:nth-child(even) .ln-tour__media {
+  order: 2;
+}
+
+.ln-tour__media {
+  margin: 0;
+  border: var(--rule);
+  background: var(--ink);
+  box-shadow: 8px 8px 0 var(--ink);
+}
+
+.ln-tour__media img,
+.ln-tour__media video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.ln-tour__text {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.ln-tour__n {
+  font-weight: 900;
+  font-size: clamp(2.5rem, 4.4vw, 4rem);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+
+.ln-tour__title {
+  font-weight: 900;
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.ln-tour__text p {
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+.ln-tour__quote {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 12px 14px;
+  max-width: 46ch;
+  border-left: 4px solid var(--signal);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.ln-tour__quote .ln-mono {
+  color: var(--signal);
+  font-weight: 700;
+}
+
+.ln-tour__end {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  margin-top: clamp(40px, 6vw, 80px);
+}
+
+.ln-tour__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 18px 28px;
+  background: var(--signal-day);
+  color: var(--paper-day);
+  font-weight: 800;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.ln-tour__cta:hover,
+.ln-tour__cta:focus-visible {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+@media (max-width: 859px) {
+  .ln-tour__step,
+  .ln-tour__step:nth-child(even) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ln-tour__step:nth-child(even) .ln-tour__media {
+    order: 0;
+  }
+
+  .ln-tour__media {
+    box-shadow: 5px 5px 0 var(--ink);
+  }
 }
 
 /* El problema: el texto a la izquierda y, a la derecha, un corte del horizonte que lo explica. */
