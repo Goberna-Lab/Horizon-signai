@@ -370,7 +370,7 @@ export function guionDe(ruta: string, pagina = ""): Guion {
  * otra: avisan con `avisarEva("aterrizaje-nominal")` de `@/shared/eva` (un CustomEvent en window). `critico`: se dice aunque no
  * hayan pasado 90 s, y siempre en serio. `festejo`: algo salió bien; al terminar pone ojos contentos en vez de guiñar.
  */
-export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean; /** Indicación útil (qué tecla, qué mirar): no espera los 90 s, pero no interrumpe. */ guia?: boolean }> = {
+export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; festejo?: boolean; repetible?: boolean; /** Indicación útil (qué tecla, qué mirar): no espera los 90 s, pero no interrumpe. */ guia?: boolean; /** Narración guiada: el paso nuevo corta al anterior (sin tono de peligro). */ interrumpe?: boolean }> = {
   "aterrizaje-nominal": { texto: "Welcome to the lunar south pole. Population: you.", es: { texto: "Bienvenido al polo sur lunar. Población: tú." }, festejo: true },
   "primeros-pasos": {
     texto: "Your first steps. Footprints here last millions of years, so no pressure on the style.",
@@ -532,6 +532,9 @@ export const EVENTOS: Record<string, Frases & { es?: Frases; critico?: boolean; 
     festejo: true,
     repetible: true,
   },
+  // Misión real guiada del simulador (features/simulator/alunizaje/guiada.ts): EVA narra cada hecho de la bitácora con el
+  // texto que llega en el aviso (sale de @/shared/bitacoras, con fuentes). Sin texto propio: sin aviso no dice nada.
+  bitacora: { texto: "", es: { texto: "" }, repetible: true, guia: true, interrumpe: true },
   "aviso-critico": { texto: "", serio: "Warning.", es: { texto: "", serio: "Atención." }, critico: true, repetible: true },
 }
 

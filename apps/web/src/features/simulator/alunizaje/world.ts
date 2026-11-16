@@ -15,6 +15,7 @@ import { Tactil, esTactil } from './tactil';
 import { abrirEva, estadoSimulador } from './paraEva';
 import { Estacion } from './estacion';
 import { avisarSitio } from './avisoSitio';
+import { Guiada } from './guiada';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -58,7 +59,9 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos }: { siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number; fallos?: boolean } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora }: { bitacora?: any; siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number; fallos?: boolean } = {}): Promise<() => void> {
+  // Misión real guiada: el sitio y la fecha son los de su bitácora; es un módulo fijo (guiada.ts)
+  if (bitacora) { siteId = bitacora.simulador.sitio; ms = Date.parse(bitacora.contactoUtc); tipo = 'fija'; fallos = false; }
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
   const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
@@ -206,7 +209,9 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
   const sim = new LandingSim(view);
   const tactil = movil ? new Tactil(view, { sim, caminata, rover }) : null;
   await sim.start();
-  const quitarAviso = avisarSitio(host, view, site.id); // pendiente real peligrosa: se dice antes de bajar
+  view.guiada = bitacora ? new Guiada(view, bitacora) : null;
+  // Pendiente real peligrosa: se dice antes de bajar. En la misión guiada, su briefing va en su lugar.
+  const quitarAviso = view.guiada ? (view.guiada.briefing(), () => view.guiada.dispose()) : avisarSitio(host, view, site.id);
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
 
   const onKey = (e) => {

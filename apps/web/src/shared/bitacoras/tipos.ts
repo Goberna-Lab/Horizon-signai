@@ -34,6 +34,11 @@ export type Bitacora = {
   programa: string
   tipo: "fija" | "rover" | "tripulada"
   sitio: { nombre: string; lat: number; lon: number; elevacionM?: number; pendienteDeg?: number; fuentes: string[] }
+  /**
+   * Dónde se vuela en el simulador: un sitio con paquete 3D (apps/web/public/simulador/sitios/). Si el sitio real no está
+   * en nuestros datos, uno de referencia, y `nota` lo dice en pantalla.
+   */
+  simulador: { sitio: string; nota?: Texto }
   contactoUtc: string
   finUtc: string
   /** Duración prevista y real de la operación en superficie, como la dan las fuentes. */

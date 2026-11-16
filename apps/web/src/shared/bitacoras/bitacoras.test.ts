@@ -44,3 +44,30 @@ test("IM-1: hasta el contacto solo se ve lo de antes y el descenso", () => {
   const ids = hechosHasta(IM1, Date.parse(IM1.contactoUtc)).map((h) => h.id)
   assert.deepEqual(ids, ["sitio", "laseres", "contacto", "de-lado"])
 })
+
+test("el archivo del planificador estático está al día (node apps/web/scripts/exportar-bitacoras.ts)", async () => {
+  const { readFileSync } = await import("node:fs")
+  const { bitacorasJs } = await import("./exportar.ts")
+  const archivo = readFileSync(new URL("../../../../../prototipos/lunar-map/data/bitacoras.js", import.meta.url), "utf8")
+  assert.equal(archivo, bitacorasJs())
+})
+
+test("IM-1 en Markdown: todos los hechos y las fuentes, en los dos idiomas", async () => {
+  const { bitacoraMarkdown } = await import("./exportar.ts")
+  for (const l of ["en", "es"] as const) {
+    const md = bitacoraMarkdown(IM1, l)
+    for (const h of IM1.hechos) assert.ok(md.includes(h.titulo[l]), `${l}: ${h.id}`)
+    for (const f of IM1.fuentes) assert.ok(md.includes(f.url), `${l}: ${f.id}`)
+  }
+  assert.match(bitacoraMarkdown(IM1, "es"), /80,13° S, 1,44° E · 2579 m · pendiente 12°/)
+})
+
+test("cada bitácora se vuela en un sitio que tiene paquete 3D", async () => {
+  const { existsSync } = await import("node:fs")
+  for (const b of BITACORAS) {
+    const id = b.simulador.sitio
+    const ok = id === "connecting-ridge-roi-6" || existsSync(new URL(`../../../public/simulador/sitios/${id}.json`, import.meta.url))
+    assert.ok(ok, `${b.id}: sin paquete para ${id}`)
+    if (b.simulador.nota) assert.ok(b.simulador.nota.en && b.simulador.nota.es)
+  }
+})

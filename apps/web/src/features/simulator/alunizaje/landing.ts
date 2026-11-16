@@ -855,7 +855,9 @@ export class LandingSim {
     this.settleT += dt;
     const v = this.view, hz = this.plan.final.hz;
     if (!this.result) { // el resultado lo deciden el terreno bajo las patas y la velocidad de contacto
-      const R = (this.result = outcome(hz, this.touchV, this.touchH, this.plan.fault));
+      // Misión real guiada: si en la bitácora volcó, aquí también (el relieve de referencia puede ser plano)
+      const R0 = outcome(hz, this.touchV, this.touchH, this.plan.fault), guiada = v.guiada;
+      const R = (this.result = guiada?.vuelca && R0.kind !== 'tip' ? { ...R0, kind: 'tip' } : R0);
       if (R.kind === 'crash') { this._explode(); this.flash(tr('IMPACT · SIGNAL LOST', 'IMPACTO · SEÑAL PERDIDA'), 5000); }
       this.q0 = this.lm.quaternion.clone();
       const down = new THREE.Vector3(-hz.gx, 0, -hz.gz); if (down.lengthSq() < 1e-6) down.set(Math.random() - 0.5, 0, Math.random() - 0.5);
@@ -863,7 +865,8 @@ export class LandingSim {
       this.tiltDeg = Math.min(hz.tilt, 25);
       if (R.kind === 'tip') { this.say('Aldrin', tr('We\'re going over!', '¡Nos vamos de lado!')); this.flash(tr('THE LANDER IS TIPPING OVER', 'LA NAVE ESTÁ VOLCANDO'), 4000); }
       // EVA: el nominal con su festejo; lo demás, como aviso crítico (corta lo que esté diciendo)
-      if (R.kind === 'ok') avisarEva('aterrizaje-nominal');
+      if (guiada) { /* la cuenta EVA con la bitácora (guiada.ts) */ }
+      else if (R.kind === 'ok') avisarEva('aterrizaje-nominal');
       else avisarEva('aviso-critico', {
         tilt: tr(`We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, `Estamos abajo, pero inclinados ${Math.round(this.tiltDeg)} grados. Paneles y antena desalineados.`),
         hard: tr(`Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, `Aterrizaje duro, a ${this.touchV.toFixed(1).replace('.', ',')} metros por segundo. El tren de aterrizaje puede estar dañado.`),
@@ -886,6 +889,10 @@ export class LandingSim {
       this.lm.position.y = this.target.y + Math.sin(k * 1.3) * 1.6;
       if (this.settleT > 6 && !this.tipped) {
         this.tipped = true; this.state = 'lost';
+        if (v.guiada) { // volcó pero siguió operando: sigue la bitácora, sin «misión perdida»
+          this.say(tr('Telemetry', 'Telemetría'), tr('Lander on its side. Still sending data.', 'Módulo de lado. Sigue mandando datos.'));
+          this.ended = true; this.lmPos = this.lm.position.clone(); v.guiada.superficie(); return;
+        }
         this.say(tr('Telemetry', 'Telemetría'), tr('Lander tipped over. Panels and antenna off-pointed. Mission lost.', 'Nave volcada. Paneles y antena sin orientación. Misión perdida.'));
         this.ended = true; this.lmPos = this.lm.position.clone(); this._end();
       }

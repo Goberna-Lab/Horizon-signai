@@ -13,6 +13,13 @@ export const IM1: Bitacora = {
   programa: "NASA CLPS",
   tipo: "fija",
   sitio: { nombre: "Malapert A", lat: -80.13, lon: 1.44, elevacionM: 2579, pendienteDeg: 12, fuentes: ["nasa-lro"] },
+  simulador: {
+    sitio: "malapert-massif",
+    nota: {
+      en: "3D relief for reference: Malapert massif, 178 km from the real IM-1 site. That site (80.13° S, about 300 km from the pole) is outside our terrain and Sun–Earth data, which cover 190 km around the pole.",
+      es: "Relieve 3D de referencia: el macizo Malapert, a 178 km del sitio real de IM-1. Ese sitio (80,13° S, a unos 300 km del polo) queda fuera de nuestros datos de relieve, Sol y Tierra, que cubren 190 km alrededor del polo.",
+    },
+  },
   contactoUtc: "2024-02-22T23:23:00Z",
   finUtc: "2024-02-29",
   prevista: { en: "Approx. 10 days of lunar surface operations", es: "Unos 10 días de operaciones en la superficie" },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
 import { tr } from "@/shared/i18n"
+import { BITACORAS } from "@/shared/bitacoras"
 import { useMissions } from "@/shared/planning"
 import "./alunizaje/alunizaje.css"
 
@@ -17,6 +18,8 @@ import "./alunizaje/alunizaje.css"
  *  · `&panel=<m>&antena=<m>&estadia=<h>`: alturas del panel solar y la antena (tecla P los despliega) y estadía, para su informe.
  *  · `&fallos=1`: modo entrenamiento (fallo de altura al azar y rocas del suelo generado). Sin él, la misión planificada
  *    no se cae por lo inventado: el guiado esquiva el suelo generado y no hay fallo aleatorio.
+ *  · `?bitacora=<id>`: una misión real guiada (@/shared/bitacoras, alunizaje/guiada.ts): su sitio, su fecha y EVA
+ *    contando lo que pasó. Manda sobre lo demás.
  *  · Sin nada: el plan de la misión CR-01 (Connecting Ridge · RoI 6, 18 de diciembre de 2026, 09:00 UTC).
  */
 export function LandingSimulator() {
@@ -41,6 +44,7 @@ export function LandingSimulator() {
   const antenaM = num("antena", 0, 30)
   const estadiaH = num("estadia", 1, 24 * 60)
   const fallos = params.get("fallos") === "1"
+  const bitacora = BITACORAS.find((b) => b.id === params.get("bitacora"))
 
   useEffect(() => {
     let alive = true
@@ -50,7 +54,7 @@ export function LandingSimulator() {
       setSinPaquete(null)
       let stop: () => void
       try {
-        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos })
+        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora })
       } catch (e) {
         if (alive && String(e).includes("sitio-sin-paquete")) setSinPaquete(siteId ?? "?")
         return
@@ -62,7 +66,7 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos])
+  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora])
 
   return (
     <section className="screen sim-alz-screen">

@@ -121,6 +121,17 @@
  * El disco no se mueve; dentro, una tira de cráteres (dos vueltas de 2 diámetros) se desliza con transform en 240 s
  * y todo se desvanece hacia el borde para que parezca una esfera. Detrás de las tarjetas, sin eventos; quieta con «reducir movimiento». */
 .upcoming .mlist { position: relative; z-index: 1; }
+/* Misiones reales (data/bitacoras.js): debajo de las nuestras, con su bitácora para descargar y su simulación */
+.real { position: relative; z-index: 1; flex: none; display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--tinta); background: rgba(255,255,255,0.62); }
+.real .cap { font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
+.real .r1 { display: flex; align-items: center; gap: 8px; }
+.real .nm { flex: 1; min-width: 0; font-size: 13px; line-height: 1.2; }
+.real .idb { background: var(--tinta); color: var(--crema); }
+.st.REAL { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.mitem { display: grid; gap: 6px; }
+.macts .none { font-size: 10.5px; color: var(--gris); padding: 2px 4px; }
+.real .acts, .macts { display: flex; gap: 8px; }
+.real .acts .btn, .macts .btn { flex: 1 1 0; min-width: 0; height: 36px; font-size: 13px; padding: 0 10px; }
 .luna { --d: 168px; position: absolute; right: 24px; bottom: 24px; z-index: 0; width: var(--d); height: var(--d); border-radius: 50%; overflow: hidden; pointer-events: none;
   background: radial-gradient(circle at 36% 32%, rgba(17,17,17,0.015), rgba(17,17,17,0.06) 72%, rgba(17,17,17,0.09));
   box-shadow: inset 0 0 0 1px rgba(17,17,17,0.10);
@@ -314,7 +325,7 @@
   /* la lista de misiones mide lo mismo que el mapa de al lado y se desplaza por dentro */
   .upcoming { display: flex; flex-direction: column; min-height: 0; }
   .upcoming .mlist { flex: 1 1 0; height: 0; min-height: 0; overflow-y: auto; padding-right: 4px; margin-right: -4px; scroll-snap-type: y mandatory; }
-  .upcoming .mrow { scroll-snap-align: start; }
+  .upcoming .mitem { scroll-snap-align: start; }
 }
 
 /* ---------- sin sitio para dos mitades: calendario y movimientos, uno encima del otro; el hito y la firma, apilados ---------- */
@@ -443,6 +454,7 @@
               <section class="paper panel upcoming" aria-labelledby="up-t">
                 <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="mono aux" id="mix"></span></div>
                 <div class="mlist" id="mlist"></div>
+                <div class="real" id="realLog" hidden></div>
                 <div class="luna" aria-hidden="true"></div>
               </section>
             </div>
@@ -505,6 +517,8 @@
 <script src="campaign.js"></script>
 <script src="data/candidatas.js"></script>
 <script src="data/ventanas.js"></script>
+<script src="data/bitacoras.js"></script>
+<script src="data/bitacoras-campana.js"></script>
 <script>
 (function () {
   'use strict';
@@ -587,14 +601,51 @@
     missions.forEach(function (m) { by[m.status] = (by[m.status] || 0) + 1; });
     $('mix').innerHTML = ['PEND', 'REV', 'GO', 'OK', 'DRAFT'].filter(function (k) { return by[k]; }).map(function (k) { return '<span><i class="sym ' + symCls(k) + '" aria-hidden="true"></i>' + by[k] + ' ' + LBL[k] + '</span>'; }).join('');
   }
+  /* Misiones reales: la bitácora (data/bitacoras.js, de apps/web/src/shared/bitacoras/) en el idioma de la página, para
+   * descargar en Markdown, y su simulación en /simulador?bitacora=<id>. Los textos vienen ya en los dos idiomas. */
+  function renderReal() {
+    var B = (window.LunarData && LunarData.bitacoras) || [], box = $('realLog');
+    if (!B.length) return;
+    var L = (window.LunarI18n && LunarI18n.lang) === 'es' ? 'es' : 'en';
+    var MES = L === 'es' ? ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var dia = function (iso) { return +iso.slice(8, 10) + ' ' + MES[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4); };
+    var dias = function (b) { return Math.round((Date.parse(b.finUtc) - Date.parse(b.contactoUtc.slice(0, 10))) / 864e5); };
+    box.innerHTML = '<span class="cap">Real missions</span>' + B.map(function (b, i) {
+      var de = b.hechos.some(function (h) { return h.id === 'de-lado'; });
+      return '<div class="r1"><span class="idb">' + esc(b.nombre) + '</span><span class="nm" translate="no">' + esc(b.nave.replace(/ \(.*\)$/, '') + ' · ' + b.sitio.nombre) + '</span><span class="st REAL">REAL · ' + b.contactoUtc.slice(0, 4) + '</span></div>' +
+        '<span class="kps">' + kp('calendar-days', dia(b.contactoUtc), '', '', 'Contact') + kp('hourglass', dias(b) + ' d', '', '', 'Days of operations on the surface') +
+        (b.sitio.pendienteDeg ? kp('mountains-2', b.sitio.pendienteDeg + '°', '', 'warn', 'Slope at the landing site') : '') + (de ? kp('', 'On its side', '', 'bad', 'It tipped over on landing') : '') + '</span>' +
+        '<span class="acts"><button type="button" class="btn" data-log="' + i + '"><i class="lni lni-download-1" aria-hidden="true"></i>Download log</button>' +
+        '<a class="btn red" href="/simulador?bitacora=' + encodeURIComponent(b.id) + '" target="_top"><i class="lni lni-play" aria-hidden="true"></i>Play simulation</a></span>';
+    }).join('');
+    box.hidden = false;
+    box.onclick = function (e) {
+      var btn = e.target.closest('[data-log]'); if (!btn) return;
+      var b = B[+btn.dataset.log]; bajar((L === 'es' ? 'bitacora-' : 'log-') + b.id + '.md', b.markdown[L]);
+    };
+  }
+  /* La misión elegida: su bitácora planificada (data/bitacoras-campana.js: lo que el motor calcula para su lugar y su
+   * fecha) para descargar, y su simulación con ese lugar, esa fecha y esa ruta. Sin fecha todavía no hay qué calcular. */
+  function planActs(m) {
+    var P = (window.LunarData && LunarData.bitacorasPlan) || {}, b = P[m.id];
+    if (!b) return '<div class="macts"><span class="mono none">No date yet: its log and simulation come once it has one</span></div>';
+    return '<div class="macts"><button type="button" class="btn" data-plan="' + m.id + '"><i class="lni lni-download-1" aria-hidden="true"></i>Download log</button>' +
+      '<a class="btn red" href="' + esc(b.sim) + '" target="_top"><i class="lni lni-play" aria-hidden="true"></i>Play simulation</a></div>';
+  }
+  function bajar(nombre, texto) {
+    var url = URL.createObjectURL(new Blob([texto], { type: 'text/markdown;charset=utf-8' }));
+    var a = document.createElement('a'); a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
   function renderMissions() {
     $('mlist').innerHTML = missions.slice().sort(byAttention).map(function (m) {
       var quiet = m.status === 'GO' || m.status === 'OK' || m.status === 'DRAFT';
-      return '<button type="button" class="mrow' + (quiet ? ' quiet' : '') + '" data-id="' + m.id + '" aria-pressed="' + (m.id === state.sel) + '"' + (m.why ? ' title="' + esc(m.why) + '"' : '') + '>' +
+      return '<div class="mitem"><button type="button" class="mrow' + (quiet ? ' quiet' : '') + '" data-id="' + m.id + '" aria-pressed="' + (m.id === state.sel) + '"' + (m.why ? ' title="' + esc(m.why) + '"' : '') + '>' +
         '<span class="r1"><i class="sym ' + symCls(m.status) + '" aria-hidden="true"></i><span class="idb">' + m.id + '</span><span class="nm">' + m.name + '</span><span class="st ' + m.status + '">' + C.STATUS_LABEL[m.status] + '</span></span>' +
-        '<span class="kps">' + kpisOf(m).join('') + '</span></button>';
+        '<span class="kps">' + kpisOf(m).join('') + '</span></button>' + (m.id === state.sel ? planActs(m) : '') + '</div>';
     }).join('');
     renderMix();
+    renderReal();
     fitMissions();
   }
   /* la lista enseña solo tarjetas enteras. El hueco sale del alto natural del radar de al lado (no del panel estirado,
@@ -606,7 +657,7 @@
     ml.style.flex = ''; ml.style.height = '';
     if (window.innerWidth <= 1000 || !ml.offsetParent || !scr.offsetHeight) return;
     var natural = scr.offsetTop + scr.offsetHeight + 17;            /* alto del panel del radar sin estirar */
-    var room = natural - ml.offsetTop - 17;                         /* lo que deja la cabecera */
+    var real = $('realLog'), room = natural - ml.offsetTop - 17 - (real && !real.hidden ? real.offsetHeight + 10 : 0);   /* lo que dejan la cabecera y las misiones reales */
     var kids = ml.children, used = 0, i;
     for (i = 0; i < kids.length; i++) {
       var h = kids[i].offsetHeight + (i ? 8 : 0);
@@ -999,7 +1050,11 @@
   })();
 
   /* interacción de paneles */
-  $('mlist').addEventListener('click', function (e) { var b = e.target.closest('.mrow'); if (b) select(b.dataset.id, true); });
+  $('mlist').addEventListener('click', function (e) {
+    var p = e.target.closest('[data-plan]');
+    if (p) { var L = (window.LunarI18n && LunarI18n.lang) === 'es' ? 'es' : 'en'; bajar((L === 'es' ? 'bitacora-' : 'log-') + p.dataset.plan.toLowerCase() + '.md', LunarData.bitacorasPlan[p.dataset.plan].markdown[L]); return; }
+    var b = e.target.closest('.mrow'); if (b) select(b.dataset.id, true);
+  });
   if (!state.approved) wireApprove(document.querySelector('#pending [data-approve]'));
 
   /* ---------- arranque ---------- */
