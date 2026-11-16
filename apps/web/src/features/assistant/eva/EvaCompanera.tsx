@@ -357,6 +357,7 @@ export default function EvaCompanera() {
   const sinSonar = useRef<{ frase: string; tipo: "nombre" | "oferta" } | null>(null)
   const preguntarRef = useRef<(frase: string, tipo: "idioma" | "nombre" | "oferta") => Promise<void>>(async () => {})
   const preguntaId = useRef(0) // cada pregunta nueva deja sin efecto el cierre de la anterior
+  const abriendoManos = useRef(false) // el micrófono se está abriendo (una sola vez a la vez)
   // El paso que EVA está diciendo y cuánto lleva dicho (lo que la cola de voz ya hizo sonar): si la interrumpen con una
   // pregunta, al volver al guion termina desde la oración que cortaron (ver `volverAlGuion`).
   const pasoHablado = useRef<{ t: { r: Recorrido; i: number }; i: number; frase: string; hablado: string; completo: boolean } | null>(null)
@@ -1273,11 +1274,24 @@ export default function EvaCompanera() {
       /* sin almacenamiento: vale para esta página */
     }
     for (const frase of [...PUENTES[idiomaRef.current], SEGUIMOS[idiomaRef.current], RESCATE[idiomaRef.current]]) precargarVoz(idiomaRef.current, frase)
-    const ctx = audioCtx.current
-    if (!ctx || ctx.state !== "running") return // sin toque todavía: lo abre el primer toque en la página
-    const ok = await oidoEva.encender(ctx)
-    manosRef.current = ok
-    setManos(ok)
+    if (!audioCtx.current || audioCtx.current.state !== "running") return // sin toque todavía: lo abre el primer toque
+    if (abriendoManos.current) return
+    abriendoManos.current = true
+    try {
+      // Se abre cuando EVA termina de hablar, no antes (medido el 2026-11-15): el micrófono comparte el audio con su voz y,
+      // al abrirse, el sistema reconfigura el dispositivo y corta la oración que estaba sonando (se perdía «What is your
+      // name?», justo lo que tarda en cargar). Así, además, el permiso del navegador aparece tras la pregunta.
+      // Primero un momento: con el primer toque EVA repite en voz alta su pregunta 250 ms después (ver `habilitar`).
+      await esperar(700)
+      for (let k = 0; k < 240 && fraseActual.current.hasta === Infinity; k++) await esperar(250)
+      const ctx = audioCtx.current
+      if (!ctx || ctx.state !== "running") return
+      const ok = await oidoEva.encender(ctx)
+      manosRef.current = ok
+      setManos(ok)
+    } finally {
+      abriendoManos.current = false
+    }
   }
   // EVA escucha solo cuando espera algo (el nombre, la oferta, un camino, el repaso o un paso del flujo) y nunca mientras
   // habla o piensa (2026-11-15, medido en el log de producción): con parlantes su voz vuelve por el micrófono y Whisper
@@ -1731,7 +1745,7 @@ export default function EvaCompanera() {
               </div>
             )}
             <p aria-live="polite">{globo}</p>
-            {manos && pregunta !== "idioma" && oidoEva.estado !== "apagado" && (
+            {manos && pregunta !== "idioma" && (oidoEva.estado === "escuchando" || oidoEva.estado === "oyendo") && (
               <p className="eva-escucha" data-estado={oidoEva.estado}>
                 <i aria-hidden="true" />
                 <span>

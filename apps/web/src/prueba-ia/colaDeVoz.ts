@@ -178,8 +178,11 @@ export function crearColaDeVoz({ ctx, asistente, alHablar, alNivel, alEmpezar, r
     async terminada() {
       await decodificar
       await fallbackCola
-      if (pendientes === 0) return
-      await new Promise<void>((r) => (alTerminar = r))
+      if (pendientes !== 0) await new Promise<void>((r) => (alTerminar = r))
+      // Y hasta que el reloj de audio pase el final de lo último agendado (medido el 2026-11-15): el contador de
+      // pendientes llegaba a cero con la última oración todavía sonando, EVA daba la frase por dicha, se abría el
+      // micrófono y el sistema cortaba esa oración («What is your name?»).
+      while (conWebAudio && !detenida && ctx!.currentTime < siguiente) await new Promise((r) => setTimeout(r, 50))
     },
     /** Corta en seco (interrupción) y devuelve lo que alcanzó a decir. */
     detener() {
