@@ -321,6 +321,9 @@ Las secciones anteriores describen el prototipo de referencia (`luna-recursos/`)
 - **Fallo del cálculo de altura:** con probabilidad 4 % con luz y 12 % a oscuras, el guiado apaga el motor entre 8 y 30 m sobre el suelo y la nave cae (caso real parecido: Hakuto-R M1, 2023).
 - En P66 un recuadro muestra el riesgo del terreno justo bajo la nave.
 
+- **Misión planificada (por defecto):** el sitio ya cumple con el relieve real, así que el resultado lo decide LOLA. El suelo de detalle (cráteres pequeños y rocas) es generado: el guiado lo esquiva buscando un punto limpio a menos de 30 m, como un sistema de evasión de peligros, y no hay fallo aleatorio de altura. Comprobado con 500 contactos en Connecting Ridge RoI 6: 500 en sitio seguro.
+- **Modo entrenamiento (`&fallos=1`):** vuelven el fallo de altura al azar y las rocas y cráteres generados bajo la nave (500 contactos: 167 seguros, 167 inclinados, 166 vuelcos, 14 fallos de altura). Sirve para practicar emergencias; las cifras de la tabla siguiente son de este modo.
+
 ### 9.3 Contacto: resultados
 El resultado lo deciden la inclinación del plano de las cuatro patas (a 4,6 m del centro), las rocas bajo la nave y la velocidad de contacto (`aterrizaje.ts`):
 
@@ -332,7 +335,7 @@ El resultado lo deciden la inclinación del plano de las cuatro patas (a 4,6 m d
 | Vuelco | 12° o más (o 6° con un golpe duro), o más de 2 m/s de velocidad lateral | IM-1 Odysseus (2024), IM-2 Athena (2025) |
 | Se estrella | 5 m/s o más: los tanques se rompen y los propelentes se encienden | Hakuto-R M1 (2023), Beresheet (2019) |
 
-Con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz, una simulación de 20 000 contactos dio 31 % nominal, 32 % inclinada, 33 % vuelco y 4 % estrellada.
+En modo entrenamiento, con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz, una simulación de 20 000 contactos dio 31 % nominal, 32 % inclinada, 33 % vuelco y 4 % estrellada.
 
 ### 9.4 Caminata planificada (misión CR-02)
 - Tras un aterrizaje nominal, inclinado o duro se puede salir: escotilla, porche, escalera peldaño a peldaño y primer paso, en primera persona.

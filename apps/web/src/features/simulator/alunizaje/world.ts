@@ -57,7 +57,7 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos }: { siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number; fallos?: boolean } = {}): Promise<() => void> {
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
   const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
@@ -171,7 +171,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
     // El plan: la ruta elegida en el Planificador y cuándo sale la EVA (horas después del alunizaje)
-    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0, tipo: tipo ?? 'tripulada', roverKmh: roverKmh ?? 0.8, paradaH: paradaH ?? 2, panelM: panelM ?? 2, antenaM: antenaM ?? 2, estadiaH: estadiaH ?? 168 },
+    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0, tipo: tipo ?? 'tripulada', roverKmh: roverKmh ?? 0.8, paradaH: paradaH ?? 2, panelM: panelM ?? 2, antenaM: antenaM ?? 2, estadiaH: estadiaH ?? 168, fallos: !!fallos },
     tAlunizaje: Date.parse(site.time),
     sitio: site, // para el informe del panel y la antena (equipoEn)
     /** Vuelve a iluminar la escena con el cielo de otro instante (la hora de la EVA). */

@@ -307,7 +307,7 @@ export class LandingSim {
     // Dónde se posa de verdad: el guiado sigue la trayectoria hasta el contacto, sin desvío ni control manual, y deja la
     // nave donde la lleva su error de navegación; el resultado depende del terreno ahí (aterrizaje.ts)
     this.rocks = v.detail?.rocks ?? []; // esta escena no tiene rocas sueltas: solo cuenta el relieve LOLA
-    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5 });
+    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5, fallos: !!v.plan?.fallos });
     const A = this.plan.final;
     this.target = new THREE.Vector3(A.x, A.hz.y - 0.103 * S - 0.02, A.z);
     this.result = null; this.tiltDeg = 0; this.touchH = 0; this.hzNow = null; this._zc = null;

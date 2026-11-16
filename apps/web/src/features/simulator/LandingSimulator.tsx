@@ -15,6 +15,8 @@ import "./alunizaje/alunizaje.css"
  *  · `&tipo=tripulada|rover|fija`: con rover, `&vel=<km/h>&parada=<h>` (velocidad máxima y horas por parada del plan);
  *    el módulo fijo termina en el alunizaje, con su informe.
  *  · `&panel=<m>&antena=<m>&estadia=<h>`: alturas del panel solar y la antena (tecla P los despliega) y estadía, para su informe.
+ *  · `&fallos=1`: modo entrenamiento (fallo de altura al azar y rocas del suelo generado). Sin él, la misión planificada
+ *    no se cae por lo inventado: el guiado esquiva el suelo generado y no hay fallo aleatorio.
  *  · Sin nada: el plan de la misión CR-01 (Connecting Ridge · RoI 6, 18 de diciembre de 2026, 09:00 UTC).
  */
 export function LandingSimulator() {
@@ -38,6 +40,7 @@ export function LandingSimulator() {
   const panelM = num("panel", 0, 30)
   const antenaM = num("antena", 0, 30)
   const estadiaH = num("estadia", 1, 24 * 60)
+  const fallos = params.get("fallos") === "1"
 
   useEffect(() => {
     let alive = true
@@ -47,7 +50,7 @@ export function LandingSimulator() {
       setSinPaquete(null)
       let stop: () => void
       try {
-        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH })
+        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos })
       } catch (e) {
         if (alive && String(e).includes("sitio-sin-paquete")) setSinPaquete(siteId ?? "?")
         return
@@ -59,7 +62,7 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH])
+  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos])
 
   return (
     <section className="screen sim-alz-screen">
