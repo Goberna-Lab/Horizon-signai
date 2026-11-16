@@ -428,8 +428,8 @@ const VER: Recorrido = {
       espera: 400,
       selector: "#win-p",
       texto: {
-        en: "In the landing windows tab you see, day by day and site by site, when you can land: with Sun and Earth, with Sun only, or with neither.",
-        es: "En la pestaña de ventanas de aterrizaje ves, día por día y sitio por sitio, cuándo se puede alunizar: con Sol y Tierra, solo con Sol, o con ninguno.",
+        en: "In the landing windows tab you see, site by site, when you can land, when there is Sun but Earth is hidden, and when there is no Sun or the night outlasts the battery.",
+        es: "En la pestaña de ventanas de aterrizaje ves, sitio por sitio, cuándo se puede alunizar, cuándo hay Sol pero la Tierra está oculta, y cuándo no hay Sol o la noche dura más que la batería.",
       },
     },
     {
