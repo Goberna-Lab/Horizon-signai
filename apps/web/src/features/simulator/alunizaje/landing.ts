@@ -918,7 +918,12 @@ export class LandingSim {
     if (this.settleT > 7 && !this.ended) {
       this.ended = true; this.lmPos = this.lm.position.clone();
       // Misión guiada: en vez de la tarjeta de contacto, sigue la estadía paso a paso; si el plan tiene caminata, al final se puede salir
-      if (v.guiada) { if ((v.plan?.tipo ?? 'tripulada') === 'tripulada' && (v.plan?.evaH > 0 || !v.guiada.b.plan)) v.guiada.salir = () => this._startEgress(); v.guiada.superficie(); }
+      if (v.guiada) {
+        const tipo = v.plan?.tipo ?? 'tripulada', hay = v.plan?.evaH > 0 || !v.guiada.b.plan;
+        if (tipo === 'tripulada' && hay) v.guiada.salir = () => this._startEgress();
+        if (tipo === 'rover' && hay) v.guiada.salir = () => this._startRover();
+        v.guiada.superficie();
+      }
       else this._end();
     }
   }

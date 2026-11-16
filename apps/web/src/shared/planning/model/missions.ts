@@ -2,7 +2,7 @@
  * Las misiones que sigue quien planifica: las de ejemplo, los valores por defecto y su guardado en el navegador.
  * Sin React. El guardado se salta sin error donde no hay `localStorage` (pruebas con Node, modo privado).
  */
-import type { Mission, Requirements } from "./types.ts"
+import type { Mission, Outing, OutingRoute, Requirements } from "./types.ts"
 
 /** Límites de la tabla de efemérides: 2026-01-01 a 2031-01-01 (docs/04-planificador.md, 3.1). */
 export const TABLE_FROM_MS = Date.UTC(2026, 0, 1)
@@ -28,14 +28,28 @@ export const EXAMPLE_MISSIONS: Mission[] = [
   { id: "chaska-3", name: "CHASKA-3", siteId: "de-gerlache-rim", landingMs: utc(2027, 7, 24), stayDays: 10, panelHeightM: 10, antennaHeightM: 10, requirements: DEFAULT_REQUIREMENTS, example: true },
 ]
 
+export const OUTING_ROUTES: readonly OutingRoute[] = ["science", "safe", "short"]
+/** Salidas por misión: un tope para la interfaz, no un dato de ninguna misión. */
+export const MAX_OUTINGS = 8
+
 const clamp = (value: number, [low, high]: readonly [number, number]) => Math.min(Math.max(value, low), high)
 const finite = (value: unknown, fallback: number) => (typeof value === "number" && Number.isFinite(value) ? value : fallback)
 
 /** Deja la misión dentro de los límites del motor: fechas dentro de la tabla, alturas y requisitos con sentido. */
 export function sanitize(m: Mission): Mission {
   const stayDays = Math.round(clamp(finite(m.stayDays, 10), LIMITS.stayDays))
+  // Solo un rover o una tripulación salen del módulo; las salidas van dentro de la estadía y en orden
+  const kind = m.kind === "rover" || m.kind === "crewed" ? m.kind : undefined
+  const outings: Outing[] | undefined = kind
+    ? (Array.isArray(m.outings) ? m.outings : [])
+        .slice(0, MAX_OUTINGS)
+        .map((o) => ({ route: OUTING_ROUTES.includes(o?.route) ? o.route : "science", afterH: Math.round(clamp(finite(o?.afterH, 24), [0, stayDays * 24])) }))
+        .sort((a, b) => a.afterH - b.afterH)
+    : undefined
+  const { kind: _kind, outings: _outings, ...rest } = m
   return {
-    ...m,
+    ...rest,
+    ...(kind ? { kind, outings } : {}),
     name: String(m.name ?? "").slice(0, 40),
     stayDays,
     landingMs: clamp(finite(m.landingMs, TABLE_FROM_MS), [TABLE_FROM_MS, TABLE_TO_MS - stayDays * 86_400_000]),

@@ -37,6 +37,18 @@ export type Requirements = {
   earthAtLanding: boolean
 }
 
+/** Qué es la misión en la superficie. Sin él, un módulo fijo: se posa y opera sus instrumentos donde cayó. */
+export type MissionKind = "lander" | "rover" | "crewed"
+
+/** Las tres rutas del planificador de caminata (prototipos/lunar-map/terrain.js, ROUTES). */
+export type OutingRoute = "science" | "safe" | "short"
+
+/**
+ * Una salida del módulo: una caminata (misión tripulada) o un recorrido (rover), por una ruta, `afterH` horas después del
+ * aterrizaje. Cuándo y por dónde lo pone quien planifica; el motor dice si a esa hora hay Sol y Tierra (`outingChecks`).
+ */
+export type Outing = { route: OutingRoute; afterH: number }
+
 export type Mission = {
   id: string
   name: string
@@ -50,6 +62,10 @@ export type Mission = {
   /** Altura de la antena sobre el suelo (m): desde ahí se mira la Tierra. */
   antennaHeightM: number
   requirements: Requirements
+  /** Tipo de misión. Ausente: módulo fijo. */
+  kind?: MissionKind
+  /** Las salidas de un rover o de la tripulación, en orden. Un módulo fijo no tiene. */
+  outings?: Outing[]
   /** Fecha anterior del aterrizaje, si el plan se movió. */
   movedFromMs?: number
   /** Misión de ejemplo: no es una misión real. */

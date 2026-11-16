@@ -24,8 +24,9 @@ export type DatosPlan = {
   antenaM: number
   batteryH: number
   minEarthPct: number
-  /** Horas tras el contacto a las que sale la caminata (misión tripulada), si la hay. */
-  evaH?: number
+  /** Horas tras el contacto a las que sale cada caminata (tripulada) o recorrido (`rover`), en orden. */
+  salidasH?: number[]
+  rover?: boolean
   ev: EvaluacionPlan
   fuente: Fuente
 }
@@ -71,13 +72,21 @@ export function bitacoraDelPlan(d: DatosPlan): Bitacora {
     () => [{ en: "Earth sets", es: "Se oculta la Tierra" }, { en: "Earth goes behind the terrain: no direct link. The lander keeps working, but nobody hears it.", es: "La Tierra se oculta tras el relieve: sin enlace directo. La nave sigue trabajando, pero nadie la oye." }, { en: "Data waits on board until Earth is back in view. A rover driven from Earth stops.", es: "Los datos esperan a bordo hasta que la Tierra vuelva a verse. Un rover manejado desde la Tierra se detiene." }],
     "tierra", "tierra")
 
-  if (d.evaH && d.evaH > 0 && ev.fromMs + d.evaH * 3600e3 < ev.toMs) {
-    const t = ev.fromMs + d.evaH * 3600e3, s = dentro(ev.windows.sun, t), e = dentro(ev.windows.earth, t)
-    hechos.push(hecho("caminata", t, "superficie", ["sol", "tierra"],
-      { en: "The walk leaves the lander", es: "La caminata sale del módulo" },
-      { en: `${d.evaH} h after contact. The Sun is ${s ? "up" : "hidden"} and Earth is ${e ? "in view" : "hidden"} when the crew steps out.`, es: `${d.evaH} h después del contacto. El Sol está ${s ? "a la vista" : "oculto"} y la Tierra ${e ? "a la vista" : "oculta"} cuando la tripulación sale.` },
-      { en: "A walk is planned for when there is light to see the ground and a link so mission control can follow it.", es: "Una caminata se planifica para cuando hay luz para ver el suelo y enlace para que el control de misión la siga." }))
-  }
+  const salidas = (d.salidasH ?? []).filter((h) => h > 0 && ev.fromMs + h * 3600e3 < ev.toMs)
+  salidas.forEach((h, i) => {
+    const t = ev.fromMs + h * 3600e3, s = dentro(ev.windows.sun, t), e = dentro(ev.windows.earth, t)
+    const n = salidas.length > 1 ? ` ${i + 1}` : "", id = `${d.rover ? "recorrido" : "caminata"}${i ? `-${i + 1}` : ""}`
+    if (d.rover)
+      hechos.push(hecho(id, t, "superficie", ["sol", "tierra"],
+        { en: `Drive${n}: the rover sets out`, es: `Recorrido${n}: el rover sale` },
+        { en: `${h} h after contact. The Sun is ${s ? "up" : "hidden"} and Earth is ${e ? "in view" : "hidden"} when the rover starts.${s && e ? "" : " At this hour it would not move."}`, es: `${h} h después del contacto. El Sol está ${s ? "a la vista" : "oculto"} y la Tierra ${e ? "a la vista" : "oculta"} cuando el rover arranca.${s && e ? "" : " A esta hora no se movería."}` },
+        { en: "A lunar rover is driven from Earth and lives on sunlight: without a direct link it stops, and without Sun it runs down.", es: "Un rover lunar se maneja desde la Tierra y vive del Sol: sin enlace directo se detiene, y sin Sol se descarga." }))
+    else
+      hechos.push(hecho(id, t, "superficie", ["sol", "tierra"],
+        { en: `Walk${n}: the crew leaves the lander`, es: `Caminata${n}: la tripulación sale del módulo` },
+        { en: `${h} h after contact. The Sun is ${s ? "up" : "hidden"} and Earth is ${e ? "in view" : "hidden"} when the crew steps out.`, es: `${h} h después del contacto. El Sol está ${s ? "a la vista" : "oculto"} y la Tierra ${e ? "a la vista" : "oculta"} cuando la tripulación sale.` },
+        { en: "A walk is planned for when there is light to see the ground and a link so mission control can follow it.", es: "Una caminata se planifica para cuando hay luz para ver el suelo y enlace para que el control de misión la siga." }))
+  })
 
   const bat = ev.checks.find((c) => c.id === "battery")
   const noche = f.longestNightH > 0

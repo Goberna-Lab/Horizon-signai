@@ -28,15 +28,17 @@ test("plan que no cumple: a oscuras, el Sol sale el día 2 y el veredicto lo dic
 })
 
 test("cada paso tiene los dos idiomas, fuente y va en orden", () => {
-  const b = bitacoraDelPlan({ ...base, evaH: 25, ev })
+  const b = bitacoraDelPlan({ ...base, salidasH: [25, 60], ev })
   let antes = -Infinity
   for (const h of b.hechos) {
     for (const t of [h.titulo, h.texto, h.porQue!]) assert.ok(t.en && t.es && t.en !== t.es, h.id)
     assert.deepEqual(h.fuentes, ["planner-engine"])
     const ms = Date.parse(h.utc!); assert.ok(ms >= antes, h.id); antes = ms
   }
-  assert.ok(b.hechos.some((h) => h.id === "caminata"), "la caminata sale a las 25 h")
+  assert.deepEqual(b.hechos.filter((h) => h.id.startsWith("caminata")).map((h) => h.id), ["caminata", "caminata-2"])
   assert.match(b.hechos.find((h) => h.id === "caminata")!.texto.es, /El Sol está oculto y la Tierra a la vista/)
+  const r = bitacoraDelPlan({ ...base, salidasH: [25], rover: true, ev })
+  assert.match(r.hechos.find((h) => h.id === "recorrido")!.texto.es, /el rover arranca\. A esta hora no se movería\./)
 })
 
 test("plan que cumple, sin noche", () => {

@@ -66,6 +66,39 @@ export const copy = {
     meets: tr("meets the requirements", "cumple los requisitos"),
     fails: tr("does not meet the requirements", "no cumple los requisitos"),
   },
+  activity: {
+    title: tr("What the mission does", "Qué hace la misión"),
+    kind: tr("Mission type", "Tipo de misión"),
+    kinds: {
+      lander: tr("Fixed lander: works where it lands", "Módulo fijo: trabaja donde se posa"),
+      rover: tr("Rover: drives out to measure", "Rover: sale a medir"),
+      crewed: tr("Crewed: astronauts walk out", "Tripulada: los astronautas salen a caminar"),
+    },
+    landerNote: tr(
+      "A fixed lander runs its instruments for the whole stay: what decides it is the Sun for power and Earth for the link, above.",
+      "Un módulo fijo opera sus instrumentos toda la estadía: lo que lo decide es el Sol para la energía y la Tierra para el enlace, arriba.",
+    ),
+    outings: { rover: tr("Drives", "Recorridos"), crewed: tr("Walks", "Caminatas") },
+    none: { rover: tr("No drives yet. Add the first one.", "Aún no hay recorridos. Agrega el primero."), crewed: tr("No walks yet. Add the first one.", "Aún no hay caminatas. Agrega la primera.") },
+    add: { rover: tr("Add a drive", "Agregar un recorrido"), crewed: tr("Add a walk", "Agregar una caminata") },
+    remove: tr("Remove", "Quitar"),
+    route: tr("Route", "Ruta"),
+    routes: { science: tr("Scientific", "Científica"), safe: tr("Safe", "Segura"), short: tr("Short", "Corta") },
+    afterH: tr("Starts, hours after landing", "Empieza, horas tras el aterrizaje"),
+    when: (dayN: number, at: string) => tr(`Day ${dayN} · ${at}`, `Día ${dayN} · ${at}`),
+    sun: (ok: boolean) => (ok ? tr("Sun in view", "Sol a la vista") : tr("No Sun", "Sin Sol")),
+    earth: (ok: boolean) => (ok ? tr("Earth in view", "Tierra a la vista") : tr("No Earth link", "Sin enlace con la Tierra")),
+    change: (body: "sun" | "earth", h: string, visible: boolean) =>
+      body === "sun"
+        ? visible ? tr(`the Sun sets in ${h}`, `el Sol se oculta en ${h}`) : tr(`the Sun rises in ${h}`, `el Sol sale en ${h}`)
+        : visible ? tr(`Earth sets in ${h}`, `la Tierra se oculta en ${h}`) : tr(`Earth rises in ${h}`, `la Tierra sale en ${h}`),
+    good: tr("Good time to go out", "Buen momento para salir"),
+    bad: {
+      rover: tr("A rover is driven from Earth and runs on sunlight: at this hour it would not move.", "Un rover se maneja desde la Tierra y vive del Sol: a esta hora no se movería."),
+      crewed: tr("The crew would walk without light or without mission control following them.", "La tripulación caminaría sin luz o sin que el control de misión la siga."),
+    },
+    simulate: tr("Fly it guided in the simulator", "Volarla guiada en el simulador"),
+  },
   form: {
     name: tr("Mission name", "Nombre de la misión"),
     site: tr("Landing place", "Lugar de aterrizaje"),

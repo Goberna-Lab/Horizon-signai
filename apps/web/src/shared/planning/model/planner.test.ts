@@ -139,3 +139,22 @@ test("formato y misiones nuevas", () => {
   assert.equal(nueva.name, "MISSION-4")
   assert.equal(stamp(nueva.landingMs), "15 Dec 2026, 12:00 UT")
 })
+
+test("tipo y salidas: un módulo fijo no tiene salidas; las demás quedan dentro de la estadía y en orden", () => {
+  const base = EXAMPLE_MISSIONS[0]
+  assert.equal(sanitize({ ...base, outings: [{ route: "science", afterH: 5 }] }).outings, undefined)
+  assert.ok(!("kind" in sanitize(base)), "sin tipo sigue sin la clave: las misiones guardadas no cambian")
+  const m = sanitize({ ...base, kind: "crewed", stayDays: 3, outings: [{ route: "short", afterH: 500 }, { route: "nope" as never, afterH: 25.4 }] })
+  assert.deepEqual(m.outings, [{ route: "science", afterH: 25 }, { route: "short", afterH: 72 }])
+  assert.equal(sanitize({ ...base, kind: "rover" }).outings?.length, 0)
+})
+
+test("salidas contra las ventanas: hay Sol y Tierra al empezar, y cuánto falta para que cambien", async () => {
+  const { outingChecks } = await import("./evaluate.ts")
+  const H = 3_600_000, t0 = 1_000 * H
+  const ev = { fromMs: t0, toMs: t0 + 72 * H, windows: { sun: [{ inicioMs: t0 + 26 * H, finMs: t0 + 72 * H }], earth: [{ inicioMs: t0, finMs: t0 + 40 * H }], both: [] } }
+  const [a, b, c] = outingChecks(ev, [{ afterH: 10 }, { afterH: 30 }, { afterH: 50 }])
+  assert.deepEqual([a.sun, a.earth, a.ok, a.sunChangeH, a.earthChangeH], [false, true, false, 16, 30])
+  assert.deepEqual([b.sun, b.earth, b.ok, b.earthChangeH], [true, true, true, 10])
+  assert.deepEqual([c.sun, c.earth, c.ok, c.sunChangeH, c.earthChangeH], [true, false, false, null, null])
+})

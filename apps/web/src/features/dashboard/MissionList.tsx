@@ -36,6 +36,7 @@ export function MissionList({ rows, selectedId, nowMs, canRestore, onSelect, onO
               <Verdict state={r.state} />
               <p className="db-mission__meta">
                 {site.name} · {stamp(mission.landingMs)} · {mission.stayDays} d
+                {mission.kind && ` · ${copy.list.kind(mission.kind, mission.outings?.length ?? 0)}`}
               </p>
               <p className="db-mission__when">{wait > 0 ? copy.list.lands(span(wait)) : copy.list.landed}</p>
               {evaluation && (

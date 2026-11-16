@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router"
-import { plannerPath } from "@/app/routes"
+import { plannerPath, routes } from "@/app/routes"
 import {
   coordinates,
   day,
@@ -8,7 +8,10 @@ import {
   fromInput,
   hours,
   LIMITS,
+  MAX_OUTINGS,
+  OUTING_ROUTES,
   outcome,
+  outingChecks,
   percent,
   provenance,
   reasons,
@@ -26,7 +29,9 @@ import {
   type Figures,
   type Mascara,
   type Mission,
+  type MissionKind,
   type MissionRow,
+  type Outing,
   type TablaLuna,
 } from "@/shared/planning"
 import { copy } from "./copy"
@@ -63,6 +68,11 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
   const dateOption = useMemo(() => suggestDate(days, mission.landingMs), [days, mission.landingMs])
   const heightOption = useMemo(() => (failing && mask ? suggestHeight(table, site, mask, mission, mission.panelHeightM, mission.antennaHeightM) : null), [failing, table, site, mask, mission])
   const allLoaded = sites.every((s) => masks[s.id])
+  // Qué hace la misión: su tipo y sus salidas (caminatas o recorridos), cada una contra las ventanas de Sol y Tierra
+  const kind: MissionKind = mission.kind ?? "lander"
+  const outings = useMemo(() => mission.outings ?? [], [mission.outings])
+  const checks = useMemo(() => (evaluation ? outingChecks(evaluation, outings) : []), [evaluation, outings])
+  const setOuting = (i: number, patch: Partial<Outing>) => onChange({ outings: outings.map((o, k) => (k === i ? { ...o, ...patch } : o)) })
   // Los dos lugares más cercanos del catálogo que cumplen en la misma fecha y con el mismo equipo.
   const siteOptions = useMemo(() => {
     if (!failing || !allLoaded) return null
@@ -313,6 +323,71 @@ export function MissionDetail({ row, table, masks, onChange, onApply, onBack, on
             <span>{copy.form.earthAtLanding}</span>
           </label>
         </div>
+      </section>
+
+      <section className="pl-block" aria-label={copy.activity.title}>
+        <h3 className="ui-label">{copy.activity.title}</h3>
+        <div className="pl-form">
+          <label className="pl-field">
+            <span>{copy.activity.kind}</span>
+            <select value={kind} onChange={(event) => onChange({ kind: event.target.value as MissionKind, outings })}>
+              {(["lander", "rover", "crewed"] as const).map((k) => (
+                <option key={k} value={k}>
+                  {copy.activity.kinds[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {kind === "lander" ? (
+          <p className="pl-note">{copy.activity.landerNote}</p>
+        ) : (
+          <>
+            <h4 className="ui-label">{copy.activity.outings[kind]}</h4>
+            {outings.length === 0 && <p className="pl-note">{copy.activity.none[kind]}</p>}
+            <ol className="pl-outings">
+              {outings.map((o, i) => {
+                const c = checks[i]
+                return (
+                  <li key={i} className={c && !c.ok ? "pl-outing is-bad" : "pl-outing"}>
+                    <div className="pl-form">
+                      <label className="pl-field">
+                        <span>{copy.activity.route}</span>
+                        <select value={o.route} onChange={(event) => setOuting(i, { route: event.target.value as Outing["route"] })}>
+                          {OUTING_ROUTES.map((r) => (
+                            <option key={r} value={r}>
+                              {copy.activity.routes[r]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <NumberField label={copy.activity.afterH} value={o.afterH} limits={[0, mission.stayDays * 24]} onCommit={(afterH) => setOuting(i, { afterH })} />
+                    </div>
+                    {c && (
+                      <p className="pl-outing__when">
+                        <b>{copy.activity.when(Math.floor(o.afterH / 24) + 1, stamp(c.ms))}</b> · {copy.activity.sun(c.sun)}
+                        {c.sunChangeH !== null && ` (${copy.activity.change("sun", hours(c.sunChangeH), c.sun)})`} · {copy.activity.earth(c.earth)}
+                        {c.earthChangeH !== null && ` (${copy.activity.change("earth", hours(c.earthChangeH), c.earth)})`}
+                      </p>
+                    )}
+                    {c && <p className="pl-note">{c.ok ? copy.activity.good : copy.activity.bad[kind]}</p>}
+                    <button type="button" className="ui-btn ui-btn--small" onClick={() => onChange({ outings: outings.filter((_, k) => k !== i) })}>
+                      {copy.activity.remove}
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+            {outings.length < MAX_OUTINGS && (
+              <button type="button" className="ui-btn ui-btn--small" onClick={() => onChange({ outings: [...outings, { route: "science", afterH: Math.min(mission.stayDays * 24, (outings.at(-1)?.afterH ?? 0) + 24) }] })}>
+                {copy.activity.add[kind]}
+              </button>
+            )}
+          </>
+        )}
+        <Link className="ui-btn ui-btn--small" to={`${routes.simulator}?mission=${encodeURIComponent(mission.id)}&guia=1`}>
+          {copy.activity.simulate}
+        </Link>
       </section>
 
       <section className="pl-block" aria-label={copy.detail.equipment}>

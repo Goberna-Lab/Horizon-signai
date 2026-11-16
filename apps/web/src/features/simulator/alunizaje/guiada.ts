@@ -112,7 +112,7 @@ export class Guiada {
       : `<b>${tr('Planned', 'Previsto')}: ${esc(b.prevista[L])}<br>${tr('Actual', 'Real')}: ${esc(b.real[L])}</b>
       <p>${tr('Now plan your own: choose a site, a date and a battery, and see whether your lander survives the night and keeps talking to Earth.', 'Ahora planifica la tuya: elige un lugar, una fecha y una batería, y mira si tu nave aguanta la noche y sigue hablando con la Tierra.')}</p>`}
       <div class="acts">
-        ${b.plan ? (this.salir ? `<button type="button" data-act="caminar">${tr('Go out for the walk', 'Salir a caminar')}</button>` : '') : `<button type="button" data-act="bajar">${tr('Download the log', 'Descargar la bitácora')}</button>`}
+        ${b.plan ? (this.salir ? `<button type="button" data-act="caminar">${this.v.plan?.tipo === 'rover' ? tr('Deploy the rover', 'Desplegar el rover') : tr('Go out for the walk', 'Salir a caminar')}</button>` : '') : `<button type="button" data-act="bajar">${tr('Download the log', 'Descargar la bitácora')}</button>`}
         <button type="button" data-act="plan" class="${b.plan && !this.salir ? '' : 'sec'}">${b.plan ? tr('Open the Planner', 'Abrir el Planificador') : tr('Plan my mission', 'Planificar mi misión')}</button>
         <button type="button" data-act="otra" class="sec">${tr('Watch it again', 'Verla otra vez')}</button>
       </div>`, 'centro');

@@ -37,6 +37,7 @@ Landing (/)  ──►  Dashboard (/dashboard)  ──►  Planificador (/planif
 | Contrato | Archivo | Quién lo usa |
 |---|---|---|
 | `Mission`, `Requirements`, `Site` | `shared/planning/model/types.ts` | todos |
+| `Mission.kind` y `Mission.outings` (tipo de misión y sus salidas), `outingChecks` | `shared/planning/model/types.ts`, `evaluate.ts` | Planificador (las edita), Dashboard (las nombra), Simulador (vuela la primera y las cuenta en la misión guiada) |
 | `evaluate`, `scanDates`, `suggestDate`, `suggestHeight`, `outcome` | `shared/planning/model/evaluate.ts` | Planificador, Dashboard, Simulador |
 | `MissionRow` (misión + lugar + evaluación) | `shared/planning/hooks.ts` | Dashboard, Planificador |
 | `MissionContext`, `AssistantRequest`, `AssistantReply` | `packages/shared/src/assistant.ts` | IA (web y API) |

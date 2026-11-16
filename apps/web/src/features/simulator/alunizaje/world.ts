@@ -61,7 +61,7 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guia }: { bitacora?: any; guia?: { nombre: string; batteryH?: number; minEarthPct?: number }; siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number; fallos?: boolean } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guia }: { bitacora?: any; guia?: { nombre: string; batteryH?: number; minEarthPct?: number; salidasH?: number[] }; siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number; fallos?: boolean } = {}): Promise<() => void> {
   // Misión real guiada: el sitio y la fecha son los de su bitácora; es un módulo fijo (guiada.ts)
   if (bitacora) { siteId = bitacora.simulador.sitio; ms = Date.parse(bitacora.contactoUtc); tipo = 'fija'; fallos = false; }
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
@@ -220,7 +220,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, 
       const batteryH = guia.batteryH ?? DEFAULT_REQUIREMENTS.batteryH, minEarthPct = guia.minEarthPct ?? DEFAULT_REQUIREMENTS.minEarthPct;
       const ev = evaluate(tabla, station({ lat: site.lat, lon: site.lon }, mascara, p.panelM, p.antenaM), { landingMs: Date.parse(site.time), stayDays, requirements: { ...DEFAULT_REQUIREMENTS, batteryH, minEarthPct } });
       bitacora = bitacoraDelPlan({ nombre: guia.nombre, sitio: { id: site.id, nombre: site.site, lat: site.lat, lon: site.lon }, stayDays, panelM: p.panelM, antenaM: p.antenaM, batteryH, minEarthPct,
-        evaH: p.tipo === 'tripulada' ? p.evaH : 0, ev, fuente: { id: 'planner-engine', titulo: `Horizon Signai planner engine · ${provenance.ephemeris.product}`, url: provenance.ephemeris.url } });
+        salidasH: p.tipo === 'fija' ? [] : guia.salidasH ?? (p.evaH > 0 ? [p.evaH] : []), rover: p.tipo === 'rover', ev, fuente: { id: 'planner-engine', titulo: `Horizon Signai planner engine · ${provenance.ephemeris.product}`, url: provenance.ephemeris.url } });
     } catch { bitacora = undefined; }
   }
   view.guiada = bitacora ? new Guiada(view, bitacora) : null;

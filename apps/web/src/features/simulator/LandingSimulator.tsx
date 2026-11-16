@@ -34,11 +34,15 @@ export function LandingSimulator() {
   const fecha = params.get("fecha")
   const ms = mission?.landingMs ?? (fecha ? Date.parse(fecha) : undefined)
   const msOk = ms != null && Number.isFinite(ms) ? ms : undefined
-  const ruta = params.get("ruta") ?? undefined
+  // Lo que la misión hace fuera del módulo (tipo y salidas, del Planificador): la primera salida es la que se vuela
+  const salida = mission?.outings?.[0]
+  const RUTAS = { science: "cientifica", safe: "segura", short: "corta" } as const
+  const ruta = params.get("ruta") ?? (salida ? RUTAS[salida.route] : undefined)
   const evaN = Number(params.get("eva"))
-  const evaH = Number.isFinite(evaN) && evaN > 0 ? Math.min(evaN, 24 * 60) : undefined
+  const evaH = Number.isFinite(evaN) && evaN > 0 ? Math.min(evaN, 24 * 60) : salida && salida.afterH > 0 ? salida.afterH : undefined
   const tipoP = params.get("tipo")
-  const tipo = tipoP === "rover" || tipoP === "fija" ? tipoP : undefined
+  // Sin `&tipo=`, el de la misión; una misión guiada sin tipo es un módulo fijo (en las demás, como siempre: tripulada)
+  const tipo = tipoP === "rover" || tipoP === "fija" ? tipoP : tipoP === "tripulada" ? undefined : mission?.kind === "rover" ? "rover" : mission && !mission.kind && params.get("guia") ? "fija" : undefined
   const num = (k: string, min: number, max: number) => { const n = Number(params.get(k)); return params.get(k) != null && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : undefined }
   const roverKmh = num("vel", 0.05, 5)
   const paradaH = num("parada", 0, 24)
@@ -52,6 +56,7 @@ export function LandingSimulator() {
   const guiaNombre = guiaP ? (guiaP === "1" ? (mission?.name ?? "") : guiaP).replace(/[^0-9A-Za-zÀ-ÿ .\-]/g, "").slice(0, 24) || undefined : undefined
   const bateriaH = num("bateria", 0, 720) ?? mission?.requirements.batteryH
   const tierraPct = num("tierra", 0, 100) ?? mission?.requirements.minEarthPct
+  const salidasH = mission?.outings?.map((o) => o.afterH).join(",")
 
   useEffect(() => {
     let alive = true
@@ -61,7 +66,7 @@ export function LandingSimulator() {
       setSinPaquete(null)
       let stop: () => void
       try {
-        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guia: guiaNombre ? { nombre: guiaNombre, batteryH: bateriaH, minEarthPct: tierraPct } : undefined })
+        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guia: guiaNombre ? { nombre: guiaNombre, batteryH: bateriaH, minEarthPct: tierraPct, salidasH: salidasH ? salidasH.split(",").map(Number) : undefined } : undefined })
       } catch (e) {
         if (alive && String(e).includes("sitio-sin-paquete")) setSinPaquete(siteId ?? "?")
         return
@@ -73,7 +78,7 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guiaNombre, bateriaH, tierraPct])
+  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guiaNombre, bateriaH, tierraPct, salidasH])
 
   return (
     <section className="screen sim-alz-screen">

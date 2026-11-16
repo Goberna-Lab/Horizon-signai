@@ -245,3 +245,25 @@ export function suggestHeight(table: TablaLuna, place: { lat: number; lon: numbe
   }
   return null
 }
+
+/** Una salida frente al motor: si a esa hora el Sol y la Tierra están a la vista, y cuánto falta para que cambien. */
+export type OutingCheck = { afterH: number; ms: number; sun: boolean; earth: boolean; ok: boolean; sunChangeH: number | null; earthChangeH: number | null }
+
+/**
+ * Cada salida (caminata o recorrido del rover) contra las ventanas de la estadía: una salida va bien si al empezar hay
+ * Sol (luz y energía) y Tierra (enlace directo). `…ChangeH`: horas hasta la próxima puesta o salida dentro de la estadía.
+ */
+export function outingChecks(ev: Pick<Evaluation, "fromMs" | "toMs" | "windows">, outings: readonly { afterH: number }[]): OutingCheck[] {
+  const inside = (w: Ventana[], ms: number) => w.some((v) => ms >= v.inicioMs && ms < v.finMs)
+  const next = (w: Ventana[], ms: number) => {
+    let t: number | null = null
+    for (const v of w) for (const x of [v.inicioMs, v.finMs]) if (x > ms && x < ev.toMs && (t === null || x < t)) t = x
+    return t === null ? null : (t - ms) / HOUR_MS
+  }
+  return outings.map((o) => {
+    const ms = ev.fromMs + o.afterH * HOUR_MS
+    const sun = inside(ev.windows.sun, ms)
+    const earth = inside(ev.windows.earth, ms)
+    return { afterH: o.afterH, ms, sun, earth, ok: sun && earth, sunChangeH: next(ev.windows.sun, ms), earthChangeH: next(ev.windows.earth, ms) }
+  })
+}
