@@ -318,7 +318,7 @@ button.tag[aria-pressed="true"]#chipPt { background: var(--crema); color: var(--
         <div class="banner" role="status" id="banner">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4EFE6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>
           <span id="bannerText"></span>
-          <a class="btn red" href="planificar.html">Plan the walk</a>
+          <a class="btn red" href="planificar.html" id="walkLink">Plan the walk</a>
         </div>
       </div>
       <span class="led" aria-hidden="true"></span>
@@ -570,7 +570,8 @@ window.LunarDataReady.then(function () {
       var nt = noteOf(e);
       return '<button type="button" class="card" role="radio" data-site="' + z + '" aria-checked="' + (z === state.site) + '">' +
         '<span class="row"><span class="nm"><span class="badge">' + z + '</span>' + MAP[z].name + '</span><span class="verdict ' + e.verdict.replace(' ', '') + '">' + e.verdict + '</span></span>' +
-        '<span class="mono sub">' + coordTxt(Z[z].lat, Z[z].lon) + (Z[z].aproximado ? ' · <span class="aprox" title="Horizon from the 240 m LOLA terrain: terrain smaller than ~500 m does not appear (SPEC E24)">approx.</span>' : '') + '</span>' +
+        '<span class="mono sub">' + coordTxt(Z[z].lat, Z[z].lon) + (Z[z].aproximado ? ' · <span class="aprox" title="Horizon from the 240 m LOLA terrain: terrain smaller than ~500 m does not appear (SPEC E24)">approx.</span>' : '') +
+          (z !== 'P' && !Z[z].aproximado && !/-roi-\d+$/.test(Z[z].id) ? ' · <span class="aprox" title="Center of the NASA terrain map of this site (PGDA), not a landing zone chosen for being flat (RoI). Check the slope: the simulator warns before the descent.">map center</span>' : '') + '</span>' +
         '<span class="met">' + metLabels.map(function (l, i) { return '<span><b>' + vals[i] + '</b><span class="mi" role="img" aria-label="' + l + '" data-z="' + z + '" data-m="' + i + '">' + MET_ICON[i] + '</span></span>'; }).join('') + '</span>' +
         '<span class="note' + (nt[1] ? ' ' + nt[1] : '') + '">' + nt[0] + '</span></button>';
     }).join('');
@@ -595,6 +596,15 @@ window.LunarDataReady.then(function () {
   cards.addEventListener('mouseout', function (evt) { var el = evt.target.closest('.mi'); if (el && !el.contains(evt.relatedTarget)) mtip.classList.remove('vis'); });
   cards.addEventListener('scroll', function () { mtip.classList.remove('vis'); });
 
+  /* La zona confirmada y el escenario viajan a la caminata (planificar.html) y de ahí al simulador: sin esto, el simulador
+   * abría siempre CR-01 en la zona A. El sitio va por su id del catálogo; un punto propio, con sus coordenadas. */
+  function walkHash(name) {
+    var q = new URLSearchParams();
+    if (state.site === 'P' && pt) { q.set('site', 'punto-propio'); q.set('lat', pt.lat); q.set('lon', pt.lon); } else q.set('site', Z[state.site].id);
+    q.set('zone', state.site); q.set('name', name);
+    q.set('t', new Date(sc.landingMs).toISOString().slice(0, 16)); q.set('stay', sc.stayDays); q.set('panel', sc.panelM); q.set('antenna', sc.antennaM);
+    return q.toString();
+  }
   function pick(id) { state.site = id; state.simulated = false; state.confirmed = false; stopSim(); tlT = null; render(); }
 
   /* ---------- Go / No-Go: el descenso (perfil del Apollo 11) y los requisitos del escenario ---------- */
@@ -1064,6 +1074,7 @@ window.LunarDataReady.then(function () {
     $('actLabel').textContent = label; $('actIco').innerHTML = ico; $('actIco').hidden = !ico; $('actHint').textContent = hint;
     $('banner').classList.toggle('on', state.confirmed);
     $('bannerText').textContent = 'Zone ' + state.site + ' · ' + m.name + ' confirmed for the landing';
+    $('walkLink').href = 'planificar.html#' + walkHash(m.name);
     $('phase').textContent = state.confirmed ? 'Zone confirmed' : (state.simulated ? 'Simulation complete' : 'Evaluating zones');
     $('clockDot').style.background = state.confirmed ? '#C8102E' : (state.simulated ? '#111111' : '#857D72');
     $('clockDot').style.boxShadow = state.confirmed ? '0 0 8px rgba(200,16,46,0.8)' : 'none';

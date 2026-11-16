@@ -7,7 +7,7 @@
 //      queda en un hoyo o sobre un bulto;
 //    - rocas bajo la nave, si la escena las tiene (la etapa de descenso deja poco hueco con el suelo).
 // 3. Contacto: el motor se apaga con la luz de contacto (sondas de 1,7 m); a oscuras el corte es menos preciso.
-// 4. Fallo del cálculo de altura (4 % con luz, 12 % a oscuras): el guiado cree que ya tocó el suelo y apaga el motor a
+// 4. Solo en modo entrenamiento (?fallos=1): fallo del cálculo de altura (4 % con luz, 12 % a oscuras): el guiado cree que ya tocó el suelo y apaga el motor a
 //    8–30 m; la caída a 1/6 g llega a 5–10 m/s y la nave se estrella (como Hakuto-R M1, 2023).
 //
 // Límites (de referencia histórica, redondeados): el LM toleraba unos 12° de pendiente y su tren de aterrizaje se
@@ -77,7 +77,7 @@ const gauss = () => {
  * Planifica el contacto. `lit`: si el Sol ilumina la zona. La nave llega con el error de navegación y se posa ahí:
  * sin desvío, el punto final es el de llegada.
  */
-export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit, nominal = false }: { lit: boolean; nominal?: boolean }): PlanContacto {
+export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit, fallos = false, nominal = false }: { lit: boolean; fallos?: boolean; nominal?: boolean }): PlanContacto {
   const planned = { x: 0, z: 0 }
   // `nominal` (el flujo guiado de EVA, «la misión real»): sin error de navegación ni fallo de altura, y se posa en el
   // punto más llano a menos de 40 m del planeado, como hizo Armstrong al evitar las rocas. Sin él, todo es como siempre.
@@ -92,7 +92,19 @@ export function planTouchdown(v: Terreno, rocks: readonly Roca[], { lit, nominal
       }
     return { planned, arrive, final: { ...arrive, hz }, lit, cutoffExtra: 0, fault: null }
   }
-  const arrive = { x: planned.x + gauss() * NAV_SIGMA_M, z: planned.z + gauss() * NAV_SIGMA_M }
+  let arrive = { x: planned.x + gauss() * NAV_SIGMA_M, z: planned.z + gauss() * NAV_SIGMA_M }
+  if (!fallos) {
+    // Misión planificada: el sitio ya cumple con el relieve real (LOLA). El suelo de detalle (cráteres pequeños y rocas)
+    // es generado, no es dato: el guiado lo esquiva como un sistema de evasión de peligros (los módulos actuales lo
+    // llevan), buscando un punto limpio a menos de 30 m de donde llega. Sin fallo aleatorio de altura.
+    if (gravedad(hazardAt(v, arrive.x, arrive.z, rocks)) > 0) {
+      for (let i = 0; i < 80; i++) {
+        const r = 4 + (i / 80) * 26, a = i * 2.39996, c = { x: arrive.x + Math.cos(a) * r, z: arrive.z + Math.sin(a) * r }
+        if (gravedad(hazardAt(v, c.x, c.z, rocks)) === 0) { arrive = c; break }
+      }
+    }
+    return { planned, arrive, final: { ...arrive, hz: hazardAt(v, arrive.x, arrive.z, rocks) }, lit, cutoffExtra: lit ? Math.random() * 0.4 : Math.random() * 0.8, fault: null }
+  }
   // Con luz, el corte del motor es nominal; a oscuras llega tarde o temprano
   let cutoffExtra = lit ? Math.random() * 0.4 : Math.random() * 1.6
   // Fallo del cálculo de altura: el guiado cree que ya está en el suelo (o el radar pierde el eco en la sombra o en el

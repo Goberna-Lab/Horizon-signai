@@ -10,6 +10,14 @@ import { Sonido } from './sonido';
 import { makeDetail, buildDetail, disposeDetail, DETAIL_HALF } from './detalle';
 import { createAstronaut } from './astronauta';
 import { Caminata } from './caminata';
+import { Rover } from './rover';
+import { Tactil, esTactil } from './tactil';
+import { abrirEva, estadoSimulador } from './paraEva';
+import { Estacion } from './estacion';
+import { avisarSitio } from './avisoSitio';
+import { Guiada } from './guiada';
+import { bitacoraDelPlan } from './planGuiado';
+import { DEFAULT_REQUIREMENTS, evaluate, loadMask, loadTable, provenance, station } from '@/shared/planning';
 import { avisarEva } from '@/shared/eva';
 
 const AFK_S = 60; // sin tocar nada este rato, EVA bromea con tu ausencia (y otra vez cada 90 s más)
@@ -53,7 +61,9 @@ function terrainMesh(f, half, n, mat, drop) {
 }
 
 /** Monta el alunizaje dentro de `host`. Devuelve la función para desmontarlo. */
-export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }: { siteId?: string; ms?: number; ruta?: string; evaH?: number } = {}): Promise<() => void> {
+export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guia }: { bitacora?: any; guia?: { nombre: string; batteryH?: number; minEarthPct?: number; salidasH?: number[] }; siteId?: string; ms?: number; ruta?: string; evaH?: number; tipo?: string; roverKmh?: number; paradaH?: number; panelM?: number; antenaM?: number; estadiaH?: number; fallos?: boolean } = {}): Promise<() => void> {
+  // Misión real guiada: el sitio y la fecha son los de su bitácora; es un módulo fijo (guiada.ts)
+  if (bitacora) { siteId = bitacora.simulador.sitio; ms = Date.parse(bitacora.contactoUtc); tipo = 'fija'; fallos = false; }
   const { site, fineBuf, wideBuf } = await cargarSitio(siteId, ms);
   const wide = sampler(new Int16Array(wideBuf), site.wide.n, site.wide.half);
   const fine = fineBuf ? sampler(new Int16Array(fineBuf), site.fine.n, site.fine.half) : wide; // sin relieve fino: el de 80 m interpolado
@@ -68,7 +78,8 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
   const groundY = (x, z) => (enDetalle(x, z) ? baseY(x, z) + detail.height(x, z) : baseY(x, z));
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+  const movil = esTactil(); // celular o tableta: menos resolución y sombras más baratas, y controles en pantalla
+  renderer.setPixelRatio(movil ? 1 : Math.min(1.5, window.devicePixelRatio || 1));
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; // three 0.187 ya no trae PCFSoftShadowMap
   host.appendChild(renderer.domElement);
@@ -130,7 +141,7 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
 
   // Luz: Sol rasante con sombras que siguen a la nave, luz rebotada por el regolito y un mínimo de ambiente
   const sunLight = new THREE.DirectionalLight(0xfff6e8, 0);
-  sunLight.castShadow = true; sunLight.shadow.mapSize.set(2048, 2048); sunLight.shadow.bias = -0.0005;
+  sunLight.castShadow = true; sunLight.shadow.mapSize.set(movil ? 1024 : 2048, movil ? 1024 : 2048); sunLight.shadow.bias = -0.0005;
   Object.assign(sunLight.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 3000 });
   const hemi = new THREE.HemisphereLight(0x05060a, 0xbdb7aa, 0.01);
   scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0x9aa6c0, 0.012), hemi);
@@ -138,13 +149,15 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
   const tierraL = new THREE.DirectionalLight(0x8fb4ff, 0.06); scene.add(tierraL);
 
   /** Ilumina la escena para un cielo (Sol y Tierra del motor del Planificador): sombras del relieve, astros y luces. */
-  function iluminar(c) {
+  function iluminar(c, sombras = true) {
     sd = dir(c.sun.az, c.sun.el);
+    if (sombras) {
     // Sombras del relieve hacia el Sol (luz.ts): rasante en el polo, casi todo lo que no mira al Sol queda negro
-    const luzFina = rejillaDeLuz(groundY, sd, FH, 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, 100, 8000);
+    const luzFina = rejillaDeLuz(groundY, sd, FH, movil ? 40 : 20, 6000), luzAmplia = rejillaDeLuz(groundY, sd, site.wide.half, movil ? 160 : 100, 8000);
     const luzDe = (x, z) => (Math.abs(x) < FH && Math.abs(z) < FH ? luzFina(x, z) : luzAmplia(x, z));
     pintarLuz(mallaFina, luzDe); pintarLuz(mallaAmplia, luzDe);
     pintarLuz(detailMesh.children[0], (x, z) => verSol(groundY, sd, x, z, 160, 1) * luzFina(x, z)); // cráteres y rocas: su propia sombra
+    }
     // El relieve lejano solo brilla por la cara que mira al Sol (con el Sol a la espalda de quien mira); el resto, en sombra
     for (let i = 0; i <= bins; i++) { const az = (i / bins) * 2 * Math.PI, cara = Math.max(0, -Math.cos(az - c.sun.az * D2R)) * c.sun.frac, k = 0.03 + 0.55 * Math.sqrt(cara); col.set([0.02, 0.02, 0.02, k, k, k * 0.97], i * 6); }
     rg.attributes.color.needsUpdate = true;
@@ -159,15 +172,30 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
   // Efectos del descenso (alarma, impacto, estática). La voz es la de EVA, la de toda la aplicación (avisarEva).
   const sonido = new Sonido();
   const sfx = { radio: (abre) => sonido.radio(abre), static: (d) => sonido.staticNoise(d), boom: () => sonido.boom(), programAlarm: () => sonido.programAlarm() };
+  const cielo = { t: Date.parse(site.time), sombras: Date.parse(site.time), pidiendo: false }; // último cielo calculado (reloj de la misión): al cargar, el del alunizaje
   const view = {
     host, renderer, scene, camera, groundY, baseY, detail, siteName: site.site, time: Date.parse(site.time),
     now: { sun: { ...site.sun }, earth: { ...site.earth } },
     // El plan: la ruta elegida en el Planificador y cuándo sale la EVA (horas después del alunizaje)
-    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0 }, tAlunizaje: Date.parse(site.time),
+    plan: { ruta: ruta ?? 'cientifica', evaH: evaH ?? 0, tipo: tipo ?? 'tripulada', roverKmh: roverKmh ?? 0.8, paradaH: paradaH ?? 2, panelM: panelM ?? 2, antenaM: antenaM ?? 2, estadiaH: estadiaH ?? 168, fallos: !!fallos },
+    tAlunizaje: Date.parse(site.time),
+    sitio: site, // para el informe del panel y la antena (equipoEn)
     /** Vuelve a iluminar la escena con el cielo de otro instante (la hora de la EVA). */
     async iluminarEn(t) {
       const c = await cieloEn(site, t);
       iluminar(c); view.now = { sun: { ...c.sun }, earth: { ...c.earth } }; view.time = Date.parse(c.time);
+      cielo.t = cielo.sombras = t;
+    },
+    /** Durante la EVA o el recorrido: el cielo avanza con el reloj de la misión. Sol y Tierra cada 10 min de misión
+     *  (barato: un punto del motor); las sombras del relieve, cada 2 h (caro: se vuelven a calcular). */
+    async cieloAl(t) {
+      if (cielo.pidiendo || (cielo.t != null && Math.abs(t - cielo.t) < 600e3)) return;
+      cielo.pidiendo = true;
+      try {
+        const c = await cieloEn(site, t), sombras = cielo.sombras == null || Math.abs(t - cielo.sombras) >= 7200e3;
+        iluminar(c, sombras); view.now = { sun: { ...c.sun }, earth: { ...c.earth } }; view.time = Date.parse(c.time);
+        cielo.t = t; if (sombras) cielo.sombras = t; view.cieloMovido = true;
+      } catch { /* sin tabla: se queda el cielo de antes */ } finally { cielo.pidiendo = false; }
     },
     eva: { fp: true, root: { style: {} }, briefing: { open: false }, sfx, yaw: 0, pitch: 0, _lookT: 0 }, sonido,
     controls: { target: new THREE.Vector3(), update() {}, enabled: false },
@@ -178,11 +206,35 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
   view.astro.object.visible = false;
   // Caminata con el casco después del primer paso; Q vuelve a volar el descenso
   const caminata = (view.caminata = new Caminata(view, { onSalir: () => void sim.start(), sonido }));
+  const rover = (view.rover = new Rover(view, { onSalir: () => void sim.start(), sonido }));
+  view.estacion = new Estacion(view);
   const sim = new LandingSim(view);
+  const tactil = movil ? new Tactil(view, { sim, caminata, rover }) : null;
   await sim.start();
+  // Misión planificada guiada (`&guia=<nombre>`): sus pasos los calcula el motor del Planificador para este lugar, esta
+  // fecha y este equipo (planGuiado.ts). Si no se puede evaluar (fecha fuera de la tabla), la misión se vuela sin guía.
+  if (!bitacora && guia) {
+    try {
+      const [tabla, mascara] = await Promise.all([loadTable(), loadMask(site.id)]);
+      const p = view.plan, stayDays = Math.max(1, Math.round(p.estadiaH / 24));
+      const batteryH = guia.batteryH ?? DEFAULT_REQUIREMENTS.batteryH, minEarthPct = guia.minEarthPct ?? DEFAULT_REQUIREMENTS.minEarthPct;
+      const ev = evaluate(tabla, station({ lat: site.lat, lon: site.lon }, mascara, p.panelM, p.antenaM), { landingMs: Date.parse(site.time), stayDays, requirements: { ...DEFAULT_REQUIREMENTS, batteryH, minEarthPct } });
+      bitacora = bitacoraDelPlan({ nombre: guia.nombre, sitio: { id: site.id, nombre: site.site, lat: site.lat, lon: site.lon }, stayDays, panelM: p.panelM, antenaM: p.antenaM, batteryH, minEarthPct,
+        salidasH: p.tipo === 'fija' ? [] : guia.salidasH ?? (p.evaH > 0 ? [p.evaH] : []), rover: p.tipo === 'rover', ev, fuente: { id: 'planner-engine', titulo: `Horizon Signai planner engine · ${provenance.ephemeris.product}`, url: provenance.ephemeris.url } });
+    } catch { bitacora = undefined; }
+  }
+  view.guiada = bitacora ? new Guiada(view, bitacora) : null;
+  // Pendiente real peligrosa: se dice antes de bajar. En la misión guiada, su briefing va en su lugar.
+  const quitarAviso = view.guiada ? (view.guiada.briefing(), () => view.guiada.dispose()) : avisarSitio(host, view, site.id);
   if (import.meta.env.DEV) window.__alunizaje = sim; // para probar a mano en desarrollo (p. ej. forzar un fallo)
 
-  const onKey = (e) => { if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.target.closest?.('button,input,select,textarea')) sim.skip(); };
+  const onKey = (e) => {
+    if (e.target.closest?.('button,input,select,textarea,[contenteditable="true"]')) return;
+    if (e.code === 'Enter' || e.code === 'NumpadEnter') sim.skip();
+    if (e.code === 'KeyH' && !e.repeat) { e.preventDefault(); abrirEva(); } // hablar con EVA: suelta el ratón y abre su panel (sin que la «h» caiga en su campo)
+  };
+  // Lo que EVA ve de esta pantalla (features/assistant/eva/acciones.ts lo lee como contexto de cada pregunta)
+  window.HorizonSimulador = { text: () => estadoSimulador(view, sim, caminata, rover) };
   window.addEventListener('keydown', onKey);
   // AFK: si nadie toca teclado ni ratón, EVA se burla de la ausencia (tres frases por turnos; ella además se limita
   // a un comentario cada 90 s y no lo dice si está hablando de otra cosa)
@@ -201,20 +253,26 @@ export async function startLanding(host: HTMLElement, { siteId, ms, ruta, evaH }
     const t = performance.now(), dt = Math.min(0.05, (t - last) / 1000); last = t;
     sim.update(dt);
     caminata.update(dt);
+    rover.update(dt);
+    tactil?.update();
+    view.estacion.update();
     // Las sombras se calculan alrededor de la nave (o del astronauta, en la caminata)
-    const f = caminata.active ? caminata.pos : sim.lm?.position ?? camera.position;
+    const f = caminata.active ? caminata.pos : rover.active ? rover.pos : sim.lm?.position ?? camera.position;
     sunLight.target.position.copy(f); sunLight.position.copy(f).addScaledVector(sd, 1500);
     if (caminata.active) caminata.render(dt); // a través del vidrio del casco, con su HUD
     else renderer.render(scene, camera);
   });
 
   return () => {
+    quitarAviso();
+    document.querySelector('.sim-informe')?.remove(); // el informe vive en el body
+    delete window.HorizonSimulador;
     renderer.setAnimationLoop(null); ro.disconnect(); window.removeEventListener('keydown', onKey);
     window.clearInterval(afk); for (const ev of ['keydown', 'pointerdown', 'pointermove', 'wheel']) window.removeEventListener(ev, marcar);
     sim.stop(true); sim.active = false; sim.distant = false;
     if (import.meta.env.DEV && window.__alunizaje === sim) delete window.__alunizaje;
     sonido.dispose();
-    caminata.dispose(); view.astro.dispose();
+    caminata.dispose(); rover.dispose(); tactil?.dispose(); view.estacion.dispose(); view.astro.dispose();
     disposeDetail(detailMesh); glowTex.dispose();
     renderer.dispose(); pmrem.dispose(); host.replaceChildren();
   };

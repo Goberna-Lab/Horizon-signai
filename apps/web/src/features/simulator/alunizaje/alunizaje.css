@@ -51,8 +51,8 @@
 .sim-lfp-end dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
 .sim-lfp-end dt { font: 500 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
 .sim-lfp-end dd { margin: 2px 0 0; font: 600 16px "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-.sim-lfp-end button { justify-self: start; font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
-.sim-lfp-end button:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
+.sim-lfp-end button, .sim-aviso-sitio button { justify-self: start; font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
+.sim-lfp-end button:focus-visible, .sim-aviso-sitio button:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
 .sim-lfp-end p { margin: 0; font-size: 14px; line-height: 1.45; } .sim-lfp-end p.real { color: rgba(17, 17, 17, .72); font-style: italic; } .sim-lfp-end p.why2 { color: rgba(17, 17, 17, .6); font-size: 13px; }
 
 /* P66: riesgo del terreno justo bajo la nave (solo informa; no hay control manual) */
@@ -64,5 +64,128 @@
 
 /* Tarjeta final: salir a caminar o volver a volar */
 .sim-lfp-end-acts { display: flex; flex-wrap: wrap; gap: 10px; }
-.sim-lfp-end button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
+.sim-lfp-end button.sec, .sim-aviso-sitio button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
 
+
+/* Informe final de la misión (informe.ts): planificado frente a real */
+.sim-informe { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 9500; /* por encima de EVA (9000) */ width: min(620px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto; display: grid; gap: 12px;
+  padding: 22px 24px; background: #F4EFE6; color: #111111; border: 1px solid #111111; border-top: 6px solid #111111; font-family: "Archivo Variable", system-ui, sans-serif; }
+.sim-informe.incidentes, .sim-informe.incompleta { border-top-color: #e3b341; } .sim-informe.perdida { border-top-color: #C8102E; }
+.sim-informe small { font: 600 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: #C8102E; }
+.sim-informe > b { font-size: 30px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; }
+.sim-informe p { margin: 0; font-size: 14px; line-height: 1.45; } .sim-informe p.nota { font-size: 12px; color: rgba(17, 17, 17, .6); }
+.sim-informe table { width: 100%; border-collapse: collapse; font: 500 13px "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.sim-informe th, .sim-informe td { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid #c9c1b6; }
+.sim-informe thead th { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); border-bottom: 1px solid #111111; }
+.sim-informe tbody th { font-family: "Archivo Variable", system-ui, sans-serif; font-weight: 600; }
+.sim-informe tr.mal td:last-child { color: #C8102E; font-weight: 700; }
+.sim-inf-cons { display: grid; gap: 5px; } .sim-inf-cons .lbl { font: 600 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
+.sim-inf-bar { display: grid; grid-template-columns: 70px 1fr 48px; gap: 10px; align-items: center; font: 500 12px "IBM Plex Mono", ui-monospace, monospace; }
+.sim-inf-bar i { height: 10px; border: 1px solid #111111; display: block; } .sim-inf-bar i b { display: block; height: 100%; background: #111111; } .sim-inf-bar em { font-style: normal; text-align: right; }
+.sim-informe button { font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
+.sim-informe button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
+/* Mini misiones (retos.ts) dentro del informe */
+.sim-retos { display: grid; gap: 4px; } .sim-retos .lbl { font: 600 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
+.sim-reto { border-bottom: 1px solid #c9c1b6; padding: 4px 0; }
+.sim-reto summary { display: grid; grid-template-columns: 18px auto 1fr; gap: 2px 8px; align-items: baseline; cursor: pointer; list-style: none; }
+.sim-reto summary::-webkit-details-marker { display: none; }
+.sim-reto i { font-style: normal; font-weight: 800; color: rgba(17, 17, 17, .4); } .sim-reto.ok i { color: #111111; }
+.sim-reto b { font-size: 14px; } .sim-reto em { font: 600 10px "IBM Plex Mono", ui-monospace, monospace; text-transform: uppercase; letter-spacing: .08em; color: #F4EFE6; background: #C8102E; padding: 1px 6px; justify-self: start; font-style: normal; }
+.sim-reto span { grid-column: 2 / -1; font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace; color: rgba(17, 17, 17, .65); }
+.sim-reto p { margin: 6px 0 4px 26px; font-size: 13px; line-height: 1.45; }
+/* Rover (rover.ts): telemetría de conducción */
+.sim-rover-hud { position: absolute; left: 16px; top: 16px; z-index: 8; width: min(320px, calc(100% - 32px)); display: grid; gap: 3px; padding: 12px 14px; background: rgba(6, 10, 14, .72); color: #e6f4fa; border-left: 3px solid #4cc38a; font: 500 12px "IBM Plex Mono", ui-monospace, monospace; }
+.sim-rover-hud[hidden] { display: none; }
+.sim-rover-hud .fila { display: grid; grid-template-columns: 92px auto 1fr; gap: 8px; align-items: baseline; } .sim-rover-hud .fila span { color: rgba(230, 244, 250, .6); letter-spacing: .08em; font-size: 10.5px; }
+.sim-rover-hud .fila b { font-size: 14px; } .sim-rover-hud .fila.mal b { color: #ff6b6b; }
+.sim-rover-hud p { margin: 6px 0 0; line-height: 1.4; } .sim-rover-hud .tarea { color: #9fe4f2; } .sim-rover-hud .aviso { color: #ffd25a; } .sim-rover-hud .teclas { color: rgba(230, 244, 250, .55); font-size: 11px; }
+/* Controles táctiles (tactil.ts) */
+.sim-tactil { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.sim-tactil > * { pointer-events: auto; } .sim-tactil [hidden] { display: none !important; }
+.sim-tc-palanca { position: absolute; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(14px, env(safe-area-inset-bottom, 0px)); width: 112px; height: 112px; border-radius: 50%; border: 2px solid rgba(230, 244, 250, .45); background: rgba(6, 10, 14, .35); touch-action: none; display: grid; place-items: center; }
+.sim-tc-palanca i { width: 54px; height: 54px; border-radius: 50%; background: rgba(230, 244, 250, .75); transition: transform .05s; }
+.sim-tc-botones { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); bottom: max(10px, env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: repeat(2, auto); gap: 5px; }
+.sim-tc-botones button, .sim-tc-saltar { min-width: 60px; height: 36px; padding: 0 8px; border: 1px solid rgba(230, 244, 250, .5); background: rgba(6, 10, 14, .6); color: #e6f4fa; font: 600 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .04em; text-transform: uppercase; touch-action: manipulation; }
+.sim-tc-botones button:active, .sim-tc-saltar:active { background: rgba(200, 16, 46, .7); }
+.sim-tc-saltar { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom, 0px)); padding: 0 22px; } /* al centro: abajo a la derecha está EVA */
+
+/* En pantalla táctil: sin las ayudas de teclado (los botones las reemplazan) */
+.sim-es-tactil .sim-lfp-keys, .sim-es-tactil .sim-vh-keys { display: none !important; }
+/* Pantallas bajas (celular en horizontal): menos paneles en el descenso, HUD y tarjetas más compactos */
+@media (max-height: 520px) {
+  .sim-lfp-map, .sim-lfp-prof { display: none !important; }
+  .sim-lfp-top, .sim-lfp-alt, .sim-lfp-r, .sim-lfp-tape, .sim-lfp-radio { zoom: .62; }
+  .sim-vh-rows, .sim-vh-alerts, .sim-vh-lens, .sim-vh-head, .sim-vh-feed, .sim-vh-compass, .sim-rover-hud { zoom: .7; }
+  .sim-lfp-end { bottom: auto; top: 50%; transform: translate(-50%, -50%); max-height: 96%; overflow: auto; zoom: .72; }
+  .sim-informe { zoom: .78; }
+}
+/* Panel solar y antena desplegados (estacion.ts): su informe */
+.sim-equipo { position: absolute; right: 16px; top: 16px; z-index: 11; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto; display: grid; gap: 10px; padding: 16px 18px; background: #F4EFE6; color: #111111; border: 1px solid #111111; border-top: 5px solid #1f5fa8; font-family: "Archivo Variable", system-ui, sans-serif; }
+.sim-equipo small { font: 600 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: #1f5fa8; }
+.sim-equipo > b { font-size: 20px; font-weight: 800; }
+.sim-equipo dl { margin: 0; display: grid; gap: 8px; } .sim-equipo dl div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; border-bottom: 1px solid #c9c1b6; padding-bottom: 6px; }
+.sim-equipo dt { font: 500 11px "IBM Plex Mono", ui-monospace, monospace; color: rgba(17, 17, 17, .7); } .sim-equipo dd { margin: 0; font: 700 15px "IBM Plex Mono", ui-monospace, monospace; text-align: right; }
+.sim-equipo dd small { display: block; font: 400 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0; text-transform: none; color: rgba(17, 17, 17, .6); }
+.sim-equipo p { margin: 0; font-size: 11.5px; line-height: 1.4; color: rgba(17, 17, 17, .6); }
+.sim-equipo button { font: 600 12px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #111111; border: 0; padding: 8px 14px; cursor: pointer; }
+@media (max-height: 520px) { .sim-equipo { zoom: .72; } }
+.sim-sin-paquete { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 12; width: min(520px, calc(100% - 32px)); margin: 0; padding: 18px 20px; background: #F4EFE6; color: #111111; border: 1px solid #111111; border-top: 5px solid #C8102E; font: 500 15px/1.45 "Archivo Variable", system-ui, sans-serif; }
+/* Rover (rover.ts): pantalla del operador, vista desde la NAVCAM del mástil */
+.sim-rv { position: absolute; inset: 0; z-index: 8; pointer-events: none; color: #e6f4fa; font: 500 12px "IBM Plex Mono", ui-monospace, monospace; }
+.sim-rv[hidden] { display: none; } .sim-rv [hidden] { display: none !important; }
+.sim-rv-cam { position: absolute; inset: 14px; display: none; } .sim-rv.navcam .sim-rv-cam { display: block; }
+.sim-rv-cam i { position: absolute; width: 34px; height: 34px; border: 2px solid rgba(230, 244, 250, .7); }
+.sim-rv-cam .tl { left: 0; top: 0; border-right: 0; border-bottom: 0; } .sim-rv-cam .tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.sim-rv-cam .bl { left: 0; bottom: 0; border-right: 0; border-top: 0; } .sim-rv-cam .br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.sim-rv-cam .cruz { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); background: linear-gradient(rgba(230,244,250,.7), rgba(230,244,250,.7)) center / 2px 100% no-repeat, linear-gradient(rgba(230,244,250,.7), rgba(230,244,250,.7)) center / 100% 2px no-repeat; opacity: .6; }
+.sim-rv.navcam::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(rgba(255,255,255,.025) 0 1px, transparent 1px 3px); pointer-events: none; }
+.sim-rv-top { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); letter-spacing: .1em; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+.sim-rv-top .rec { color: #ff5c5c; animation: sim-rv-rec 1.2s steps(2) infinite; } @keyframes sim-rv-rec { 50% { opacity: .2; } }
+.sim-rv-brujula { position: absolute; left: 50%; top: 44px; width: min(520px, 60%); height: 22px; transform: translateX(-50%); overflow: hidden; border-bottom: 1px solid rgba(230,244,250,.4); }
+.sim-rv-brujula div span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 11px; text-shadow: 0 1px 2px #000; }
+.sim-rv-brujula > i { position: absolute; left: 50%; bottom: -1px; width: 2px; height: 10px; background: #ff6b5e; transform: translateX(-50%); }
+.sim-rv-obj { position: absolute; transform: translate(-50%, -100%); display: grid; justify-items: center; gap: 2px; text-shadow: 0 1px 3px #000; }
+.sim-rv-obj i { width: 22px; height: 22px; border: 2px solid #ffd25a; transform: rotate(45deg); order: 3; margin-top: 4px; animation: sim-rv-pulso 1.4s ease-in-out infinite; }
+.sim-rv-obj b { color: #ffd25a; font-size: 12px; letter-spacing: .1em; } .sim-rv-obj span { font-size: 15px; font-weight: 700; }
+@keyframes sim-rv-pulso { 50% { transform: rotate(45deg) scale(1.25); } }
+.sim-rv-flecha { position: absolute; top: 50%; display: flex; align-items: center; gap: 10px; transform: translateY(-50%); background: rgba(6,10,14,.6); padding: 8px 12px; border: 1px solid #ffd25a; color: #ffd25a; font-size: 13px; }
+.sim-rv-flecha i { font-style: normal; font-size: 22px; } .sim-rv-flecha.izq { left: 30px; } .sim-rv-flecha.izq i { transform: scaleX(-1); order: -1; }
+.sim-rv-flecha.der { right: 30px; flex-direction: row-reverse; } .sim-rv-flecha.atras { left: 50%; top: auto; bottom: 120px; transform: translateX(-50%); } .sim-rv-flecha.atras i { transform: rotate(90deg); }
+.sim-rv-tele { position: absolute; left: 28px; top: 78px; display: grid; gap: 4px; padding: 10px 12px; background: rgba(6,10,14,.6); border-left: 3px solid #4cc38a; min-width: 230px; }
+.sim-rv-tele div { display: grid; grid-template-columns: 92px auto 1fr; gap: 8px; align-items: baseline; } .sim-rv-tele span { font-size: 10px; letter-spacing: .1em; color: rgba(230,244,250,.6); }
+.sim-rv-tele b { font-size: 14px; } .sim-rv-tele i { font-style: normal; color: rgba(230,244,250,.6); font-size: 11px; } .sim-rv-tele .mal b { color: #ff6b6b; } .sim-rv-tele .ok b { color: #9fe4f2; }
+.sim-rv-mapa { position: absolute; right: 28px; top: 78px; width: 200px; height: 200px; border: 1px solid rgba(230,244,250,.4); }
+.sim-rv-tarea { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); max-width: 70%; text-align: center; background: rgba(6,10,14,.6); padding: 8px 14px; color: #9fe4f2; font-size: 13px; }
+.sim-rv-medir { position: absolute; left: 50%; top: 74%; transform: translateX(-50%); padding: 12px 20px; background: rgba(6,10,14,.75); border: 2px solid #ffd25a; font-size: 18px; letter-spacing: .04em; }
+.sim-rv-medir b { color: #ffd25a; border: 1px solid #ffd25a; padding: 0 8px; margin: 0 4px; }
+.sim-rv-aviso { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); padding: 10px 16px; background: rgba(6,10,14,.78); border-left: 3px solid #ffd25a; font-size: 14px; max-width: 70%; text-align: center; } .sim-rv-aviso.ok { border-left-color: #4cc38a; }
+.sim-rv-brief { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto; pointer-events: auto; display: grid; gap: 12px; padding: 22px 24px; background: #F4EFE6; color: #111111; border: 1px solid #111111; border-top: 6px solid #2c55a8; font-family: "Archivo Variable", system-ui, sans-serif; }
+.sim-rv-brief small { font: 600 11px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; color: #2c55a8; } .sim-rv-brief > b { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.sim-rv-brief ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 15px; } .sim-rv-brief p { margin: 0; font-size: 13px; line-height: 1.45; color: rgba(17,17,17,.7); }
+.sim-rv-brief .teclas { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 12px "IBM Plex Mono", ui-monospace, monospace; } .sim-rv-brief .teclas b { display: inline-block; min-width: 22px; text-align: center; border: 1px solid #111; padding: 1px 5px; margin-right: 4px; }
+.sim-rv-brief button { justify-self: start; font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #2c55a8; border: 0; padding: 12px 18px; cursor: pointer; }
+@media (max-height: 520px) { .sim-rv-tele, .sim-rv-mapa, .sim-rv-brujula, .sim-rv-top { zoom: .7; } .sim-rv-brief { zoom: .75; } }
+.sim-es-tactil .sim-rv-brief .teclas { display: none; }
+/* Aviso antes del descenso: pendiente real peligrosa en el punto de alunizaje (avisoSitio.ts) */
+.sim-aviso-sitio { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 12; width: min(520px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto; display: grid; gap: 8px; padding: 18px 20px; background: #F4EFE6; color: #111111; border: 1px solid #111111; border-top: 5px solid #C8102E; font: 500 15px/1.45 "Archivo Variable", system-ui, sans-serif; }
+.sim-aviso-sitio small { font: 600 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
+.sim-aviso-sitio b { font-size: 20px; line-height: 1.2; }
+.sim-aviso-sitio p { margin: 0; }
+/* Misión real guiada (guiada.ts): briefing al centro; durante el descenso y en la superficie, a un lado para ver la nave */
+.sim-bitacora { position: absolute; z-index: 12; display: grid; gap: 8px; max-height: calc(100% - 32px); overflow: auto; padding: 16px 18px; background: #F4EFE6; color: #111111; border: 1px solid #111111; border-top: 5px solid #111111; font: 500 14.5px/1.45 "Archivo Variable", system-ui, sans-serif; }
+.sim-bitacora.centro { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100% - 32px)); }
+.sim-bitacora.lateral { left: 16px; bottom: 16px; width: min(420px, calc(100% - 32px)); max-height: 60%; }
+.sim-bitacora small { display: flex; justify-content: space-between; gap: 8px; font: 600 10.5px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(17, 17, 17, .6); }
+.sim-bitacora b { font-size: 19px; line-height: 1.2; }
+.sim-bitacora p { margin: 0; }
+.sim-bitacora .nota { font-size: 12.5px; padding: 8px 10px; border-left: 3px solid #C8102E; background: rgba(200, 16, 46, .06); }
+.sim-bitacora .porque { font-size: 13.5px; padding: 8px 10px; background: rgba(17, 17, 17, .05); }
+.sim-bitacora details summary { cursor: pointer; font: 600 12px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .04em; text-transform: uppercase; }
+.sim-bitacora details p { margin-top: 6px; }
+.sim-bitacora .fuentes { font-size: 11.5px; color: rgba(17, 17, 17, .65); }
+.sim-bitacora .fuentes a { color: inherit; }
+.sim-bitacora .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.sim-bitacora .acts button { font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
+.sim-bitacora .acts button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
+.sim-bitacora .acts button:focus-visible, .sim-bitacora summary:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
+.sim-bitacora b.mal { color: #C8102E; }

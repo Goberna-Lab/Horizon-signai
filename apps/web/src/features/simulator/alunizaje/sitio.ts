@@ -5,7 +5,7 @@
 //    hace con el mismo relieve de 80 m interpolado, y lo pequeño lo pone el suelo de detalle (detalle.ts).
 //  · El Sol y la Tierra se calculan con el motor de @/shared/planning (efemérides y horizonte del sitio, a 1,7 m): las
 //    mismas cifras que el Planificador para esa fecha.
-import { loadMask, loadTable, siteById, station, sweep, TABLE_FROM_MS, TABLE_TO_MS } from "@/shared/planning"
+import { figures, loadMask, loadTable, siteById, station, sweep, TABLE_FROM_MS, TABLE_TO_MS } from "@/shared/planning"
 import fineUrl from "./data/fine.i16?url"
 import wideUrl from "./data/wide.i16?url"
 import siteUrl from "./data/site.json?url"
@@ -53,9 +53,28 @@ export function cieloEn(site: DatosSitio & { id?: string }, ms: number) {
   return cielo(site.id ?? SITIO_POR_DEFECTO, site.lat, site.lon, ms)
 }
 
+/**
+ * Lo que consiguen un panel solar y una antena desplegados en el sitio, desde `desdeMs` hasta `hastaMs`, con las cifras
+ * del motor del Planificador (`station` + `sweep` + `figures`, paso de 10 min): el Sol visto desde la altura del panel y
+ * la Tierra desde la de la antena, en el mismo punto del terreno (la simplificación declarada del Planificador). El panel
+ * es el del motor: vertical y girando en azimut hacia el Sol; la energía es la que le llega por m² (no la eléctrica, que
+ * depende de la eficiencia del panel).
+ */
+export async function equipoEn(site: DatosSitio & { id?: string }, desdeMs: number, hastaMs: number, panelM: number, antenaM: number) {
+  const id = site.id ?? SITIO_POR_DEFECTO
+  const [table, mask] = await Promise.all([loadTable(), loadMask(id)])
+  const a = Math.min(TABLE_TO_MS, Math.max(TABLE_FROM_MS, desdeMs)), b = Math.min(TABLE_TO_MS, Math.max(a + 3_600_000, hastaMs))
+  const sw = sweep(table, station({ lat: site.lat, lon: site.lon }, mask, panelM, antenaM), a, b)
+  const f = figures(sw)
+  return { ...f, horas: (b - a) / 3_600_000, energiaKWhM2: (f.meanPanelWm2 * (b - a)) / 3_600_000 / 1000, desdeMs: a, hastaMs: b, panelM, antenaM,
+    ahora: { sol: sw.solSobreHorizonte[0] + 0.266, tierra: sw.tierraSobreHorizonte[0], wm2: sw.panelWm2[0] } }
+}
+
 /** Carga el sitio `id` para el instante `ms` (si no hay `ms`, el del plan CR-01). */
 export async function cargarSitio(id = SITIO_POR_DEFECTO, ms?: number): Promise<Sitio> {
-  if (id === SITIO_POR_DEFECTO || !siteById.has(id)) {
+  // Un sitio que no es del Planificador (o sin paquete del simulador) no se cambia por otro sin avisar
+  if (id !== SITIO_POR_DEFECTO && !siteById.has(id)) throw new Error(`sitio-sin-paquete:${id}`)
+  if (id === SITIO_POR_DEFECTO) {
     const [base, fineBuf, wideBuf] = await Promise.all([json<DatosSitio>(siteUrl), bytes(fineUrl), bytes(wideUrl)])
     const c = await cielo(SITIO_POR_DEFECTO, base.lat, base.lon, ms ?? FECHA_CR01).catch(() => null)
     return { site: { ...base, id: SITIO_POR_DEFECTO, ...(c ?? {}) }, fineBuf, wideBuf }

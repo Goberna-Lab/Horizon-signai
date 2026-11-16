@@ -79,3 +79,9 @@
 .pl-tl__read [data-seen="false"] { color: var(--ink-soft); }
 .pl-tl__read [data-body="sun"][data-seen="true"] { color: var(--signal); }
 .pl-tl__read [data-body="earth"][data-seen="true"] { color: var(--earth); }
+/* Qué hace la misión: las salidas (caminatas o recorridos), cada una con su veredicto de Sol y Tierra */
+.pl-outings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pl-outing { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; border: 1px solid var(--ink); }
+.pl-outing .pl-form { width: 100%; }
+.pl-outing.is-bad { border-color: var(--signal, #C8102E); box-shadow: inset 4px 0 0 var(--signal, #C8102E); }
+.pl-outing__when { margin: 0; font: 400 12px/1.35 var(--font-mono); }

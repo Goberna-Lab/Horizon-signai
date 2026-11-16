@@ -20,6 +20,8 @@ import { tr } from '@/shared/i18n';
 import { VisorCasco, THETA_V, THETA_MAX, direccionAPantalla } from './casco/visorCasco';
 import { VisorHud } from './visorHud';
 import { Tareas } from './tareas';
+import { datosDelInforme, mostrarInforme } from './informe';
+import { avisoRetos } from './retos';
 
 const G = 1.62;
 const EYE = 1.68;        // altura de los ojos (m)
@@ -33,7 +35,9 @@ const PENDIENTE_LIMITE = 15; // grados: el límite de la ruta en el Planificador
 const CRATER_MIN_R = 2.5;  // cráteres que se avisan (radio, m): los más chicos se cruzan sin problema
 const CRATER_BORDE = 1.2;  // el borde levantado llega a ~1,2 radios del centro (detalle.ts)
 /** Límite de regreso (m) con el traje lleno, caminando a ~1 m/s: la mitad de lo que dura el consumible más escaso. */
-const WALKBACK_LLENO = Math.min((O2_KG - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J), WATER_KG / ((300 + 105) / SUBLIM_J_PER_KG), (BATT_WH * 3600) / 35, (LIOH_KJ * 1000) / 300) * 0.5;
+const PASO_MS = 1.3; // velocidad de marcha (m/s): la de la tecla W, más abajo
+// Límite de regreso con el traje lleno: la mitad de lo que dura el consumible más escaso (s), por la velocidad de marcha (m)
+const WALKBACK_LLENO = Math.min((O2_KG - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J), WATER_KG / ((300 + 105) / SUBLIM_J_PER_KG), (BATT_WH * 3600) / 35, (LIOH_KJ * 1000) / 300) * 0.5 * PASO_MS;
 const D2R = Math.PI / 180;
 const dir = (az, el) => new THREE.Vector3(Math.cos(el * D2R) * Math.sin(az * D2R), Math.sin(el * D2R), -Math.cos(el * D2R) * Math.cos(az * D2R));
 const fmt = (n, d = 0) => (Number.isFinite(n) ? n : 0).toLocaleString(tr('en-US', 'es-ES'), { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -89,6 +93,10 @@ export class Caminata {
     if (e.code === 'KeyG') { this.visor.visor = this.visor.visor === 2 ? 1 : 2; this.sonido?.visor(); if (this.visor.visor !== 2) avisarEva('visor-solar'); } // visor solar: arriba ↔ abajo
     if (e.code === 'KeyL') { this.lamps = !this.lamps; if (this.lamps) avisarEva('luces'); }
     if (e.code === 'KeyE') this.tasks.interact();
+    if (e.code === 'KeyP' && this.view.estacion) { // panel y antena del plan, cinco metros por delante
+      const f = this.forward(), v = this.view;
+      void v.estacion.desplegar(this.pos.x + f.x * 5, this.pos.z + f.z * 5, (v.tSalida ?? v.tAlunizaje) + this.s.t * 1000);
+    }
     if (e.code === 'KeyR') this.recharge();
     if (e.code === 'KeyM') this.notice = this.sonido?.toggleMute() ? tr('Sound off (M)', 'Sonido apagado (M)') : tr('Sound on (M)', 'Sonido encendido (M)');
     if (e.code === 'KeyT') { this.timeScale = this.timeScale === 1 ? 10 : this.timeScale === 10 ? 60 : 1; if (this.timeScale > 1) avisarEva('tiempo'); }
@@ -105,6 +113,8 @@ export class Caminata {
     this.heading = heading; this.yaw = heading + Math.PI; this.pitch = -0.08;
     this.jumpY = 0; this.jumpV = 0; this.fpPhase = 0; this.fpHop = 0; this.fpRun = 0; this._tickT = 0; this._litT = 0; this._crit = false;
     this.timeScale = 1; this.lamps = false; this.notice = null;
+    this.stats = { hrMax: 72, salidasRuta: 0, crateres: 0 }; this._lejos = false; this._informeVisto = false; // para el informe final
+    document.querySelector('.sim-informe')?.remove();
     this.s = { o2: O2_KG, water: WATER_KG, lioh: 0, batt: BATT_WH, hr: 72, met: 120, temp: 21, dose: 0, t: 0, press: 25.9 };
     const leak = result?.kind === 'hard' ? 0.5 : 1;
     this.lm = { o2: LM_O2_KG * leak, water: LM_WATER_KG * leak, recharges: 0 };
@@ -114,10 +124,12 @@ export class Caminata {
     this.tasks.reset(); this.tasks.start(lm);
     this.hud.lost(null); this.hud.tunnel(0); this.hud.root.hidden = false; this.hud.root.classList.remove('nopower'); this.hud.boot();
     this._sinBateria = false; this.sonido?.casco(true); // ventilador del traje
+    this.notice = avisoRetos();
     if (result?.kind === 'hard') this.notice = tr('The hard landing ruptured a lander tank: only half the O₂ and water are left to recharge the suit', 'El aterrizaje duro rompió un tanque del módulo: solo queda la mitad de O₂ y agua para recargar el traje');
   }
 
   stop() {
+    document.querySelector('.sim-informe')?.remove();
     if (this.active || this._evaEn) { evaEnCasco(null); this._evaEn = null; } // EVA sale del casco y vuelve a volar
     this.active = false; this.keys.clear();
     this.hud.root.hidden = true;
@@ -162,7 +174,7 @@ export class Caminata {
     const vel = this.vel, want = new THREE.Vector3(), air = this.jumpY > 0;
     if (fwd || side) {
       const camDir = this.forward(), right = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0));
-      want.copy(camDir.multiplyScalar(fwd).add(right.multiplyScalar(side)).normalize()).multiplyScalar(lope ? 3.4 - 1.5 * this.fatigue : 1.3); // cansado se corre menos
+      want.copy(camDir.multiplyScalar(fwd).add(right.multiplyScalar(side)).normalize()).multiplyScalar(lope ? 3.4 - 1.5 * this.fatigue : PASO_MS); // cansado se corre menos
     }
     if (!air) vel.lerp(want, Math.min(1, dt0 / (want.lengthSq() > vel.lengthSq() ? 0.4 : 0.7))); // en el aire no hay con qué empujar
     if (vel.lengthSq() < 1e-4 && !want.lengthSq()) vel.set(0, 0, 0);
@@ -200,7 +212,12 @@ export class Caminata {
     this._mv = speed > 0.15;
     this._crater(speed);
     this._suit(dt0, speed, this._mv);
+    if (v.tSalida != null) v.cieloAl?.(v.tSalida + this.s.t * 1000); // el Sol y la Tierra avanzan con el reloj de la EVA
     this.tasks.update();
+    if (this.tasks.done && !this._informeVisto) { // caminata completa: el informe de la misión, planificado frente a real
+      this._informeVisto = true;
+      setTimeout(() => { if (this.active) mostrarInforme(this.view, datosDelInforme(this.view, this), { volar: () => this.onSalir?.(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } }); }, 2500);
+    }
     this._eva(dt0);
     this._hud(dt0);
   }
@@ -230,10 +247,11 @@ export class Caminata {
       if (this.pendiente?.nivel === 'crit') { const t = performance.now(); if (!this._pendT || t - this._pendT > 25000) { this._pendT = t; avisarEva('pendiente', undefined, '.sim-vh-feed'); } }
     }
     // Fuera de la ruta planificada
+    const lejos = this.tasks.lejosDeRuta; if (lejos && !this._lejos) this.stats.salidasRuta++; this._lejos = lejos;
     if (this.tasks.lejosDeRuta) { const t = performance.now(); if (!this._rutaT || t - this._rutaT > 60000) { this._rutaT = t; avisarEva('fuera-de-ruta', undefined, '.sim-vh-lens.radar'); } }
     if (best?.nivel === 'crit') {
       const t = performance.now();
-      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha', undefined, '.sim-vh-feed'); }
+      if (!this._craterT || t - this._craterT > 20000) { this._craterT = t; this.stats.crateres++; avisarEva(best.izq ? 'crater-izquierda' : 'crater-derecha', undefined, '.sim-vh-feed'); }
     }
   }
 
@@ -317,7 +335,8 @@ export class Caminata {
       h2o: s.water / (heatNow / SUBLIM_J_PER_KG), bat: (s.batt * 3600) / draw,
     };
     const o2Time = Math.max(0, (s.o2 - 120 * O2_PER_J * RESERVE_S) / (300 * O2_PER_J));
-    const walkback = Math.min(o2Time, s.water / ((300 + 105) / SUBLIM_J_PER_KG), (s.batt * 3600) / draw, ((LIOH_KJ - s.lioh) * 1000) / 300) * 0.5;
+    // Límite de regreso (m): la mitad del tiempo que queda del consumible más escaso, andando a la velocidad de marcha
+    const walkback = Math.min(o2Time, s.water / ((300 + 105) / SUBLIM_J_PER_KG), (s.batt * 3600) / draw, ((LIOH_KJ - s.lioh) * 1000) / 300) * 0.5 * PASO_MS;
     const dLM = this._dLM(), lm = this.lmPos;
     const bearingLM = lm ? ((Math.atan2(lm.x - this.pos.x, -(lm.z - this.pos.z)) * 180) / Math.PI + 360) % 360 : null;
     const yawDeg = ((((-this.yaw * 180) / Math.PI) % 360) + 360) % 360;
@@ -364,6 +383,7 @@ export class Caminata {
     const tension = Math.max(this.hypo, this._crit ? 0.55 : 0, Math.max(0, (s.hr - 95) / 70), this.fatigue > 0.4 ? this.fatigue - 0.4 : 0);
     this._hb = (this._hb ?? 1) - dt; if (!this.lost && this._hb <= 0) { this.hud.beat(); if (tension > 0.08) this.sonido?.latido(Math.min(1, 0.25 + tension)); this._hb = 60 / Math.max(45, s.hr); }
     // Pulso alto: EVA lo dice apuntando a tu pulso en el HUD (no mata, pero cansa y gasta más oxígeno)
+    if (s.hr > this.stats.hrMax) this.stats.hrMax = s.hr;
     if (s.hr > 150 && !this.lost) { const t = performance.now(); if (!this._pulsoT || t - this._pulsoT > 60000) { this._pulsoT = t; avisarEva('pulso-alto', undefined, '.sim-vh-rows [data-r="hr"]'); } }
     this._tickT -= dt; if (this._tickT > 0) return; this._tickT = 1 / 12;
     this._tick(d);

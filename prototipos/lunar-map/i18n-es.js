@@ -82,6 +82,8 @@ LunarI18n.add({
     'P64 · approach': 'P64 · aproximación',
     'contact · 710 s': 'contacto · 710 s',
     'Plan the walk': 'Planificar la caminata',
+    'map center': 'centro del mapa',
+    'Center of the NASA terrain map of this site (PGDA), not a landing zone chosen for being flat (RoI). Check the slope: the simulator warns before the descent.': 'Centro del mapa de relieve de la NASA de este sitio (PGDA), no una zona de aterrizaje elegida por ser plana (RoI). Revisa la pendiente: el simulador avisa antes del descenso.',
 
     /* ---------- panel derecho: horizonte, descenso y Go / No-Go ---------- */
     'Descent and checks': 'Descenso y verificación',

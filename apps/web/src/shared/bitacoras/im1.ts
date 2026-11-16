@@ -1,0 +1,201 @@
+// IM-1 Odysseus (Intuitive Machines, NASA CLPS, febrero de 2024): primer alunizaje de Estados Unidos desde el Apollo 17,
+// cerca del polo sur. Volcó al posarse en una pendiente de 12° y aun así operó 7 días, hasta la noche lunar.
+// Consultado el 2026-11-15. Cada hecho cita sus fuentes; las cifras van tal como las publican.
+// Aviso: el sitio (80,13° S, 1,44° E) NO es una de las 13 zonas del Planificador: Malapert A (cráter) no es el
+// Malapert massif de la zona F (86,0° S).
+import type { Bitacora } from "./tipos.ts"
+
+export const IM1: Bitacora = {
+  id: "im-1",
+  nombre: "IM-1",
+  nave: "Odysseus (Nova-C)",
+  operador: "Intuitive Machines",
+  programa: "NASA CLPS",
+  tipo: "fija",
+  sitio: { nombre: "Malapert A", lat: -80.13, lon: 1.44, elevacionM: 2579, pendienteDeg: 12, fuentes: ["nasa-lro"] },
+  simulador: {
+    sitio: "malapert-massif",
+    nota: {
+      en: "3D relief for reference: Malapert massif, 178 km from the real IM-1 site. That site (80.13° S, about 300 km from the pole) is outside our terrain and Sun–Earth data, which cover 190 km around the pole.",
+      es: "Relieve 3D de referencia: el macizo Malapert, a 178 km del sitio real de IM-1. Ese sitio (80,13° S, a unos 300 km del polo) queda fuera de nuestros datos de relieve, Sol y Tierra, que cubren 190 km alrededor del polo.",
+    },
+  },
+  contactoUtc: "2024-02-22T23:23:00Z",
+  finUtc: "2024-02-29",
+  prevista: { en: "Approx. 10 days of lunar surface operations", es: "Unos 10 días de operaciones en la superficie" },
+  real: { en: "7 days: the NASA instruments stopped seven days after landing", es: "7 días: los instrumentos de la NASA se detuvieron siete días después del alunizaje" },
+  resumen: {
+    en: "The first U.S. lander on the Moon since Apollo 17. Its own laser rangefinders could not be used, so it landed guided by a NASA lidar. It came down on a 12° slope, caught a foot and ended up on its side, yet it kept sending data for seven days, until the lunar night took its power.",
+    es: "El primer módulo de Estados Unidos en la Luna desde el Apollo 17. Sus propios telémetros láser no se pudieron usar y bajó guiado por un lidar de la NASA. Se posó en una pendiente de 12°, se le trabó una pata y quedó de lado, pero siguió mandando datos siete días, hasta que la noche lunar le quitó la energía.",
+  },
+  hechos: [
+    {
+      id: "sitio",
+      utc: null,
+      precision: "dia",
+      fase: "antes",
+      temas: ["sitio", "tierra"],
+      titulo: { en: "Why this site", es: "Por qué este lugar" },
+      texto: {
+        en: "Malapert A was picked as a relatively flat, safe area in the heavily cratered southern highlands, and to learn how to send data to Earth from a place where Earth is low on the horizon.",
+        es: "Se eligió Malapert A por ser una zona relativamente plana y segura entre las tierras altas llenas de cráteres del sur, y para aprender a mandar datos a la Tierra desde un lugar donde la Tierra está baja en el horizonte.",
+      },
+      porQue: {
+        en: "Near the pole, Earth barely rises above the horizon: a hill or a crater rim can cut the link. That is why the Planner measures Earth visibility at the antenna height.",
+        es: "Cerca del polo la Tierra apenas sube sobre el horizonte: una loma o el borde de un cráter cortan el enlace. Por eso el Planificador mide la Tierra a la altura de la antena.",
+      },
+      fuentes: ["nasa-presskit"],
+    },
+    {
+      id: "laseres",
+      utc: "2024-02-22",
+      precision: "dia",
+      fase: "descenso",
+      temas: ["descenso"],
+      titulo: { en: "The lasers that were never switched on", es: "Los láseres que nunca se encendieron" },
+      texto: {
+        en: "In lunar orbit, hours before landing, the team found that the lander's laser rangefinders would not work: a physical safety switch had not been unlocked before launch. They rerouted the guidance to NASA's Navigation Doppler Lidar, a payload that measures altitude and speed with three laser beams.",
+        es: "En órbita lunar, horas antes del alunizaje, el equipo descubrió que los telémetros láser del módulo no funcionarían: un seguro físico no se había desbloqueado antes del lanzamiento. Desviaron el guiado al lidar Doppler de navegación de la NASA, una carga útil que mide la altura y la velocidad con tres haces láser.",
+      },
+      porQue: {
+        en: "Without a good altitude measurement the lander does not know when to slow down. Hakuto-R fell in 2023 for exactly that reason.",
+        es: "Sin una buena medida de altura la nave no sabe cuándo frenar. Hakuto-R cayó en 2023 justamente por eso.",
+      },
+      fuentes: ["techcrunch-0223"],
+    },
+    {
+      id: "contacto",
+      utc: "2024-02-22T23:23:00Z",
+      precision: "minuto",
+      fase: "descenso",
+      temas: ["descenso", "datos"],
+      titulo: { en: "Touchdown near Malapert A", es: "Contacto cerca de Malapert A" },
+      texto: {
+        en: "Odysseus touched down at 5:23 p.m. CST. During the descent, the Navigation Doppler Lidar and the Radio Frequency Mass Gauge (a fuel gauge) collected their data.",
+        es: "Odysseus tocó el suelo a las 17:23 (hora central de EE. UU.). Durante el descenso, el lidar Doppler de navegación y el medidor de combustible por radiofrecuencia tomaron sus datos.",
+      },
+      fuentes: ["nasa-blog-0222", "nasa-ciencia"],
+    },
+    {
+      id: "de-lado",
+      utc: "2024-02-22T23:23:00Z",
+      precision: "minuto",
+      fase: "descenso",
+      temas: ["terreno", "descenso"],
+      titulo: { en: "On its side", es: "De lado" },
+      texto: {
+        en: "It came down a bit faster than planned and moving sideways. A landing foot is believed to have caught on the uneven ground, and the lander tipped over, coming to rest on its side, propped on a rock.",
+        es: "Bajó un poco más rápido de lo previsto y moviéndose de lado. Se cree que una pata se trabó en el suelo irregular y la nave volcó: quedó de lado, apoyada en una roca.",
+      },
+      porQue: {
+        en: "A lander on a slope or moving sideways at touchdown can tip. In our simulator, the lander tolerates about 12° under its footpads.",
+        es: "Una nave en pendiente o que toca el suelo moviéndose de lado puede volcar. En nuestro simulador, la nave tolera unos 12° bajo las patas.",
+      },
+      fuentes: ["techcrunch-0227", "nasa-blog-0228"],
+    },
+    {
+      id: "instrumentos",
+      utc: "2024-02-23",
+      precision: "dia",
+      hastaUtc: "2024-02-29",
+      fase: "superficie",
+      temas: ["ciencia", "tierra", "datos"],
+      titulo: { en: "Instruments at work, lying down", es: "Instrumentos trabajando, tumbados" },
+      texto: {
+        en: "The three payloads designed for the surface received data: the ROLSES radio receiver recorded two days of data and picked up shortwave radio from Earth leaking through the ionosphere; Lunar Node 1 tested navigation signals; the SCALPSS cameras took images for several days after landing. Data came down as the lander's orientation allowed.",
+        es: "Las tres cargas pensadas para la superficie recibieron datos: el receptor de radio ROLSES grabó dos días de datos y captó la radio de onda corta de la Tierra que se escapa por la ionosfera; Lunar Node 1 probó señales de navegación; las cámaras SCALPSS tomaron imágenes durante varios días tras el alunizaje. Los datos bajaron según lo permitía la orientación del módulo.",
+      },
+      porQue: {
+        en: "Lying on its side, the antennas did not point well at Earth: less data could come down. A lander is only useful while it can talk to Earth.",
+        es: "De lado, las antenas no apuntaban bien a la Tierra: bajaban menos datos. Una nave solo sirve mientras puede hablar con la Tierra.",
+      },
+      fuentes: ["nasa-ciencia", "nasa-blog-0228", "rolses-arxiv"],
+    },
+    {
+      id: "lro",
+      utc: "2024-02-24T18:57:00Z",
+      precision: "minuto",
+      fase: "superficie",
+      temas: ["terreno", "sitio"],
+      titulo: { en: "Seen from orbit: a 12° slope", es: "Visto desde la órbita: pendiente de 12°" },
+      texto: {
+        en: "NASA's Lunar Reconnaissance Orbiter photographed the lander at 80.13° S, 1.44° E, 2,579 m elevation, inside a degraded crater about one kilometer across. The local terrain is sloped at 12 degrees.",
+        es: "El Lunar Reconnaissance Orbiter de la NASA fotografió el módulo en 80,13° S, 1,44° E, a 2579 m de altura, dentro de un cráter degradado de un kilómetro. El terreno ahí tiene 12 grados de pendiente.",
+      },
+      porQue: {
+        en: "12° is right at the limit our simulator uses for tipping over. It is the same check the simulator now does before the descent.",
+        es: "12° está justo en el límite que usa nuestro simulador para el vuelco. Es la misma comprobación que el simulador hace ahora antes del descenso.",
+      },
+      fuentes: ["nasa-lro"],
+    },
+    {
+      id: "foto-27",
+      utc: "2024-02-27",
+      precision: "dia",
+      fase: "superficie",
+      temas: ["terreno"],
+      titulo: { en: "A photo that explains the landing", es: "Una foto que explica el alunizaje" },
+      texto: {
+        en: "An image taken with the narrow-field-of-view camera shows a leg that absorbed the first contact, and how the lander gently leaned into the surface, which preserved its ability to send data.",
+        es: "Una imagen de la cámara de campo estrecho muestra una pata que absorbió el primer contacto y cómo la nave se recostó suavemente sobre el suelo, lo que le permitió seguir mandando datos.",
+      },
+      fuentes: ["nasa-blog-0228"],
+    },
+    {
+      id: "datos-28",
+      utc: "2024-02-28",
+      precision: "dia",
+      fase: "superficie",
+      temas: ["datos"],
+      titulo: { en: "350 megabits on the ground", es: "350 megabits en la Tierra" },
+      texto: {
+        en: "NASA and Intuitive Machines report more than 350 megabits of science data downloaded, ready for analysis.",
+        es: "La NASA e Intuitive Machines informan que se bajaron más de 350 megabits de datos científicos, listos para analizar.",
+      },
+      fuentes: ["nasa-blog-0228"],
+    },
+    {
+      id: "noche",
+      utc: "2024-02-29",
+      precision: "dia",
+      fase: "noche",
+      temas: ["sol", "energia", "datos"],
+      titulo: { en: "Goodnight, Odie", es: "Buenas noches, Odie" },
+      texto: {
+        en: "Seven days after landing, with the onset of lunar night, the mission ends: the lander was not designed to survive the night. In total, more than 500 megabytes of science, technology and spacecraft data. Its last transmission is an image taken at landing, with the crescent Earth. Before going dark, it is set to call home if it survives the two-week night.",
+        es: "Siete días después del alunizaje, al llegar la noche lunar, la misión termina: el módulo no estaba hecho para sobrevivir a la noche. En total, más de 500 megabytes de datos de ciencia, tecnología y de la nave. Su última transmisión es una imagen tomada al alunizar, con la Tierra en cuarto creciente. Antes de apagarse lo dejan listo para llamar a casa si sobrevive a la noche de dos semanas.",
+      },
+      porQue: {
+        en: "Without sunlight the solar panels give nothing and the battery runs out. That is the 'longest night against the battery' check of the Planner.",
+        es: "Sin Sol los paneles no dan nada y la batería se agota. Es la comprobación «noche más larga contra la batería» del Planificador.",
+      },
+      fuentes: ["nasa-ciencia", "universetoday-fin", "livescience-odie"],
+    },
+    {
+      id: "escucha",
+      utc: "2024-03-20",
+      precision: "dia",
+      hastaUtc: "2024-03-23",
+      fase: "noche",
+      temas: ["sol", "energia"],
+      titulo: { en: "Listening for a wake-up call", es: "Esperando que despierte" },
+      texto: {
+        en: "When enough sunlight was expected to reach the site again, the team listened for a signal. Three days later they concluded the lander was not charging: Odie would not call home again.",
+        es: "Cuando se esperaba que volviera a llegar bastante Sol al sitio, el equipo escuchó por si llegaba una señal. Tres días después concluyeron que el módulo no se cargaba: Odie no volvería a llamar a casa.",
+      },
+      fuentes: ["universetoday-fin"],
+    },
+  ],
+  fuentes: [
+    { id: "nasa-presskit", titulo: "NASA · CLPS: Intuitive Machines IM-1 Mission (press kit)", url: "https://www.nasa.gov/wp-content/uploads/2024/01/np-2023-12-016-jsc-clps-im-press-kit-web-508.pdf" },
+    { id: "nasa-blog-0222", titulo: "NASA Artemis blog · February 2024", url: "https://www.nasa.gov/blogs/artemis/2024/02/" },
+    { id: "nasa-blog-0228", titulo: "NASA · NASA, Intuitive Machines Share Images from the Moon, Provide Science Updates (2024-02-28)", url: "https://www.nasa.gov/blogs/artemis/2024/02/28/nasa-intuitive-machines-share-images-from-the-moon-provide-science-updates/" },
+    { id: "nasa-ciencia", titulo: "NASA · NASA Collects First Surface Science in Decades via Commercial Moon Mission", url: "https://www.nasa.gov/missions/artemis/clps/nasa-collects-first-surface-science-in-decades-via-commercial-moon-mission/" },
+    { id: "nasa-lro", titulo: "NASA · NASA's LRO Images Intuitive Machines' Odysseus Lander", url: "https://www.nasa.gov/missions/lro/nasas-lro-images-intuitive-machines-odysseus-lander/" },
+    { id: "rolses-arxiv", titulo: "Results from NASA's First Radio Telescope on the Moon (ROLSES-1), arXiv:2503.09842", url: "https://arxiv.org/abs/2503.09842" },
+    { id: "techcrunch-0223", titulo: "TechCrunch · Quick thinking and a stroke of luck averted a moon lander disaster for Intuitive Machines (2024-02-23)", url: "https://techcrunch.com/2024/02/23/quick-thinking-and-a-stroke-of-luck-averted-a-moon-lander-disaster-for-intuitive-machines" },
+    { id: "techcrunch-0227", titulo: "TechCrunch · Intuitive Machines faces early end to moon mission after lander tips over (2024-02-27)", url: "https://techcrunch.com/2024/02/27/intuitive-machines-faces-early-end-to-moon-mission-after-lander-tips-over" },
+    { id: "universetoday-fin", titulo: "Universe Today · Lunar Night Permanently Ends the Odysseus Mission", url: "https://www.universetoday.com/articles/lunar-night-permanently-ends-the-odysseus-mission" },
+    { id: "livescience-odie", titulo: "Live Science · 'Goodnight, Odie': Odysseus shares farewell image", url: "https://www.livescience.com/space/space-exploration/goodnight-odie-odysseus-the-1st-us-moon-lander-since-apollo-shares-farewell-image-after-lunar-face-plant" },
+  ],
+}

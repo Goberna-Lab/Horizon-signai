@@ -39,6 +39,7 @@ body { background: #141418; }
 .btn.tall { height: 52px; }
 /* botón al simulador, bajo el plan de caminata */
 .aside .sim { width: 100%; }
+.aside .sim-dest { margin: -4px 0 0; font-size: 11.5px; opacity: .75; }
 
 .layers { left: max(24px, env(safe-area-inset-left, 0px)); top: 96px; width: 296px; padding: 18px; border-radius: 22px; }
 .layers h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
@@ -174,7 +175,8 @@ body { background: #141418; }
         <div><p>Max slope</p><b class="disp" id="sPmax">—</b></div>
       </div>
     </section>
-    <a class="btn red tall sim" href="/simulador" target="_top"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>Start simulator</a>
+    <a class="btn red tall sim" href="/simulador" target="_top" id="simLink"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>Start simulator</a>
+    <p class="mono sim-dest" id="simDest"></p>
     <section class="paper glass" aria-labelledby="v2-sup">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px"><h2 id="v2-sup" class="disp">Survival</h2><span class="status" id="status"></span></div>
       <div class="rings" id="rings"></div>
@@ -222,6 +224,27 @@ body { background: #141418; }
 (function () {
   'use strict';
   var L = window.Lunar, M = L.Mission, $ = function (id) { return document.getElementById(id); };
+  /* La zona y el escenario confirmados en el paso 1 (index.html, #site=…&zone=…&name=…&t=…&stay=…&panel=…&antenna=…) y la
+   * ruta elegida aquí van al simulador. Sin ellos, el plan CR-01 (zona A, 18 dic 2026). */
+  var plan = (function () {
+    var q; try { q = new URLSearchParams(location.hash.replace(/^#/, '')); } catch (e) { return null; }
+    return q.get('site') ? q : null;
+  })();
+  var RUTA_SIM = { safe: 'segura', short: 'corta', science: 'cientifica' };
+  function simLink() {
+    var q = new URLSearchParams(), t = plan && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(plan.get('t') || '') ? plan.get('t') : null;
+    if (plan) {
+      q.set('sitio', plan.get('site'));
+      if (t) q.set('fecha', t + ':00Z');
+      if (plan.get('panel')) q.set('panel', plan.get('panel'));
+      if (plan.get('antenna')) q.set('antena', plan.get('antenna'));
+      if (+plan.get('stay') > 0) q.set('estadia', Math.round(+plan.get('stay') * 24));
+    }
+    q.set('ruta', RUTA_SIM[state.objective]);
+    $('simLink').href = '/simulador?' + q.toString();
+    $('simDest').textContent = plan ? 'Lands at zone ' + (plan.get('zone') || '?') + ' · ' + (plan.get('name') || plan.get('site')) + (t ? ' · ' + t.replace('T', ' ') + ' UTC' : '')
+      : 'Lands at zone A · Connecting Ridge · RoI 6 · CR-01 plan';
+  }
   var state = { objective: 'science', on: { ctx: true, mola: false, slope: true, minerals: true, thermal: false, rad: false }, zoom: 1 };
 
   /* ---------- terreno y capas ---------- */
@@ -306,6 +329,7 @@ body { background: #141418; }
     $('ovThermal').style.opacity = state.on.thermal ? 1 : 0;
     $('ovRad').style.opacity = state.on.rad ? 1 : 0;
 
+    simLink();
     var st = M.routeStats(t, state.objective), meta = st.meta;
     objWrap.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.key === state.objective); });
     $('hint').textContent = meta.hint;

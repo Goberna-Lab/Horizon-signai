@@ -839,8 +839,8 @@ export default function EvaCompanera() {
       if (!frase) return
       if (narrarRef.current(tipo, frase)) return // el recorrido en curso lo narra (ver `narra` en ./recorridos.ts)
       if (!e.repetible && dichas().has(tipo)) return
-      if (!e.critico && (ocupada.current || (!e.guia && Date.now() - ultimo.current < COMENTARIO_MS))) return
-      if (e.critico && ocupada.current) habla.current?.abort() // lo crítico pasa adelante
+      if (!e.critico && !e.interrumpe && (ocupada.current || (!e.guia && Date.now() - ultimo.current < COMENTARIO_MS))) return
+      if ((e.critico || e.interrumpe) && ocupada.current) habla.current?.abort() // lo crítico (o una narración guiada) pasa adelante
       ultimo.current = Date.now()
       if (!e.repetible) anotarDicha(tipo)
       const cara = peligro ? null : e.festejo ? "alegre" : e.guia ? null : "bromeando"

@@ -25,6 +25,7 @@ import { descensoNominal } from './engine/plan';
 import { avisarEva } from '@/shared/eva';
 import { tr } from '@/shared/i18n';
 import { planTouchdown, outcome, hazardAt, gravedad, ROCK_SMALL, ROCK_BIG } from './aterrizaje';
+import { datosFija, mostrarInforme } from './informe';
 
 const G = 1.62;
 const LM_SCALE = 1.4;          // el modelo NASA está a ~70 % del tamaño real (9.4 m entre patas)
@@ -226,6 +227,11 @@ export class LandingSim {
   }
 
   say(who, text, houston = false) {
+    // Misión robótica (rover o módulo fijo): no hay tripulación a bordo. Callan Armstrong y Aldrin y la nave es «el módulo».
+    if ((this.view.plan?.tipo ?? 'tripulada') !== 'tripulada') {
+      if (who === 'Armstrong' || who === 'Aldrin') return;
+      text = text.replace(/\bEagle\b/g, 'Lander').replace(/\bÁguila\b/g, 'Módulo');
+    }
     const linked = this.view.now?.earth.visible;
     const li = document.createElement('div');
     if (houston && !linked) {
@@ -270,7 +276,9 @@ export class LandingSim {
     const v = this.view;
     if (!v.now) return;
     // Si la caminata anterior iluminó la escena con la hora de la EVA, el descenso vuelve a la del alunizaje
-    if (this._luzEva) { this._luzEva = false; await v.iluminarEn?.(v.tAlunizaje); }
+    v.rover?.stop(); v.estacion?.quitar(); document.querySelector('.sim-informe')?.remove();
+    v.tSalida = null;
+    if (this._luzEva || v.cieloMovido) { this._luzEva = false; v.cieloMovido = false; await v.iluminarEn?.(v.tAlunizaje); }
     this.stop(true);
     this.active = true; this.locks = true;
     this.cineOutro = 0; this.tipped = false; this.q0 = null;
@@ -300,7 +308,7 @@ export class LandingSim {
     // nave donde la lleva su error de navegación; el resultado depende del terreno ahí (aterrizaje.ts)
     this.rocks = v.detail?.rocks ?? []; // esta escena no tiene rocas sueltas: solo cuenta el relieve LOLA
     // `/simulador?nominal`: el flujo guiado de EVA pide el descenso sin error de navegación ni fallos (aterrizaje.ts)
-    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5, nominal: new URLSearchParams(location.search).has('nominal') });
+    this.plan = planTouchdown(v, this.rocks, { lit: (v.now?.sun.frac ?? 0) >= 0.5, fallos: !!v.plan?.fallos, nominal: new URLSearchParams(location.search).has('nominal') });
     const A = this.plan.final;
     this.target = new THREE.Vector3(A.x, A.hz.y - 0.103 * S - 0.02, A.z);
     this.result = null; this.tiltDeg = 0; this.touchH = 0; this.hzNow = null; this._zc = null;
@@ -381,7 +389,8 @@ export class LandingSim {
   update(dtReal) {
     if (!this.active) return;
     if (this.fp && this.view.eva?.briefing?.open) return; // la ficha del sitio va antes del descenso
-    const dt = dtReal * (this.state === 'eva' ? 1 : this.speed);
+    const fuera = this.state === 'eva' || this.state === 'rover'; // en la superficie: la cámara es de la caminata o del rover
+    const dt = dtReal * (fuera ? 1 : this.speed);
     this.t += dt;
     const v = this.view;
 
@@ -405,15 +414,15 @@ export class LandingSim {
         v.astro.update(dtReal, 0);
         this._cineCam(dtReal);
         if (this.cineOutro <= 0) { this.setCine(false); this._releaseEva(); }
-      } else if (this.state !== 'eva') {
+      } else if (!fuera) {
         const own = this._cineCam(dtReal);
         if (!own && Math.abs(v.camera.fov - 38) > 0.01) { v.camera.fov = 38; v.camera.updateProjectionMatrix(); }
         const tele = this.cineEl.querySelector('[data-c=tele]');
         tele.textContent = this.state === 'descent' || this.state === 'fall' ? `ALT ${fmt(Math.max(0, this.altitude()), this.altitude() < 20 ? 1 : 0)} m · V ${fmt(this.vel.y, 1)} m/s · ${tr('FUEL', 'COMB')} ${fmt(this.fuel)} s` : tr('ON THE SURFACE', 'EN LA SUPERFICIE');
       }
-    } else if (this.fp && this.state !== 'eva') {
+    } else if (this.fp && !fuera) {
       this._fpCam(dtReal);
-    } else if (this.state !== 'eva' && this.state !== 'egress') {
+    } else if (!fuera && this.state !== 'egress') {
       // Cámara: sigue al LM (el usuario puede girarla con el ratón)
       const delta = this.lm.position.clone().sub(v.controls.target);
       v.controls.target.add(delta);
@@ -631,26 +640,44 @@ export class LandingSim {
   /** Tarjeta final: contacto, combustible y tiempo; se puede volver a volar. */
   _end() {
     const v = this.view, card = document.createElement('div'), R = this.result, P = this.plan;
+    v.guiada?.dispose(); // la nave se perdió en una misión guiada: queda esta tarjeta, que lo explica
     const miss = Math.hypot(P.final.x - P.planned.x, P.final.z - P.planned.z);
+    v.alunizaje = { kind: R.kind, touchV: this.touchV ?? 0, tilt: this.tiltDeg ?? 0, miss, fuelS: this.fuel ?? 0, fuelKg: this.fuelKg ?? 0, t: this.t }; // para el informe final
     card.className = 'sim-lfp-end ' + R.kind;
-    card.innerHTML = `<small>${R.kind === 'tip' || R.kind === 'crash' ? tr('MISSION LOST', 'MISIÓN PERDIDA') : tr('TOUCHDOWN', 'CONTACTO')} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? tr('The Eagle has landed', 'El Águila ha alunizado') : R.title}</b>
+    card.innerHTML = `<small>${R.kind === 'tip' || R.kind === 'crash' ? tr('MISSION LOST', 'MISIÓN PERDIDA') : tr('TOUCHDOWN', 'CONTACTO')} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? ((v.plan?.tipo ?? 'tripulada') === 'tripulada' ? tr('The Eagle has landed', 'El Águila ha alunizado') : tr('The lander has landed', 'El módulo ha alunizado')) : R.title}</b>
       ${R.kind === 'ok' ? '' : `<p>${R.why}</p>`}${R.real ? `<p class="real">${R.real}</p>` : ''}
       ${R.kind === 'crash' ? `<p class="why2">${tr('The site was not to blame: the altitude calculation failed, and no landing gear survives that speed.', 'El sitio no tuvo la culpa: falló el cálculo de la altura, y a esa velocidad ningún tren de aterrizaje aguanta.')}</p>` : ''}
       ${R.kind === 'tip' ? `<p class="why2">${P.lit ? tr('The lander followed the trajectory down to where the guidance took it, and the ground there would not hold it.', 'La nave siguió la trayectoria hasta donde la llevó el guiado, y el terreno ahí no la sostuvo.') : tr('The site was in shadow: without light there was no way to see the ground below.', 'El sitio estaba en sombra: sin luz no había forma de ver el suelo.')}</p>` : ''}
       <dl><div><dt>${tr('Contact speed', 'Velocidad de contacto')}</dt><dd>${fmt(this.touchV ?? 0, 1)} m/s</dd></div><div><dt>${tr('Footpad tilt', 'Inclinación de las patas')}</dt><dd>${fmt(this.tiltDeg ?? 0, 1)}°</dd></div>
       <div><dt>${tr('Off target', 'Desvío del objetivo')}</dt><dd>${fmt(miss)} m</dd></div><div><dt>${tr('Fuel left', 'Combustible restante')}</dt><dd>${fmt(Math.max(0, this.fuelKg ?? 0))} kg · ${fmt(Math.max(0, this.fuel ?? 0))} s</dd></div>
       <div><dt>${tr('Powered descent', 'Descenso propulsado')}</dt><dd>${clock(this.t)}</dd></div><div><dt>${tr('Earth link', 'Enlace con la Tierra')}</dt><dd>${v.now?.earth.visible ? tr('direct', 'directo') : tr('below the horizon', 'bajo el horizonte')}</dd></div></dl>
-      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
+      <div class="sim-lfp-end-acts">${R.kind === 'tip' || R.kind === 'crash' ? '' : v.plan?.tipo === 'rover' ? `<button type="button" data-act="rover">${tr('Deploy the rover', 'Desplegar el rover')}</button>` : v.plan?.tipo === 'fija' ? `<button type="button" data-act="equipo">${tr('Deploy panel and antenna', 'Desplegar panel y antena')}</button><button type="button" data-act="informe" class="sec">${tr('Mission report', 'Informe de la misión')}</button>` : `<button type="button" data-act="out">${tr('Step outside', 'Salir a caminar')}</button>`}
         <button type="button" data-act="again" class="${R.kind === 'tip' || R.kind === 'crash' ? '' : 'sec'}">${tr('Fly the descent again', 'Volar el descenso otra vez')}</button></div>`;
     card.addEventListener('click', (e) => {
       const act = e.target.closest?.('button')?.dataset.act;
       if (act === 'again') this.start();
       if (act === 'out') { card.remove(); this.endEl = null; this._startEgress(); }
+      if (act === 'equipo') void v.estacion?.desplegar(this.lmPos.x + 8, this.lmPos.z + 8, v.tAlunizaje);
+      if (act === 'rover') { card.remove(); this.endEl = null; this._startRover(); }
+      if (act === 'informe') mostrarInforme(v, datosFija(v), { volar: () => this.start(), planificador: () => { location.href = /planificar-mision/.test(document.referrer) ? document.referrer : '/planificar-mision.html'; } });
     });
     v.host.append(card); this.endEl = card;
   }
 
   /* ---------------- Salida y primer paso ---------------- */
+
+  /** Misión con rover: baja por la rampa y se conduce por la ruta del plan (rover.ts), a la luz de la hora planificada. */
+  _startRover() {
+    const v = this.view;
+    this.state = 'rover'; this.locks = false; this.lfp.hidden = true;
+    if (this.pathG) this.pathG.visible = false;
+    if (this.fp && v.eva) v.eva.root.style.visibility = '';
+    this.fp = false; this.distant = false;
+    const h = v.plan?.evaH ?? 0;
+    v.tSalida = v.tAlunizaje + h * 3600e3; // desde aquí corre el reloj de la EVA o del recorrido
+    if (h > 0 && !this._luzEva && v.iluminarEn) { this._luzEva = true; void v.iluminarEn(v.tAlunizaje + h * 3600e3); }
+    v.rover?.start(this.lmPos, Math.atan2(this.u.x, this.u.z), { lm: this.lm });
+  }
 
   /** Abre la escotilla: el astronauta sale de espaldas al porche y baja la escalera (en primera persona). */
   _startEgress() {
@@ -658,6 +685,7 @@ export class LandingSim {
     this.state = 'egress'; this.eT = 0;
     // La EVA sale a la hora del plan: la escena pasa al Sol y la Tierra de ese momento (motor del Planificador)
     const h = v.plan?.evaH ?? 0;
+    v.tSalida = v.tAlunizaje + h * 3600e3; // desde aquí corre el reloj de la EVA o del recorrido
     if (h > 0 && !this._luzEva && v.iluminarEn) {
       this._luzEva = true;
       this.flash(tr(`EVA as planned: ${h} h after landing. Light, Sun and Earth of that moment.`, `EVA según el plan: ${h} h después del alunizaje. Luz, Sol y Tierra de ese momento.`), 6000);
@@ -831,7 +859,9 @@ export class LandingSim {
     this.settleT += dt;
     const v = this.view, hz = this.plan.final.hz;
     if (!this.result) { // el resultado lo deciden el terreno bajo las patas y la velocidad de contacto
-      const R = (this.result = outcome(hz, this.touchV, this.touchH, this.plan.fault));
+      // Misión real guiada: si en la bitácora volcó, aquí también (el relieve de referencia puede ser plano)
+      const R0 = outcome(hz, this.touchV, this.touchH, this.plan.fault), guiada = v.guiada;
+      const R = (this.result = guiada?.vuelca && R0.kind !== 'tip' ? { ...R0, kind: 'tip' } : R0);
       if (R.kind === 'crash') { this._explode(); this.flash(tr('IMPACT · SIGNAL LOST', 'IMPACTO · SEÑAL PERDIDA'), 5000); }
       this.q0 = this.lm.quaternion.clone();
       const down = new THREE.Vector3(-hz.gx, 0, -hz.gz); if (down.lengthSq() < 1e-6) down.set(Math.random() - 0.5, 0, Math.random() - 0.5);
@@ -839,7 +869,8 @@ export class LandingSim {
       this.tiltDeg = Math.min(hz.tilt, 25);
       if (R.kind === 'tip') { this.say('Aldrin', tr('We\'re going over!', '¡Nos vamos de lado!')); this.flash(tr('THE LANDER IS TIPPING OVER', 'LA NAVE ESTÁ VOLCANDO'), 4000); }
       // EVA: el nominal con su festejo; lo demás, como aviso crítico (corta lo que esté diciendo)
-      if (R.kind === 'ok') avisarEva('aterrizaje-nominal');
+      if (guiada && (guiada.vuelca || R.kind === 'ok')) { /* la cuenta EVA con la bitácora (guiada.ts) */ }
+      else if (R.kind === 'ok') avisarEva('aterrizaje-nominal');
       else avisarEva('aviso-critico', {
         tilt: tr(`We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, `Estamos abajo, pero inclinados ${Math.round(this.tiltDeg)} grados. Paneles y antena desalineados.`),
         hard: tr(`Hard landing, at ${this.touchV.toFixed(1)} meters per second. The landing gear may be damaged.`, `Aterrizaje duro, a ${this.touchV.toFixed(1).replace('.', ',')} metros por segundo. El tren de aterrizaje puede estar dañado.`),
@@ -862,6 +893,10 @@ export class LandingSim {
       this.lm.position.y = this.target.y + Math.sin(k * 1.3) * 1.6;
       if (this.settleT > 6 && !this.tipped) {
         this.tipped = true; this.state = 'lost';
+        if (v.guiada?.vuelca) { // volcó pero siguió operando: sigue la bitácora, sin «misión perdida»
+          this.say(tr('Telemetry', 'Telemetría'), tr('Lander on its side. Still sending data.', 'Módulo de lado. Sigue mandando datos.'));
+          this.ended = true; this.lmPos = this.lm.position.clone(); v.guiada.superficie(); return;
+        }
         this.say(tr('Telemetry', 'Telemetría'), tr('Lander tipped over. Panels and antenna off-pointed. Mission lost.', 'Nave volcada. Paneles y antena sin orientación. Misión perdida.'));
         this.ended = true; this.lmPos = this.lm.position.clone(); this._end();
       }
@@ -880,7 +915,17 @@ export class LandingSim {
     });
     ev('reply', 4, () => this.say('Houston', R.kind === 'ok' ? tr('Roger. You got a bunch of guys about to turn blue. We\'re breathing again.', 'Entendido. Nos tenían a punto de ponernos azules. Respiramos de nuevo.') : `${tr('Roger.', 'Entendido.')} ${R.why}`, true));
     ev('summary', 5.5, () => this.say(tr('Telemetry', 'Telemetría'), tr(`Contact at ${fmt(this.touchV, 1)} m/s, footpads at ${fmt(this.tiltDeg, 1)}°, with ${fmt(Math.max(0, this.fuelKg), 0)} kg of fuel (${fmt(Math.max(0, this.fuel), 0)} s of hover).`, `Contacto a ${fmt(this.touchV, 1)} m/s, patas a ${fmt(this.tiltDeg, 1)}°, con ${fmt(Math.max(0, this.fuelKg), 0)} kg de combustible (${fmt(Math.max(0, this.fuel), 0)} s de vuelo estacionario).`)));
-    if (this.settleT > 7 && !this.ended) { this.ended = true; this.lmPos = this.lm.position.clone(); this._end(); }
+    if (this.settleT > 7 && !this.ended) {
+      this.ended = true; this.lmPos = this.lm.position.clone();
+      // Misión guiada: en vez de la tarjeta de contacto, sigue la estadía paso a paso; si el plan tiene caminata, al final se puede salir
+      if (v.guiada) {
+        const tipo = v.plan?.tipo ?? 'tripulada', hay = v.plan?.evaH > 0 || !v.guiada.b.plan;
+        if (tipo === 'tripulada' && hay) v.guiada.salir = () => this._startEgress();
+        if (tipo === 'rover' && hay) v.guiada.salir = () => this._startRover();
+        v.guiada.superficie();
+      }
+      else this._end();
+    }
   }
 
   /**

@@ -321,6 +321,9 @@ Las secciones anteriores describen el prototipo de referencia (`luna-recursos/`)
 - **Fallo del cálculo de altura:** con probabilidad 4 % con luz y 12 % a oscuras, el guiado apaga el motor entre 8 y 30 m sobre el suelo y la nave cae (caso real parecido: Hakuto-R M1, 2023).
 - En P66 un recuadro muestra el riesgo del terreno justo bajo la nave.
 
+- **Misión planificada (por defecto):** el sitio ya cumple con el relieve real, así que el resultado lo decide LOLA. El suelo de detalle (cráteres pequeños y rocas) es generado: el guiado lo esquiva buscando un punto limpio a menos de 30 m, como un sistema de evasión de peligros, y no hay fallo aleatorio de altura. Comprobado con 500 contactos en Connecting Ridge RoI 6: 500 en sitio seguro.
+- **Modo entrenamiento (`&fallos=1`):** vuelven el fallo de altura al azar y las rocas y cráteres generados bajo la nave (500 contactos: 167 seguros, 167 inclinados, 166 vuelcos, 14 fallos de altura). Sirve para practicar emergencias; las cifras de la tabla siguiente son de este modo.
+
 ### 9.3 Contacto: resultados
 El resultado lo deciden la inclinación del plano de las cuatro patas (a 4,6 m del centro), las rocas bajo la nave y la velocidad de contacto (`aterrizaje.ts`):
 
@@ -332,14 +335,14 @@ El resultado lo deciden la inclinación del plano de las cuatro patas (a 4,6 m d
 | Vuelco | 12° o más (o 6° con un golpe duro), o más de 2 m/s de velocidad lateral | IM-1 Odysseus (2024), IM-2 Athena (2025) |
 | Se estrella | 5 m/s o más: los tanques se rompen y los propelentes se encienden | Hakuto-R M1 (2023), Beresheet (2019) |
 
-Con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz, una simulación de 20 000 contactos dio 31 % nominal, 32 % inclinada, 33 % vuelco y 4 % estrellada.
+En modo entrenamiento, con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz, una simulación de 20 000 contactos dio 31 % nominal, 32 % inclinada, 33 % vuelco y 4 % estrellada.
 
 ### 9.4 Caminata planificada (misión CR-02)
 - Tras un aterrizaje nominal, inclinado o duro se puede salir: escotilla, porche, escalera peldaño a peldaño y primer paso, en primera persona.
 - La caminata sigue la **ruta científica** del Planificador (paso «Walk», `prototipos/lunar-map/terrain.js`), dibujada en el suelo: **parada 1 · Borde iluminado** (muestra de regolito al Sol) y **parada 2 · Sombra permanente** (muestra con lámparas, posible hielo), con **regreso obligatorio en la parada 2** (`tareas.ts`). El relieve del Planificador es conceptual; aquí cada muestra se pone en el punto con Sol, o en sombra, real más cercano a su parada.
 - Se camina a 1/6 de gravedad: cuesta arrancar y frenar, los saltos llegan a ~1,2 m y no se atraviesa el módulo.
 - **Avisos del plan:** pendiente por delante de más de 15° (el límite de la ruta en el Planificador), salir a más de 40 m de la ruta, y cráteres de 2,5 m de radio o más: si se intenta cruzar uno, alarma y el lado por el que rodearlo (`caminata.ts`).
-- **Traje** (cifras de referencia de la PLSS del Apollo / xEMU): O₂ 0,82 kg, agua de refrigeración 3,86 kg, cartucho de LiOH de 8870 kJ y batería de 279 Wh. Se gastan según el esfuerzo (120 W en reposo, 300 W caminando, 470 W al galope), el Sol o la sombra y las lámparas. El límite de regreso es la mitad de lo que dura el consumible más escaso. Sin O₂ o con el cartucho saturado se pierde la misión. El módulo guarda reservas para recargar (21,8 kg de O₂ y 151 kg de agua); un aterrizaje duro rompe un tanque y deja la mitad.
+- **Traje** (cifras de referencia de la PLSS del Apollo / xEMU): O₂ 0,82 kg, agua de refrigeración 3,86 kg, cartucho de LiOH de 8870 kJ y batería de 279 Wh. Se gastan según el esfuerzo (120 W en reposo, 300 W caminando, 470 W al galope), el Sol o la sombra y las lámparas. El límite de regreso es la mitad de lo que dura el consumible más escaso, andando a 1,3 m/s (con el traje lleno, unos 17,5 km). El Sol y la Tierra avanzan con el reloj de la caminata (y del rover): cada 10 min de misión se recalculan con el motor del Planificador, y las sombras del relieve cada 2 h. Sin O₂ o con el cartucho saturado se pierde la misión. El módulo guarda reservas para recargar (21,8 kg de O₂ y 151 kg de agua); un aterrizaje duro rompe un tanque y deja la mitad.
 - Teclas: WASD caminar, Shift galope, Espacio saltar, E recoger, G visor solar, L lámparas, R recargar junto al módulo (o reintentar), T tiempo ×10/×60, Q volver a volar el descenso.
 
 ### 9.5 EVA en el simulador
@@ -359,3 +362,41 @@ Con el suelo de detalle (cráteres y rocas), en Connecting Ridge RoI 6 y con luz
 | HZN | NASA/JPL Horizons On-Line Ephemeris System, efemérides DE441 |
 
 El modelo 3D del LM viene de NASA 3D Resources (clave NASA3D-LM). El registro completo, con enlaces y archivos, está en `investigacion/fuentes.md`.
+
+- **Hablarle:** la tecla **H** (o el botón «EVA» en el celular) suelta el ratón y abre su panel para escribirle o hablarle. Con cada pregunta, EVA recibe lo que muestra el simulador (`window.HorizonSimulador.text()`, `paraEva.ts`): fase y altura del descenso, resultado del alunizaje, consumibles del traje y lo que dura cada uno, límite de regreso, distancia al módulo, Sol y Tierra del momento, pulso, tarea, muestras, rover y el informe final. Responde con esas cifras; no las calcula.
+
+### 9.6 El plan completo por la URL
+- `&ruta=segura|corta|cientifica`: la caminata sigue esa ruta del Planificador (sin ruta, la científica de CR-02). La segura tiene una parada, la corta ninguna; las dos terminan al final de la ruta y vuelven al módulo.
+- `&eva=<h>`: la EVA sale esas horas después del alunizaje; al abrir la escotilla la escena pasa al Sol y la Tierra de ese momento (motor del Planificador). Un descenso nuevo vuelve a la luz del alunizaje.
+- `&tipo=rover&vel=<km/h>&parada=<h>`: en vez de caminar se despliega un rover genérico que recorre la ruta de ida, a la velocidad máxima y con las horas por parada del plan (referencia: VIPER de NASA, hasta 0,8 km/h). Se conduce desde la Tierra: sin enlace directo, se detiene. En más de 25° las ruedas patinan; avisa por encima de 15°. El tiempo se acelera con T (×1, ×10, ×60, ×240); E mide en cada parada.
+- `&tipo=fija`: módulo fijo; la misión es el alunizaje y termina en su informe.
+- El planificador de misiones (`/planificar-mision.html`) arma este enlace con el botón «Simular esta misión».
+
+### 9.7 Informe final y mini misiones
+- Al terminar (de vuelta en el módulo con todas las muestras, o en la última parada del rover), un **informe** compara lo planificado con lo que pasó: alunizaje (resultado, desvío, velocidad de contacto, combustible), ruta, distancia, tiempo, muestras, salidas de ruta, pulso máximo, recargas y consumibles del traje (con rover: tiempo parado sin enlace y pendiente máxima). Veredicto: **cumplida**, **cumplida con incidentes** (alunizaje duro o inclinado, salidas de ruta, pulso de más de 150 lpm, alertas de cráter), **incompleta** o **perdida** (`informe.ts`). Lo planificado sale de los tiempos del Planificador: 2,2 km/h y 20 min por parada, ida y vuelta.
+- **Mini misiones** (modo educativo, `retos.ts`): cinco retos de la caminata con su porqué: fiel a la ruta, corazón tranquilo (≤ 150 lpm), ahorro de oxígeno (volver con ≥ 70 % de O₂), a la oscuridad (muestra de sombra con lámparas) y ojo con los cráteres. Se puntúan en el informe y los logrados se guardan en el navegador.
+
+### 9.8 En el celular
+- En pantallas táctiles aparece una palanca (caminar o conducir), se mira arrastrando y hay botones con las teclas de cada momento; en el descenso, «Saltar» (`tactil.ts`). Con menos resolución y sombras más baratas para que vaya fluido.
+
+### 9.9 Panel solar y antena
+- `&panel=<m>&antena=<m>&estadia=<h>`: alturas del plan (las del Planificador: 2, 5, 10, 15, 20 o 30 m) y la estadía. En la caminata, la tecla **P** (botón «Panel» en el celular) despliega el panel y la antena 5 m por delante; con módulo fijo, el botón «Desplegar panel y antena» de la tarjeta del alunizaje (`estacion.ts`).
+- Al desplegarlos aparece su informe, con el motor del Planificador (`equipoEn` en `sitio.ts`: `station` + `sweep` + `figures`, cada 10 min) desde ese momento hasta el fin de la estadía: % de tiempo con Sol en el panel y horas, energía que le llega por m² (kWh/m²) e irradiancia media, noche más larga, % con Tierra en la antena, corte de enlace más largo y % con los dos. El Sol se ve desde la altura del panel y la Tierra desde la de la antena, en el mismo punto del terreno; el panel es vertical y gira hacia el Sol (supuestos del Planificador); la energía es la que llega, no la eléctrica. Comprobado contra `figures()`: Shackleton rim RoI 4, 5–12 may 2027, panel 10 m y antena 2 m: 73,94 % de Sol, 100 % de Tierra, 26,33 h de noche, 152,94 kWh/m².
+- Sus cifras pasan al informe final y a EVA. Un sitio sin paquete del simulador (K–M de las 13 zonas) muestra un aviso en vez de cargar otro.
+
+### 9.10 El rover
+- Modelo: el **Perseverance** de NASA/JPL (Mars 2020), de NASA 3D Resources (`github.com/nasa/NASA-3D-Resources`, libre según las normas de uso de imágenes y medios de NASA), elegido por el equipo como rover de ejemplo. Es un rover de Marte; se muestra a su tamaño real (3 m de largo). En el modelo el mástil viene plegado; la cámara de navegación va a 2 m, la altura de sus NavCams con el mástil desplegado. Se descarga solo en misiones con rover (5 MB). Si no carga, queda un rover de respaldo inspirado en VIPER (1,5 × 1,5 × 2,5 m, paneles verticales en tres lados). **Sin logos:** las normas de NASA dejan usar el modelo, pero no sus insignias; del modelo original se quitaron el emblema de la NASA, el logo del JPL, el logotipo «Mars 2020» y las dos placas «NASA» y «JPL» del chasis y las placas del JPL y de la NASA del helicóptero Ingenuity, que va debajo del rover (tapados en las texturas `arm_graphics`, `mars_2020_03` y `blade` con `apps/web/scripts/quitar-logos-perseverance.py`; geometría y animaciones, sin cambios). El nombre «Perseverance» y la bandera de Estados Unidos del Ingenuity se conservan.
+- Se maneja desde la NAVCAM (arrastrar para mirar, R centra, C cambia a la cámara de seguimiento), se apoya en sus ruedas sobre el terreno, se despliega en el punto más llano a 10–20 m del módulo y con E perfora 1 m para recoger la muestra de cada parada (suma al reloj las horas por parada del plan).
+
+### 9.11 Aviso de sitio empinado
+
+Antes del descenso el simulador mide la pendiente real bajo las patas (relieve LOLA, sin el suelo de detalle, que es generado; `alunizaje/avisoSitio.ts`). Si pasa de 6° avisa que la nave quedará inclinada, y si pasa de 12°, que volcará; ofrece una RoI del mismo sitio cuando existe, descender de todos modos o volver al Planificador. Medido el 2026-11-15 sobre los paquetes de `public/simulador/sitios/`: avisan Nobile rim 1 (15,7°), Shackleton rim (31,3°) y Leibnitz Beta (7,6°). Son centros de un mosaico de relieve (PGDA), no zonas de aterrizaje elegidas (RoI).
+
+### 9.12 Misiones guiadas: bitácoras reales y planes
+
+EVA cuenta la misión paso a paso (`alunizaje/guiada.ts`): una ficha antes del descenso, lo que pasa al bajar, y en la superficie una tarjeta por hecho con su día, un «por qué importa» y sus fuentes; el cielo pasa a la fecha de cada hecho. Al final, a dónde seguir.
+
+- **Misión real, `?bitacora=<id>`.** Los hechos salen de `apps/web/src/shared/bitacoras/` (cada uno con su fuente; una prueba lo exige). Hoy hay tres: **IM-2 Athena** (6 y 7 mar 2025, Mons Mouton: cayó de lado en un cráter y no pudo recargar; se vuela en su relieve real, sitio `im-2`), **Blue Ghost Mission 1** (Firefly, 2 a 16 mar 2025, Mare Crisium: alunizó derecha y operó un día lunar entero; relieve de referencia) e **IM-1 Odysseus** (Intuitive Machines, NASA CLPS, 22 a 29 feb 2024): los telémetros láser no se pudieron usar y bajó con el lidar Doppler de la NASA, se posó en una pendiente de 12° (NASA LRO), quedó de lado y operó siete días hasta la noche lunar. En el simulador la nave vuelca como en la misión. **Límite:** su sitio real (80,13° S, 1,44° E) está a unos 300 km del polo, fuera de nuestro relieve y de nuestro motor de Sol y Tierra (190 km); se vuela sobre el macizo Malapert (a 178 km) como relieve de referencia, y la ficha lo dice. **Límite del cielo:** las efemérides del motor cubren de 2026 a 2030; en una misión anterior el Sol y la Tierra de la escena no son los de su fecha, y la ficha también lo dice.
+- **Misión planificada, `&guia=<nombre>&bateria=<h>&tierra=<%>`** (o `?mission=<id>&guia=1`). Los pasos no son hechos: los calcula `evaluate` de `@/shared/planning` para ese lugar, esa fecha y ese equipo (`alunizaje/planGuiado.ts`): con qué luz se llega, el Sol y la Tierra al contacto, cada salida y puesta tras el relieve, la caminata si el plan la tiene, y el veredicto. La ficha dice que es un plan que no ha volado.
+- **Desde el panel de misiones** (`prototipos/lunar-map/inicio.html`): la misión elegida muestra «Download log» y «Play simulation». La bitácora de una misión de la campaña es su plan calculado (`tools/bitacoras-campana.js` → `data/bitacoras-campana.js`); las que no tienen fecha (PS-03, DG-04) lo dicen. Las reales van en el recuadro «Real missions» (`data/bitacoras.js`, que sale de `node apps/web/scripts/exportar-bitacoras.ts`).
+- El flujo guiado de EVA del equipo usa otra «misión real»: el descenso del Apollo 11 (`?nominal`, `features/assistant/eva/recorridos.ts`). Son dos caminos distintos.

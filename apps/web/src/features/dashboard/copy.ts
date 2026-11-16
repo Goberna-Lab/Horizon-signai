@@ -17,6 +17,10 @@ export const copy = {
     undo: tr("Undo", "Deshacer"),
   },
   list: {
+    kind: (k: "lander" | "rover" | "crewed", n: number) =>
+      k === "rover" ? tr(`rover, ${n} ${n === 1 ? "drive" : "drives"}`, `rover, ${n} ${n === 1 ? "recorrido" : "recorridos"}`)
+      : k === "crewed" ? tr(`crewed, ${n} ${n === 1 ? "walk" : "walks"}`, `tripulada, ${n} ${n === 1 ? "caminata" : "caminatas"}`)
+      : tr("fixed lander", "módulo fijo"),
     title: tr("Upcoming missions", "Próximas misiones"),
     add: tr("New mission", "Nueva misión"),
     open: tr("View detail", "Ver detalle"),

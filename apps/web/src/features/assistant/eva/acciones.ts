@@ -32,8 +32,11 @@ export const estadoDePantalla = (): string => {
         ver('[data-f="phase"]') && `Descent phase: ${ver('[data-f="phase"]')}.`,
         ver(".sim-vh-feed") && `Moonwalk tasks on screen: ${ver(".sim-vh-feed")}.`,
         ver(".sim-vh-rows") && `Suit readings: ${ver(".sim-vh-rows")}.`,
+        // Lo que el simulador dice de sí mismo (misión guiada, rover, informe): features/simulator/alunizaje/paraEva.ts
+        (window as Window & { HorizonSimulador?: { text(): string } }).HorizonSimulador?.text(),
+        ver(".sim-bitacora") && `Guided mission card on screen: ${ver(".sim-bitacora")}.`,
       ]
-      return partes.filter(Boolean).join(" ").slice(0, 1200)
+      return partes.filter(Boolean).join(" ").slice(0, 1800)
     }
     return planificador()?.text() ?? ""
   } catch {
