@@ -4,6 +4,7 @@ import type { MicVAD } from "@ricky0123/vad-web"
 import { escuchar as escucharApi, turnoDeVoz, type EventoIntencion, type EventoOido, type EventoTurno, type Mensaje } from "./cliente"
 import { crearColaDeVoz } from "./colaDeVoz"
 import { aWav, deEtiqueta, marcaDeCorte, type Encima, type Intencion } from "./eco"
+import { comprimirVoz } from "./opus"
 
 export type EstadoVoz = "reposo" | "escuchando" | "pensando" | "hablando"
 
@@ -11,6 +12,9 @@ const CHIP_FUGAZ_MS = 1500 // «sigo» y «me callo» se ven un momento y se van
 const PAUSA_FIN_MS = 800 // silencio que cierra lo que dijiste (Silero; antes 1300 ms con volumen)
 const SIN_VOZ_MS = 20_000 // si no hablas en este tiempo, la conversación se pausa
 const VOLUMEN_ENCIMA = 0.3 // la IA baja a esto mientras hablas encima, hasta saber qué dijiste
+// Con `naturalidad.murmullo`, una frase de al menos esto suena a pregunta: el murmullo arranca apenas cierra el VAD, sin
+// esperar a la transcripción (~1,8 s antes, medido). Lo más corto puede ser un ruido o un «ok»: espera a saber qué es.
+const MURMULLO_TEMPRANO_MS = 1000
 // Con parlantes el micrófono oye a la IA (el navegador no cancela su voz): mientras habla, el VAD
 // pide más certeza. No más duración: un «stop» dura ~0,3 s y con 500 ms se perdía. El eco que
 // pase igual se filtra por texto (eco.ts); solo cuesta una transcripción de ~0,15 s.
@@ -71,6 +75,8 @@ type Turno = {
   esEco: boolean
   /** Qué es cada frase de la cola (lo que no está aquí es el murmullo). */
   tipoDe: WeakMap<object, "eco" | "respuesta">
+  /** Empezó a sonar (el murmullo temprano) antes de ser el turno en curso: al confirmarlo hay que ponerlo en «hablando». */
+  sonoAntes: boolean
 }
 
 /**
@@ -167,6 +173,7 @@ export function useVoz({ asistente, historial, alMensaje, cronometro, naturalida
         antesSono: "frase",
         esEco: false,
         tipoDe: new WeakMap(),
+        sonoAntes: false,
         cola: crearColaDeVoz({
           ctx: audioCtx.current,
           asistente: opciones.current.asistente,
@@ -174,12 +181,18 @@ export function useVoz({ asistente, historial, alMensaje, cronometro, naturalida
           alNivel: setNivel,
           respetarPuntuacion: nat?.respetarPuntuacion,
           alAgendar: (f, empieza) => {
-            if (turno.current !== t) return
+            if (t.cortado) return
             const tipo = t.tipoDe.get(f)
             crono()?.marcar(tipo === "eco" ? "ecoSuena" : tipo === "respuesta" ? "respuestaSuena" : "murmullo", empieza)
           },
           alEmpezar: () => {
-            if (turno.current !== t) return
+            // El murmullo temprano suena antes de saber si fue habla: el micrófono pide más certeza ya (que no se oiga a
+            // sí misma), y el resto espera a que el turno se confirme (ver confirmarTurno).
+            vad.current?.setOptions(VAD_ENCIMA)
+            if (turno.current !== t) {
+              t.sonoAntes = true
+              return
+            }
             mostrarEncima(null) // ya responde: lo que agregaste pasa a ser tu mensaje
             setCortado("")
             vad.current?.setOptions(VAD_ENCIMA)
@@ -277,7 +290,9 @@ export function useVoz({ asistente, historial, alMensaje, cronometro, naturalida
   // clasifica (la IA estaba en su turno) o ya responde (estaba callada).
   const procesar = useCallback(
     async (audio: Float32Array, fin: number) => {
-      const wav = aWav(audio)
+      // Comprimida en Opus (~10 veces menos que el WAV: ver opus.ts); si el navegador no puede, WAV como antes.
+      const opus = await comprimirVoz(audio)
+      const wav = opus ?? aWav(audio)
       const t = turno.current
       // Tiempos: el instante 0 es cuando dejó de hablar (el VAD cierra la frase PAUSA_FIN_MS después).
       const c = crono()
@@ -285,6 +300,8 @@ export function useVoz({ asistente, historial, alMensaje, cronometro, naturalida
         c?.empezar(performance.now() - fin + PAUSA_FIN_MS)
         c?.marcar("vad", fin)
         c?.dato("hablaMs", Math.round(audio.length / 16))
+        c?.dato("audioKB", Math.round(wav.size / 1024))
+        c?.dato("audio", opus ? "opus" : "wav")
       }
       const alOirlo = (e: EventoOido) => {
         c?.marcar("oido")
@@ -300,6 +317,12 @@ export function useVoz({ asistente, historial, alMensaje, cronometro, naturalida
         let alFallar!: (e: unknown) => void
         const oidoP = new Promise<EventoOido>((res, rej) => ((alOir = res), (alFallar = rej)))
         empezar()
+        // Una frase larga ya suena a pregunta: el murmullo arranca ahora, sin esperar a la transcripción. El turno queda
+        // en espera hasta saber si fue habla; si no lo fue, se corta (el murmullo apenas sonó).
+        if (opciones.current.naturalidad?.murmullo && audio.length / 16 >= MURMULLO_TEMPRANO_MS) {
+          cambiar("pensando")
+          h.turno = nuevoTurno(corte, fin, 0)
+        }
         const flujo = escucharApi(
           wav,
           { iaHabla: false, messages: hilo.current, eco: opciones.current.naturalidad?.eco },
@@ -308,24 +331,46 @@ export function useVoz({ asistente, historial, alMensaje, cronometro, naturalida
               alOir(e)
               alOirlo(e)
               if (e.tipo !== "habla" || !activa.current) {
-                c?.dato("tipo", `ignorado:${e.tipo}`)
-                c?.cerrar(e.tipo)
+                c?.dato("tipo", activa.current ? `ignorado:${e.tipo}` : "conversación cerrada")
+                c?.cerrar(activa.current ? e.tipo : "cerrada")
+                if (h.turno) {
+                  h.turno.cortado = true // el murmullo temprano: no era una pregunta
+                  h.turno.cola.detener()
+                  h.turno = null
+                }
                 return
               }
               c?.dato("tipo", "ia")
               sumar({ role: "user", content: e.texto })
-              cambiar("pensando")
-              h.turno = nuevoTurno(corte, fin, e.ms)
+              if (h.turno) c?.dato("murmulloTemprano", true)
+              else {
+                cambiar("pensando")
+                h.turno = nuevoTurno(corte, fin, e.ms)
+              }
               turno.current = h.turno
+              if (h.turno.sonoAntes) {
+                // El murmullo temprano ya sonaba: ahora sí es el turno en curso.
+                setCortado("")
+                cambiar("hablando")
+              }
             } else if (h.turno) alimentar(h.turno, (r) => (h.respuesta = r))(e)
           },
           corte.signal,
         ).then(() => h.respuesta)
         flujo.then(() => alFallar(new Error("El API no devolvió lo que oyó")), alFallar) // no-op si ya llegó
-        const oido = await oidoP
+        let oido: EventoOido
+        try {
+          oido = await oidoP
+        } catch (e) {
+          h.turno?.cola.detener() // sin transcripción, el murmullo temprano no tiene a quién responder
+          throw e
+        }
         console.debug(`[voz] oído «${oido.texto}» → ${oido.tipo} (${oido.ms} ms)`)
         if (h.turno) void seguirTurno(h.turno, flujo)
-        else armarSinVoz()
+        else {
+          if (activa.current) escuchar()
+          armarSinVoz()
+        }
         return
       }
 

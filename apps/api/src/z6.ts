@@ -882,7 +882,7 @@ export const z6 = new Hono()
     const etiqueta = (v: unknown) => (typeof v === "string" ? v.replace(/[^\w:.\- ]/g, "").slice(0, 40) : undefined)
     // Claves cortas; valores: números (redondeados) o sí/no. Texto solo en estas claves (etiquetas que pone la web), para
     // que ningún pedido pueda meter frases en el log.
-    const CON_TEXTO = new Set(["tipo", "fin", "faq"])
+    const CON_TEXTO = new Set(["tipo", "fin", "faq", "audio"])
     const valor = (k: string, v: unknown) =>
       typeof v === "boolean" ? v : typeof v === "number" && Number.isFinite(v) && Math.abs(v) < 1e7 ? Math.round(v) : CON_TEXTO.has(k) ? etiqueta(v) : undefined
     const numeros = (o: unknown) =>

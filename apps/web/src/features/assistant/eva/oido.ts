@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { MicVAD } from "@ricky0123/vad-web"
 import { aWav } from "@/prueba-ia/eco"
+import { comprimirVoz } from "@/prueba-ia/opus"
 
 // Las mismas versiones fijas que usa /prueba-ia (useVoz.ts).
 const VAD_CDN = "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.31/dist/"
@@ -17,7 +18,7 @@ const ORT_CDN = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/"
 export type EstadoOido = "apagado" | "pidiendo" | "escuchando" | "oyendo" | "negado"
 
 /** Lo que se sabe de una frase dicha, para los tiempos (./tiempos.ts). */
-export type FraseOida = { hablaMs: number; vadMs: number }
+export type FraseOida = { hablaMs: number; vadMs: number; audioKB: number; audio: "opus" | "wav" }
 // Silencio que el VAD espera antes de cerrar la frase: la persona terminó de hablar hace esto (redemptionMs).
 const ESPERA_VAD_MS = 600
 
@@ -58,8 +59,18 @@ export function useOido(alOir: (wav: Blob, info: FraseOida) => void) {
         onVADMisfire: () => setEstado("escuchando"),
         onSpeechEnd: (audio) => {
           setEstado("escuchando")
-          // El audio viene a 16 kHz e incluye el relleno previo (preSpeechPadMs): es lo que duró la frase.
-          alOirRef.current(aWav(audio), { hablaMs: Math.round(audio.length / 16), vadMs: ESPERA_VAD_MS })
+          // El audio viene a 16 kHz e incluye el relleno previo (preSpeechPadMs): es lo que duró la frase. Se sube en
+          // Opus (~10 veces menos que el WAV, ver prueba-ia/opus.ts); si el navegador no puede, en WAV.
+          const cerro = performance.now()
+          void comprimirVoz(audio).then((opus) => {
+            const archivo = opus ?? aWav(audio)
+            alOirRef.current(archivo, {
+              hablaMs: Math.round(audio.length / 16),
+              vadMs: ESPERA_VAD_MS + (performance.now() - cerro), // dejó de hablar antes del silencio y de comprimir
+              audioKB: Math.round(archivo.size / 1024),
+              audio: opus ? "opus" : "wav",
+            })
+          })
         },
       })
       if (quiere.current) await vad.current.start()

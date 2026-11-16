@@ -148,7 +148,7 @@ export const escuchar = async (
   signal?: AbortSignal,
 ) => {
   const form = new FormData()
-  form.append("audio", audio, "voz.wav")
+  form.append("audio", audio, audio.type === "audio/ogg" ? "voz.ogg" : "voz.wav")
   form.append("contexto", JSON.stringify({ ...contexto, ...persona(), formato: formatoDeVoz() }))
   await leerEventos(await pedir("/voz/escuchar", { method: "POST", body: form, signal }), alEvento)
 }
@@ -196,7 +196,7 @@ export type EventoEntender = { t: "oido"; texto: string; ms: number } | { t: "pa
 /** Manda una frase dicha (WAV) y avisa con lo que entendió: primero el texto, después la pregunta frecuente parecida. */
 export const entender = async (audio: Blob, idioma: "en" | "es", alEvento: (e: EventoEntender) => void, signal?: AbortSignal) => {
   const form = new FormData()
-  form.append("audio", audio, "voz.wav")
+  form.append("audio", audio, audio.type === "audio/ogg" ? "voz.ogg" : "voz.wav")
   form.append("contexto", JSON.stringify({ idioma }))
   const r = await pedir("/voz/entender", { method: "POST", body: form, signal })
   const lector = r.body!.getReader()

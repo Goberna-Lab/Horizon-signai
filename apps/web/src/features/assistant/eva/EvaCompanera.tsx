@@ -1222,7 +1222,11 @@ export default function EvaCompanera() {
     // Tiempos (./tiempos.ts): el instante 0 es cuando terminó de hablar, antes del silencio que espera el VAD.
     tiempos.empezar("voz", idioma, info?.vadMs ?? 0)
     tiempos.marcar("vad")
-    if (info) tiempos.dato("hablaMs", info.hablaMs)
+    if (info) {
+      tiempos.dato("hablaMs", info.hablaMs)
+      tiempos.dato("audioKB", info.audioKB)
+      tiempos.dato("audio", info.audio)
+    }
     let texto = ""
     let resuelto = false
     try {
