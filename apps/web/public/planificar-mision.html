@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Horizon Signai · Planificador de misiones</title>
 <meta name="description" content="Planifica una misión al polo sur lunar desde cero y verifícala con datos reales: Sol y Tierra del motor del Planificador (DE441), relieve LOLA y los KPIs del equipo.">
+<script>
+/* El planificador de misiones vive dentro de la app: /planner lo muestra en su marco (con EVA y la navegación de la
+   app). Si alguien llega a esta página suelta (un enlace viejo, EVA, el mapa 3D), se abre ahí con la misma dirección. */
+if (window.top === window) location.replace('/planner#plan' + location.search);
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F4EFE6'/%3E%3Cpath d='M6 17a10 10 0 0 1 20 0z' fill='%23C8102E'/%3E%3Cpath d='M3 20h26M7 24h18M11 28h10' stroke='%23111' stroke-width='1.6'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,12 +29,8 @@ body { margin: 0 }
   --track: -0.03em;
   --lit: #e3c23d; --umbra: #3a2a63; /* luz y sombra en el mapa, como Temporal Illumination de LROC */
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --paper: #141312; --shade: #3b3835; --ink: #f4efe6; --ink-soft: rgb(244 239 230 / .66); --signal: #ea3b52; --earth: #6f9ef1;
-  --tint: rgb(244 239 230 / .05); --hatch: rgb(244 239 230 / .3); --night: rgb(0 0 0 / .4); color-scheme: dark } }
-:root[data-theme="dark"] {
-  --paper: #141312; --shade: #3b3835; --ink: #f4efe6; --ink-soft: rgb(244 239 230 / .66); --signal: #ea3b52; --earth: #6f9ef1;
-  --tint: rgb(244 239 230 / .05); --hatch: rgb(244 239 230 / .3); --night: rgb(0 0 0 / .4); color-scheme: dark }
+/* Siempre en modo claro, como el resto de la app (pedido de Angel, 2026-11-16): sin tema oscuro. */
+:root { color-scheme: light; }
 
 * { box-sizing: border-box; border-radius: 0 }
 [hidden] { display: none !important }
@@ -185,11 +186,39 @@ svg text { font-family: var(--f-mono) }
 .wz-opt[aria-pressed="true"] big { color: var(--signal) }
 .wz-opt b { font-size: 15px; font-weight: 700 }
 .wz-opt small { font: 400 11.5px/1.4 var(--f-mono); opacity: .75 }
+/* Lámina del tipo de misión: dibujo a línea de tinta a sangre arriba de la tarjeta; la ruta y el Sol en rojo de señal, la Tierra en azul. */
+.wz-opts.con-ilus { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px }
+.wz-opts.con-ilus .wz-opt { padding: 18px; gap: 6px }
+.wz-opts.con-ilus .wz-opt b { font-size: 18px }
+.wz-opts.con-ilus .wz-opt small { font-size: 12.5px }
+.wz-opts.con-ilus .wz-opt big { font-size: 34px }
+.wz-ilus { display: block; width: calc(100% + 36px); margin: -18px -18px 12px; aspect-ratio: 240 / 124; border-bottom: 1px solid currentColor;
+  fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: miter; overflow: hidden }
+.wz-ilus .bg { fill: var(--paper) }
+.wz-opt[aria-pressed="true"] .wz-ilus .bg { fill: var(--ink) }
+.wz-ilus .cerro { stroke-opacity: .4 }
+.wz-ilus .tenue { stroke-opacity: .22 }
+.wz-ilus .sub { stroke-opacity: .28; stroke-width: 1 }
+.wz-ilus .gr { stroke-width: 3; stroke-linecap: square }
+.wz-ilus .pie { stroke-width: 2.4 }
+.wz-ilus .lleno { fill: currentColor; stroke: none }
+.wz-ilus .rojo { fill: var(--signal); stroke: none }
+.wz-ilus .tierra { fill: var(--earth); stroke: none }
+.wz-ilus .ruta { stroke: var(--signal); stroke-width: 1.8; stroke-dasharray: 4 3 }
+.wz-ilus .onda { stroke: var(--signal) }
+/* Paso 2: el corte del relieve real de cada zona (LOLA), con el módulo en el punto y el Sol rasante. */
+.wz-ilus .perfil { stroke-width: 1.6 }
+.wz-opt small.wz-aprox { color: var(--signal); opacity: 1; font-weight: 500 }
+.wz-ilus .marca { fill: var(--signal); stroke: none }
+.wz-ilus text { fill: currentColor; stroke: none; font: 500 7px var(--f-mono); letter-spacing: .06em; opacity: .7 }
+@media (prefers-reduced-motion: no-preference) { .wz-opt[aria-pressed="true"] .ruta { animation: marcha 1.1s linear infinite } }
+@keyframes marcha { to { stroke-dashoffset: -14 } }
 .wz-campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px }
 .wz-campos input[type="text"], .wz-campos input[type="datetime-local"] { width: 100%; height: 44px; border: 1px solid var(--ink); background: var(--paper); padding: 0 10px; font: 500 16px var(--f-mono) }
 .wz-vivo { display: flex; gap: 24px; flex-wrap: wrap; padding: 10px 12px; border-left: 3px solid var(--signal); font: 400 12.5px var(--f-mono) }
 .wz-vivo b { font: 700 22px var(--f-display); letter-spacing: var(--track); display: block }
-.wz-nav { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--ink) }
+/* Atrás y Siguiente quedan siempre a la vista, pegados abajo, aunque la lista de tarjetas sea larga. */
+.wz-nav { display: flex; justify-content: space-between; gap: 10px; padding: 14px 0 max(14px, env(safe-area-inset-bottom)); border-top: 1px solid var(--ink); position: sticky; bottom: 0; z-index: 5; background: var(--paper); box-shadow: 0 -10px 18px -12px rgb(17 17 17 / .25) }
 .wz-nav .cta:disabled { background: var(--shade); color: var(--ink-soft); cursor: not-allowed; filter: none }
 .wz-rec { display: grid; gap: 4px; padding: 12px 14px; border: 2px solid var(--ink); justify-items: start }
 .wz-rec b { font: 800 22px var(--f-display); letter-spacing: var(--track) }
@@ -384,7 +413,7 @@ details.foot dd { margin: 0 }
 <div class="wrap">
   <header class="top">
     <div>
-      <h1><a href="/" style="color:inherit;text-decoration:none">Planificador</a> <small data-en="South pole · plan and simulate">Polo sur · planifica y simula</small></h1>
+      <h1><a href="/" target="_top" style="color:inherit;text-decoration:none">Planificador</a> <small data-en="South pole · plan and simulate">Polo sur · planifica y simula</small></h1>
     </div>
     <div class="tools">
       <a class="btn" href="/planner" target="_top" style="color:inherit;text-decoration:none" data-en="← Missions">← Misiones</a>
@@ -521,18 +550,33 @@ const VIPER_KMH = 0.8;                                                          
 const M_POR_PX = 4.7, LM_PX = [430, 640];                                        // escena del Planificador (terrain.js) y tareas.ts
 
 /* ---------- zonas (shared/planning/data/sites.json) ---------- */
-const ZONAS = {
-  A: { id: 'connecting-ridge-roi-6', nombre: 'Connecting Ridge · RoI 6', lat: -89.47392, es: 'Lomo amplio, cerca de Shackleton', en: 'Broad ridge, close to Shackleton' },
-  B: { id: 'peak-near-shackleton-roi-2', nombre: 'Peak near Shackleton · RoI 2', lat: -88.80738, es: 'Cima alta, horizonte despejado', en: 'High summit, clear horizon' },
-  C: { id: 'shackleton-rim-roi-4', nombre: 'Shackleton rim · RoI 4', lat: -89.78497, es: 'Borde del cráter, el más polar', en: 'Crater rim, closest to the pole' }
+/* Las 13 zonas candidatas del polo sur (las del dashboard, prototipos/lunar-map/data/zonas.js), con la letra y el nombre
+   que trae datos.js. K, L y M tienen el horizonte APROXIMADO (relieve polar de LOLA a 240 m, sin DTM de 5 m de PGDA). */
+const DESC_ZONAS = {
+  A: ['Lomo amplio, cerca de Shackleton', 'Broad ridge, close to Shackleton'],
+  B: ['Cima alta, horizonte despejado', 'High summit, clear horizon'],
+  C: ['Borde del cráter, el más polar', 'Crater rim, closest to the pole'],
+  D: ['Borde del cráter de Gerlache', 'Rim of de Gerlache crater'],
+  E: ['Borde del cráter Haworth', 'Rim of Haworth crater'],
+  F: ['Macizo montañoso de Malapert', 'Malapert mountain massif'],
+  G: ['Borde del cráter Nobile', 'Rim of Nobile crater'],
+  H: ['Borde del cráter Nobile, segundo sitio', 'Rim of Nobile crater, second site'],
+  I: ['Meseta de Leibnitz Beta', 'Leibnitz Beta plateau'],
+  J: ['Borde del cráter Shoemaker', 'Rim of Shoemaker crater'],
+  K: ['Montaña Mons Mouton', 'Mons Mouton mountain'],
+  L: ['Meseta de Mons Mouton', 'Mons Mouton plateau'],
+  M: ['Cima junto al cráter Cabeus B', 'Summit next to Cabeus B crater']
 };
+const ZONAS = {};
+for (const z of DATOS.zonas) {
+  const d = DESC_ZONAS[z.k] || ['', ''];
+  ZONAS[z.k] = { id: z.id, nombre: z.nombre, lat: z.lat, lon: z.lon, aproximado: z.aproximado, es: d[0], en: d[1] };
+}
 
 /* ---------- datos embebidos ---------- */
 const bin = (b64) => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; };
 const CIELO = {}, RELIEVE = {};
-for (const z of Object.values(ZONAS)) {
-  const d = DATOS[z.id];
-  CIELO[z.id] = { n: d.n, 2: new Int8Array(bin(d.cielo[2])), 10: new Int8Array(bin(d.cielo[10])) };
+for (const d of DATOS.zonas) {
   const r = new Int16Array(bin(d.relieve)), N = d.N, h = new Float32Array(N * N), paso = (2 * d.half) / (N - 1);
   for (let k = 0; k < N * N; k++) h[k] = r[k] / 10;
   const pend = new Float32Array(N * N);
@@ -541,9 +585,30 @@ for (const z of Object.values(ZONAS)) {
     const dx = (g(i + 1, j) - g(i - 1, j)) / (2 * paso), dz = (g(i, j + 1) - g(i, j - 1)) / (2 * paso);
     pend[j * N + i] = Math.atan(Math.hypot(dx, dz)) / rad;
   }
-  RELIEVE[z.id] = { N, half: d.half, paso, h, pend };
+  RELIEVE[d.id] = { N, half: d.half, paso, h, pend };
 }
-const T_MIN = DATOS.t0, T_MAX = DATOS.t0 + (CIELO[ZONAS.A.id].n - 1) * DATOS.paso;
+/* El cielo de una zona (Sol y Tierra hora a hora, 0,9 MB) se descarga al elegirla: public/planificar-mision/zonas/<id>.js
+   llama a PM_ZONA. `zonaLista(k)` dice si ya está; `conZona(k, fn)` la pide y sigue cuando llega. */
+const ALTS3 = {}, pedidas = {}, esperando = {};
+window.PM_ZONA = (d) => {
+  CIELO[d.id] = { n: d.n, 2: new Int8Array(bin(d.cielo[2])), 10: new Int8Array(bin(d.cielo[10])) };
+  ALTS3[d.id] = {}; for (const a of [5, 15, 20, 30]) ALTS3[d.id][a] = new Int8Array(bin(d.alturas[a]));
+  for (const fn of esperando[d.id] || []) fn();
+  delete esperando[d.id];
+};
+const zonaLista = (k) => Boolean(ZONAS[k] && CIELO[ZONAS[k].id]);
+function conZona(k, fn) {
+  const z = ZONAS[k];
+  if (!z || CIELO[z.id]) { fn(); return; }
+  (esperando[z.id] = esperando[z.id] || []).push(fn);
+  if (pedidas[z.id]) return;
+  pedidas[z.id] = true;
+  const s = document.createElement('script');
+  s.src = '/planificar-mision/zonas/' + z.id + '.js';
+  s.onerror = () => { pedidas[z.id] = false; };
+  document.head.appendChild(s);
+}
+const T_MIN = DATOS.t0, T_MAX = DATOS.t0 + (DATOS.n - 1) * DATOS.paso;
 const ALT = { v: 2 };
 function muestra(z, t, k) {
   const c = CIELO[z.id], v = c[ALT.v], f = Math.min(c.n - 1.0001, Math.max(0, (t - T_MIN) / DATOS.paso)), i = Math.floor(f), u = f - i;
@@ -586,6 +651,77 @@ const TIPOS = {
   rover: { es: 'Rover robótico', en: 'Robotic rover', big: 'R', des: ['Un módulo baja un rover que recorre la ruta, guiado desde la Tierra.', 'A lander drops a rover that drives the route, driven from Earth.'] },
   fija: { es: 'Módulo fijo', en: 'Static lander', big: 'F', des: ['Un robot que trabaja donde aluniza: taladro, sismógrafo o antena.', 'A robot that works where it lands: drill, seismometer or antenna.'] }
 };
+/* Lámina del paso 2: el corte del relieve real de la zona (LOLA, la fila de la rejilla que pasa por el punto), con la
+   altura exagerada para que se lea la forma (lomo, cima o borde de cráter). El módulo va en el punto de alunizaje y el
+   Sol, en rojo, rasante sobre el horizonte. Sin cifras: las da la tarjeta. */
+function laminaZona(z) {
+  const R = RELIEVE[z.id], N = R.N, fila = Math.floor(N / 2), muestras = 64;
+  const alt = Array.from({ length: muestras }, (_, k) => R.h[fila * N + Math.round((k / (muestras - 1)) * (N - 1))]);
+  const lo = Math.min(...alt), hi = Math.max(...alt), rango = Math.max(hi - lo, 1);
+  const y = (v) => 104 - ((v - lo) / rango) * 50;
+  const pts = alt.map((v, k) => [(k / (muestras - 1)) * 240, y(v)]);
+  const linea = pts.map(([x, yy], k) => (k ? 'L' : 'M') + x.toFixed(1) + ' ' + yy.toFixed(1)).join('');
+  const centro = pts[Math.round((muestras - 1) / 2)];
+  const [cx, cy] = centro;
+  const modulo = '<path class="pie" d="M' + (cx - 9) + ' ' + cy + 'h5M' + (cx + 4) + ' ' + cy + 'h5"/>' +
+    '<path d="M' + (cx - 4) + ' ' + (cy - 7) + 'L' + (cx - 7) + ' ' + cy + 'M' + (cx + 4) + ' ' + (cy - 7) + 'L' + (cx + 7) + ' ' + cy + '"/>' +
+    '<rect class="bg" x="' + (cx - 6) + '" y="' + (cy - 12) + '" width="12" height="6"/><path class="bg" d="M' + (cx - 4) + ' ' + (cy - 12) + 'V' + (cy - 17) + 'H' + (cx + 4) + 'V' + (cy - 12) + '"/>';
+  const sol = '<circle class="rojo" cx="226" cy="' + Math.min(y(hi) - 4, 40).toFixed(1) + '" r="7"/>';
+  return '<svg class="wz-ilus" viewBox="0 10 240 124" aria-hidden="true" focusable="false">' + sol +
+    '<path class="bg" d="' + linea + 'L240 134H0Z" stroke="none"/>' +
+    '<path class="sub" d="' + Array.from({ length: 40 }, (_, i) => 'M' + (i * 8 - 40) + ' 134l40-40').join('') + '" clip-path="url(#zc-' + z.id + ')"/>' +
+    '<clipPath id="zc-' + z.id + '"><path d="' + linea + 'L240 134H0Z"/></clipPath>' +
+    '<path class="perfil" d="' + linea + '"/>' + modulo +
+    '<path class="marca" d="M' + cx + ' ' + (cy + 4) + 'l-3 5h6z"/>' +
+    '<text x="6" y="128">' + L('CORTE DEL RELIEVE · LOLA', 'TERRAIN PROFILE · LOLA') + '</text></svg>';
+}
+
+/* Láminas del paso 1, sin texto (aria-hidden): el nombre y la descripción de la tarjeta ya lo dicen.
+   Siluetas de referencia: LM de Apollo (etapas de descenso y ascenso, ventana triangular, radar), rover VIPER de NASA
+   (cuatro ruedas, mástil con cámaras, antena hacia la Tierra) y un módulo CLPS fijo (taladro tipo LISTER, sismómetro, antena). */
+const ILUS = (() => {
+  const svg = (cuerpo) => '<svg class="wz-ilus" viewBox="0 10 240 114" aria-hidden="true" focusable="false">' + cuerpo + '</svg>';
+  const relieve = '<path class="bg cerro" d="M0 93L20 87L38 90L58 83L80 88L104 85L130 90L156 84L182 89L206 82L226 87L240 85V100H0Z"/>';
+  const plano = '<path class="tenue" d="M0 108H240M0 117H240"/><ellipse class="tenue" cx="214" cy="111" rx="16" ry="2.5"/>';
+  const corte = '<path class="sub" d="' + Array.from({ length: 36 }, (_, i) => 'M' + (i * 8 - 24) + ' 124l24-24').join('') + '"/><path class="tenue" d="M0 112H240"/>';
+  const suelo = '<path d="M0 100H240"/>';
+  const astro = (x, muestra) => '<rect class="bg" x="' + (x + 3) + '" y="76" width="6" height="12"/>' +
+    '<path class="gr" d="M' + (x - 3) + ' 90L' + (x - 6) + ' 99M' + (x + 1) + ' 90L' + (x + 3) + ' 99"/>' +
+    '<rect class="bg" x="' + (x - 5) + '" y="76" width="9" height="14"/>' +
+    '<circle class="bg" cx="' + (x - 1) + '" cy="70" r="6"/><path class="rojo" d="M' + (x - 1) + ' 65a5 5 0 0 0 0 10z"/>' +
+    '<path class="gr" d="M' + (x - 2) + ' 79L' + (x - 8) + ' 86"/>' + (muestra ? '<path d="M' + (x - 8) + ' 86L' + (x - 14) + ' 99h-3"/>' : '');
+  return {
+    tripulada: svg(
+      '<circle class="rojo" cx="226" cy="87" r="8"/>' + relieve + plano + suelo +
+      '<path class="ruta" d="M104 104C118 110 132 108 142 103"/>' +
+      '<path d="M62 72L44 99M58 84L46 96M98 72L116 99M102 84L114 96"/><path class="pie" d="M38 100h12M110 100h12"/>' +
+      '<path class="bg" d="M74 86L72 92H88L86 86Z"/><path class="bg" d="M58 70H102V86H58Z"/><path d="M66 70V86M94 70V86"/>' +
+      '<path class="bg" d="M74 45V41H84V45"/><path class="bg" d="M62 70V54L70 45H88L98 52V70Z"/><path class="lleno" d="M70 52H77L70 59Z"/>' +
+      '<path d="M92 48L99 40M57 58h5M59.5 55.5v5M98 58h5M100.5 55.5v5"/><circle class="bg" cx="100.5" cy="38.5" r="2.5"/>' +
+      astro(152, false) + astro(184, true)),
+    rover: svg(
+      '<circle class="tierra" cx="214" cy="24" r="9"/>' + relieve + plano + suelo +
+      '<path class="ruta" d="M148 55L205 28"/><path class="ruta" d="M74 103Q104 110 134 103"/>' +
+      '<path d="M34 84L24 99M58 84L68 99M60 86L74 100"/><path class="pie" d="M20 100h8M64 100h8"/>' +
+      '<rect class="bg" x="32" y="76" width="28" height="12"/><rect class="bg" x="38" y="68" width="16" height="8"/>' +
+      '<path d="M140 94L146 84M172 94L166 84"/>' +
+      '<circle class="bg" cx="140" cy="94" r="6"/><circle class="bg" cx="172" cy="94" r="6"/><circle class="lleno" cx="140" cy="94" r="1.6"/><circle class="lleno" cx="172" cy="94" r="1.6"/>' +
+      '<path class="bg" d="M134 76L140 70H174L178 76Z"/><rect class="bg" x="134" y="76" width="44" height="10"/><path class="tenue" d="M144 76v10M152 76v10M160 76v10"/>' +
+      '<path d="M170 70V48M146 70L143 61"/><rect class="bg" x="163" y="42" width="14" height="6"/><circle class="rojo" cx="166" cy="45" r="1.4"/>' +
+      '<path class="bg" d="M139 52Q138 63 149 64Z"/><path d="M144 58L148 55"/>'),
+    fija: svg(
+      '<circle class="tierra" cx="210" cy="24" r="9"/>' + relieve + corte + suelo +
+      '<path class="ruta" d="M114 42L200 26"/>' +
+      '<path class="onda" d="M156 100a12 12 0 0 0 24 0"/><path class="onda" stroke-opacity=".55" d="M150 100a18 18 0 0 0 36 0"/><path class="onda" stroke-opacity=".25" d="M144 100a24 24 0 0 0 48 0"/>' +
+      '<path d="M118 82C134 82 148 98 160 99"/><path class="bg" d="M160 100a8 8 0 0 1 16 0Z"/>' +
+      '<rect class="bg" x="84" y="100" width="8" height="24" stroke="none"/><path class="onda" stroke-width="2.5" d="M88 94V116"/><path class="rojo" d="M85 116H91L88 121Z"/>' +
+      '<path d="M80 78L62 99M78 86L66 96M112 78L130 99M114 86L126 96"/><path class="pie" d="M57 100h10M125 100h10"/>' +
+      '<rect class="bg" x="85" y="86" width="6" height="8"/>' +
+      '<path class="bg" d="M78 64H114L118 72V86H74V72Z"/><path d="M74 72H118"/>' +
+      '<rect class="bg" x="80" y="58" width="32" height="6"/><path class="tenue" d="M88 58v6M96 58v6M104 58v6"/>' +
+      '<path d="M104 58V48"/><path class="bg" d="M106 37Q100 46 110 51Z"/><path d="M108 44L114 42"/>')
+  };
+})();
 const ENERGIAS = {
   solar: { es: 'Solar + baterías', en: 'Solar + batteries', big: '☀', des: ['Paneles; las baterías cubren las horas sin Sol. Tú dices cuántas horas aguantan.', 'Panels; batteries cover the hours without Sun. You set how long they last.'] },
   rtg: { es: 'Nuclear (RTG)', en: 'Nuclear (RTG)', big: 'RTG', des: ['Calor y electricidad del plutonio: no depende del Sol.', 'Heat and power from plutonium: does not depend on the Sun.'] },
@@ -793,7 +929,7 @@ function pintar() {
     '<div style="min-width:0">' + (plan.nombre ? '<div class="mision-nombre">' + esc(plan.nombre) + '</div>' : '') + '<h2>' + (ok ? L('Listo para volar', 'Ready to fly') : L('Replanifica', 'Replan')) + '</h2>' +
     '<p>' + z.nombre.replace(/ · RoI \d+/, '') + ' · ' + fechaTxt(plan.t) + ' · ' + diasTxt(plan.estadia) + ' · ' + L(TIPOS[tipo].es, TIPOS[tipo].en) + ' · ' + L(ENERGIAS[plan.energia].es, ENERGIAS[plan.energia].en) + (tipo === 'fija' ? '' : ' · ' + L(w.ru.es, w.ru.en).replace(/ \(CR-02\)/, '')) + '</p>' +
     (ok ? '' : '<p class="falla">' + L('Qué falla: ', 'What fails: ') + checks.filter((c) => c.s === 'nogo').map((c) => L(c.es, c.en)).join(' · ') + L('. Cambia la fecha, la zona o el equipo a la izquierda.', '. Change the date, the zone or the equipment on the left.') + '</p>') +
-    '<div class="acts"><a class="btn primary" href="' + sim + '">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a>' + (ok ? '' : '<button type="button" class="btn" id="v-mejor">' + L('Primera fecha que cumple ↻', 'First date that passes ↻') + '</button>') + '<button type="button" class="btn" id="guardar"></button><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
+    '<div class="acts"><a class="btn primary" href="' + sim + '" target="_top">' + (tipo === 'tripulada' ? L('Simular esta misión →', 'Simulate this mission →') : L('Simular el alunizaje →', 'Simulate the landing →')) + '</a>' + (ok ? '' : '<button type="button" class="btn" id="v-mejor">' + L('Primera fecha que cumple ↻', 'First date that passes ↻') + '</button>') + '<button type="button" class="btn" id="guardar"></button><button type="button" class="btn" id="copiar">' + L('Copiar plan', 'Copy plan') + '</button></div></div>';
   $('copiar').onclick = copiar; $('guardar').onclick = guardar; pintarGuardar();
   if ($('v-mejor')) $('v-mejor').onclick = () => $('mejor').click();
 
@@ -1042,15 +1178,14 @@ function copiar() {
    salen del motor del Planificador y de los datos de esta página. Lo que el plan no mide se marca "sin medición".
    ==================================================================================================================== */
 const ALTURAS_PLANIF = [2, 5, 10, 15, 20, 30]; // RAISE_TO_M de shared/planning/model/evaluate.ts
-const ALTS3 = {}, SITIOS28 = [];
-for (const z of Object.values(ZONAS)) { ALTS3[z.id] = {}; for (const a of [5, 15, 20, 30]) ALTS3[z.id][a] = new Int8Array(bin(DATOS2.alturas[z.id][a])); }
+const SITIOS28 = [];
 for (const s of DATOS2.sitios) SITIOS28.push({ id: s.id, nombre: s.nombre, 2: new Int8Array(bin(s.c2)), 10: new Int8Array(bin(s.c10)) });
 function lector(arr, ancho, n, pasoMs) { // devuelve (t, k) → valor interpolado
   return (t, k) => { const f = Math.min(n - 1.0001, Math.max(0, (t - T_MIN) / pasoMs)), i = Math.floor(f), u = f - i; return arr[i * ancho + k] + (arr[(i + 1) * ancho + k] - arr[i * ancho + k]) * u; };
 }
 function lectorZona(z, alt) {
   if (alt === 2 || alt === 10) return lector(CIELO[z.id][alt], 4, CIELO[z.id].n, DATOS.paso);
-  return lector(ALTS3[z.id][alt], 2, DATOS2.n1, H);
+  return lector(ALTS3[z.id][alt], 2, DATOS.n1, H);
 }
 /* Requisitos del Planificador con un lector cualquiera (paso en horas). */
 function cumple(lee, p, pasoH) {
@@ -1082,7 +1217,8 @@ const META = { NLP: 10, NH: 16, NRC: 5, AMR: 1500, EC: 50, EW: 90, WS: 1325, CD:
    (14,75 d antes y después). El horizonte de cada rumbo sale de los mismos datos del Planificador: elevación del Sol menos su
    margen sobre el horizonte, con el Sol dando la vuelta completa en el día lunar. La Tierra se ve hacia el meridiano 0
    (rumbo 360° − longitud; la libración la mueve ±8°) y su altura es ese horizonte más su margen. */
-const LON = { A: 222.6146, B: 123.7775, C: 188.1301 }; // public/simulador/sitios/<id>.json
+// A, B y C: public/simulador/sitios/<id>.json; el resto, la longitud de su zona (datos.js).
+const LON = Object.assign(Object.fromEntries(Object.entries(ZONAS).map(([k, z]) => [k, z.lon])), { A: 222.6146, B: 123.7775, C: 188.1301 });
 const SOL_RADIO = 0.27; // semidiámetro aparente del Sol (°): solEl mide el borde superior
 function horizonteZona(z, t0) {
   const n = 180, suma = new Float64Array(n), cuenta = new Uint16Array(n);
@@ -1111,7 +1247,8 @@ function pintarComparar() {
   ALT.v = plan.altura;
   const MEDIO = 14.75 * D, t0 = plan.t, desde = t0 - MEDIO, hasta = t0 + MEDIO, paso = DATOS.paso, total = (hasta - desde) / H;
   const pct = (v) => (Math.abs(v - Math.round(v)) < 0.05 ? fmt(v) : fmt(v, 1)) + '%';
-  const filas = Object.keys(ZONAS).map((kz) => {
+  // Las zonas cuyo cielo ya llegó; las demás se piden de fondo y, al llegar todas, se vuelve a pintar.
+  const filas = Object.keys(ZONAS).filter(zonaLista).map((kz) => {
     const z = ZONAS[kz], r = evaluar(Object.assign({}, plan, { zona: kz })); ALT.v = plan.altura;
     const hz = horizonteZona(z, t0), azT = (360 - LON[kz]) % 360;
     const sol = [], tierra = []; let solN = 0, tierN = 0, n = 0, noche = 0, nocheMax = 0;
@@ -1247,10 +1384,10 @@ function pintarWz() {
   if (P.k === 'mision') {
     h += '<h2>' + L('¿Cómo se llama tu misión?', "What's your mission called?") + '</h2>' +
       '<div class="wz-campos"><label class="field"><span class="lbl">' + L('Nombre', 'Name') + '</span><input type="text" id="wz-nombre" maxlength="24" placeholder="CR-06" value="' + esc(wz.nombre) + '"></label></div>' +
-      '<span class="lbl">' + L('Tipo de misión', 'Mission type') + '</span><div class="wz-opts">' + Object.entries(TIPOS).map(([k, t]) => opt('tipo', k, wz.tipo === k, '<big>' + t.big + '</big><b>' + L(t.es, t.en) + '</b><small>' + L(t.des[0], t.des[1]) + '</small>')).join('') + '</div>';
+      '<span class="lbl">' + L('Tipo de misión', 'Mission type') + '</span><div class="wz-opts con-ilus">' + Object.entries(TIPOS).map(([k, t]) => opt('tipo', k, wz.tipo === k, ILUS[k] + '<b>' + L(t.es, t.en) + '</b><small>' + L(t.des[0], t.des[1]) + '</small>')).join('') + '</div>';
   } else if (P.k === 'zona') {
-    h += '<h2>' + L('¿Dónde alunizas?', 'Where do you land?') + '</h2><p class="wz-q">' + L('Las tres zonas del Planificador en el polo sur.', 'The three Planner zones at the south pole.') + '</p><div class="wz-opts">' +
-      Object.entries(ZONAS).map(([k, z]) => { const t = terreno(z); return opt('zona', k, wz.zona === k, '<big>' + k + '</big><b>' + z.nombre + '</b><small>' + L(z.es, z.en) + ' · ' + fmt(Math.abs(z.lat), 2) + '° S</small><small>' + L('Pendiente en el punto (LOLA): ', 'Slope at the spot (LOLA): ') + fmt(t.punto, 1) + '°</small>'); }).join('') + '</div>';
+    h += '<h2>' + L('¿Dónde alunizas?', 'Where do you land?') + '</h2><p class="wz-q">' + L('Las 13 zonas candidatas del polo sur. K, L y M llevan el horizonte aproximado (relieve LOLA de 240 m).', 'The 13 candidate zones at the south pole. K, L and M have an approximate horizon (240 m LOLA terrain).') + '</p><div class="wz-opts con-ilus">' +
+      Object.entries(ZONAS).map(([k, z]) => { const t = terreno(z); return opt('zona', k, wz.zona === k, laminaZona(z) + '<big>' + k + '</big><b>' + z.nombre + '</b><small>' + L(z.es, z.en) + ' · ' + fmt(Math.abs(z.lat), 2) + '° S</small><small>' + L('Pendiente en el punto (LOLA): ', 'Slope at the spot (LOLA): ') + fmt(t.punto, 1) + '°</small>' + (z.aproximado ? '<small class="wz-aprox">' + L('Horizonte aproximado', 'Approximate horizon') + '</small>' : '')); }).join('') + '</div>';
   } else if (P.k === 'fecha') {
     h += '<h2>' + L('¿Cuándo bajas y cuánto te quedas?', 'When do you land and how long do you stay?') + '</h2>' +
       '<p class="wz-q">' + L('Mueve la línea de tiempo para ver la luz sobre el relieve. Suelta para alunizar en ese momento.', 'Scrub the timeline to see light on the terrain. Release to land at that moment.') + '</p>' +
@@ -1458,6 +1595,26 @@ function iniciarLuz() {
     lq.raf = requestAnimationFrame(paso); };
 }
 function parar() { lq.play = false; cancelAnimationFrame(lq.raf); const b = $('lq-play'); if (b) b.textContent = '▶'; }
+
+/* ---------- el cielo de cada zona, a tiempo ----------
+   Antes de pintar, el cielo de la zona del plan tiene que haber llegado (conZona). Con la consola a la vista, las demás
+   zonas se piden de fondo, una tras otra, para el comparativo; al llegar todas se vuelve a pintar una vez. */
+const pintarYa = pintar, pintarWzYa = pintarWz;
+let precargando = false;
+function precargar() {
+  if (precargando) return;
+  precargando = true;
+  const faltan = Object.keys(ZONAS).filter((k) => !zonaLista(k));
+  let i = 0;
+  const siguiente = () => { if (i < faltan.length) conZona(faltan[i++], siguiente); else if (!$('consola').hidden) pintarYa(); };
+  setTimeout(siguiente, 1200);
+}
+pintar = () => conZona(plan.zona, () => { pintarYa(); precargar(); });
+pintarWz = () => {
+  const PS = pasos(), P = PS[Math.min(wz.paso, PS.length - 1)], k = wz.zona;
+  if (k && P && P.k !== 'mision' && P.k !== 'zona') conZona(k, pintarWzYa);
+  else { pintarWzYa(); if (k) conZona(k, () => {}); }
+};
 
 /* ---------- idioma y arranque ---------- */
 const setLang = (l) => { lang = l; try { localStorage.setItem('horizon.lang', l); } catch (e) {} construir(); if (!$('consola').hidden) pintar(); if (!$('wz').hidden) pintarWz(); pintarMisiones(); };

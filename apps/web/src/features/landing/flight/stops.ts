@@ -29,12 +29,7 @@ export const STOPS: Stop[] = [
   { at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 2600, frameKm: 392, fov: 9.6, shift: [0.2, 0], day: 3.8, earth: 0, ring: 0 },
   // Sol rasante: la cámara baja al polo y mira hacia el Sol.
   { at: [-6, -16], lift: 0, bearing: 207, tilt: 85, distance: 34, fov: 44, shift: [0.16, 0.06], day: 6, earth: 0, ring: 0, arc: 0.22 },
-  // De cerca, el punto elegido de la misión (FlightStage.tsx la coloca sobre él).
+  // De cerca, el punto elegido de la misión (FlightStage.tsx la coloca sobre él). Aquí termina el vuelo: comparar
+  // y tener un plan B lo cuenta la sección de beneficios, debajo.
   { at: FEATURED_SITE, lift: 0, bearing: 207, tilt: 62, distance: 7, fov: 40, shift: [0.16, 0.06], day: 6, earth: 0, ring: 0 },
-  // Connecting Ridge con el Sol alto en su horizonte.
-  { at: [-11, -12], lift: 0, bearing: 300, tilt: 64, distance: 30, fov: 36, shift: [0.14, 0], day: 11, earth: 0, ring: 1, arc: 0.3 },
-  // Giro hacia la Tierra, que asoma sobre el relieve a 0° E.
-  { at: [-11, -12], lift: 0, bearing: 353, tilt: 85, distance: 30, fov: 48, shift: [0.1, 0.1], day: 18.2, earth: 1, ring: 1 },
-  // De vuelta a la lámina para comparar sitios.
-  { at: [0, 0], lift: 0, bearing: 0, tilt: 0, distance: 1500, frameKm: 392, fov: 12, shift: [0.2, 0], day: 26, earth: 0, ring: 0 },
 ]

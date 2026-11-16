@@ -1488,6 +1488,16 @@ button.fl-log__row:focus-visible {
   line-height: 1.35;
 }
 
+/* Al pie del último panel del vuelo: lo que sigue en la página. */
+.fl-point__next {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: var(--rule);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--signal);
+}
+
 .fl-point__note {
   margin-top: 12px;
   font: 400 11px/1.4 var(--font-mono);

@@ -1,13 +1,13 @@
 /**
- * Comprobación de la landing con Playwright: rutas, enlaces y la ventana del producto con interacciones reales
- * (reproducir, pausar, mover el tiempo con ratón y teclado, cambiar altura, pestañas, mapa y tema).
+ * Comprobación de la landing con Playwright: rutas, el vuelo del inicio, "Tu primera misión" y la sección de
+ * beneficios (cada pestaña con la foto de su pantalla).
  *
  * Usa el Chrome instalado en el equipo (no descarga navegadores). Con el servidor de desarrollo levantado:
  *
  *   npm run dev:web
  *   npm run check:landing -w @horizon-signai/web -- http://localhost:5173/
  *
- * Opciones: `--mobile` prueba a 390 x 844 con pantalla táctil; `--shots <carpeta>` guarda una captura por pestaña.
+ * Opciones: `--mobile` prueba a 390 x 844 con pantalla táctil; `--shots <carpeta>` guarda una captura por beneficio.
  * Sale con código 1 si algo falla. Script escrito con asistencia de IA (Claude Code).
  */
 import { mkdirSync } from "node:fs"
@@ -34,7 +34,6 @@ const check = (name, ok, detail = "") => {
   if (!ok) failed++
   console.log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? `  (${detail})` : ""}`)
 }
-const shot = async (name) => shots && page.locator(".sw").screenshot({ path: join(shots, `${mobile ? "mobile" : "desktop"}-${name}.png`) })
 
 try {
   // --- Rutas -------------------------------------------------------------------------------------------------
@@ -56,128 +55,24 @@ try {
   check("flight scene ready", true)
   check("hero headline", (await page.locator("h1").innerText()).length > 0)
 
-  // La barra fija se oculta solo para las capturas: si no, sale montada sobre la ventana.
+  // La barra fija se oculta solo para las capturas: si no, sale montada sobre la sección.
   if (shots) await page.addStyleTag({ content: ".ln-bar{visibility:hidden!important}" })
-  await page.evaluate(() => window.scrollTo(0, document.querySelector("#software .sw").getBoundingClientRect().top + scrollY - 80))
-  await page.waitForTimeout(1800)
 
-  // --- Ventana del producto: abre en Compare; las pruebas de Lander empiezan eligiéndolo --------------------------
-  check("window opens on Compare", await page.locator(".sw-compare").isVisible())
-  await page.getByRole("tab", { name: "Lander", exact: true }).click()
-  await page.waitForTimeout(400)
-  const date = page.locator(".sw-lander__date")
-  const counts = () => page.locator(".sw-count").allInnerTexts().then((v) => v.join(" | ").replace(/\n/g, " "))
-  const started = await date.textContent()
-  await page.waitForTimeout(3000)
-  check("time advances on its own", started !== (await date.textContent()))
+  // --- Tu primera misión: seis pasos, con sus fotos y vídeos ----------------------------------------------------------
+  check("first mission: six steps", (await page.locator("#first-mission .ln-tour__step").count()) === 6)
+  check("first mission: EVA's guide starts off", (await page.locator(".ln-tour__toggle").getAttribute("aria-pressed")) === "false")
 
-  await page.locator(".sw-play").click()
-  const paused = await date.textContent()
-  await page.waitForTimeout(700)
-  check("pause stops the clock", paused === (await date.textContent()))
-
-  const plot = page.locator(".sw-time__plot")
-  /** Pulsa la línea de tiempo en una fracción del día lunar. Antes la trae a pantalla: un clic fuera no llega. */
-  const clickTimeline = async (fraction) => {
-    await plot.evaluate((el) => el.scrollIntoView({ block: "center" }))
-    await page.waitForTimeout(1200)
-    const box = await plot.boundingBox()
-    await page.mouse.click(box.x + box.width * fraction, box.y + 10)
-  }
-  await clickTimeline(0.05)
-  const early = await counts()
-  await clickTimeline(0.62)
-  const late = await counts()
-  check("clicking the timeline moves the clock and the countdowns", early !== late, `${early} -> ${late}`)
-
-  await plot.focus()
-  const beforeKey = await date.textContent()
-  await page.keyboard.press("PageUp")
-  check("keyboard moves the clock", beforeKey !== (await date.textContent()))
-
-  const ground = await counts()
-  await page.getByRole("button", { name: "10 m mast" }).click()
-  check("observer height changes the countdowns", ground !== (await counts()))
-  await page.getByRole("button", { name: "Ground level" }).click()
-  await shot("lander")
-
-  // --- Pestañas ----------------------------------------------------------------------------------------------
-  for (const [tab, selector] of [
-    ["Compare", ".sw-compare"],
-    ["Calendar", ".sw-calendar"],
-    ["Map", ".sw-map"],
-    ["Plan B", ".sw-planb"],
-    ["Learn", ".sw-learn"],
-  ]) {
-    await page.getByRole("tab", { name: tab, exact: true }).click()
-    await page.waitForTimeout(300)
-    check(`tab ${tab}`, await page.locator(selector).isVisible())
-    if (tab === "Map") {
-      const before = await page.locator(".sw-map__name").textContent()
-      await page.locator('.sw-pin[aria-label="Shackleton rim"]').click({ force: true })
-      check("map: picking a site updates the panel", before !== (await page.locator(".sw-map__name").textContent()))
-    }
-    await shot(tab.toLowerCase().replace(" ", ""))
-  }
-
-  // --- Día y noche: el fondo de la ventana sigue al Sol del sitio ------------------------------------------------
-  await page.getByRole("tab", { name: "Lander", exact: true }).click()
-  await page.waitForTimeout(400)
-  /** Mueve el tiempo a una fracción del día lunar y devuelve la oscuridad de la ventana (0 día, 1 noche) y su fondo. */
-  const shadeAt = async (fraction) => {
-    await clickTimeline(fraction)
-    await page.waitForTimeout(1600)
-    return page.locator(".ln").evaluate((el) => ({
-      night: Number(el.style.getPropertyValue("--night")),
-      background: getComputedStyle(el).backgroundColor,
-      bar: getComputedStyle(document.querySelector(".ln-bar")).backgroundColor,
-      label: document.querySelector(".sw-count span")?.textContent ?? "",
-    }))
-  }
-  const luminance = (color) => {
-    const [r, g, b] = (color.match(/[\d.]+/g) ?? []).map(Number)
-    return color.startsWith("color(") ? (r + g + b) / 3 : (r + g + b) / 765
-  }
-  const day = await shadeAt(0.4)
-  check("day: the whole page is paper while the Sun is far from setting", day.night === 0 && luminance(day.background) > 0.85 && luminance(day.bar) > 0.85 && /sunset/i.test(day.label), JSON.stringify(day))
-  // El cielo se vuelve negro pronto (no hay atmósfera) y el Sol baja ya sobre negro hasta la puesta.
-  const dusk = await shadeAt(0.635)
-  check("dusk: the page darkens as sunset approaches", dusk.night > 0.2 && dusk.night < 0.95 && luminance(dusk.background) < luminance(day.background) - 0.1 && /sunset/i.test(dusk.label), JSON.stringify(dusk))
-  const dark = await shadeAt(0.85)
-  check("night: the whole page is black once the Sun has set", dark.night === 1 && luminance(dark.background) < 0.12 && luminance(dark.bar) < 0.12 && /sunrise/i.test(dark.label), JSON.stringify(dark))
-  /** El horizonte de fondo: cuánto se ve, cuánto asoma el Sol sobre la cresta ("off": no está) y cuánto brillan las estrellas. */
-  const sceneNow = () =>
-    page.locator(".hz").evaluate((el) => {
-      const land = el.querySelector('[data-part="land-ridge"]')
-      const pixels = land.getContext("2d").getImageData(0, 0, land.width, land.height).data
-      let drawn = 0
-      for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 40) drawn++
-      return {
-        shown: Number(getComputedStyle(el.parentElement).opacity),
-        sun: el.dataset.sun,
-        stars: Number(getComputedStyle(el.querySelector('[data-part="stars"]')).opacity),
-        drawn,
-        shader: Boolean(el.querySelector('[data-part="sun"]').getContext("webgl")),
-      }
-    })
-  /** Las estrellas salen y se apagan poco a poco: se espera a que lleguen a donde van. */
-  const starsSettle = (test) => page.waitForFunction(test, null, { timeout: 20_000 }).catch(() => {})
-  await starsSettle(() => Number(getComputedStyle(document.querySelector('.hz [data-part="stars"]')).opacity) > 0.9)
-  const nightScene = await sceneNow()
-  check("night: the Sun is hidden behind the horizon and the stars are out", nightScene.shown > 0.9 && nightScene.drawn > 5000 && (nightScene.sun === "off" || Number(nightScene.sun) === 0) && nightScene.stars > 0.9, JSON.stringify(nightScene))
-  await shot("lander-night")
-  await shadeAt(0.665)
-  const duskScene = await sceneNow()
-  check("dusk: the setting Sun is on the horizon and dims the stars", duskScene.shown > 0.9 && Number(duskScene.sun) > 0.1 && duskScene.stars < nightScene.stars && duskScene.shader, JSON.stringify(duskScene))
-  await shot("lander-dusk")
-  await shadeAt(0.4)
-  await starsSettle(() => Number(getComputedStyle(document.querySelector('.hz [data-part="stars"]')).opacity) === 0)
-  const dayScene = await sceneNow()
-  check("day: no Sun far from sunrise and sunset", dayScene.sun === "off" && dayScene.stars === 0, JSON.stringify(dayScene))
-  await page.getByRole("tab", { name: "Compare", exact: true }).click()
+  // --- Beneficios: cada pestaña enseña la foto de su pantalla y su frase ---------------------------------------------
+  await page.evaluate(() => window.scrollTo(0, document.querySelector("#software").getBoundingClientRect().top + scrollY - 80))
   await page.waitForTimeout(1500)
-  const other = await page.locator(".ln").evaluate((el) => Number(el.style.getPropertyValue("--night")))
-  check("other views stay on paper", other === 0, String(other))
+  for (const id of ["compare", "organize", "planb", "anticipate", "locate"]) {
+    await page.locator(`#sw-tab-${id}`).click()
+    await page.waitForTimeout(400)
+    const img = page.locator("#sw-panel img")
+    const loaded = await img.evaluate((el) => (el.complete ? el.naturalWidth : new Promise((ok) => el.addEventListener("load", () => ok(el.naturalWidth), { once: true }))))
+    check(`benefit ${id}: photo and sentence`, loaded > 0 && (await img.getAttribute("src")).includes(`benefit-${id}-`) && (await page.locator(".sw-benefit").innerText()).length > 20)
+    if (shots) await page.locator(".sw-photo").screenshot({ path: join(shots, `${mobile ? "mobile" : "desktop"}-${id}.png`) })
+  }
 
   check("no console errors or failed requests", problems.length === 0, [...new Set(problems)].slice(0, 4).join("; "))
 } finally {

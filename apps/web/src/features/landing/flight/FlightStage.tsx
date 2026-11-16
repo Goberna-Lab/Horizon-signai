@@ -612,8 +612,8 @@ export function FlightStage() {
       placeMark("sun", flight.bodyOnScreen("sun", point), oblique)
       placeMark("earth", flight.bodyOnScreen("earth", point), oblique)
       placeMark("site", flight.project(handle.points["connecting-ridge"], point), clamp01(flight.pose.ring * 1.5 - 0.25), "right")
-      const compare = clamp01((state.p - (LAST - 0.45)) / 0.3)
-      for (const mark of MARKS) placeMark(mark.id, flight.project(handle.points[mark.id], point), compare, mark.side)
+      // Los rótulos de los sitios de la comparación ya no salen: el vuelo termina en el punto de cerca.
+      for (const mark of MARKS) placeMark(mark.id, flight.project(handle.points[mark.id], point), 0, mark.side)
       // Las misiones de la bitácora, en sus sitios, mientras se ve esa parada.
       const missions = clamp01(1 - Math.abs(state.p - MISSION_STOP) / 0.45)
       for (const entry of MISSION_SITES) placeMark(`m:${entry.site}`, flight.project(handle.points[entry.site], point), missions)

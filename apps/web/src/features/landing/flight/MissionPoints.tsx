@@ -219,6 +219,7 @@ export function PointDetail({
         ))}
       </ul>
       <p className="fl-point__note">{missionPoints.note}</p>
+      <p className="fl-point__next">{missionPoints.next} ↓</p>
     </div>
   )
 }

@@ -1,9 +1,12 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router"
 import { enfocarEva } from "@/shared/eva"
 import { lang } from "@/shared/i18n"
 import { actions, firstMission } from "../content"
 import { Reveal } from "./Reveal"
+
+/** Dónde se guarda si la persona dejó encendida la guía de EVA de esta sección. */
+const GUIDE_KEY = "horizon-signai.tour-guide"
 
 /** Dónde están las capturas y los vídeos del recorrido: un archivo por idioma (`public/landing-tour/`). */
 const file = (media: string, extension: string) => `/landing-tour/${media}-${lang}.${extension}`
@@ -16,12 +19,30 @@ const file = (media: string, extension: string) => `/landing-tour/${media}-${lan
 export function FirstMission() {
   const list = useRef<HTMLOListElement>(null)
 
-  // EVA enseña el recorrido: cuando un paso lleva un momento en pantalla, vuela hasta su imagen, la apunta con su rayo
-  // y dice su frase (una vez por paso). Son frases de su guion, así que suenan con su voz grabada. Si EVA está
-  // apagada, ocupada o conversando, no pasa nada (`enfocarEva` de `@/shared/eva`).
+  /** La guía de EVA en esta sección: apagada hasta que la persona la pide; su elección se recuerda en el navegador. */
+  const [guided, setGuided] = useState(() => {
+    try {
+      return window.localStorage.getItem(GUIDE_KEY) === "on"
+    } catch {
+      return false
+    }
+  })
+  const toggleGuide = () =>
+    setGuided((on) => {
+      try {
+        window.localStorage.setItem(GUIDE_KEY, on ? "off" : "on")
+      } catch {
+        // Sin almacenamiento (modo privado): la guía funciona igual, solo no se recuerda.
+      }
+      return !on
+    })
+
+  // Con la guía encendida, EVA enseña el recorrido: cuando un paso lleva un momento en pantalla, vuela hasta su imagen,
+  // la apunta con su rayo y dice su frase (una vez por paso desde que se enciende). Son frases de su guion, así que
+  // suenan con su voz grabada. Si EVA está apagada, ocupada o conversando, no pasa nada (`enfocarEva`).
   useEffect(() => {
     const root = list.current
-    if (!root || typeof IntersectionObserver === "undefined") return
+    if (!guided || !root || typeof IntersectionObserver === "undefined") return
     const said = new Set<Element>()
     const timers = new Map<Element, number>()
     const observer = new IntersectionObserver(
@@ -47,7 +68,7 @@ export function FirstMission() {
       observer.disconnect()
       for (const timer of timers.values()) window.clearTimeout(timer)
     }
-  }, [])
+  }, [guided])
 
   return (
     <section className="ln-sec ln-tour" id="first-mission">
@@ -59,6 +80,15 @@ export function FirstMission() {
         <Reveal as="p" className="ln-lede" delay={80}>
           {firstMission.body}
         </Reveal>
+        <div className="ln-tour__guide">
+          <button type="button" className="ln-tour__toggle" aria-pressed={guided} onClick={toggleGuide}>
+            <span className="ln-tour__dot" aria-hidden="true" />
+            {guided ? firstMission.guide.off : firstMission.guide.on}
+          </button>
+          <p className="ln-mono" aria-live="polite">
+            {guided ? firstMission.guide.active : firstMission.guide.hint}
+          </p>
+        </div>
         <ol className="ln-tour__steps" ref={list}>
           {firstMission.steps.map((step, n) => (
             <li key={step.media} className="ln-tour__step" data-step={n}>

@@ -231,6 +231,19 @@
   letter-spacing: -0.01em;
 }
 
+/* Teléfonos: el nombre vuelve a su ancho normal y se achica un poco, para que el botón de la derecha quepa entero. */
+@media (max-width: 519px) {
+  .ln-bar__name {
+    font-stretch: 100%;
+    letter-spacing: -0.03em;
+  }
+
+  .ln-bar__brand {
+    gap: 0.35em;
+    font-size: clamp(0.8125rem, 3.9vw, 1rem);
+  }
+}
+
 .ln-bar__sun,
 .ln-bar__ai {
   fill: var(--signal);
@@ -363,8 +376,9 @@
 
 .ln-step {
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: var(--gutter);
+  /* Tres columnas: la palabra, el vídeo que aparece al pasar el ratón y el texto, más a la derecha. */
+  grid-template-columns: minmax(0, 6.4fr) minmax(0, 2.6fr) minmax(0, 3.4fr);
+  gap: clamp(16px, 2.2vw, 32px);
   align-items: end;
   padding: clamp(20px, 2.6vw, 40px) 0;
   border-top: var(--rule);
@@ -372,8 +386,8 @@
 
 .ln-step__verb {
   font-weight: 900;
-  /* "REHEARSE", el verbo más largo, mide 5,62 veces el cuerpo: así cabe entero en su columna de 7/12. */
-  font-size: clamp(3rem, 10cqi, 9.5rem);
+  /* "COMPARE", el verbo más largo, mide 5,16 veces el cuerpo: a 9,2cqi cabe entero en su columna (6,4 de 12,4). */
+  font-size: clamp(3rem, 9.2cqi, 9.5rem);
   line-height: 0.8;
   letter-spacing: -0.055em;
   text-transform: uppercase;
@@ -871,8 +885,108 @@
   color: var(--ink-soft);
 }
 
+/* Vista previa de cada paso del flujo: al pasar el ratón por la fila, un vídeo de la app aparece en la columna del
+   medio, entre la palabra y el texto, centrado en vertical. */
+.ln-step__preview {
+  align-self: center;
+  aspect-ratio: 16 / 10;
+  border: var(--rule);
+  background: var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.94;
+  transition:
+    opacity 180ms ease,
+    scale 180ms ease;
+}
+
+.ln-step[data-active] .ln-step__preview {
+  opacity: 1;
+  scale: 1;
+}
+
+.ln-step__preview video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ln-step[data-active] .ln-step__verb {
+    color: var(--signal);
+  }
+}
+
+/* Sin ratón o con poco ancho no hay vista previa: vuelven las dos columnas de palabra y texto. */
+@media (hover: none), (max-width: 999px) {
+  .ln-step__preview {
+    display: none;
+  }
+}
+
+@media (hover: none) and (min-width: 700px), (min-width: 700px) and (max-width: 999px) {
+  .ln-step {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ln-step__preview {
+    transition: none;
+    scale: 1;
+  }
+}
+
 /* "Tu primera misión, paso a paso": seis pasos, cada uno con su captura o vídeo de la app y lo que dice EVA.
    En pantallas anchas la imagen y el texto se alternan de lado; en estrechas, la imagen va arriba. */
+/* El botón que enciende y apaga la guía de EVA: encendido, queda en tinta con un punto verde. */
+.ln-tour__guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: clamp(20px, 2.6vw, 32px);
+}
+
+.ln-tour__guide p {
+  color: var(--ink-soft);
+}
+
+.ln-tour__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border: var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font: 800 0.9375rem/1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ln-tour__toggle:hover,
+.ln-tour__toggle:focus-visible,
+.ln-tour__toggle[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.ln-tour__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+}
+
+.ln-tour__toggle[aria-pressed="true"] .ln-tour__dot {
+  background: #35c26a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #35c26a 35%, transparent);
+}
+
 .ln-tour__steps {
   display: grid;
   gap: clamp(48px, 7vw, 104px);
