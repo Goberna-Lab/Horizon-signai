@@ -221,6 +221,8 @@
     'No date yet: its log and simulation come once it has one': 'Aún sin fecha: su bitácora y su simulación llegan cuando la tenga',
     'Play simulation': 'Reproducir simulación',
     'On its side': 'De lado',
+    'Upright': 'Derecha',
+    'It landed upright': 'Alunizó derecha',
     'Days of operations on the surface': 'Días de operación en la superficie',
     'Slope at the landing site': 'Pendiente en el sitio de alunizaje',
     'It tipped over on landing': 'Volcó al alunizar',

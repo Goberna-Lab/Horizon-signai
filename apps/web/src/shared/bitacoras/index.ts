@@ -1,11 +1,14 @@
-// Bitácoras de misiones reales (ver tipos.ts). Hoy: IM-1 Odysseus.
+// Bitácoras de misiones reales (ver tipos.ts): IM-1 Odysseus, IM-2 Athena y Blue Ghost Mission 1.
+import { BLUE_GHOST_1 } from "./blueGhost.ts"
 import { IM1 } from "./im1.ts"
+import { IM2 } from "./im2.ts"
 import type { Bitacora, Hecho } from "./tipos.ts"
 
 export type { Bitacora, Fuente, Hecho, Tema, Texto } from "./tipos.ts"
-export { IM1 }
+export { BLUE_GHOST_1, IM1, IM2 }
 
-export const BITACORAS: readonly Bitacora[] = [IM1]
+/** En el orden en que pasaron. */
+export const BITACORAS: readonly Bitacora[] = [IM1, BLUE_GHOST_1, IM2]
 
 const DIA_MS = 86_400_000
 /** Medianoche UTC del día de un ISO (fecha u hora). */

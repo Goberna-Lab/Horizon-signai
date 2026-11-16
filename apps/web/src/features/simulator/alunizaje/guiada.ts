@@ -10,6 +10,7 @@
 import { avisarEva } from '@/shared/eva';
 import { lang, tr } from '@/shared/i18n';
 import { diaDeMision, fuentesDe } from '@/shared/bitacoras';
+import { TABLE_FROM_MS, TABLE_TO_MS } from '@/shared/planning';
 import { bitacoraMarkdown } from '@/shared/bitacoras/exportar';
 
 const L = lang === 'es' ? 'es' : 'en';
@@ -46,6 +47,8 @@ export class Guiada {
   /** 1. Antes del descenso: la misión, el lugar y la nota del relieve. El descenso espera al botón. */
   briefing() {
     const b = this.b, antes = b.hechos.filter((h) => h.fase === 'antes');
+    // El cielo sale del motor del Planificador, que solo tiene efemérides de 2026 a 2030 (sitio.ts lo recorta): se dice
+    const t0 = Date.parse(b.contactoUtc), fueraDeTabla = t0 < TABLE_FROM_MS || t0 > TABLE_TO_MS;
     this.v.eva.briefing.open = true;
     const el = this._tarjeta(`
       <small>${b.plan ? tr('PLANNED MISSION', 'MISIÓN PLANIFICADA') : `${tr('REAL MISSION', 'MISIÓN REAL')} · ${esc(b.programa)}`} · ${fecha(b.contactoUtc)} · ${b.contactoUtc.slice(11, 16)} UTC</small>
@@ -53,6 +56,7 @@ export class Guiada {
       <p>${esc(b.resumen[L])}</p>
       ${antes.map((h) => `<p><strong>${esc(h.titulo[L])}.</strong> ${esc(h.texto[L])}</p>`).join('')}
       ${b.simulador.nota ? `<p class="nota">${esc(b.simulador.nota[L])}</p>` : ''}
+      ${fueraDeTabla ? `<p class="nota">${tr('The Sun and Earth you will see are not those of that date: our ephemeris table covers 2026 to 2030, and this mission flew before.', 'El Sol y la Tierra que vas a ver no son los de esa fecha: nuestra tabla de efemérides cubre de 2026 a 2030, y esta misión voló antes.')}</p>` : ''}
       <div class="acts"><button type="button" data-act="bajar">${tr('Start the descent', 'Empezar el descenso')}</button></div>`, 'centro');
     narrar(b.plan ? tr(`This is your plan for ${b.nombre}. It has not flown yet: I will show you what the engine says will happen, step by step.`, `Este es tu plan para ${b.nombre}. Todavía no ha volado: te voy a mostrar lo que el motor dice que va a pasar, paso a paso.`)
       : tr(`This is ${b.nombre}, a mission that really happened. Let's relive it.`, `Esta es ${b.nombre}, una misión que pasó de verdad. Vamos a revivirla.`) + ' ' + antes.map((h) => h.texto[L]).join(' '));

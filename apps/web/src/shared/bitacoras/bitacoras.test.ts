@@ -26,8 +26,10 @@ for (const b of BITACORAS) {
       assert.ok(Number.isFinite(ms), `${h.id}: fecha`)
       if (h.precision === "dia") assert.match(h.utc, /^\d{4}-\d{2}-\d{2}$/, `${h.id}: con precisión de día va solo la fecha`)
       if (h.hastaUtc) assert.ok(Date.parse(h.hastaUtc) >= ms, `${h.id}: hasta antes que desde`)
-      assert.ok(ms >= antes, `${h.id}: fuera de orden`)
-      antes = ms
+      // Un hecho del que solo se sabe el día va después de lo que pasó antes de ese día, aunque ese mismo día haya uno con hora
+      const dia = Date.UTC(+h.utc.slice(0, 4), +h.utc.slice(5, 7) - 1, +h.utc.slice(8, 10))
+      assert.ok((h.precision === "dia" ? dia + 86_399_999 : ms) >= antes, `${h.id}: fuera de orden`)
+      antes = Math.max(antes, ms)
     }
   })
 }

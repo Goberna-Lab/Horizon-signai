@@ -123,9 +123,14 @@
  * de la card (multiply, sin z-index en .lunaesq para que mezcle con el papel) y al 15 %. */
 .upcoming .mlist { position: relative; z-index: 1; }
 /* Misiones reales (data/bitacoras.js): debajo de las nuestras, con su bitácora para descargar y su simulación */
-.real { position: relative; z-index: 1; flex: none; display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--tinta); background: rgba(255,255,255,0.62); }
+.real { position: relative; z-index: 1; flex: none; display: grid; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--tinta); background: rgba(255,255,255,0.62); }
 .real .cap { font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
-.real .r1 { display: flex; align-items: center; gap: 8px; }
+.real .rm { display: grid; gap: 8px; }
+.real .rm[open] { padding-bottom: 4px; }
+.real .rm > .kps, .real .rm > .acts { margin-top: 8px; }
+.real .r1 { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
+.real .r1::-webkit-details-marker { display: none; }
+.real .r1:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 .real .nm { flex: 1; min-width: 0; font-size: 13px; line-height: 1.2; }
 .real .idb { background: var(--tinta); color: var(--crema); }
 .st.REAL { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
@@ -701,13 +706,15 @@
     var dias = function (b) { return Math.round((Date.parse(b.finUtc) - Date.parse(b.contactoUtc.slice(0, 10))) / 864e5); };
     box.innerHTML = '<span class="cap">Real missions</span>' + B.map(function (b, i) {
       var de = b.hechos.some(function (h) { return h.id === 'de-lado'; });
-      return '<div class="r1"><span class="idb">' + esc(b.nombre) + '</span><span class="nm" translate="no">' + esc(b.nave.replace(/ \(.*\)$/, '') + ' · ' + b.sitio.nombre) + '</span><span class="st REAL">REAL · ' + b.contactoUtc.slice(0, 4) + '</span></div>' +
+      return '<details class="rm" name="real"' + (B.length === 1 ? ' open' : '') + '><summary class="r1"><span class="idb">' + esc(b.nombre) + '</span><span class="nm" translate="no">' + esc(b.nave.replace(/ \(.*\)$/, '') + ' · ' + b.sitio.nombre) + '</span><span class="st REAL">REAL · ' + b.contactoUtc.slice(0, 4) + '</span></summary>' +
         '<span class="kps">' + kp('calendar-days', dia(b.contactoUtc), '', '', 'Contact') + kp('hourglass', dias(b) + ' d', '', '', 'Days of operations on the surface') +
-        (b.sitio.pendienteDeg ? kp('mountains-2', b.sitio.pendienteDeg + '°', '', 'warn', 'Slope at the landing site') : '') + (de ? kp('', 'On its side', '', 'bad', 'It tipped over on landing') : '') + '</span>' +
+        (b.sitio.pendienteDeg ? kp('mountains-2', b.sitio.pendienteDeg + '°', '', 'warn', 'Slope at the landing site') : '') + (de ? kp('', 'On its side', '', 'bad', 'It tipped over on landing') : kp('', 'Upright', '', 'good', 'It landed upright')) + '</span>' +
         '<span class="acts"><button type="button" class="btn" data-log="' + i + '"><i class="lni lni-download-1" aria-hidden="true"></i>Download log</button>' +
-        '<a class="btn red" href="/simulador?bitacora=' + encodeURIComponent(b.id) + '" target="_top"><i class="lni lni-play" aria-hidden="true"></i>Play simulation</a></span>';
+        '<a class="btn red" href="/simulador?bitacora=' + encodeURIComponent(b.id) + '" target="_top"><i class="lni lni-play" aria-hidden="true"></i>Play simulation</a></span></details>';
     }).join('');
     box.hidden = false;
+    /* al abrir o cerrar una, cambia el alto del recuadro: la lista de arriba y la Luna se reacomodan */
+    box.querySelectorAll('details').forEach(function (d) { d.addEventListener('toggle', fitMissions); });
     box.onclick = function (e) {
       var btn = e.target.closest('[data-log]'); if (!btn) return;
       var b = B[+btn.dataset.log]; bajar((L === 'es' ? 'bitacora-' : 'log-') + b.id + '.md', b.markdown[L]);

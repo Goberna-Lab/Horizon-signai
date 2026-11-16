@@ -11,6 +11,5 @@
 - **Misiones guiadas** (`docs/06-simulador.md`, 9.11 y 9.12): `?bitacora=<id>` (misión real, de `@/shared/bitacoras`) y `&guia=<nombre>` (misión planificada, pasos calculados por `evaluate`). `alunizaje/guiada.ts` las cuenta; `planGuiado.ts` arma el plan; `avisoSitio.ts` avisa de la pendiente real antes de bajar. Toda bitácora real lleva fuente en cada hecho; al añadir una, `node apps/web/scripts/exportar-bitacoras.ts`.
 
 ## Siguiente
-1. Más bitácoras reales (IM-2 Athena tiene paquete 3D en su sitio real; Blue Ghost M1).
-2. Tipo de misión y actividades en el modelo (`Mission`), con el núcleo y el Planificador: hoy el tipo llega por la URL.
-3. El aviso de pendiente también dentro de una misión guiada planificada.
+1. Tipo de misión y actividades en el modelo (`Mission`), con el núcleo y el Planificador: hoy el tipo llega por la URL.
+2. El aviso de pendiente también dentro de una misión guiada planificada.
