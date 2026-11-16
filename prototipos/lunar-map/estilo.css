@@ -73,6 +73,9 @@ body { font-family: var(--f-ui); }
 .ftab { border: var(--rule); border-bottom: 0; background: var(--crema-3); font-family: var(--f-ui); font-weight: 600; }
 .ftab[aria-selected="true"] { background: var(--crema); }
 .ftab[aria-selected="true"]::after { background: var(--crema); }
+/* Las pestañas sin elegir: sin cuadro (el gris se veía cortado), solo el texto al 75 % y más abajo que la elegida */
+.ftab:not([aria-selected="true"]) { height: 34px; background: none; border-color: transparent; color: rgb(17 17 17 / .75); }
+.ftab:not([aria-selected="true"]):hover { color: var(--tinta); }
 
 /* ---------- tarjetas de misión: filete fino; al pasar, trama; la elegida, regla de tinta doble ---------- */
 .mrow { border: var(--hair); transition: background-color 140ms, border-color 140ms; }
