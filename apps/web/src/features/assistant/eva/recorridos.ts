@@ -1,495 +1,384 @@
-// El flujo guiado de EVA: un solo camino, con orden fijo, para preparar varias misiones.
-//
-// Pedido de Estephano (2026-11-15): «al principio debería preguntar para preparar todo; un flujo claro, inamovible,
-// insaltable, para que se entienda: dashboard -> eliges la misión a planificar, comparas, simulas, aprendes, revisas
-// otras misiones; hay que prepararnos para varias misiones, con un guion divertido y que se aprenda fácil».
+// El flujo guiado de EVA (pedido de Manuel, 2026-11-15): se presenta, pregunta el nombre y ofrece enseñar a hacer una
+// misión lunar.
 //
 // Cómo es:
-// - Seis etapas, siempre en este orden (ETAPAS): 1 Missions, 2 Plan, 3 Compare, 4 Simulate, 5 Learn, 6 Next mission.
-//   No se saltan: se avanza con «Next», eligiendo una misión o contestando la pregunta de repaso.
-// - Tres misiones de ejemplo, cada una con un problema distinto y una salida distinta, para que cada una enseñe una
-//   sola idea: la FECHA (el Sol), la ALTURA (el enlace con la Tierra) y el LUGAR.
+// - La oferta (OFERTA): «¿Quieres aprender a hacer una misión lunar?». «Sí» lleva al control de misión (CONTROL);
+//   «Solo quiero ver la landing» recorre la landing (LANDING) y al final vuelve a ofrecer.
+// - CONTROL: EVA abre el dashboard (Missions) y señala cada parte: el próximo hito con su cuenta regresiva, cómo va esa
+//   misión, la misión que espera tu aprobación, el radar de sitios y la lista de misiones. Al final pregunta qué quieres
+//   hacer, con tres caminos (CAMINOS), que se eligen con un botón, diciéndolo o tocando la parte en el dashboard:
+//   ver una misión (VER), crear una nueva (CREAR: el tutorial del Planificador de misiones, que luego se abre) o ir
+//   directo a la simulación (SIMULAR). Al terminar VER o SIMULAR, vuelve a preguntar (ELEGIR).
 // - Está escrito, no lo genera la IA: funciona aunque los servidores de IA no contesten, y su voz está grabada
 //   (./vozGrabada.ts). Cada paso puede hacer algo en la app (las órdenes de ./acciones.ts), apuntar a una parte de la
 //   pantalla y decir una frase. Una pregunta de la persona la contesta la IA y el flujo sigue en el mismo paso.
 //
-// De dónde sale cada afirmación (comprobado en la página con el motor del planificador, prototipos/lunar-map/engine.js,
-// el 2026-11-15; si cambia el motor, los datos o estos escenarios, se vuelve a comprobar):
-// - CR-01, zona A, plan 18 dic 2026 movido al 3 abr 2027 09:00, estadía 3 d, equipo 2 m, batería 24 h: A y C NO GO,
-//   B GO. A: Sol 1,1° bajo el relieve al aterrizar y noche de 29 h. Salida «fecha»: 9 abr 2027 (6 días después), GO.
-// - PS-03, zona B, 10 ene 2027 03:00, mismo equipo: B NO GO porque la Tierra está 0,4° bajo el relieve al aterrizar
-//   (el Sol, a +4,0°). Salida «altura»: equipo a 5 m, la Tierra queda a +0,4°: cumple, con veredicto REVIEW.
-// - SR-05, zona C, 5 may 2027 09:00: C NO GO (Sol 0,9° bajo el relieve y noche de 26 h contra 24 h); A y B GO.
-//   Salida «zona»: zona A el mismo día, GO. A y C están a unos 10 km (89,47° S 222,6° E y 89,78° S 204,0° E).
-// - El Sol no pasa de 1,59° sobre el polo entre 2026 y 2030: features/landing/flight/data/facts.json.
-// - El simulador 3D (features/simulator) aluniza en Connecting Ridge RoI 6, la zona A: por eso va en la misión CR-01, con
-//   la caminata de después (tareas reales de una EVA de Artemis: tareas.ts; el traje: visorHud.ts).
+// De dónde sale cada afirmación (si cambia la pantalla, se vuelve a comprobar):
+// - Dashboard: prototipos/lunar-map/inicio.html y campaign.js (CR-01 próximo hito; pasos «Zone confirmed», «Descent
+//   simulated», «Walk approved», «Final Flight Director Go»; CR-02 por firmar con O₂ al volver 26 % contra 30 %; estados
+//   GO, por firmar, en revisión y borrador; la fila de CR-01 trae Sol y Tierra al alunizar, días de margen y contacto).
+// - Planificador de misiones: apps/web/public/planificar-mision.html, en los pasos de la instrucción de Francisco
+//   (features/assistant/CLAUDE.md, «EVA y el Planificador»).
+// - Landing: features/landing/content.ts (el Sol no pasa de 1,59° sobre el polo entre 2026 y 2030).
+// - El simulador 3D (features/simulator) aluniza en Connecting Ridge, la zona de CR-01, con la caminata de después
+//   (tareas reales de una EVA de Artemis: tareas.ts; el traje: visorHud.ts).
 //
-// Voz: cada oración se graba por separado y por su texto exacto. Las oraciones que se repiten entre misiones están
-// escritas igual a propósito; los números van en letras. Tras cambiar un texto: `node apps/web/scripts/grabar-voz-eva.ts`.
+// Voz: cada oración se graba por separado y por su texto exacto. Las oraciones que se repiten están escritas igual a
+// propósito; los números van en letras. Tras cambiar un texto: `node apps/web/scripts/grabar-voz-eva.ts`.
 import type { AccionIA } from "@/prueba-ia/cliente"
 
 type Bi = { en: string; es: string }
 
-/** Las seis etapas del flujo, en orden. El número de etapa de cada paso es su posición aquí (desde 1). */
+/** Las tres etapas del flujo, en orden (el riel del globo). El número de etapa de cada paso es su posición aquí (desde 1). */
 export const ETAPAS: Bi[] = [
-  { en: "Missions", es: "Misiones" },
-  { en: "Plan", es: "Planear" },
-  { en: "Compare", es: "Comparar" },
-  { en: "Simulate", es: "Simular" },
-  { en: "Learn", es: "Aprender" },
-  { en: "Next mission", es: "Siguiente" },
+  { en: "Mission control", es: "Control de misión" },
+  { en: "Your choice", es: "Tu elección" },
+  { en: "Hands on", es: "Manos a la obra" },
 ]
 
-/** La pregunta de repaso de una misión: hay que acertarla para seguir. */
+/** La pregunta de repaso de un paso: hay que acertarla para seguir. */
 export type Repaso = { opciones: Bi[]; correcta: number; acierto: Bi; fallo: Bi }
 
 export type Paso = {
-  /** A qué etapa pertenece (1 a 6). */
-  etapa: number
+  /** A qué etapa pertenece (1 a 3). Sin etapa (el recorrido de la landing) no hay riel. */
+  etapa?: number
   /** Lo que EVA dice. Corto: se pronuncia. */
   texto: Bi
-  /** Orden que se ejecuta antes de hablar (abrir una pantalla, cambiar el escenario…). */
+  /** Orden que se ejecuta antes de hablar (abrir una pantalla, pulsar un botón…). */
   accion?: AccionIA
-  /** Parte de la pantalla a la que apunta (en la página o en el planificador incrustado). Si no está, solo habla. */
+  /** Parte de la pantalla a la que apunta (en la página o en la pantalla incrustada). Si no está, solo habla. */
   selector?: string
   /** Pausa tras la orden, para que la pantalla termine de dibujarse (ms). */
   espera?: number
-  /** En este paso no hay «Next»: se sigue eligiendo una misión. */
+  /** En este paso no hay «Next»: se sigue eligiendo uno de los CAMINOS. */
   elige?: true
   /** En este paso no hay «Next»: se sigue acertando la pregunta. */
   repaso?: Repaso
 }
 
-export type Recorrido = { id: string; fin: Bi; pasos: Paso[] }
+export type Recorrido = {
+  id: string
+  /** Lo que dice al terminar (vacío: nada). */
+  fin: Bi
+  pasos: Paso[]
+  /** Qué sigue al terminar: volver a ofrecer el flujo o volver a elegir camino. */
+  luego?: "oferta" | "elegir"
+  /** Orden que se ejecuta al terminar, después de `fin` (p. ej. abrir el Planificador). */
+  alFin?: AccionIA
+}
 
-/** Quién llega: la pregunta de preparación. Solo cambia la primera frase; el camino es el mismo para todos. */
-export const PERFILES: { id: "planner" | "teacher" | "curious"; boton: Bi; saludo: Bi }[] = [
-  {
-    id: "planner",
-    boton: { en: "I plan missions", es: "Planifico misiones" },
-    saludo: { en: "A professional. I will keep it short and precise.", es: "Alguien del oficio. Seré breve y precisa." },
-  },
-  {
-    id: "teacher",
-    boton: { en: "I teach", es: "Enseño" },
-    saludo: { en: "A teacher. Each mission ends with a question you can reuse in class.", es: "Alguien que enseña. Cada misión termina con una pregunta que puedes usar en clase." },
-  },
-  {
-    id: "curious",
-    boton: { en: "I am curious", es: "Tengo curiosidad" },
-    saludo: { en: "A curious mind. No jargon, I promise. Well, almost none.", es: "Una mente curiosa. Nada de jerga, lo prometo. Bueno, casi nada." },
-  },
+/** La oferta, tras el nombre. Las palabras para reconocerla por voz están en ./escucha.ts (PALABRAS_OFERTA). */
+export const OFERTA: { id: "si" | "landing"; boton: Bi }[] = [
+  { id: "si", boton: { en: "Yes, teach me", es: "Sí, enséñame" } },
+  { id: "landing", boton: { en: "Just show me the landing", es: "Solo quiero ver la landing" } },
 ]
 
 // ----- Frases que se repiten (misma oración, misma grabación) -----
-const DESCENSO: Bi = {
-  en: "Time to rehearse. This is the descent, flown with the Apollo eleven profile as our example ship.",
-  es: "Hora de ensayar. Este es el descenso, volado con el perfil del Apollo once como nave de ejemplo.",
-}
-const NOVENTA: Bi = {
-  en: "And these are ninety days on the surface. Red is sunlight. White is Earth in view. Watch the Sun slide along the horizon.",
-  es: "Y estos son noventa días en la superficie. Rojo es luz solar. Blanco es Tierra a la vista. Mira cómo el Sol se desliza por el horizonte.",
-}
-const SALIDAS: Bi = {
-  en: "Do not panic. The planner offers three ways out: another date, another zone, or taller equipment.",
-  es: "Que no cunda el pánico. El planificador ofrece tres salidas: otra fecha, otra zona o un equipo más alto.",
-}
-const VUELTA_TEXTO: Bi = {
-  en: "Back at mission control. Pick the next mission.",
-  es: "De vuelta en el control de misión. Elige la siguiente misión.",
+const QUE_HACER: Bi = {
+  en: "You can see a mission that already exists, create a new one, or do something more exciting: go straight to the simulation.",
+  es: "Puedes ver una misión que ya existe, crear una nueva, o algo más emocionante: ir directo a la simulación.",
 }
 
-const equipo = { stay: 3, panel: 2, antenna: 2, battery: 24, earth: 40 }
-
-export type Mision = {
-  /** El id de la misión en el dashboard (prototipos/lunar-map/campaign.js). */
-  id: string
-  nombre: Bi
-  /** Una línea: qué va a enseñar. Sale en el botón para elegirla. */
-  tema: Bi
-  recorrido: Recorrido
-}
-
-export const MISIONES: Mision[] = [
-  {
-    id: "CR-01",
-    nombre: { en: "Connecting Ridge", es: "Connecting Ridge" },
-    tema: { en: "the launch slipped", es: "el lanzamiento se atrasó" },
-    recorrido: {
-      id: "CR-01",
-      fin: {
-        en: "Lesson one: at the south pole, the date decides the sunlight. Mission one is ready.",
-        es: "Lección uno: en el polo sur, la fecha decide la luz. La misión uno está lista.",
-      },
-      pasos: [
-        {
-          etapa: 2,
-          accion: { tipo: "planner", reset: true, plan: "2026-12-18T09:00", zone: "A", date: "2027-04-03", time: "09:00", ...equipo },
-          espera: 350,
-          selector: "#slip",
-          texto: {
-            en: "Mission one. The rocket was late, so the landing slid from the eighteenth of December to the third of April. Same lander, same needs. Let us see if the Moon still agrees.",
-            es: "Misión uno. El cohete se atrasó, así que el alunizaje pasó del dieciocho de diciembre al tres de abril. La misma nave, las mismas necesidades. Veamos si la Luna sigue de acuerdo.",
-          },
-        },
-        {
-          etapa: 2,
-          selector: "#cards",
-          texto: {
-            en: "Three candidate zones. Each card answers one question: go, or no go. Ours is zone A, and it just turned red.",
-            es: "Tres zonas candidatas. Cada tarjeta responde una pregunta: go, o no go. La nuestra es la zona A, y acaba de ponerse roja.",
-          },
-        },
-        {
-          etapa: 2,
-          selector: "#hz",
-          texto: {
-            en: "Here is why. This black shape is the real horizon around zone A. On landing day the Sun is hiding behind that terrain. No Sun, no power.",
-            es: "Aquí está el porqué. Esta forma negra es el horizonte real alrededor de la zona A. El día del alunizaje el Sol se esconde detrás de ese relieve. Sin Sol no hay energía.",
-          },
-        },
-        {
-          etapa: 2,
-          selector: "#checkList",
-          texto: {
-            en: "It gets worse. The night lasts twenty-nine hours, and our battery lasts twenty-four. I did the math so you do not have to: we freeze.",
-            es: "Y se pone peor. La noche dura veintinueve horas y nuestra batería dura veinticuatro. Hice la cuenta para que no tengas que hacerla: nos congelamos.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "save" },
-          espera: 200,
-          selector: "#ways",
-          texto: { en: `${SALIDAS.en} Let us try the date.`, es: `${SALIDAS.es} Probemos con la fecha.` },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "fix", how: "date" },
-          espera: 250,
-          selector: "#verdict",
-          texto: {
-            en: "Six days later, and zone A is go again. The Sun came back around the horizon. That is a replan in one click.",
-            es: "Seis días después, y la zona A vuelve a ser go. El Sol dio la vuelta por el horizonte. Eso es replanificar con un clic.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "compare" },
-          espera: 250,
-          selector: "#cmpWrap",
-          texto: {
-            en: "Now compare. Two rows, same place, six days apart. One fails, one passes. This table is how you defend a decision.",
-            es: "Ahora compara. Dos filas, el mismo lugar, seis días de diferencia. Una falla y la otra cumple. Con esta tabla se defiende una decisión.",
-          },
-        },
-        { etapa: 4, accion: { tipo: "simulate" }, espera: 200, selector: "#relief", texto: DESCENSO },
-        { etapa: 4, accion: { tipo: "play" }, espera: 150, selector: "#tl", texto: NOVENTA },
-        {
-          etapa: 4,
-          accion: { tipo: "open", screen: "simulator" },
-          espera: 900,
-          texto: {
-            en: "Now the full ride, in three dimensions. The descent flies itself. Drag to look around. Say next when we are down.",
-            es: "Ahora el viaje completo, en tres dimensiones. El descenso vuela solo. Arrastra para mirar alrededor. Di siguiente cuando estemos abajo.",
-          },
-        },
-        {
-          // La caminata del simulador (features/simulator/alunizaje: caminata.ts, tareas.ts, visorHud.ts): al posarse,
-          // la tarjeta final ofrece «Salir a caminar»; EVA la pulsa y el astronauta baja por la escalera.
-          etapa: 4,
-          accion: { tipo: "clic", selector: '.sim-lfp-end [data-act="out"]' },
-          espera: 2500,
-          texto: {
-            en: "We are down. Now the best part: we step outside. The astronaut climbs down the ladder, and you look through the helmet.",
-            es: "Ya estamos abajo. Ahora lo mejor: salimos. El astronauta baja por la escalera, y tú miras a través del casco.",
-          },
-        },
-        {
-          etapa: 4,
-          selector: ".sim-vh-rows",
-          texto: {
-            en: "This is the screen inside your helmet. Oxygen, the carbon dioxide filter, cooling water and battery all drain as you work, faster in the shade.",
-            es: "Esta es la pantalla dentro de tu casco. El oxígeno, el filtro de dióxido de carbono, el agua de refrigeración y la batería se gastan mientras trabajas, más rápido en la sombra.",
-          },
-        },
-        {
-          etapa: 4,
-          selector: ".sim-vh-feed",
-          texto: {
-            en: "Your tasks are real moonwalk jobs: check a landing leg, plant a seismometer far from the lander, put a solar panel where the Sun really shines, and collect samples in light and in shadow.",
-            es: "Tus tareas son trabajos reales de una caminata lunar: revisar una pata, instalar un sismómetro lejos de la nave, poner un panel solar donde de verdad dé el Sol y tomar muestras en la luz y en la sombra.",
-          },
-        },
-        {
-          etapa: 4,
-          selector: ".sim-vh-keys",
-          texto: {
-            en: "Walk with the arrow keys and look around with the mouse. Take a stroll if you like. Say next when you are ready for the quiz.",
-            es: "Camina con las flechas y mira alrededor con el ratón. Da un paseo si quieres. Di siguiente cuando estés listo para el repaso.",
-          },
-        },
-        {
-          etapa: 5,
-          texto: {
-            en: "Quick check. Why did zone A fail on the third of April?",
-            es: "Repaso rápido. ¿Por qué falló la zona A el tres de abril?",
-          },
-          repaso: {
-            opciones: [
-              { en: "The Sun was behind the terrain", es: "El Sol estaba detrás del relieve" },
-              { en: "The Moon was too far away", es: "La Luna estaba muy lejos" },
-              { en: "The lander was too heavy", es: "La nave pesaba demasiado" },
-            ],
-            correcta: 0,
-            acierto: {
-              en: "Exactly. At the pole the Sun never climbs. It circles the horizon, and a hill is enough to hide it.",
-              es: "Exacto. En el polo el Sol nunca sube. Da la vuelta al horizonte, y un cerro basta para taparlo.",
-            },
-            fallo: {
-              en: "Not quite. Think of the horizon: the Sun was hiding behind the terrain. Try again.",
-              es: "No exactamente. Piensa en el horizonte: el Sol se escondía detrás del relieve. Prueba otra vez.",
-            },
-          },
-        },
-      ],
-    },
-  },
-  {
-    id: "PS-03",
-    nombre: { en: "Peak near Shackleton", es: "Pico cerca de Shackleton" },
-    tema: { en: "can we call home?", es: "¿podemos llamar a casa?" },
-    recorrido: {
-      id: "PS-03",
-      fin: {
-        en: "Lesson two: no line of sight to Earth, no direct link. Height buys you horizon. Mission two is ready.",
-        es: "Lección dos: sin línea de vista a la Tierra no hay enlace directo. La altura te compra horizonte. La misión dos está lista.",
-      },
-      pasos: [
-        {
-          etapa: 2,
-          accion: { tipo: "planner", reset: true, plan: "2027-01-10T03:00", zone: "B", date: "2027-01-10", time: "03:00", ...equipo },
-          espera: 350,
-          selector: "#cards",
-          texto: {
-            en: "Mission two. A survey on the peak next to Shackleton, on the tenth of January. Plenty of sunlight up there. So what could go wrong?",
-            es: "Misión dos. Un reconocimiento en el pico junto a Shackleton, el diez de enero. Allá arriba sobra luz solar. Entonces, ¿qué podría salir mal?",
-          },
-        },
-        {
-          etapa: 2,
-          selector: "#checkList",
-          texto: {
-            en: "This. The Sun is fine, but Earth is hiding just under the horizon at landing. No Earth, no radio. We would land and nobody would know.",
-            es: "Esto. El Sol está bien, pero la Tierra se esconde justo bajo el horizonte al alunizar. Sin Tierra no hay radio. Alunizaríamos y nadie se enteraría.",
-          },
-        },
-        {
-          etapa: 2,
-          selector: "#hz",
-          texto: {
-            en: "From the pole, Earth never rises high. It bobs up and down at the edge of the sky, about once a month. Right now it is tucked behind the terrain.",
-            es: "Desde el polo, la Tierra nunca sube mucho. Sube y baja en el borde del cielo, más o menos una vez al mes. Ahora mismo está metida detrás del relieve.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "save" },
-          espera: 200,
-          selector: "#ways",
-          texto: { en: `${SALIDAS.en} This time, let us raise the equipment.`, es: `${SALIDAS.es} Esta vez, subamos el equipo.` },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "fix", how: "height" },
-          espera: 250,
-          selector: "#verdict",
-          texto: {
-            en: "Antenna up to five metres, and Earth peeks over the hill. It passes, but only just. The planner says review, because Earth barely clears the horizon.",
-            es: "La antena a cinco metros, y la Tierra asoma sobre el cerro. Cumple, pero por poco. El planificador dice revisar, porque la Tierra apenas pasa el horizonte.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "compare" },
-          espera: 250,
-          selector: "#cmpWrap",
-          texto: {
-            en: "Same day, same place. At two metres, no contact. At five metres, contact. Three metres of mast saved the mission.",
-            es: "El mismo día, el mismo lugar. A dos metros, sin contacto. A cinco metros, contacto. Tres metros de mástil salvaron la misión.",
-          },
-        },
-        { etapa: 4, accion: { tipo: "simulate" }, espera: 200, selector: "#relief", texto: DESCENSO },
-        { etapa: 4, accion: { tipo: "play" }, espera: 150, selector: "#tl", texto: NOVENTA },
-        {
-          etapa: 5,
-          texto: { en: "Quick check. Why did we raise the antenna?", es: "Repaso rápido. ¿Por qué subimos la antena?" },
-          repaso: {
-            opciones: [
-              { en: "To make the lander lighter", es: "Para que la nave pese menos" },
-              { en: "To see Earth over the terrain", es: "Para ver la Tierra por encima del relieve" },
-              { en: "To look taller in photos", es: "Para salir más alta en las fotos" },
-            ],
-            correcta: 1,
-            acierto: {
-              en: "Right. Earth sits at the horizon, so a few metres of height can win the line of sight.",
-              es: "Correcto. La Tierra está en el horizonte, así que unos metros de altura pueden ganar la línea de vista.",
-            },
-            fallo: {
-              en: "Not quite. Think of the radio: it needs to see Earth over the terrain. Try again.",
-              es: "No exactamente. Piensa en la radio: necesita ver la Tierra por encima del relieve. Prueba otra vez.",
-            },
-          },
-        },
-      ],
-    },
-  },
-  {
-    id: "SR-05",
-    nombre: { en: "Shackleton rim", es: "Borde de Shackleton" },
-    tema: { en: "the wrong spot", es: "el lugar equivocado" },
-    recorrido: {
-      id: "SR-05",
-      fin: {
-        en: "Lesson three: at the pole, where you land matters as much as when. Mission three is ready.",
-        es: "Lección tres: en el polo, dónde alunizas importa tanto como cuándo. La misión tres está lista.",
-      },
-      pasos: [
-        {
-          etapa: 2,
-          accion: { tipo: "planner", reset: true, plan: "2027-05-05T09:00", zone: "C", date: "2027-05-05", time: "09:00", ...equipo },
-          espera: 350,
-          selector: "#cards",
-          texto: {
-            en: "Mission three. The science team wants the rim of Shackleton crater, on the fifth of May. Bold choice. Let us check.",
-            es: "Misión tres. El equipo de ciencia quiere el borde del cráter Shackleton, el cinco de mayo. Una elección audaz. Vamos a revisar.",
-          },
-        },
-        {
-          etapa: 2,
-          selector: "#checkList",
-          texto: {
-            en: "No go. The Sun is behind the terrain at landing, and the night beats the battery by two hours.",
-            es: "No go. El Sol está detrás del relieve al alunizar, y la noche le gana a la batería por dos horas.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "save" },
-          espera: 200,
-          selector: "#cards",
-          texto: {
-            en: "But look at the neighbours. Same day, about ten kilometres away, zone A is go. Let us move.",
-            es: "Pero mira a los vecinos. El mismo día, a unos diez kilómetros, la zona A es go. Mudémonos.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "fix", how: "zone" },
-          espera: 250,
-          selector: "#verdict",
-          texto: {
-            en: "Zone A, same day: go. We did not touch the date or the lander. We only changed the address.",
-            es: "Zona A, el mismo día: go. No tocamos la fecha ni la nave. Solo cambiamos de dirección.",
-          },
-        },
-        {
-          etapa: 3,
-          accion: { tipo: "compare" },
-          espera: 250,
-          selector: "#cmpWrap",
-          texto: {
-            en: "Two rows, same date, ten kilometres apart. One in the dark, one in the light.",
-            es: "Dos filas, la misma fecha, diez kilómetros de distancia. Una a oscuras y la otra con luz.",
-          },
-        },
-        { etapa: 4, accion: { tipo: "simulate" }, espera: 200, selector: "#relief", texto: DESCENSO },
-        { etapa: 4, accion: { tipo: "play" }, espera: 150, selector: "#tl", texto: NOVENTA },
-        {
-          etapa: 5,
-          texto: {
-            en: "Quick check. Two sites, ten kilometres apart, on the same day. Do they get the same sunlight?",
-            es: "Repaso rápido. Dos sitios, a diez kilómetros, el mismo día. ¿Reciben la misma luz solar?",
-          },
-          repaso: {
-            opciones: [
-              { en: "Yes, the Moon is small", es: "Sí, la Luna es pequeña" },
-              { en: "Only on weekends", es: "Solo los fines de semana" },
-              { en: "No, the terrain decides", es: "No, el relieve decide" },
-            ],
-            correcta: 2,
-            acierto: {
-              en: "Yes. With the Sun that low, every ridge throws a shadow many kilometres long.",
-              es: "Sí. Con el Sol tan bajo, cada cresta lanza una sombra de muchos kilómetros.",
-            },
-            fallo: {
-              en: "Not quite. Think of the low Sun and the long shadows: the terrain decides. Try again.",
-              es: "No exactamente. Piensa en el Sol bajo y las sombras largas: el relieve decide. Prueba otra vez.",
-            },
-          },
-        },
-      ],
-    },
-  },
-]
-
-/** Etapa 1, la primera vez: el dashboard, y a elegir misión. */
-export const INICIO: Recorrido = {
-  id: "inicio",
-  fin: { en: "", es: "" },
+/** El recorrido de la landing: sección por sección. Al final vuelve a ofrecer el flujo. */
+export const LANDING: Recorrido = {
+  id: "landing",
+  fin: { en: "That is the landing.", es: "Esa es la landing." },
+  luego: "oferta",
   pasos: [
     {
-      etapa: 1,
-      accion: { tipo: "open", screen: "missions" },
-      espera: 400,
-      selector: "#mlist",
+      accion: { tipo: "open", screen: "landing" },
+      espera: 300,
+      selector: "#problem .ln-title",
       texto: {
-        en: "This is mission control. Three landings are waiting, and all three have a problem. We will fix them one at a time.",
-        es: "Este es el control de misión. Hay tres alunizajes esperando, y los tres tienen un problema. Los vamos a arreglar uno por uno.",
+        en: "Okay, let us see the landing. It starts with the problem: the launch slipped, so is the site still good? At the south pole, the Sun and Earth sit on the horizon, and a ridge can hide them for days.",
+        es: "Muy bien, veamos la landing. Empieza con el problema: el lanzamiento se atrasó, ¿el sitio sigue sirviendo? En el polo sur, el Sol y la Tierra van a ras del horizonte, y una cresta puede taparlos durante días.",
       },
     },
     {
-      etapa: 1,
-      selector: "#mlist",
-      elige: true,
+      selector: "#problem .ln-stats",
       texto: {
-        en: "Every mission follows the same six steps: pick it, plan it, compare, simulate, learn, and on to the next. Pick your first mission.",
-        es: "Cada misión sigue los mismos seis pasos: elegirla, planearla, comparar, simular, aprender y a la siguiente. Elige tu primera misión.",
+        en: "Three numbers sum it up. The Sun never climbs much more than one and a half degrees over the pole. Two points on the same ridge get very different sunlight. And today the answer is spread over three tools.",
+        es: "Tres cifras lo resumen. El Sol nunca sube mucho más de un grado y medio sobre el polo. Dos puntos de una misma cresta reciben una luz muy distinta. Y hoy la respuesta está repartida en tres herramientas.",
+      },
+    },
+    {
+      selector: "#software .ln-title",
+      texto: {
+        en: "Here you see the software working, with real data: the lander, the site comparison, the calendar and the map.",
+        es: "Aquí ves el software funcionando, con datos reales: el módulo, la comparación de sitios, el calendario y el mapa.",
+      },
+    },
+    {
+      selector: "#planner-demo .ln-title",
+      texto: {
+        en: "Move the date and see which sites still work. That is the heart of the tool: replanning when the schedule changes.",
+        es: "Mueve la fecha y mira qué sitios siguen sirviendo. Ese es el corazón de la herramienta: replanificar cuando el calendario cambia.",
+      },
+    },
+    {
+      selector: "#product .ln-title",
+      texto: {
+        en: "One workflow: plan, compare, see it in three dimensions, and learn. From the first plan to the replan.",
+        es: "Un solo flujo: planea, compara, míralo en tres dimensiones y aprende. Del primer plan al nuevo plan.",
+      },
+    },
+    {
+      selector: "#validation .ln-title",
+      texto: {
+        en: "Every number is checked against outside sources, and the limits are stated honestly.",
+        es: "Cada cifra está comprobada con fuentes externas, y los límites están dichos con honestidad.",
+      },
+    },
+    {
+      selector: "#data .ln-title",
+      texto: {
+        en: "And these are the open NASA data we use, each one cited.",
+        es: "Y estos son los datos abiertos de la NASA que usamos, cada uno citado.",
       },
     },
   ],
 }
 
-/** Etapa 6, tras cada misión mientras queden otras: de vuelta al dashboard, a elegir la siguiente. */
-export const VUELTA: Recorrido = {
-  id: "vuelta",
+/** «Sí»: el control de misión (el dashboard), parte por parte, y la pregunta de qué hacer. */
+export const CONTROL: Recorrido = {
+  id: "control",
   fin: { en: "", es: "" },
-  pasos: [{ etapa: 6, accion: { tipo: "open", screen: "missions" }, espera: 400, selector: "#mlist", elige: true, texto: VUELTA_TEXTO }],
+  pasos: [
+    {
+      etapa: 1,
+      accion: { tipo: "open", screen: "missions" },
+      espera: 600,
+      selector: ".next",
+      texto: {
+        en: "Great, let us begin. This is mission control. Up top, the next milestone: the landing of CR-01 at Connecting Ridge, with the countdown to contact.",
+        es: "Genial, comencemos. Este es el control de misión. Arriba, el próximo hito: el alunizaje de CR-01 en Connecting Ridge, con la cuenta regresiva hasta el contacto.",
+      },
+    },
+    {
+      etapa: 1,
+      selector: "#steps",
+      texto: {
+        en: "Below, how that mission is going. The zone is confirmed and the descent is simulated. Still missing: the walk approval and the final go from the flight director.",
+        es: "Debajo, cómo va esa misión. La zona está confirmada y el descenso, simulado. Faltan la aprobación de la caminata y el visto bueno final del director de vuelo.",
+      },
+    },
+    {
+      etapa: 1,
+      selector: "#pending",
+      texto: {
+        en: "Here, a mission is waiting for your approval: the science walk of CR-02 to the rim of Shackleton. Watch the oxygen on the way back: twenty-six percent, under the thirty percent margin. You can open it to review it, or approve it.",
+        es: "Aquí hay una misión esperando tu aprobación: la caminata científica de CR-02 al borde de Shackleton. Ojo con el oxígeno al volver: veintiséis por ciento, bajo el margen de treinta. Puedes abrirla para revisarla, o aprobarla.",
+      },
+    },
+    {
+      etapa: 1,
+      selector: ".sites",
+      texto: {
+        en: "These are the mission sites, on a radar of the south pole, at their real distance. The colour of each point is the status of its mission.",
+        es: "Estos son los sitios de las misiones, en un radar del polo sur, a su distancia real. El color de cada punto es el estado de su misión.",
+      },
+    },
+    {
+      etapa: 1,
+      selector: "#mlist",
+      texto: {
+        en: "And here are all the missions of the campaign, each in its own status: ready, to sign, under review or draft.",
+        es: "Y aquí están todas las misiones de la campaña, cada una en su estado: lista, por firmar, en revisión o borrador.",
+      },
+    },
+    {
+      etapa: 2,
+      elige: true,
+      texto: { en: `What would you like to do? ${QUE_HACER.en}`, es: `¿Qué quieres hacer? ${QUE_HACER.es}` },
+    },
+  ],
 }
 
-/** Cuando ya no quedan misiones. */
-export const FINAL: Bi = {
-  en: "All three missions are ready. You moved a date, raised an antenna and changed a site. That is mission planning. The controls are yours now. Tap me if you need me.",
-  es: "Las tres misiones están listas. Moviste una fecha, subiste una antena y cambiaste de sitio. Eso es planificar una misión. Ahora los controles son tuyos. Tócame si me necesitas.",
+/** De vuelta en el control de misión, tras VER o SIMULAR: a elegir otra vez. */
+export const ELEGIR: Recorrido = {
+  id: "elegir",
+  fin: { en: "", es: "" },
+  pasos: [
+    {
+      etapa: 2,
+      accion: { tipo: "open", screen: "missions" },
+      espera: 500,
+      elige: true,
+      texto: { en: `What else would you like to do? ${QUE_HACER.en}`, es: `¿Qué más quieres hacer? ${QUE_HACER.es}` },
+    },
+  ],
 }
 
-/** Eligieron en el dashboard una misión que no tiene alunizaje que planear (la caminata, el borrador). */
-export const NO_ESA: Bi = {
-  en: "Not that one. It has no landing to plan yet. Pick one of the three with a landing date.",
-  es: "Esa no. Todavía no tiene un alunizaje que planear. Elige una de las tres con fecha de alunizaje.",
+/** Ver una misión que ya existe: CR-01 en el dashboard. */
+const VER: Recorrido = {
+  id: "ver",
+  fin: { en: "", es: "" },
+  luego: "elegir",
+  pasos: [
+    {
+      etapa: 3,
+      accion: { tipo: "clic", selector: '.mrow[data-id="CR-01"]' },
+      espera: 300,
+      selector: '.mrow[data-id="CR-01"]',
+      texto: {
+        en: "Let us look at CR-01, the landing at Connecting Ridge. Its row has what matters: the Sun and Earth at landing, how many days it can slip and stay in its window, and the date of contact.",
+        es: "Veamos CR-01, el alunizaje en Connecting Ridge. Su fila trae lo que importa: el Sol y la Tierra al alunizar, cuántos días puede atrasarse sin salir de su ventana, y la fecha de contacto.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sites",
+      texto: {
+        en: "When you pick it, the radar marks its site, and the tracking tab filters its calendar and its log.",
+        es: "Al elegirla, el radar marca su sitio, y la pestaña de seguimiento filtra su calendario y su bitácora.",
+      },
+    },
+    {
+      etapa: 3,
+      accion: { tipo: "clic", selector: "#tab-win" },
+      espera: 400,
+      selector: "#win-p",
+      texto: {
+        en: "In the landing windows tab you see, day by day and site by site, when you can land: with Sun and Earth, with Sun only, or with neither.",
+        es: "En la pestaña de ventanas de aterrizaje ves, día por día y sitio por sitio, cuándo se puede alunizar: con Sol y Tierra, solo con Sol, o con ninguno.",
+      },
+    },
+    {
+      etapa: 3,
+      accion: { tipo: "clic", selector: "#tab-det" },
+      espera: 300,
+      selector: "#mlist",
+      texto: {
+        en: "The missions of this campaign are examples, to look at. The ones you create are kept in the Planner, under My missions, and you edit them there.",
+        es: "Las misiones de esta campaña son de ejemplo, para mirarlas. Las que tú creas se guardan en el Planificador, en Mis misiones, y ahí las editas.",
+      },
+    },
+  ],
 }
-/** Eligieron una misión que ya prepararon. */
-export const YA_LISTA: Bi = { en: "That one is ready. Pick another.", es: "Esa ya está lista. Elige otra." }
+
+/** Crear una misión nueva: el tutorial del Planificador de misiones, contado desde el dashboard, y luego se abre. */
+const CREAR: Recorrido = {
+  id: "crear",
+  fin: { en: "Ready. I am opening the Planner for you. Good luck, commander.", es: "Listo. Te abro el Planificador. Mucha suerte, comandante." },
+  alFin: { tipo: "open", screen: "new-mission" },
+  pasos: [
+    {
+      etapa: 3,
+      selector: ".addm",
+      texto: {
+        en: "To create a mission you use this button, New mission. It opens the Planner with a form, step by step. Let me tell you the steps before we go in.",
+        es: "Para crear una misión se usa este botón, Nueva misión. Abre el Planificador con un formulario, paso a paso. Te cuento los pasos antes de entrar.",
+      },
+    },
+    {
+      etapa: 3,
+      texto: {
+        en: "First, the name and the type of mission: crewed, robotic rover or fixed lander. Then, the zone where you land: A, B or C.",
+        es: "Primero, el nombre y el tipo de misión: tripulada, rover robótico o módulo fijo. Luego, la zona donde alunizar: A, B o C.",
+      },
+    },
+    {
+      etapa: 3,
+      texto: {
+        en: "Next, the date and the stay. The light study shows when there is Sun and when there is Earth: drag the timeline until you have both.",
+        es: "Después, la fecha y la estadía. El estudio de luz muestra cuándo hay Sol y cuándo hay Tierra: arrastra la línea de tiempo hasta tener los dos.",
+      },
+    },
+    {
+      etapa: 3,
+      texto: {
+        en: "Then, the equipment: the power, the battery hours, the minimum link with Earth and the height of the panel and the antenna. And the route of the walk, over the real terrain.",
+        es: "Luego, el equipo: la energía, las horas de batería, el enlace mínimo con la Tierra y la altura del panel y la antena. Y la ruta de la caminata, sobre el relieve real.",
+      },
+    },
+    {
+      etapa: 3,
+      texto: {
+        en: "At the end, the result: go or no go, with each check and the comparison in the three zones. Save the mission and, if you like, simulate it.",
+        es: "Al final, el resultado: go o no go, con cada comprobación y la comparación en las tres zonas. Guarda la misión y, si quieres, simúlala.",
+      },
+    },
+  ],
+}
+
+/** Directo a la simulación: el alunizaje 3D en Connecting Ridge y la caminata. */
+const SIMULAR: Recorrido = {
+  id: "simular",
+  fin: { en: "That is how you rehearse a mission. Back to mission control.", es: "Así se ensaya una misión. Volvamos al control de misión." },
+  luego: "elegir",
+  pasos: [
+    {
+      etapa: 3,
+      accion: { tipo: "open", screen: "simulator" },
+      espera: 900,
+      texto: {
+        en: "Something more exciting, then. This is the landing at Connecting Ridge, in three dimensions. The descent flies itself. Drag to look around. Say next when we are down.",
+        es: "Algo más emocionante, entonces. Este es el alunizaje en Connecting Ridge, en tres dimensiones. El descenso vuela solo. Arrastra para mirar alrededor. Di siguiente cuando estemos abajo.",
+      },
+    },
+    {
+      // La caminata del simulador (features/simulator/alunizaje: caminata.ts, tareas.ts, visorHud.ts): al posarse,
+      // la tarjeta final ofrece «Salir a caminar»; EVA la pulsa y el astronauta baja por la escalera.
+      etapa: 3,
+      accion: { tipo: "clic", selector: '.sim-lfp-end [data-act="out"]' },
+      espera: 2500,
+      texto: {
+        en: "We are down. Now the best part: we step outside. The astronaut climbs down the ladder, and you look through the helmet.",
+        es: "Ya estamos abajo. Ahora lo mejor: salimos. El astronauta baja por la escalera, y tú miras a través del casco.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sim-vh-rows",
+      texto: {
+        en: "This is the screen inside your helmet. Oxygen, the carbon dioxide filter, cooling water and battery all drain as you work, faster in the shade.",
+        es: "Esta es la pantalla dentro de tu casco. El oxígeno, el filtro de dióxido de carbono, el agua de refrigeración y la batería se gastan mientras trabajas, más rápido en la sombra.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sim-vh-feed",
+      texto: {
+        en: "Your tasks are real moonwalk jobs: check a landing leg, plant a seismometer far from the lander, put a solar panel where the Sun really shines, and collect samples in light and in shadow.",
+        es: "Tus tareas son trabajos reales de una caminata lunar: revisar una pata, instalar un sismómetro lejos de la nave, poner un panel solar donde de verdad dé el Sol y tomar muestras en la luz y en la sombra.",
+      },
+    },
+    {
+      etapa: 3,
+      selector: ".sim-vh-keys",
+      texto: {
+        en: "Walk with the arrow keys and look around with the mouse. Take a stroll if you like. Say next when you are done.",
+        es: "Camina con las flechas y mira alrededor con el ratón. Da un paseo si quieres. Di siguiente cuando termines.",
+      },
+    },
+  ],
+}
+
+/** Los tres caminos tras el control de misión. `palabras`: además de las del botón, para reconocerlos por voz. */
+export const CAMINOS: { id: "ver" | "crear" | "simular"; boton: Bi; palabras: string[]; recorrido: Recorrido }[] = [
+  {
+    id: "ver",
+    boton: { en: "See a mission", es: "Ver una misión" },
+    palabras: ["see", "view", "look", "existing", "exists", "review", "edit", "open", "ver", "mirar", "existe", "existente", "revisar", "editar", "abrir", "realizada", "hecha"],
+    recorrido: VER,
+  },
+  {
+    id: "crear",
+    boton: { en: "Create a new mission", es: "Crear una misión nueva" },
+    palabras: ["create", "new", "make", "plan", "build", "crear", "nueva", "nuevo", "generar", "planear", "armar", "hacer"],
+    recorrido: CREAR,
+  },
+  {
+    id: "simular",
+    boton: { en: "Straight to the simulation", es: "Directo a la simulación" },
+    palabras: ["simulation", "simulate", "simulator", "exciting", "straight", "descent", "land", "simulacion", "simular", "simulador", "emocionante", "directo", "descenso", "alunizar", "alunizaje"],
+    recorrido: SIMULAR,
+  },
+]
 
 /** Todos los recorridos del flujo (para grabar su voz y para las pruebas). */
-export const RECORRIDOS: Recorrido[] = [INICIO, VUELTA, ...MISIONES.map((m) => m.recorrido)]
+export const RECORRIDOS: Recorrido[] = [LANDING, CONTROL, ELEGIR, ...CAMINOS.map((c) => c.recorrido)]
 
-/** Las frases sueltas del flujo que no están en los pasos: también se graban. */
-export const frasesSueltas = (idioma: "en" | "es"): string[] => [
-  ...PERFILES.map((p) => p.saludo[idioma]),
-  FINAL[idioma],
-  NO_ESA[idioma],
-  YA_LISTA[idioma],
-  ...MISIONES.flatMap((m) => m.recorrido.pasos.flatMap((p) => (p.repaso ? [p.repaso.acierto[idioma], p.repaso.fallo[idioma]] : []))),
-]
+/** Las frases sueltas del flujo que no están en los pasos ni en `fin` (las respuestas del repaso): también se graban. */
+export const frasesSueltas = (idioma: "en" | "es"): string[] =>
+  RECORRIDOS.flatMap((r) => r.pasos.flatMap((p) => (p.repaso ? [p.repaso.acierto[idioma], p.repaso.fallo[idioma]] : [])))

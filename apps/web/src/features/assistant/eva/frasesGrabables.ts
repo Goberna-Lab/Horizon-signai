@@ -96,7 +96,7 @@ export function frasesDelGuion(): FraseDelGuion[] {
       r.pasos.forEach((p, k) => agregar(idioma, p.texto[idioma], `recorrido ${r.id} ${k + 1}`))
       agregar(idioma, r.fin[idioma], `recorrido ${r.id} fin`)
     }
-    // Lo demás del flujo de misiones: el saludo según quién llega, las respuestas del repaso y el cierre.
+    // Lo demás del flujo guiado: las respuestas del repaso.
     for (const frase of frasesSueltas(idioma)) agregar(idioma, frase, "flujo de misiones")
     // Manos libres: las respuestas de las preguntas frecuentes, los puentes mientras piensa la IA y el «sigamos».
     for (const p of PREGUNTAS) agregar(idioma, p.respuesta[idioma], `pregunta frecuente ${p.id}`)

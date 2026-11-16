@@ -1,6 +1,6 @@
 // Qué quiso decir la persona cuando le habla a EVA (manos libres), sin IA y al instante. Recibe la transcripción y lo
-// que EVA está esperando en ese momento (el nombre, quién llega, una misión, la respuesta del repaso o un paso del
-// flujo) y devuelve qué hacer: una orden («siguiente», «otra vez», «para»), una de las opciones, el nombre, o nada.
+// que EVA está esperando en ese momento (el nombre, la oferta, uno de los tres caminos, la respuesta del repaso o un
+// paso del flujo) y devuelve qué hacer: una orden («siguiente», «otra vez», «para»), una de las opciones, el nombre, o nada.
 // Lo que no reconoce aquí lo resuelve EVA con la pregunta frecuente más parecida o con la IA (ver EvaCompanera).
 //
 // Regla: palabras clave, no un modelo. Las opciones se reconocen por su número («la dos», «second», «2») o por las
@@ -9,7 +9,7 @@
 import { nombreDe } from "./idioma.ts"
 import { intencionDe } from "./intencion.ts"
 
-export type QueEspera = "nombre" | "oferta" | "mision" | "repaso" | "paso" | null
+export type QueEspera = "nombre" | "oferta" | "camino" | "repaso" | "paso" | null
 
 export type Entendido =
   | { tipo: "orden"; orden: "siguiente" | "repetir" | "parar" }
@@ -74,11 +74,13 @@ export function opcionDe(texto: string, claves: string[][]): number {
   return ordinal(false)
 }
 
-/** Quién llega, por voz: las palabras de cada perfil, en el orden de PERFILES (recorridos.ts). */
-export const PALABRAS_PERFILES: string[][] = [
-  ["plan", "planner", "planning", "plans", "planifico", "planificar", "planificador", "planear", "planeo", "mission", "missions", "mision", "misiones", "engineer", "ingeniero", "ingeniera", "work", "trabajo"],
-  ["teach", "teacher", "teaching", "ensen", "enseno", "ensenar", "profesor", "profesora", "docente", "maestro", "maestra", "educador", "educadora", "class", "clase", "school", "colegio", "escuela"],
-  ["curious", "curiosity", "curiosidad", "curioso", "curiosa", "public", "publico", "learn", "aprender", "looking", "mirando", "visiting", "visitando", "fun"],
+/**
+ * La oferta, por voz («¿Quieres aprender a hacer una misión lunar?»), en el orden de OFERTA (recorridos.ts): sí, o
+ * solo la landing. Un «sí», «ok» o «dale» suelto también es el sí (ver `entender`).
+ */
+export const PALABRAS_OFERTA: string[][] = [
+  ["si", "yes", "yeah", "yep", "sure", "claro", "dale", "vamos", "okay", "teach", "learn", "aprender", "aprendo", "ensename", "ensenar", "mission", "missions", "mision", "misiones"],
+  ["landing", "pagina", "page", "portada", "home", "inicio", "solo", "just", "only", "nomas"],
 ]
 
 /** Qué hacer con lo que dijo, según lo que EVA espera. Devuelve «nada» si hay que preguntárselo a otro (FAQ o IA). */
@@ -94,12 +96,13 @@ export function entender(texto: string, espera: QueEspera, opciones: string[][] 
     return { tipo: "nada" }
   }
   if (espera === "oferta") {
-    const k = opcionDe(texto, PALABRAS_PERFILES)
+    const k = opcionDe(texto, PALABRAS_OFERTA)
     if (k >= 0) return { tipo: "opcion", k }
+    if (orden === "siguiente") return { tipo: "opcion", k: 0 } // «ok», «dale», «vamos»: es el sí
     if (orden === "parar") return { tipo: "orden", orden: "parar" }
     return { tipo: "nada" }
   }
-  if (espera === "mision" || espera === "repaso") {
+  if (espera === "camino" || espera === "repaso") {
     const k = opcionDe(texto, palabrasDeOpciones(opciones))
     if (k >= 0) return { tipo: "opcion", k }
     // Aquí no se sigue con «siguiente»: hay que elegir o contestar. Sí se puede pedir que lo repita o que se calle.

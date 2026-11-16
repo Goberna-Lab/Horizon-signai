@@ -5,7 +5,8 @@
 // otra, solo le habla por esa puerta. El modelo no calcula: cada orden deja que el motor del planificador recalcule.
 import { plannerPath, routes } from "@/app/routes"
 import type { AccionIA } from "@/prueba-ia/cliente"
-import { setLang } from "@/shared/i18n"
+import { lang, setLang } from "@/shared/i18n"
+import { marco } from "./guion"
 
 type Planificador = { text(): string; run(a: AccionIA): boolean }
 
@@ -47,6 +48,8 @@ const PANTALLAS: Record<string, string> = {
   map: routes.map3d,
   simulator: routes.simulator, // solo la usa el flujo guiado (la IA no tiene esta orden)
   walk: `${routes.lunarMap}#walk`,
+  // Solo la usa el flujo guiado: el Planificador de misiones (una página aparte, fuera de React) en su formulario.
+  "new-mission": `/planificar-mision.html?nueva&lang=${lang}`,
 }
 
 /** Ejecuta una orden. Devuelve si se pudo (p. ej. «fix» no se puede si la zona ya cumple). */
@@ -54,15 +57,17 @@ export async function ejecutarAccion(a: AccionIA, navegar: (a: string) => void |
   if (a.tipo === "open") {
     const destino = PANTALLAS[String(a.screen)]
     if (!destino) return false
-    await navegar(destino)
+    if (destino.includes(".html")) location.assign(destino) // fuera de la app: se carga la página entera
+    else await navegar(destino)
     return true
   }
   // Solo la usa el flujo guiado (recorridos.ts), la IA no tiene esta orden: espera hasta ~50 s a que aparezca un botón
-  // de la pantalla (p. ej. «Salir a caminar» al terminar el alunizaje) y lo pulsa.
+  // de la pantalla (p. ej. «Salir a caminar» al terminar el alunizaje), en la página o en la pantalla incrustada
+  // (el dashboard de /planner), y lo pulsa.
   if (a.tipo === "clic") {
     const selector = String(a.selector)
     for (let k = 0; k < 200; k++) {
-      const el = document.querySelector<HTMLElement>(selector)
+      const el = document.querySelector<HTMLElement>(selector) ?? marco()?.querySelector<HTMLElement>(selector)
       if (el) {
         el.click()
         return true
