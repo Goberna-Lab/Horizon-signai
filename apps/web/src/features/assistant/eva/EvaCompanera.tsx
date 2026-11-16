@@ -952,7 +952,19 @@ export default function EvaCompanera() {
       ocupada.current = false
       return
     }
-    // El idioma ya lo pregunta la landing (su tarjeta, al pausar la entrada): EVA no lo repite y saluda.
+    // El idioma lo pregunta la landing (su tarjeta «Choose your language», `.fl-lang`, a ~5,6 s de la entrada): EVA no lo
+    // repite y no habla encima. Espera a que la tarjeta salga y se cierre (eligieron idioma o «Not now»); ese clic además
+    // habilita el audio, así que el saludo sale en voz alta y, al terminar, se abre el micrófono. Si la tarjeta no sale
+    // (la página se recargó tras elegir el otro idioma), saluda igual a los 8 s. EVA despierta con el Sol (~3,4 s de la
+    // entrada) y la tarjeta sale a los ~5,6 s: los dos van con la entrada, aunque la página tarde en cargar.
+    const desde = performance.now()
+    while (!document.querySelector(".fl-lang") && performance.now() - desde < 8000) await esperar(200)
+    while (document.querySelector(".fl-lang")) await esperar(200)
+    if (ruta.current !== routes.landing || yaSaludo() || abiertaRef.current || conversandoRef.current) {
+      ocupada.current = false
+      return
+    }
+    await esperar(400) // que el audio que habilitó ese clic termine de arrancar
     await saludar()
   }, [preguntar, saludar])
 
