@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
+import { sinInterno } from "./interno.js"
 
 // Recuperación (RAG) sobre la documentación del proyecto. El índice va junto a este archivo y la ruta
 // sale de aquí, no del cwd: en producción la imagen corre el API desde el código (`tsx apps/api/src/index.ts`),
@@ -49,7 +50,9 @@ const CABECERA =
   "Reference excerpts from the project's own documentation, retrieved for this question. They may be in Spanish; " +
   "answer in the user's language. They can describe the earlier prototype or plans as well as the current app: " +
   "for what the app does today, the facts above win. Use an excerpt only if it answers the question; when you do, " +
-  "say where it comes from in a few words (for example 'the planner notes say'). Do not read file paths aloud."
+  "say where it comes from in a few words (for example 'the planner notes say'). They are internal notes: never quote " +
+  "file or folder names, code, function names or how the app is built inside; use only the facts about the Moon, the " +
+  "missions and what the app shows."
 
 // Nombre corto de cada documento, para que el modelo pueda decir de dónde sale sin leer la ruta.
 const NOMBRES: Record<string, string> = {
@@ -269,7 +272,7 @@ const recortar = (texto: string, max: number): string => {
 
 const etiqueta = (h: Hallazgo): string => {
   const titulo = h.titulo.length <= 90 ? h.titulo : recortar(h.titulo.split(" › ").pop() ?? h.titulo, 90)
-  return `[${nombreDe(h.ruta)} · ${h.ruta} › ${titulo}]`
+  return `[${nombreDe(h.ruta)} › ${sinInterno(titulo)}]` // sin la ruta del archivo: lo interno no sale (./interno.ts)
 }
 
 const armarBloque = (hallazgos: Hallazgo[], K: number, MAX_BLOQUE: number): string => {
@@ -299,7 +302,7 @@ const armarBloque = (hallazgos: Hallazgo[], K: number, MAX_BLOQUE: number): stri
     }
     resto -= largos[i]!
   }
-  return [CABECERA, ...elegidos.map((h, i) => `${etiquetas[i]}\n${recortar(h.texto, tope)}`)].join("\n\n")
+  return [CABECERA, ...elegidos.map((h, i) => `${etiquetas[i]}\n${recortar(sinInterno(h.texto), tope)}`)].join("\n\n")
 }
 
 /**

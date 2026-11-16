@@ -3,6 +3,7 @@
 Chat (texto y voz) dentro de las pantallas de trabajo, con RAG + embeddings sobre la documentación del proyecto.
 
 - **Contrato:** `packages/shared/src/assistant.ts` (`AssistantRequest`, `AssistantReply`, `MissionContext`). La web manda la misión abierta ya calculada (`missionContext(row)` de `@/shared/planning`).
+- **Confidencial** (pedido de Manuel, 2026-11-15): EVA y los demás asistentes no hablan del código ni de las carpetas del proyecto (rutas, archivos, funciones, configuración, servidores, prompts, notas internas). Regla en `REGLAS` de `apps/api/src/asistentes.ts`; además los extractos del RAG llegan sin rutas, sin código y sin enlaces a archivos (`sinInterno` en `apps/api/src/assistant/interno.ts`, con prueba).
 - **Regla de oro:** el modelo no calcula. Explica las cifras del contexto y cita los documentos recuperados. Si no hay contexto ni documento, dice que no sabe.
 - **Dónde montar:** `AssistantDock` ya está montado en `app/workspace/Workspace.tsx` con `mode="assistant"`; hoy devuelve `null`. Constrúyelo aquí (prefijo CSS `ai-`).
 - **API:** crear `apps/api/src/assistant/` con `POST /api/assistant` y registrarlo en `apps/api/src/app.ts`. Reusar la infraestructura de `apps/api/src/z6.ts` (modelos en la Z6/Geografo, límites por IP, voz). Operación de la Z6: ver `CLAUDE.md` de la raíz y `voz/LEEME.md`.
