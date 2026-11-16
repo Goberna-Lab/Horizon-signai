@@ -23,7 +23,7 @@
 body { font-family: var(--f-ui); }
 
 /* ---------- esquinas rectas, como en la lámina; solo lo que es redondo de verdad sigue redondo ---------- */
-:where(*):not(:is(.lamp, .led, .screw, .lg-dot, .ev .go, .rl, .dot)) { border-radius: 0 !important; }
+:where(*):not(:is(.lamp, .led, .screw, .lg-dot, .ev .go, .rl, .dot, .luna)) { border-radius: 0 !important; }
 
 /* ---------- superficies: regla de tinta, sin sombras ni biseles ---------- */
 .paper { border: var(--rule); box-shadow: none !important; }

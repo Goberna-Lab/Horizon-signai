@@ -116,6 +116,23 @@
 
 .upcoming .ph .aux { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
 .upcoming .ph .aux span { display: inline-flex; align-items: center; gap: 5px; }
+/* luna de adorno en el hueco de abajo a la derecha del panel: una silueta tenue que gira sobre su eje.
+ * fitMissions() le da el diámetro según el hueco que dejan las tarjetas (hasta 200 px) y la oculta si no cabe.
+ * El disco no se mueve; dentro, una tira de cráteres (dos vueltas de 2 diámetros) se desliza con transform en 240 s
+ * y todo se desvanece hacia el borde para que parezca una esfera. Detrás de las tarjetas, sin eventos; quieta con «reducir movimiento». */
+.upcoming .mlist { position: relative; z-index: 1; }
+.luna { --d: 168px; position: absolute; right: 24px; bottom: 24px; z-index: 0; width: var(--d); height: var(--d); border-radius: 50%; overflow: hidden; pointer-events: none;
+  background: radial-gradient(circle at 36% 32%, rgba(17,17,17,0.015), rgba(17,17,17,0.06) 72%, rgba(17,17,17,0.09));
+  box-shadow: inset 0 0 0 1px rgba(17,17,17,0.10);
+  -webkit-mask-image: radial-gradient(circle, #000 52%, rgba(0,0,0,0.4) 100%); mask-image: radial-gradient(circle, #000 52%, rgba(0,0,0,0.4) 100%); }
+.luna::before { content: ""; position: absolute; top: 0; left: 0; width: 400%; height: 100%; will-change: transform;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='336' height='168'%3E%3Cg fill='rgba(17,17,17,0.07)'%3E%3Cellipse cx='70' cy='62' rx='34' ry='24'/%3E%3Cellipse cx='112' cy='104' rx='26' ry='18'/%3E%3Cellipse cx='232' cy='70' rx='40' ry='22'/%3E%3Cellipse cx='268' cy='118' rx='22' ry='14'/%3E%3C/g%3E%3Cg fill='rgba(17,17,17,0.05)' stroke='rgba(17,17,17,0.16)' stroke-width='1'%3E%3Ccircle cx='38' cy='120' r='11'/%3E%3Ccircle cx='150' cy='46' r='8'/%3E%3Ccircle cx='170' cy='132' r='14'/%3E%3Ccircle cx='196' cy='28' r='5'/%3E%3Ccircle cx='300' cy='40' r='10'/%3E%3Ccircle cx='310' cy='146' r='6'/%3E%3Ccircle cx='92' cy='150' r='5'/%3E%3Ccircle cx='24' cy='30' r='6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(var(--d) * 2) var(--d) repeat-x;
+  animation: luna-gira 240s linear infinite; }
+.luna::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.35), transparent 55%), radial-gradient(circle at 50% 50%, transparent 58%, rgba(17,17,17,0.05) 100%); }
+@keyframes luna-gira { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+@media (prefers-reduced-motion: reduce) { .luna::before { animation: none; } }
+@media (max-width: 1000px) { .luna { display: none !important; } }
 .mrow { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--borde); background: transparent; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .12s ease; }
 .mrow .r1 .sym { margin-right: 2px; }
 .mrow .r1 .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -426,6 +443,7 @@
               <section class="paper panel upcoming" aria-labelledby="up-t">
                 <div class="ph"><h2 id="up-t" class="display-caps">Missions</h2><span class="mono aux" id="mix"></span></div>
                 <div class="mlist" id="mlist"></div>
+                <div class="luna" aria-hidden="true"></div>
               </section>
             </div>
           </div>
@@ -596,6 +614,16 @@
       used += h;
     }
     if (used) { ml.style.flex = 'none'; ml.style.height = used + 'px'; }
+    fitLuna();
+  }
+  /* la luna de adorno ocupa el hueco bajo la última tarjeta: diámetro = hueco − márgenes, hasta 200 px; oculta si no llega a 90 */
+  function fitLuna() {
+    var lu = document.querySelector('.luna'), ml = $('mlist'), last = ml.lastElementChild;
+    if (!lu || !ml.offsetParent) return;
+    var fin = ml.offsetTop + Math.min(ml.clientHeight, last ? last.offsetTop + last.offsetHeight : 0);
+    var d = Math.min(200, ml.offsetParent.clientHeight - fin - 40);
+    lu.style.display = d < 90 ? 'none' : '';
+    lu.style.setProperty('--d', Math.max(d, 90) + 'px');
   }
   if (window.ResizeObserver) new ResizeObserver(function () { fitMissions(); }).observe(document.querySelector('.sites .screen'));
   /* ---------- Mission sites: radar a distancia real, de 50, 100 o 200 km ----------
