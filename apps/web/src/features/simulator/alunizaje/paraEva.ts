@@ -32,7 +32,7 @@ export function estadoSimulador(view, sim, caminata, rover) {
   }
   if (rover?.active) {
     const r = rover, t = r.tasks;
-    L.push(`Rover camera: ${r.vista === 'navcam' ? 'NAVCAM on the mast at 2.0 m (operator view)' : 'chase camera'}. Rover inspired by NASA VIPER (1.5 x 1.5 x 2.5 m, vertical solar panels on three sides).`);
+    L.push(`Rover camera: ${r.vista === 'navcam' ? 'NAVCAM on the mast at 2.0 m (operator view)' : 'chase camera'}. ${r.modelo ? 'Rover model: NASA/JPL Perseverance (a Mars rover, 3 m long, from NASA 3D Resources) used as the example rover; on the Moon it is shown only as a vehicle model.' : 'Rover inspired by NASA VIPER (1.5 x 1.5 x 2.5 m, vertical solar panels on three sides).'}`);
     L.push(`ROVER: traverse time ${hm(r.s.t)}, driven ${f(r.walked)} m, speed ${f(Math.abs(r.vel) * 3.6, 2)} of ${f(r.vmax * 3.6, 1)} km/h. ${now?.earth.visible ? 'Earth link: driving allowed.' : 'No Earth link: the rover is stopped.'} Max slope crossed ${f(r.stats.pendienteMax, 1)}°. Task: ${t.text() ?? '-'}. Measurements ${t.samples.filter((m) => m.taken).length}/${t.samples.length}.`);
   }
   const eq = view.equipo;

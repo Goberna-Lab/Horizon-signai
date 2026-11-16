@@ -5,13 +5,17 @@
 // fecha: la luz, las sombras y si la Tierra está sobre el horizonte (motor del Planificador). Un rover lunar se conduce
 // desde la Tierra: sin enlace directo, se detiene. El tiempo se puede acelerar (T), porque a 0,8 km/h un kilómetro son 75 min.
 //
-// Modelo: rover de ejemplo inspirado en VIPER (NASA), con sus medidas públicas: 1,5 × 1,5 × 2,5 m, paneles solares en
-// tres lados (los dos costados y atrás: el Sol del polo va rasante), mástil con las cámaras de navegación en un cardán a
-// 2,0 m y la antena de alta ganancia a 2,3 m, luces en el mástil y en el cuerpo, cuatro ruedas. No es la réplica de VIPER.
+// Modelo: el Perseverance de NASA/JPL (Mars 2020), de NASA 3D Resources (github.com/nasa/NASA-3D-Resources, libre según
+// las normas de uso de imágenes y medios de NASA), elegido por el equipo como rover de ejemplo. Es un rover de MARTE: se
+// muestra a su tamaño real (3 m de largo) y la cámara va donde están sus NavCams, en el mástil. Si no carga, queda el de
+// respaldo hecho aquí, inspirado en VIPER (1,5 × 1,5 × 2,5 m, paneles verticales en tres lados, NavCam a 2,0 m).
 // Se maneja desde la cámara de navegación del mástil (NAVCAM), como lo haría el equipo en la Tierra; C cambia a la de
 // seguimiento. Para que la misión se entienda sola: un briefing al empezar, el objetivo marcado en la imagen (o una flecha
 // en el borde si está fuera de cuadro), un minimapa con la ruta y un aviso grande cuando se puede medir.
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import perseveranceUrl from './data/perseverance.glb?url';
 import { avisarEva } from '@/shared/eva';
 import { tr } from '@/shared/i18n';
 import { Tareas } from './tareas';
@@ -61,7 +65,11 @@ function modeloRover() {
   const luz = new THREE.SpotLight(0xfff1d6, 0, 60, 0.45, 0.5, 1.2); luz.position.set(0, NAVCAM_M - 0.12, 0.55); luz.target.position.set(0, 0, 12); g.add(luz, luz.target);
   const luzCuerpo = new THREE.SpotLight(0xfff1d6, 0, 20, 0.8, 0.6, 1.4); luzCuerpo.position.set(0, 0.7, 0.7); luzCuerpo.target.position.set(0, 0, 5); g.add(luzCuerpo, luzCuerpo.target);
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { g, ruedas, luz, luzCuerpo, taladro };
+  // Lo que es cuerpo del rover de respaldo va en su grupo (se oculta si carga el Perseverance); luces y taladro quedan fuera
+  const respaldo = new THREE.Group(), fijos = new Set([luz, luz.target, luzCuerpo, luzCuerpo.target, taladro]);
+  for (const o of [...g.children]) if (!fijos.has(o)) respaldo.add(o);
+  g.add(respaldo);
+  return { g, ruedas, luz, luzCuerpo, taladro, respaldo };
 }
 
 export class Rover {
@@ -69,7 +77,7 @@ export class Rover {
     this.view = view; this.onSalir = onSalir; this.sonido = sonido;
     this.active = false; this.pos = new THREE.Vector3(); this.heading = 0; this.vel = 0; this.lamps = true; this.walked = 0;
     this.keys = new Set(); this.escala = 0; this.vista = 'navcam'; this.briefing = false;
-    const m = modeloRover(); Object.assign(this, { obj: m.g, ruedas: m.ruedas, luz: m.luz, luzCuerpo: m.luzCuerpo, taladro: m.taladro });
+    const m = modeloRover(); Object.assign(this, { obj: m.g, ruedas: m.ruedas, luz: m.luz, luzCuerpo: m.luzCuerpo, taladro: m.taladro, respaldo: m.respaldo });
     this.pan = 0; this.tilt = 0; this.perfora = null;
     // Polvo de las ruedas: sin aire, cada grano sigue una parábola con la gravedad lunar (1,62 m/s²) y cae
     const NP = 160, pp = new Float32Array(NP * 3).fill(-1e5); this.polvo = { n: NP, i: 0, pos: pp, vel: new Float32Array(NP * 3), vida: new Float32Array(NP) };
@@ -82,6 +90,7 @@ export class Rover {
     this._pu = () => { arr = null; };
     el.addEventListener('pointerdown', this._pd); window.addEventListener('pointermove', this._pm); window.addEventListener('pointerup', this._pu); this.obj.visible = false; view.scene.add(this.obj);
     this.sinRegreso = true; this.alcance = 4; this.tasks = new Tareas(this);
+    this.navcam = new THREE.Vector3(0, NAVCAM_M, 0.62); // en ejes del rover; con el Perseverance, donde están sus NavCams
     // Pantalla del operador: telemetría, imagen de la NAVCAM (marcos, brújula, objetivo), minimapa, avisos y briefing
     const r = (this.ui = document.createElement('div')); r.className = 'sim-rv'; r.hidden = true;
     r.innerHTML = `
@@ -116,12 +125,43 @@ export class Rover {
     window.addEventListener('keydown', this._kd); window.addEventListener('keyup', this._ku);
   }
 
+  /** El Perseverance de NASA: a 3 m de largo (su tamaño real), con el frente hacia +z (el lado de su mástil) y la cámara
+   *  en sus NavCams. Mientras carga, o si falla, se ve el rover de respaldo. */
+  _cargarModelo() {
+    const loader = new GLTFLoader(), draco = new DRACOLoader(); draco.setDecoderPath('/draco/'); loader.setDRACOLoader(draco);
+    loader.loadAsync(perseveranceUrl).then((gltf) => {
+      const m = gltf.scene; m.updateMatrixWorld(true);
+      let caja = new THREE.Box3().setFromObject(m);
+      const tam = caja.getSize(new THREE.Vector3()), largo = Math.max(tam.x, tam.z), k = 3.0 / largo; // Perseverance: 3 m de largo
+      const raiz = new THREE.Group(); raiz.add(m); m.scale.multiplyScalar(k); m.updateMatrixWorld(true);
+      // Frente: el de sus cámaras de peligro delanteras (hazcams_front), respecto del centro, en el plano horizontal
+      caja = new THREE.Box3().setFromObject(m); const centro = caja.getCenter(new THREE.Vector3());
+      const nav = m.getObjectByName('NavCams'), frente = m.getObjectByName('hazcams_front') ?? nav;
+      const pF = frente ? new THREE.Box3().setFromObject(frente).getCenter(new THREE.Vector3()) : null;
+      if (pF) { const ang = Math.atan2(pF.x - centro.x, pF.z - centro.z); m.rotation.y -= ang; m.updateMatrixWorld(true); }
+      caja = new THREE.Box3().setFromObject(m); const c2 = caja.getCenter(new THREE.Vector3());
+      m.position.x -= c2.x; m.position.z -= c2.z; m.position.y -= caja.min.y; m.updateMatrixWorld(true);
+      // En el modelo el mástil viene plegado (cabeza a ~1,2 m, como en el viaje). Desplegado, sus NavCams quedan a unos
+      // 2 m del suelo: la cámara va a esa altura, sobre la cabeza del mástil.
+      const cabeza = m.getObjectByName('head') ?? nav;
+      if (cabeza) { const bb = new THREE.Box3().setFromObject(cabeza), q = bb.getCenter(new THREE.Vector3()); this.navcam.set(q.x, Math.max(NAVCAM_M, bb.max.y + 0.4), bb.max.z + 0.05); }
+      m.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      this.respaldo.visible = false; this.obj.add(raiz); this.modelo = raiz;
+      // El taladro de la animación va al frente, donde el Perseverance lleva la torreta de su brazo
+      this.taladro.position.set(0, 0.85, Math.min(1.7, caja.max.z - c2.z + 0.1));
+    }).catch(() => { /* sin el modelo: se queda el de respaldo */ }).finally(() => draco.dispose());
+  }
+
   /** Despliega el rover junto al módulo (`lmPos`), mirando hacia `heading`. */
   start(lmPos, heading, { lm = null } = {}) {
     const v = this.view, p = v.plan ?? {};
+    if (!this._modeloPedido) { this._modeloPedido = true; this._cargarModelo(); } // 5 MB: solo en misiones con rover
     this.vmax = Math.max(0.05, (p.roverKmh ?? 0.8) / 3.6); this.paradaH = p.paradaH ?? 2;
     this.lmPos = lmPos.clone();
-    this.pos.set(lmPos.x + Math.sin(heading) * 12, 0, lmPos.z + Math.cos(heading) * 12); // bajó por la rampa y se apartó del módulo
+    // Bajó del módulo y se apartó: el punto más llano a 10–20 m (no se despliega en la ladera de un cráter)
+    let mejor = null;
+    for (let i = 0; i < 48; i++) { const r = 10 + (i % 6) * 2, a = heading + (Math.floor(i / 6) - 4) * 0.5, x = lmPos.x + Math.sin(a) * r, z = lmPos.z + Math.cos(a) * r, pe = this._pend(x, z); if (!mejor || pe < mejor.pe) mejor = { x, z, pe }; }
+    this.pos.set(mejor.x, 0, mejor.z);
     this.pos.y = v.groundY(this.pos.x, this.pos.z);
     this.active = true; this.vel = 0; this.walked = 0; this.escala = 1; this.pan = 0; this.tilt = 0; this.perfora = null; this.taladro.position.y = 0.85; this.notice = null; this._informeVisto = false; this._lejos = false;
     this.s = { t: 0 }; this.stats = { salidasRuta: 0, sinEnlaceS: 0, pendienteMax: 0 }; this.vista = 'navcam'; this._camPos = null;
@@ -167,9 +207,9 @@ export class Rover {
   _perforar(dt) {
     const p = this.perfora, m = this.tasks.samples[p.k]; p.t += dt;
     const baja = Math.min(1, p.t / 1.5), sube = Math.max(0, Math.min(1, (p.t - 2.7) / 1.3));
-    this.taladro.position.y = 0.85 - 0.95 * (baja - sube);
+    this.taladro.position.y = 0.85 - 0.95 * (baja - sube); // baja 1 m desde su base
     this.taladro.rotation.y += dt * 18 * (p.t > 1.2 && p.t < 3 ? 1 : 0);
-    if (p.t > 1.4 && p.t < 2.8) this._levantar(this.obj.localToWorld(new THREE.Vector3(0.45, 0.05, 0.7)), 3, 0.6); // polvo de la broca
+    if (p.t > 1.4 && p.t < 2.8) this._levantar(this.obj.localToWorld(new THREE.Vector3(this.taladro.position.x, 0.05, this.taladro.position.z)), 3, 0.6); // polvo de la broca
     if (m && p.t > 2.0) m.mesh.scale.setScalar(Math.max(0.01, 1 - (p.t - 2.0) / 0.8));
     if (p.t >= 4.0) {
       this.taladro.position.y = 0.85; this.perfora = null;
@@ -258,18 +298,19 @@ export class Rover {
     const v = this.view, c = v.camera;
     if (this.perfora) { // mientras perfora: plano corto desde fuera, delante a la derecha, para ver bajar el taladro
       this.obj.updateMatrixWorld();
-      c.position.copy(this.obj.localToWorld(new THREE.Vector3(1.9, 1.3, 2.4)));
-      c.lookAt(this.obj.localToWorld(new THREE.Vector3(0.45, 0.25, 0.7)));
+      const tz = this.taladro.position.z, tx = this.taladro.position.x;
+      c.position.copy(this.obj.localToWorld(new THREE.Vector3(tx + 2.2, 1.4, tz + 2.2)));
+      c.lookAt(this.obj.localToWorld(new THREE.Vector3(tx, 0.25, tz)));
       if (c.fov !== 50) { c.fov = 50; c.near = 0.05; c.updateProjectionMatrix(); }
       return;
     }
     if (this.vista === 'navcam') {
       this.obj.updateMatrixWorld();
-      c.position.copy(this.obj.localToWorld(new THREE.Vector3(0, NAVCAM_M, 0.62)));
+      c.position.copy(this.obj.localToWorld(this.navcam.clone()));
       // El cardán del mástil gira la cámara
-      const mira = new THREE.Vector3(Math.sin(this.pan) * 10, NAVCAM_M - 1.4 + this.tilt * 10, Math.cos(this.pan) * 10);
+      const mira = new THREE.Vector3(this.navcam.x + Math.sin(this.pan) * 10, this.navcam.y - 1.4 + this.tilt * 10, this.navcam.z + Math.cos(this.pan) * 10);
       c.lookAt(this.obj.localToWorld(mira));
-      this.luz.target.position.copy(mira).setY(0); // las luces del mástil van con la cámara
+      this.luz.target.position.copy(mira).setY(0); this.luz.position.copy(this.navcam).add(new THREE.Vector3(0, -0.15, 0)); // las luces del mástil van con la cámara
       if (c.fov !== 62) { c.fov = 62; c.near = 0.05; c.updateProjectionMatrix(); }
       this._camPos = null;
     } else {
@@ -286,7 +327,7 @@ export class Rover {
     const v = this.view, now = v.now, t = this.tasks, ui = this.ui;
     ui.classList.toggle('navcam', this.vista === 'navcam' && !this.perfora);
     const sol = now ? (now.sun.frac > 0.5 && t.lit(this.pos.x, this.pos.z)) : false;
-    this.$('cam').textContent = this.perfora ? tr('OUTSIDE VIEW · DRILL', 'VISTA EXTERIOR · TALADRO') : this.vista === 'navcam' ? tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m') : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
+    this.$('cam').textContent = this.perfora ? tr('OUTSIDE VIEW · DRILL', 'VISTA EXTERIOR · TALADRO') : this.vista === 'navcam' ? (this.modelo ? tr(`NAVCAM · PERSEVERANCE MAST ${fmt(this.navcam.y, 1)} m`, `NAVCAM · MÁSTIL DEL PERSEVERANCE ${fmt(this.navcam.y, 1)} m`) : tr('NAVCAM · MAST 2.0 m', 'NAVCAM · MÁSTIL 2,0 m')) : tr('CHASE CAMERA', 'CÁMARA DE SEGUIMIENTO');
     this.$('hora').textContent = v.time ? ' ' + new Date(v.time).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
     // Brújula: rumbo del rover (0° = norte, sentido horario; x este, z sur)
     const rumbo = ((Math.atan2(Math.sin(this.heading), -Math.cos(this.heading)) * 180) / Math.PI + 360) % 360;
@@ -317,7 +358,7 @@ export class Rover {
       <div><span>${tr('TIME', 'TIEMPO')}</span><b>${hm(this.s.t)}</b><i>×${ESCALAS[this.escala]}</i></div>
       <div><span>${tr('DRIVEN', 'RECORRIDO')}</span><b>${fmt(this.walked)} m</b></div>
       <div class="${enlace ? 'ok' : 'mal'}"><span>${tr('EARTH', 'TIERRA')}</span><b>${enlace ? tr('LINK', 'ENLACE') : tr('NO LINK · STOPPED', 'SIN ENLACE · PARADO')}</b></div>
-      <div class="${sol ? 'ok' : 'mal'}"><span>${tr('SUN', 'SOL')}</span><b>${sol ? tr('ON PANELS', 'EN LOS PANELES') : tr('SHADOW', 'SOMBRA')}</b></div>
+      <div class="${sol ? 'ok' : 'mal'}"><span>${tr('SUN', 'SOL')}</span><b>${sol ? tr('IN SUNLIGHT', 'AL SOL') : tr('SHADOW', 'SOMBRA')}</b></div>
       <div class="${pend > PENDIENTE_AVISO ? 'mal' : ''}"><span>${tr('SLOPE', 'PENDIENTE')}</span><b>${fmt(pend, 1)}°</b></div>
       <div><span>${tr('LIGHTS', 'LUCES')}</span><b>${this.lamps ? tr('ON', 'ENCENDIDAS') : tr('OFF', 'APAGADAS')}</b></div>`;
     this.$('tarea').textContent = t.text() ?? '';
