@@ -373,6 +373,12 @@
 .lw .bar .pin { top: calc(50% + 9px); }
 .lw .bar .pin::after { top: auto; bottom: 100%; height: 7px; }
 .lw .pct { padding-top: 0; align-self: center; }
+/* emojis de estado en la leyenda y en la etiqueta: ☀️ Sol, 📡 enlace con la Tierra, sin wifi = sin Tierra, 🌑 sin Sol */
+.emo { display: inline-flex; align-items: center; gap: 1px; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; font-size: 12px; line-height: 1; }
+.nowifi { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.nowifi circle { fill: currentColor; stroke: none; }
+.lw-tip .emo { margin-right: 4px; font-size: 12px; vertical-align: -1px; }
+.lw-tip .nowifi { stroke: #ff8a9b; } .lw-tip .nowifi circle { fill: #ff8a9b; }
 .lw-tip { position: absolute; z-index: 5; pointer-events: none; padding: 5px 8px; background: var(--tinta); color: var(--crema); font: 11px var(--f-mono); white-space: nowrap; transform: translate(-50%, -130%); }
 .lww { overflow-x: auto; }
 .lww .lw { min-width: 720px; }
@@ -530,10 +536,10 @@
               <div class="ph"><h2 id="win-t" class="display-caps">Landing windows</h2><span class="mono aux lw-regla" tabindex="0" title="Rule of CR-01: land at 09:00 UTC · 3-day stay · panel and antenna at 2 m · battery 24 h · Earth ≥ 40% · planner engine: JPL Horizons DE441 and LOLA horizons">ⓘ 09:00 UTC · 3-day stay · 2 m · battery 24 h · Earth ≥ 40%</span></div>
               <div class="lw-prox" id="lw-prox"></div>
               <div class="legend" aria-hidden="true">
-                <span><i class="sw" style="background: var(--tinta-2)"></i>Can land</span>
-                <span><i class="sw" style="background: repeating-linear-gradient(135deg, rgba(31,95,168,0.65) 0 2px, rgba(0,0,0,0) 2px 5px); box-shadow: inset 0 0 0 1px var(--borde)"></i><i class="lni lni-globe-1"></i>Sun, but Earth hidden</span>
-                <span><i class="sw" style="background: var(--crema-4)"></i><i class="lni lni-moon-half-right-5"></i>No Sun, or a night longer than the battery</span>
-                <span><i class="lni lni-flag-1"></i>Milestone</span>
+                <span><i class="sw" style="background: var(--tinta-2)"></i><span class="emo">☀️📡</span>Can land</span>
+                <span><i class="sw" style="background: repeating-linear-gradient(135deg, rgba(31,95,168,0.65) 0 2px, rgba(0,0,0,0) 2px 5px); box-shadow: inset 0 0 0 1px var(--borde)"></i><span class="emo">☀️<svg class="nowifi" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10.5 10.5 0 0 1 14 0M8.5 15.5a5.5 5.5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2"/><path d="M3 3l18 18"/></svg></span>Sun, but Earth hidden</span>
+                <span><i class="sw" style="background: var(--crema-4)"></i><span class="emo">🌑</span>No Sun, or a night longer than the battery</span>
+                <span><span class="emo">🚩</span>Milestone</span>
               </div>
               <div class="lww"><div class="lw" id="lw"></div></div>
               <div class="lw-tip" id="lw-tip" hidden></div>
@@ -1100,14 +1106,16 @@
   $('lw').addEventListener('click', function (e) { var r = e.target.closest('[data-z]'); if (r) selZone(r.dataset.z); });
   $('lw-prox').addEventListener('click', function (e) { var r = e.target.closest('[data-z]'); if (r) selZone(r.dataset.z); });
   $('lw-prox').addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; var r = e.target.closest('[data-z]'); if (r) { e.preventDefault(); selZone(r.dataset.z); } });
-  /* al pasar sobre una barra: el día, su estado y, si se puede alunizar, la ventana completa */
+  /* al pasar sobre una barra: el día, su estado (con su emoji, como en la leyenda) y, si se puede alunizar, la ventana completa */
+  var NOWIFI = '<svg class="nowifi" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10.5 10.5 0 0 1 14 0M8.5 15.5a5.5 5.5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.2"/><path d="M3 3l18 18"/></svg>';
   $('lw').addEventListener('mousemove', function (e) {
     var tip = $('lw-tip'), bar = e.target.closest('.bar');
     if (!bar || !V) { tip.hidden = true; return; }
     var r = bar.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * V.dias);
     if (i < 0 || i >= V.dias) { tip.hidden = true; return; }
     var dias = V.zonas[bar.dataset.z].dias, c = dias[i], tr = tramos(dias).filter(function (q) { return q.i <= i && i < q.j; })[0];
-    tip.textContent = dmL(V0 + i * DAY) + ' · ' + (c === 'G' ? T('can land · window ', 'se puede alunizar · ventana ') + rango(tr) : c === 'S' ? T('Sun, but Earth hidden', 'Sol, pero sin Tierra') : T('no Sun, or the night outlasts the battery', 'sin Sol, o la noche dura más que la batería'));
+    var emo = c === 'G' ? '☀️📡' : c === 'S' ? '☀️' + NOWIFI : '🌑';
+    tip.innerHTML = dmL(V0 + i * DAY) + ' · <span class="emo">' + emo + '</span>' + (c === 'G' ? T('can land · window ', 'se puede alunizar · ventana ') + rango(tr) : c === 'S' ? T('Sun, but Earth hidden', 'Sol, pero sin Tierra') : T('no Sun, or the night outlasts the battery', 'sin Sol, o la noche dura más que la batería'));
     var pr = $('win-p').querySelector('.lwp').getBoundingClientRect();
     tip.style.left = (e.clientX - pr.left) + 'px'; tip.style.top = (r.top - pr.top + r.height / 2 - 10) + 'px'; tip.hidden = false;
   });
