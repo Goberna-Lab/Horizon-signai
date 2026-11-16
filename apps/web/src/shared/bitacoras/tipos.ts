@@ -45,6 +45,8 @@ export type Bitacora = {
   prevista: Texto
   real: Texto
   resumen: Texto
+  /** Misión planificada (features/simulator/alunizaje/planGuiado.ts): pasos calculados por el motor, no hechos. */
+  plan?: { cumple: boolean }
   hechos: Hecho[]
   fuentes: Fuente[]
 }

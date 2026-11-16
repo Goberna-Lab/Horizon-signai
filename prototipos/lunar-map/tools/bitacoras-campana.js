@@ -119,6 +119,8 @@ function bitacora(m) {
   }
   const q = new URLSearchParams({ sitio: zona.id, fecha: new Date(m.ms).toISOString().slice(0, 19) + 'Z', estadia: String(REGLA.stayDays * 24), panel: String(REGLA.panelM), antena: String(REGLA.antennaM) });
   if (m.evaMs) { q.set('eva', String(Math.round((m.evaMs - m.ms) / H))); q.set('ruta', m.ruta); }
+  /* guiada: EVA cuenta el plan paso a paso, con los requisitos de la regla */
+  q.set('guia', m.id); q.set('bateria', String(REGLA.requirements.batteryH)); q.set('tierra', String(REGLA.requirements.minEarthPct));
   return { sim: '/simulador?' + q.toString(), ok: ev.ok, eventos: eventos.length, markdown: md };
 }
 

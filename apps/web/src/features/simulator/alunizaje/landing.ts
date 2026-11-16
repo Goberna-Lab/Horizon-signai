@@ -639,6 +639,7 @@ export class LandingSim {
   /** Tarjeta final: contacto, combustible y tiempo; se puede volver a volar. */
   _end() {
     const v = this.view, card = document.createElement('div'), R = this.result, P = this.plan;
+    v.guiada?.dispose(); // la nave se perdió en una misión guiada: queda esta tarjeta, que lo explica
     const miss = Math.hypot(P.final.x - P.planned.x, P.final.z - P.planned.z);
     v.alunizaje = { kind: R.kind, touchV: this.touchV ?? 0, tilt: this.tiltDeg ?? 0, miss, fuelS: this.fuel ?? 0, fuelKg: this.fuelKg ?? 0, t: this.t }; // para el informe final
     card.className = 'sim-lfp-end ' + R.kind;
@@ -865,7 +866,7 @@ export class LandingSim {
       this.tiltDeg = Math.min(hz.tilt, 25);
       if (R.kind === 'tip') { this.say('Aldrin', tr('We\'re going over!', '¡Nos vamos de lado!')); this.flash(tr('THE LANDER IS TIPPING OVER', 'LA NAVE ESTÁ VOLCANDO'), 4000); }
       // EVA: el nominal con su festejo; lo demás, como aviso crítico (corta lo que esté diciendo)
-      if (guiada) { /* la cuenta EVA con la bitácora (guiada.ts) */ }
+      if (guiada && (guiada.vuelca || R.kind === 'ok')) { /* la cuenta EVA con la bitácora (guiada.ts) */ }
       else if (R.kind === 'ok') avisarEva('aterrizaje-nominal');
       else avisarEva('aviso-critico', {
         tilt: tr(`We are down, but tilted ${Math.round(this.tiltDeg)} degrees. Panels and antenna are misaligned.`, `Estamos abajo, pero inclinados ${Math.round(this.tiltDeg)} grados. Paneles y antena desalineados.`),
@@ -889,7 +890,7 @@ export class LandingSim {
       this.lm.position.y = this.target.y + Math.sin(k * 1.3) * 1.6;
       if (this.settleT > 6 && !this.tipped) {
         this.tipped = true; this.state = 'lost';
-        if (v.guiada) { // volcó pero siguió operando: sigue la bitácora, sin «misión perdida»
+        if (v.guiada?.vuelca) { // volcó pero siguió operando: sigue la bitácora, sin «misión perdida»
           this.say(tr('Telemetry', 'Telemetría'), tr('Lander on its side. Still sending data.', 'Módulo de lado. Sigue mandando datos.'));
           this.ended = true; this.lmPos = this.lm.position.clone(); v.guiada.superficie(); return;
         }
@@ -911,7 +912,12 @@ export class LandingSim {
     });
     ev('reply', 4, () => this.say('Houston', R.kind === 'ok' ? tr('Roger. You got a bunch of guys about to turn blue. We\'re breathing again.', 'Entendido. Nos tenían a punto de ponernos azules. Respiramos de nuevo.') : `${tr('Roger.', 'Entendido.')} ${R.why}`, true));
     ev('summary', 5.5, () => this.say(tr('Telemetry', 'Telemetría'), tr(`Contact at ${fmt(this.touchV, 1)} m/s, footpads at ${fmt(this.tiltDeg, 1)}°, with ${fmt(Math.max(0, this.fuelKg), 0)} kg of fuel (${fmt(Math.max(0, this.fuel), 0)} s of hover).`, `Contacto a ${fmt(this.touchV, 1)} m/s, patas a ${fmt(this.tiltDeg, 1)}°, con ${fmt(Math.max(0, this.fuelKg), 0)} kg de combustible (${fmt(Math.max(0, this.fuel), 0)} s de vuelo estacionario).`)));
-    if (this.settleT > 7 && !this.ended) { this.ended = true; this.lmPos = this.lm.position.clone(); this._end(); }
+    if (this.settleT > 7 && !this.ended) {
+      this.ended = true; this.lmPos = this.lm.position.clone();
+      // Misión guiada: en vez de la tarjeta de contacto, sigue la estadía paso a paso; si el plan tiene caminata, al final se puede salir
+      if (v.guiada) { if ((v.plan?.tipo ?? 'tripulada') === 'tripulada' && (v.plan?.evaH > 0 || !v.guiada.b.plan)) v.guiada.salir = () => this._startEgress(); v.guiada.superficie(); }
+      else this._end();
+    }
   }
 
   /**

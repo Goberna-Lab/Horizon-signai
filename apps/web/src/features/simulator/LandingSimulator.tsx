@@ -20,6 +20,8 @@ import "./alunizaje/alunizaje.css"
  *    no se cae por lo inventado: el guiado esquiva el suelo generado y no hay fallo aleatorio.
  *  · `?bitacora=<id>`: una misión real guiada (@/shared/bitacoras, alunizaje/guiada.ts): su sitio, su fecha y EVA
  *    contando lo que pasó. Manda sobre lo demás.
+ *  · `&guia=<nombre>` (con `&bateria=<h>&tierra=<%>`): la misión planificada, guiada: EVA cuenta paso a paso lo que el
+ *    motor del Planificador calcula para ese lugar y esa fecha (alunizaje/planGuiado.ts). Con `?mission=`, `&guia=1`.
  *  · Sin nada: el plan de la misión CR-01 (Connecting Ridge · RoI 6, 18 de diciembre de 2026, 09:00 UTC).
  */
 export function LandingSimulator() {
@@ -40,11 +42,16 @@ export function LandingSimulator() {
   const num = (k: string, min: number, max: number) => { const n = Number(params.get(k)); return params.get(k) != null && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : undefined }
   const roverKmh = num("vel", 0.05, 5)
   const paradaH = num("parada", 0, 24)
-  const panelM = num("panel", 0, 30)
-  const antenaM = num("antena", 0, 30)
-  const estadiaH = num("estadia", 1, 24 * 60)
+  const panelM = num("panel", 0, 30) ?? mission?.panelHeightM
+  const antenaM = num("antena", 0, 30) ?? mission?.antennaHeightM
+  const estadiaH = num("estadia", 1, 24 * 60) ?? (mission ? mission.stayDays * 24 : undefined)
   const fallos = params.get("fallos") === "1"
   const bitacora = BITACORAS.find((b) => b.id === params.get("bitacora"))
+  // Recorrido guiado de una misión planificada: el nombre que EVA usa y los requisitos con que el motor la evalúa
+  const guiaP = params.get("guia")
+  const guiaNombre = guiaP ? (guiaP === "1" ? (mission?.name ?? "") : guiaP).replace(/[^0-9A-Za-zÀ-ÿ .\-]/g, "").slice(0, 24) || undefined : undefined
+  const bateriaH = num("bateria", 0, 720) ?? mission?.requirements.batteryH
+  const tierraPct = num("tierra", 0, 100) ?? mission?.requirements.minEarthPct
 
   useEffect(() => {
     let alive = true
@@ -54,7 +61,7 @@ export function LandingSimulator() {
       setSinPaquete(null)
       let stop: () => void
       try {
-        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora })
+        stop = await startLanding(host.current, { siteId, ms: msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guia: guiaNombre ? { nombre: guiaNombre, batteryH: bateriaH, minEarthPct: tierraPct } : undefined })
       } catch (e) {
         if (alive && String(e).includes("sitio-sin-paquete")) setSinPaquete(siteId ?? "?")
         return
@@ -66,7 +73,7 @@ export function LandingSimulator() {
       alive = false
       dispose?.()
     }
-  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora])
+  }, [siteId, msOk, ruta, evaH, tipo, roverKmh, paradaH, panelM, antenaM, estadiaH, fallos, bitacora, guiaNombre, bateriaH, tierraPct])
 
   return (
     <section className="screen sim-alz-screen">

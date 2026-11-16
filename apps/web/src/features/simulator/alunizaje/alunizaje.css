@@ -188,3 +188,4 @@
 .sim-bitacora .acts button { font: 600 13px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #F4EFE6; background: #C8102E; border: 0; padding: 10px 16px; cursor: pointer; }
 .sim-bitacora .acts button.sec { color: #111111; background: transparent; border: 1px solid #111111; }
 .sim-bitacora .acts button:focus-visible, .sim-bitacora summary:focus-visible { outline: 2px solid #111111; outline-offset: 3px; }
+.sim-bitacora b.mal { color: #C8102E; }
