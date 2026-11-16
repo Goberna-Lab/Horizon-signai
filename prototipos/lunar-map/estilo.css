@@ -30,6 +30,8 @@ body { font-family: var(--f-ui); }
 :is(.btn, .chip, .chips, .tabs, .tab, .ftab, .fbody, .sel, .screen, .kpi, .mrow, .pillnav, .logbtn, .utc, .flap b) { box-shadow: none !important; }
 .screen { border: var(--rule); }
 .fbody { border: var(--rule); background: var(--crema); }
+/* Dentro de la carpeta, «Mission sites» y «Missions» van sin borde: la carpeta ya los encuadra */
+.fbody .sites, .fbody .upcoming { border-color: transparent; }
 
 /* ---------- tipografía: títulos en Archivo; rótulos y cifras en mono pequeña (el «.lbl» del Planificador) ---------- */
 :is(.ph h2, .who-m, .mrow .nm, .pending .t) { font-family: var(--f-ui); letter-spacing: -0.03em; }
