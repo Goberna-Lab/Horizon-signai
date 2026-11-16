@@ -14,7 +14,7 @@ import { entender as entenderFrase, esEco, type QueEspera } from "./escucha"
 import { EVENTOS, fraseDe, guionDe, hayPeligro, marco, paginaDelMarco, PISTAS, TEXTOS, type Comentario } from "./guion"
 import { nombreDe, pideOtroIdioma, type Idioma } from "./idioma"
 import { intencionDe } from "./intencion"
-import { CONTROL, ELEGIR, ETAPAS, LANDING, OFERTA, textoDePaso, type Opcion, type Paso, type Recorrido } from "./recorridos"
+import { CONTROL, ELEGIR, ETAPAS, LANDING, OFERTA, recorridoParaRetomar, seGuarda, textoDePaso, type Opcion, type Paso, type Recorrido } from "./recorridos"
 import { useOido, type FraseOida } from "./oido"
 import * as tiempos from "./tiempos"
 import { sugerenciasDe, type Sugerencia } from "./sugerencias"
@@ -83,6 +83,24 @@ let saludoHecho = false
 const yaSaludo = () => saludoHecho
 const anotarSaludo = () => {
   saludoHecho = true
+}
+// La sección del recorrido en que va (sessionStorage): si la página se recarga fuera de la landing, EVA ofrece seguir
+// desde ahí (recorridoParaRetomar en ./recorridos.ts). En la landing se borra: ahí se empieza de cero.
+const PROGRESO = "horizon-signai.eva.progreso.v1"
+const leerProgreso = () => {
+  try {
+    return sessionStorage.getItem(PROGRESO)
+  } catch {
+    return null
+  }
+}
+const guardarProgreso = (id: string | null) => {
+  try {
+    if (id) sessionStorage.setItem(PROGRESO, id)
+    else sessionStorage.removeItem(PROGRESO)
+  } catch {
+    /* sin almacenamiento: al recargar empieza de cero */
+  }
 }
 /** La página se acaba de recargar porque eligió el otro idioma: vale una sola vez (luego se borra). */
 const recienCambioIdioma = () => {
@@ -333,6 +351,7 @@ export default function EvaCompanera() {
   const [riel, setRiel] = useState<{ etapa: number; camino: Opcion | null } | null>(null)
   const caminoActual = useRef<Opcion | null>(null)
   const opcionesDelPasoRef = useRef<() => Opcion[]>(() => [])
+  const darPasoRef = useRef<() => Promise<void>>(async () => {})
   const narrarRef = useRef<(tipo: string, frase: string) => boolean>(() => false)
   const [elegida, setElegida] = useState("")
   // El recorrido guiado en curso (./recorridos.ts) y el rótulo de por dónde va («3 / 10»).
@@ -882,6 +901,17 @@ export default function EvaCompanera() {
     // Mientras se carga, trae ya la voz de lo primero que va a decir (solo saluda en la landing).
     if (ruta.current === routes.landing) precargarVoz(idiomaRef.current, t.hola)
     await esperar(CARGA_MS)
+    if (ruta.current === routes.landing) guardarProgreso(null) // el inicio de la presentación: de cero
+    else {
+      const retomar = !yaSaludo() && !abiertaRef.current && !conversandoRef.current ? leerProgreso() : null
+      const r = retomar ? recorridoParaRetomar(retomar, recuerdos().nombre ?? "") : null
+      if (r) {
+        anotarSaludo()
+        recorrido.current = { r, i: 0 }
+        void darPasoRef.current()
+        return
+      }
+    }
     if (ruta.current !== routes.landing || yaSaludo() || abiertaRef.current || conversandoRef.current) {
       ocupada.current = false
       return
@@ -1010,6 +1040,7 @@ export default function EvaCompanera() {
     if (!t) return
     const p = t.r.pasos[t.i]
     const idioma = idiomaRef.current
+    if (t.i === 0 && seGuarda(t.r.id)) guardarProgreso(t.r.id) // entra a una sección: queda guardada por si recargan
     cerrarPregunta()
     setDuda("")
     quitarFoco()
@@ -1043,6 +1074,7 @@ export default function EvaCompanera() {
     if (!(await dicho) || recorrido.current !== t) return
     esperarEnPaso(frase)
   }
+  darPasoRef.current = darPaso
   /** «Next» o «Stop» en un paso del recorrido. */
   const alPaso = async (seguir: boolean) => {
     const t = recorrido.current
@@ -1064,6 +1096,7 @@ export default function EvaCompanera() {
     // Terminó: lo dice y sigue con lo que toca (abrir el Planificador, volver a ofrecer o volver a elegir camino).
     const fin = t.r.fin[idiomaRef.current]
     if (fin && !(await hablar(fin, "alegre"))) return
+    if (t.r.alFin) guardarProgreso("elegir") // sale de la app (el Planificador): al volver, sigue en «tu turno»
     if (t.r.alFin) await ejecutarAccion(t.r.alFin, (destino) => navegar(destino))
     else if (t.r.luego === "oferta") await preguntar(TEXTOS[idiomaRef.current].quien, "oferta")
     else if (t.r.luego === "elegir") {
@@ -1089,6 +1122,7 @@ export default function EvaCompanera() {
     await marcar(id)
     if (recorrido.current !== t) return
     if (!c.recorrido) {
+      guardarProgreso(null) // explora por su cuenta: el recorrido terminó
       cerrarPregunta()
       terminarRecorrido()
       ocupada.current = false
