@@ -227,6 +227,11 @@ export class LandingSim {
   }
 
   say(who, text, houston = false) {
+    // Misión robótica (rover o módulo fijo): no hay tripulación a bordo. Callan Armstrong y Aldrin y la nave es «el módulo».
+    if ((this.view.plan?.tipo ?? 'tripulada') !== 'tripulada') {
+      if (who === 'Armstrong' || who === 'Aldrin') return;
+      text = text.replace(/\bEagle\b/g, 'Lander').replace(/\bÁguila\b/g, 'Módulo');
+    }
     const linked = this.view.now?.earth.visible;
     const li = document.createElement('div');
     if (houston && !linked) {
@@ -637,7 +642,7 @@ export class LandingSim {
     const miss = Math.hypot(P.final.x - P.planned.x, P.final.z - P.planned.z);
     v.alunizaje = { kind: R.kind, touchV: this.touchV ?? 0, tilt: this.tiltDeg ?? 0, miss, fuelS: this.fuel ?? 0, fuelKg: this.fuelKg ?? 0, t: this.t }; // para el informe final
     card.className = 'sim-lfp-end ' + R.kind;
-    card.innerHTML = `<small>${R.kind === 'tip' || R.kind === 'crash' ? tr('MISSION LOST', 'MISIÓN PERDIDA') : tr('TOUCHDOWN', 'CONTACTO')} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? tr('The Eagle has landed', 'El Águila ha alunizado') : R.title}</b>
+    card.innerHTML = `<small>${R.kind === 'tip' || R.kind === 'crash' ? tr('MISSION LOST', 'MISIÓN PERDIDA') : tr('TOUCHDOWN', 'CONTACTO')} · ${v.siteName ?? ''}</small><b>${R.kind === 'ok' ? ((v.plan?.tipo ?? 'tripulada') === 'tripulada' ? tr('The Eagle has landed', 'El Águila ha alunizado') : tr('The lander has landed', 'El módulo ha alunizado')) : R.title}</b>
       ${R.kind === 'ok' ? '' : `<p>${R.why}</p>`}${R.real ? `<p class="real">${R.real}</p>` : ''}
       ${R.kind === 'crash' ? `<p class="why2">${tr('The site was not to blame: the altitude calculation failed, and no landing gear survives that speed.', 'El sitio no tuvo la culpa: falló el cálculo de la altura, y a esa velocidad ningún tren de aterrizaje aguanta.')}</p>` : ''}
       ${R.kind === 'tip' ? `<p class="why2">${P.lit ? tr('The lander followed the trajectory down to where the guidance took it, and the ground there would not hold it.', 'La nave siguió la trayectoria hasta donde la llevó el guiado, y el terreno ahí no la sostuvo.') : tr('The site was in shadow: without light there was no way to see the ground below.', 'El sitio estaba en sombra: sin luz no había forma de ver el suelo.')}</p>` : ''}
